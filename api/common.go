@@ -118,6 +118,7 @@ func HandleListWithPagination[T SearchableItem](
 
 type K8sClientProvider func() (*kubernetes.Clientset, *versioned.Clientset, error)
 
+// HandleDetailWithK8s 处理K8s资源详情请求
 func HandleDetailWithK8s[T any](
 	c *gin.Context,
 	logger *zap.Logger,
@@ -144,6 +145,38 @@ func HandleDetailWithK8s[T any](
 	middleware.ResponseSuccess(c, result, successMessage, nil)
 }
 
+// HandleListWithK8s 处理K8s资源列表请求
+func HandleListWithK8s[T SearchableItem](
+	c *gin.Context,
+	logger *zap.Logger,
+	getK8sClient K8sClientProvider,
+	operation func(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]T, error),
+	successMessage string,
+) {
+	ctx := GetRequestContext(c)
+	params := ParsePaginationParams(c)
+
+	clientset, _, err := getK8sClient()
+	if err != nil {
+		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+		return
+	}
+
+	items, err := operation(ctx, clientset, params.Namespace)
+	if err != nil {
+		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+		return
+	}
+
+	filteredItems := GenericSearchFilter(items, params.Search)
+	paged := Paginate(filteredItems, params.Offset, params.Limit)
+	middleware.ResponseSuccess(c, paged, successMessage, &model.PageMeta{
+		Total:  len(filteredItems),
+		Limit:  params.Limit,
+		Offset: params.Offset,
+	})
+}
+
 func GetRequestContext(c *gin.Context) context.Context {
 	if ctx := c.Request.Context(); ctx != nil {
 		return ctx
@@ -163,13 +196,22 @@ func GetTraceID(c *gin.Context) string {
 }
 
 func Paginate[T any](list []T, offset, limit int) []T {
-	if offset > len(list) {
+	if offset >= len(list) || offset < 0 {
 		return []T{}
 	}
+	if limit <= 0 {
+		return []T{}
+	}
+	
 	end := offset + limit
 	if end > len(list) {
 		end = len(list)
 	}
+	
+	if offset >= end {
+		return []T{}
+	}
+	
 	return list[offset:end]
 }
 

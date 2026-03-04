@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -73,13 +74,28 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
 
+		// 添加基本格式验证
+		if tokenStr == "" {
+			logger.Warn("empty token after prefix removal",
+				zap.String("traceId", traceId),
+				zap.String("clientIP", c.ClientIP()),
+			)
+			ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeAuthError,
+				Message: model.GetErrorMessage(model.CodeAuthError),
+				Details: "Token不能为空",
+			}, 401)
+			c.Abort()
+			return
+		}
+
 		segments := strings.Split(tokenStr, ".")
 		if len(segments) != 3 {
 			logger.Warn("invalid token format - wrong number of segments",
 				zap.String("traceId", traceId),
 				zap.String("clientIP", c.ClientIP()),
 				zap.Int("segments", len(segments)),
-				zap.String("token", tokenStr),
+				zap.String("token", maskToken(tokenStr)), // 遮蔽敏感信息
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeAuthError,
@@ -101,6 +117,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			logger.Warn("jwt parse error",
 				zap.String("traceId", traceId),
 				zap.String("clientIP", c.ClientIP()),
+				zap.String("maskedToken", maskToken(tokenStr)), // 遮蔽敏感信息
 				zap.Error(err),
 			)
 			ResponseError(c, logger, &model.APIError{
@@ -116,6 +133,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			logger.Warn("invalid jwt token",
 				zap.String("traceId", traceId),
 				zap.String("clientIP", c.ClientIP()),
+				zap.String("maskedToken", maskToken(tokenStr)), // 遮蔽敏感信息
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeAuthError,
@@ -142,6 +160,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 					c.Abort()
 				}
 			}()
+			
 			// 验证必要字段
 			username, usernameExists := safeStringClaim(claims, "username")
 
@@ -195,13 +214,31 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 				return
 			}
 
+			// 验证时间相关声明
+			if exp, ok := claims["exp"]; ok {
+				if expFloat, ok := exp.(float64); ok {
+					if int64(expFloat) < time.Now().Unix() {
+						logger.Warn("JWT token expired",
+							zap.String("traceId", traceId),
+							zap.String("clientIP", c.ClientIP()),
+						)
+						ResponseError(c, logger, &model.APIError{
+							Code:    model.CodeAuthError,
+							Message: model.GetErrorMessage(model.CodeAuthError),
+							Details: "Token已过期",
+						}, 401)
+						c.Abort()
+						return
+					}
+				}
+			}
+
 			c.Set("username", username)
 
 			// 安全地设置JTI（如果存在）
 			if jtiExists && jti != "" {
 				c.Set("jti", jti) // 保存JTI用于撤销
 			}
-
 		}
 
 		logger.Info("authentication successful",
@@ -212,4 +249,12 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 
 		c.Next()
 	}
+}
+
+// maskToken 遮蔽敏感的token信息，只保留部分字符
+func maskToken(token string) string {
+	if len(token) <= 10 {
+		return "***"
+	}
+	return token[:4] + "..." + token[len(token)-4:]
 }

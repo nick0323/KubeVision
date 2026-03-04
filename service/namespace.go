@@ -13,16 +13,8 @@ func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]mod
 	if err != nil {
 		return nil, err
 	}
-	result := make([]model.NamespaceDetail, 0, len(nsList.Items))
-	for _, ns := range nsList.Items {
-		result = append(result, model.NamespaceDetail{
-			Name:   ns.Name,
-			Status: string(ns.Status.Phase),
-			BaseMetadata: model.BaseMetadata{
-				Labels:      ns.Labels,
-				Annotations: ns.Annotations,
-			},
-		})
-	}
+	
+	// 使用通用映射函数
+	result := MapNamespaces(nsList.Items)
 	return result, nil
 }

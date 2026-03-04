@@ -99,16 +99,16 @@ html, body, #root {
 
 /* 侧边菜单自适应宽度 */
 .sider-menu {
-  width: 200px;
-  min-width: 160px;
+  width: 180px;
+  min-width: 100px;
   padding-top: 0;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: var(--bg-secondary);
-  box-shadow: 2px 0 8px #f0f1f2;
+  background: #ffffff; /* 白色背景 */
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1); /* 灰色阴影 */
   z-index: 10;
-  border-right: 1px solid var(--border-secondary);
+  border-right: 1px solid #e8e8e8; /* 灰色边框 */
   overflow: hidden;
   font-family: var(--font-main);
   transition: width 0.2s ease, min-width 0.2s ease;
@@ -116,8 +116,8 @@ html, body, #root {
 
 /* 侧边栏折叠状态样式 */
 .sider-menu.collapsed {
-  width: 64px;
-  min-width: 64px;
+  width: 60px;
+  min-width: 60px;
 }
 
 .sider-menu.collapsed .logo-text-full {
@@ -336,7 +336,7 @@ html, body, #root {
   width: 100%;
   max-width: none;
   padding: var(--spacing-xl) var(--spacing-xl) 0 var(--spacing-xl);
-  background: var(--bg-primary);
+  background: #ffffff; /* 白色背景 */
   margin: 0;
   box-sizing: border-box;
   min-height: 0;
@@ -345,6 +345,7 @@ html, body, #root {
   overflow-x: hidden;
   font-family: var(--font-main);
   padding-bottom: 0px; /* 完全消除底部内边距，减少表格下方的空白 */
+  gap: 16px; /* 内容之间的间距 */
 }
 
 /* 表格卡片内容区自适应 */
@@ -1306,6 +1307,7 @@ html, body, #root {
   padding: 28px 16px; /* 进一步减少内边距从32px 20px到28px 16px */
   border-radius: 24px;
   background: #fff;
+  border: 1px solid #bae7ff;
   box-shadow: 0 2px 12px 0 rgba(0,0,0,0.06);
   min-height: 160px; /* 进一步减少最小高度从180px到160px */
   gap: 0 12px; /* 进一步减少间距从0 16px到0 12px */

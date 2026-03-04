@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"hash/fnv"
 	"sync"
 	"time"
 
@@ -16,38 +17,57 @@ type LoginAttempt struct {
 }
 
 type AuthManager struct {
+	shards [32]*authShard  // 使用分片锁减少竞争
+	logger *zap.Logger
+	config *config.Manager
+	stopCh chan struct{}
+}
+
+type authShard struct {
 	attempts map[string]*LoginAttempt
 	mutex    sync.RWMutex
-	logger   *zap.Logger
-	config   *config.Manager
-	stopCh   chan struct{}
 }
 
 func NewAuthManager(logger *zap.Logger, configMgr *config.Manager) *AuthManager {
 	am := &AuthManager{
-		attempts: make(map[string]*LoginAttempt),
-		logger:   logger,
-		config:   configMgr,
-		stopCh:   make(chan struct{}),
+		logger: logger,
+		config: configMgr,
+		stopCh: make(chan struct{}),
+	}
+
+	// 初始化所有分片
+	for i := range am.shards {
+		am.shards[i] = &authShard{
+			attempts: make(map[string]*LoginAttempt),
+		}
 	}
 
 	go am.startCleanup()
 	return am
 }
 
+// getShard 根据用户名和IP获取对应的分片
+func (am *AuthManager) getShard(username, ip string) *authShard {
+	key := fmt.Sprintf("%s|%s", username, ip)
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return am.shards[h.Sum32()%32]
+}
+
 func (am *AuthManager) IsLocked(username, ip string) bool {
+	shard := am.getShard(username, ip)
 	key := am.makeKey(username, ip)
 
-	am.mutex.RLock()
-	defer am.mutex.RUnlock()
+	shard.mutex.RLock()
+	defer shard.mutex.RUnlock()
 
-	attempt, exists := am.attempts[key]
+	attempt, exists := shard.attempts[key]
 	if !exists {
 		return false
 	}
 
 	if time.Now().After(attempt.LockUntil) {
-		go am.clearAttempt(key)
+		go am.clearAttempt(username, ip)
 		return false
 	}
 
@@ -56,16 +76,17 @@ func (am *AuthManager) IsLocked(username, ip string) bool {
 }
 
 func (am *AuthManager) RecordFailure(username, ip string) {
+	shard := am.getShard(username, ip)
 	key := am.makeKey(username, ip)
 	authConfig := am.config.GetAuthConfig()
 
-	am.mutex.Lock()
-	defer am.mutex.Unlock()
+	shard.mutex.Lock()
+	defer shard.mutex.Unlock()
 
-	attempt, exists := am.attempts[key]
+	attempt, exists := shard.attempts[key]
 	if !exists {
 		attempt = &LoginAttempt{}
-		am.attempts[key] = attempt
+		shard.attempts[key] = attempt
 	}
 
 	attempt.FailCount++
@@ -83,18 +104,18 @@ func (am *AuthManager) RecordFailure(username, ip string) {
 }
 
 func (am *AuthManager) RecordSuccess(username, ip string) {
-	key := am.makeKey(username, ip)
-	am.clearAttempt(key)
+	am.clearAttempt(username, ip)
 }
 
 func (am *AuthManager) GetRemainingAttempts(username, ip string) int {
+	shard := am.getShard(username, ip)
 	key := am.makeKey(username, ip)
 	authConfig := am.config.GetAuthConfig()
 
-	am.mutex.RLock()
-	defer am.mutex.RUnlock()
+	shard.mutex.RLock()
+	defer shard.mutex.RUnlock()
 
-	attempt, exists := am.attempts[key]
+	attempt, exists := shard.attempts[key]
 	if !exists {
 		return authConfig.MaxLoginFail
 	}
@@ -107,12 +128,13 @@ func (am *AuthManager) GetRemainingAttempts(username, ip string) int {
 }
 
 func (am *AuthManager) GetLockTime(username, ip string) time.Duration {
+	shard := am.getShard(username, ip)
 	key := am.makeKey(username, ip)
 
-	am.mutex.RLock()
-	defer am.mutex.RUnlock()
+	shard.mutex.RLock()
+	defer shard.mutex.RUnlock()
 
-	attempt, exists := am.attempts[key]
+	attempt, exists := shard.attempts[key]
 	if !exists {
 		return 0
 	}
@@ -125,24 +147,28 @@ func (am *AuthManager) GetLockTime(username, ip string) time.Duration {
 }
 
 func (am *AuthManager) GetStats() map[string]interface{} {
-	am.mutex.RLock()
-	defer am.mutex.RUnlock()
-
-	now := time.Now()
+	totalAttempts := 0
 	lockedCount := 0
 
-	for _, attempt := range am.attempts {
-		if now.Before(attempt.LockUntil) {
-			authConfig := am.config.GetAuthConfig()
-			if attempt.FailCount >= authConfig.MaxLoginFail {
-				lockedCount++
+	for _, shard := range am.shards {
+		shard.mutex.RLock()
+		totalAttempts += len(shard.attempts)
+		
+		now := time.Now()
+		authConfig := am.config.GetAuthConfig()
+		for _, attempt := range shard.attempts {
+			if now.Before(attempt.LockUntil) {
+				if attempt.FailCount >= authConfig.MaxLoginFail {
+					lockedCount++
+				}
 			}
 		}
+		shard.mutex.RUnlock()
 	}
 
 	authConfig := am.config.GetAuthConfig()
 	return map[string]interface{}{
-		"totalAttempts": len(am.attempts),
+		"totalAttempts": totalAttempts,
 		"lockedUsers":   lockedCount,
 		"maxFailCount":  authConfig.MaxLoginFail,
 		"lockDuration":  authConfig.LockDuration.String(),
@@ -158,10 +184,13 @@ func (am *AuthManager) makeKey(username, ip string) string {
 	return fmt.Sprintf("%s|%s", username, ip)
 }
 
-func (am *AuthManager) clearAttempt(key string) {
-	am.mutex.Lock()
-	defer am.mutex.Unlock()
-	delete(am.attempts, key)
+func (am *AuthManager) clearAttempt(username, ip string) {
+	shard := am.getShard(username, ip)
+	key := am.makeKey(username, ip)
+
+	shard.mutex.Lock()
+	defer shard.mutex.Unlock()
+	delete(shard.attempts, key)
 }
 
 func (am *AuthManager) startCleanup() {
@@ -179,17 +208,19 @@ func (am *AuthManager) startCleanup() {
 }
 
 func (am *AuthManager) cleanup() {
-	am.mutex.Lock()
-	defer am.mutex.Unlock()
-
-	now := time.Now()
 	cleaned := 0
 
-	for key, attempt := range am.attempts {
-		if now.After(attempt.LockUntil) && now.Sub(attempt.LastFail) > time.Hour {
-			delete(am.attempts, key)
-			cleaned++
+	for _, shard := range am.shards {
+		shard.mutex.Lock()
+		now := time.Now()
+
+		for key, attempt := range shard.attempts {
+			if now.After(attempt.LockUntil) && now.Sub(attempt.LastFail) > time.Hour {
+				delete(shard.attempts, key)
+				cleaned++
+			}
 		}
+		shard.mutex.Unlock()
 	}
 
 	if cleaned > 0 {

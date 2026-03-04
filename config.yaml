@@ -37,7 +37,7 @@ log:
 
 auth:
   username: "admin"  # 设置环境变量 K8SVISION_AUTH_USERNAME
-  password: "jkw7LrgWsd0Kwp1w6OJixQ==:$2a$10$k4/doQhv.lEJh8ogE1GQgeSuMJODwPECiuxUPzvi270lxUhc0KCMO"
+  password: "eJG0L4WLM16b-ZwX_1COug==:$2a$10$tM.355VcfOeyPGVTnjSj6.mc.TD.Mhh0w4cLRL2C6MvY3HSMRo5r6"
   maxLoginFail: 5
   lockDuration: "10m"
   sessionTimeout: "24h"

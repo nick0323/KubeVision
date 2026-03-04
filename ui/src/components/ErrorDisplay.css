@@ -1,0 +1,84 @@
+/* ErrorDisplay 组件样式 */
+.error-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid;
+  border-radius: 8px;
+  margin: 24px auto;
+  max-width: 600px;
+}
+
+.error-display.error {
+  background: #fff1f0;
+  border-color: #ffa39e;
+}
+
+.error-display.warning {
+  background: #fffbe6;
+  border-color: #ffe58f;
+}
+
+.error-display.info {
+  background: #e6f7ff;
+  border-color: #91d5ff;
+}
+
+.error-display-icon {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.error-display-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-display-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.error-display.error .error-display-title {
+  color: #ff4d4f;
+}
+
+.error-display.warning .error-display-title {
+  color: #faad14;
+}
+
+.error-display.info .error-display-title {
+  color: #1890ff;
+}
+
+.error-display-message {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.error-display-retry {
+  margin-top: 16px;
+  padding: 8px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  background: #1890ff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.error-display-retry:hover {
+  background: #40a9ff;
+  transform: translateY(-1px);
+}
+
+.error-display-retry:active {
+  transform: translateY(0);
+}

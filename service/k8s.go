@@ -112,7 +112,7 @@ func applyK8sConfig(config *rest.Config, k8sConfig *model.KubernetesConfig) {
 func GetK8sClient() (*kubernetes.Clientset, *metrics.Clientset, error) {
 	config, err := GetK8sConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("获取K8s配置失败: %w", err)
 	}
 
 	cacheKey := generateK8sClientCacheKey(config)
@@ -131,12 +131,12 @@ func GetK8sClient() (*kubernetes.Clientset, *metrics.Clientset, error) {
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("创建K8s客户端失败: %w", err)
 	}
 
 	metricsClient, err := metrics.NewForConfig(config)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("创建Metrics客户端失败: %w", err)
 	}
 
 	if clientsCache != nil {

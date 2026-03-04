@@ -47,7 +47,7 @@ func ListIngresses(ctx context.Context, clientset *kubernetes.Clientset, namespa
 			Name:          ing.Name,
 			Hosts:         hosts,
 			Address:       address,
-			Ports:         []string{},
+			Ports:         model.DefaultIngressPorts,
 			Class:         class,
 			Status:        "Active",
 			Path:          paths,

@@ -19,10 +19,10 @@ func round1(val float64) float64 {
 
 func calcResourceUsage(nodesRaw *corev1.NodeList, podList *corev1.PodList) (cpuCap, memCap, cpuReq, cpuLim, memReq, memLim float64) {
 	for _, node := range nodesRaw.Items {
-		if c, ok := node.Status.Capacity["cpu"]; ok {
+		if c, ok := node.Status.Capacity[corev1.ResourceName(model.ResourceCPU)]; ok {
 			cpuCap += float64(c.MilliValue()) / 1000.0
 		}
-		if m, ok := node.Status.Capacity["memory"]; ok {
+		if m, ok := node.Status.Capacity[corev1.ResourceName(model.ResourceMemory)]; ok {
 			memCap += float64(m.Value()) / (1024 * 1024 * 1024)
 		}
 	}
@@ -30,18 +30,18 @@ func calcResourceUsage(nodesRaw *corev1.NodeList, podList *corev1.PodList) (cpuC
 		for _, pod := range podList.Items {
 			for _, c := range pod.Spec.Containers {
 				if c.Resources.Requests != nil {
-					if v, ok := c.Resources.Requests["cpu"]; ok {
+					if v, ok := c.Resources.Requests[corev1.ResourceName(model.ResourceCPU)]; ok {
 						cpuReq += float64(v.MilliValue()) / 1000.0
 					}
-					if v, ok := c.Resources.Requests["memory"]; ok {
+					if v, ok := c.Resources.Requests[corev1.ResourceName(model.ResourceMemory)]; ok {
 						memReq += float64(v.Value()) / (1024 * 1024 * 1024)
 					}
 				}
 				if c.Resources.Limits != nil {
-					if v, ok := c.Resources.Limits["cpu"]; ok {
+					if v, ok := c.Resources.Limits[corev1.ResourceName(model.ResourceCPU)]; ok {
 						cpuLim += float64(v.MilliValue()) / 1000.0
 					}
-					if v, ok := c.Resources.Limits["memory"]; ok {
+					if v, ok := c.Resources.Limits[corev1.ResourceName(model.ResourceMemory)]; ok {
 						memLim += float64(v.Value()) / (1024 * 1024 * 1024)
 					}
 				}
@@ -116,7 +116,7 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 		overview.NodeCount = len(nodes)
 		nodeReady := 0
 		for _, n := range nodes {
-			if n.Status == "Active" {
+			if n.Status == model.StatusActive {
 				nodeReady++
 			}
 		}
@@ -148,7 +148,7 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 		})
 		var recentEvents []model.EventStatus
 		for i, e := range events {
-			if i >= 5 {
+			if i >= model.DefaultOverviewEventsLimit {
 				break
 			}
 			recentEvents = append(recentEvents, model.EventStatus{

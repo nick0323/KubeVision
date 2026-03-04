@@ -80,9 +80,8 @@ func (pm *PasswordManager) GeneratePassword(length int) (string, error) {
 		length = model.MaxPasswordLen
 	}
 
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
 	b := make([]byte, length)
-	charsetBytes := []byte(charset)
+	charsetBytes := []byte(model.PasswordCharset)
 
 	for i := range b {
 		randomIndex := make([]byte, 1)

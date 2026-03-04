@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/nick0323/K8sVision/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -75,9 +76,8 @@ func hashPassword(password string) {
 }
 
 func generateRandomPassword(length int) {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
 	password := make([]byte, length)
-	charsetBytes := []byte(charset)
+	charsetBytes := []byte(model.PasswordCharset)
 
 	for i := range password {
 		randomIndex := make([]byte, 1)

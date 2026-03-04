@@ -8,15 +8,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func GenericResourceLister[T any](
-	ctx context.Context,
-	clientset *kubernetes.Clientset,
-	namespace string,
-	listFunc func(string) ([]T, error),
-) ([]T, error) {
-	return listFunc(namespace)
-}
-
 type K8sResourceLister[T any] interface {
 	List(ctx context.Context, namespace string) (T, error)
 }
@@ -31,6 +22,16 @@ func ListResourcesWithNamespace[T any](
 		return listAll()
 	}
 	return listNS(namespace)
+}
+
+// ResourceLister 通用资源列表器
+type ResourceLister[T any] struct {
+	Clientset *kubernetes.Clientset
+}
+
+// NewResourceLister 创建新的通用资源列表器
+func NewResourceLister[T any](clientset *kubernetes.Clientset) *ResourceLister[T] {
+	return &ResourceLister[T]{Clientset: clientset}
 }
 
 func FormatResourceUsage(cpu, mem int64) (cpuStr, memStr string) {
@@ -58,45 +59,45 @@ func FormatPodResourceUsage(podMetricsMap model.PodMetricsMap, namespace, name s
 
 func GetResourceStatus(ready, desired int32) string {
 	if ready == desired && desired > 0 {
-		return model.StatusReady
+		return "Ready"
 	} else if ready > 0 {
-		return model.StatusPartial
+		return "PartialAvailable"
 	} else if desired == 0 {
-		return model.StatusScaledToZero
+		return "Scaled to zero"
 	} else {
-		return model.StatusNotReady
+		return "Not Ready"
 	}
 }
 
 func GetWorkloadStatus(ready, desired int32) string {
 	if ready == desired && desired > 0 {
-		return model.StatusHealthy
+		return "Healthy"
 	} else if ready > 0 {
-		return model.StatusPartial
+		return "PartialAvailable"
 	} else {
-		return model.StatusAbnormal
+		return "Abnormal"
 	}
 }
 
 func GetJobStatus(succeeded, failed, active int32) string {
 	if succeeded > 0 {
-		return model.StatusSucceeded
+		return "Succeeded"
 	} else if failed > 0 {
-		return model.StatusFailed
+		return "Failed"
 	} else if active > 0 {
-		return model.StatusRunning
+		return "Running"
 	} else {
-		return model.StatusPending
+		return "Pending"
 	}
 }
 
 func GetCronJobStatus(activeCount int, lastSuccessfulTime interface{}) string {
 	if activeCount > 0 {
-		return model.StatusRunning
+		return "Running"
 	} else if lastSuccessfulTime != nil {
-		return model.StatusSucceeded
+		return "Succeeded"
 	} else {
-		return model.StatusPending
+		return "Pending"
 	}
 }
 

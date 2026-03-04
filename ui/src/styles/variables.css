@@ -1,0 +1,339 @@
+/* ============================================
+   KubeVision 全局 CSS 变量
+   统一设计语言和样式规范
+   ============================================ */
+
+:root {
+  /* ============================================
+     颜色系统
+     ============================================ */
+  
+  /* 主色调 */
+  --color-primary: #1890ff;
+  --color-primary-light: #40a9ff;
+  --color-primary-dark: #096dd9;
+  --color-primary-lightest: #e6f7ff;
+  
+  /* 成功色 */
+  --color-success: #52c41a;
+  --color-success-light: #73d13d;
+  --color-success-lightest: #f6ffed;
+  
+  /* 警告色 */
+  --color-warning: #faad14;
+  --color-warning-light: #ffc53d;
+  --color-warning-lightest: #fffbe6;
+  
+  /* 危险色 */
+  --color-danger: #ff4d4f;
+  --color-danger-light: #ff7875;
+  --color-danger-lightest: #fff1f0;
+  
+  /* 中性色 */
+  --color-black: #000000;
+  --color-white: #ffffff;
+  
+  /* 文本颜色 */
+  --text-primary: #222222;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-quaternary: #bfbfbf;
+  --text-disabled: #d9d9d9;
+  
+  /* 背景颜色 */
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f5f5f5;
+  --bg-hover: #e6f7ff;
+  --bg-disabled: #f0f0f0;
+  --bg-container: #fafafa;
+  --bg-tag: #f5f5f5;
+  
+  /* 边框颜色 */
+  --border-primary: #d9d9d9;
+  --border-secondary: #e8e8e8;
+  --border-tertiary: #f0f0f0;
+  --border-hover: #40a9ff;
+  --border-focus: #1890ff;
+  
+  /* ============================================
+     字体系统
+     ============================================ */
+  
+  /* 字体家族 */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-family-code: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  
+  /* 字体大小 */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  
+  /* 字体粗细 */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* 行高 */
+  --line-height-none: 1;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+  
+  /* 字间距 */
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+  
+  /* ============================================
+     间距系统
+     ============================================ */
+  
+  /* 间距 */
+  --spacing-0: 0;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+  --spacing-3xl: 40px;
+  --spacing-4xl: 48px;
+  --spacing-5xl: 64px;
+  
+  /* ============================================
+     圆角系统
+     ============================================ */
+  
+  /* 圆角 */
+  --radius-none: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+  
+  /* ============================================
+     阴影系统
+     ============================================ */
+  
+  /* 阴影 */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  
+  /* ============================================
+     动画系统
+     ============================================ */
+  
+  /* 过渡时间 */
+  --transition-fast: 150ms;
+  --transition-normal: 200ms;
+  --transition-slow: 300ms;
+  --transition-slower: 500ms;
+  
+  /* 过渡函数 */
+  --transition-ease: ease;
+  --transition-linear: linear;
+  --transition-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --transition-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --transition-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* ============================================
+     布局系统
+     ============================================ */
+  
+  /* 侧边栏 */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --sidebar-header-height: 64px;
+  
+  /* 头部 */
+  --header-height: 64px;
+  
+  /* 内容区 */
+  --content-max-width: 1440px;
+  --content-padding: 24px;
+  
+  /* 卡片 */
+  --card-padding: 24px;
+  --card-header-height: 48px;
+  
+  /* ============================================
+     状态颜色
+     ============================================ */
+  
+  /* 状态 - 就绪/成功 */
+  --status-ready-bg: #e6f7e6;
+  --status-ready-color: #52c41a;
+  --status-ready-border: #b7eb8f;
+  
+  /* 状态 - 运行中 */
+  --status-running-bg: #e6f7ff;
+  --status-running-color: #1890ff;
+  --status-running-border: #91d5ff;
+  
+  /* 状态 - 等待/挂起 */
+  --status-pending-bg: #fff7e6;
+  --status-pending-color: #faad14;
+  --status-pending-border: #ffd591;
+  
+  /* 状态 - 失败/错误 */
+  --status-failed-bg: #fff1f0;
+  --status-failed-color: #ff4d4f;
+  --status-failed-border: #ffa39e;
+  
+  /* 状态 - 部分可用 */
+  --status-partial-bg: #fff7e6;
+  --status-partial-color: #faad14;
+  --status-partial-border: #ffd591;
+  
+  /* ============================================
+     Z-index 层级
+     ============================================ */
+  
+  --z-index-base: 1;
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+  --z-index-notification: 1080;
+  
+  /* ============================================
+     其他
+     ============================================ */
+  
+  /* 模糊效果 */
+  --blur-sm: 4px;
+  --blur-md: 8px;
+  --blur-lg: 16px;
+  --blur-xl: 24px;
+  
+  /* 透明度 */
+  --opacity-disabled: 0.5;
+  --opacity-hover: 0.8;
+  --opacity-active: 0.6;
+}
+
+/* ============================================
+   全局样式重置和基础样式
+   ============================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+}
+
+/* 链接样式 */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-normal) var(--transition-ease);
+}
+
+a:hover {
+  color: var(--color-primary-light);
+}
+
+a:active {
+  color: var(--color-primary-dark);
+}
+
+/* 按钮基础样式 */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  outline: none;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+/* 输入框基础样式 */
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-normal) var(--transition-ease);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--color-primary-lightest);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: var(--bg-disabled);
+  cursor: not-allowed;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* 选中文本颜色 */
+::selection {
+  background-color: var(--color-primary-lightest);
+  color: var(--color-primary);
+}

@@ -148,7 +148,9 @@ func (m *Manager) Close() error {
 func (m *Manager) GetConfig() *model.Config {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	return m.config
+	// 返回副本以防止外部修改
+	configCopy := *m.config
+	return &configCopy
 }
 
 // reload 重新加载配置

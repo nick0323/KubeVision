@@ -6,11 +6,11 @@ import (
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
-	"github.com/nick0323/K8sVision/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -51,46 +51,22 @@ func getJobDetail(
 			return
 		}
 		ctx := GetRequestContext(c)
-		ns := c.Param("namespace")
+		namespace := c.Param("namespace")
 		name := c.Param("name")
-		job, err := clientset.BatchV1().Jobs(ns).Get(ctx, name, metav1.GetOptions{})
+		
+		job, err := clientset.BatchV1().Jobs(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
 
-		image := ""
-		if len(job.Spec.Template.Spec.Containers) > 0 {
-			image = job.Spec.Template.Spec.Containers[0].Image
+		// 转换为 Unstructured 对象（原始 map 格式）
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(job)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
 		}
 
-		startTime := ""
-		if job.Status.StartTime != nil {
-			startTime = job.Status.StartTime.Format("2006-01-02 15:04:05")
-		}
-
-		completionTime := ""
-		if job.Status.CompletionTime != nil {
-			completionTime = job.Status.CompletionTime.Format("2006-01-02 15:04:05")
-		}
-
-		jobDetail := model.JobDetail{
-			CommonResourceFields: model.CommonResourceFields{
-				Namespace: job.Namespace,
-				Name:      job.Name,
-				Status:    service.GetJobStatus(job.Status.Succeeded, job.Status.Failed, job.Status.Active),
-				BaseMetadata: model.BaseMetadata{
-					Labels:      job.Labels,
-					Annotations: job.Annotations,
-				},
-			},
-			Completions:    *job.Spec.Completions,
-			Succeeded:      job.Status.Succeeded,
-			Failed:         job.Status.Failed,
-			StartTime:      startTime,
-			CompletionTime: completionTime,
-			Image:          image,
-		}
-		middleware.ResponseSuccess(c, jobDetail, DetailSuccessMessage, nil)
+		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

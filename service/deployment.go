@@ -14,16 +14,8 @@ func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, names
 	if err != nil {
 		return nil, err
 	}
-	result := make([]model.DeploymentStatus, 0, len(depList.Items))
-	for _, d := range depList.Items {
-		status := GetWorkloadStatus(d.Status.ReadyReplicas, d.Status.Replicas)
-		result = append(result, model.DeploymentStatus{
-			Namespace: d.Namespace,
-			Name:      d.Name,
-			Available: d.Status.ReadyReplicas,
-			Desired:   d.Status.Replicas,
-			Status:    status,
-		})
-	}
+	
+	// 使用通用映射函数
+	result := MapDeployments(depList.Items)
 	return result, nil
 }

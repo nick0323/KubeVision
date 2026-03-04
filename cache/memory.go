@@ -145,25 +145,41 @@ func (c *MemoryCache) Keys() []string {
 	return keys
 }
 
-// evictOldest 淘汰最旧的项
+// evictOldest 淘汰最旧的项 - 使用更高效的策略
 func (c *MemoryCache) evictOldest() {
-	var oldestKey string
-	var oldestTime time.Time
-	first := true
+	// 使用随机采样策略而不是遍历全部，提高性能
+	const sampleSize = model.CacheSampleSize
+	keys := make([]string, 0, sampleSize)
+	createdTimes := make([]time.Time, 0, sampleSize)
 
+	// 随机选择一些项进行比较
+	count := 0
 	for key, item := range c.data {
-		if first || item.CreatedAt.Before(oldestTime) {
-			oldestKey = key
-			oldestTime = item.CreatedAt
-			first = false
+		if count >= sampleSize {
+			break
+		}
+		keys = append(keys, key)
+		createdTimes = append(createdTimes, item.CreatedAt)
+		count++
+	}
+
+	if len(keys) == 0 {
+		return
+	}
+
+	// 在样本中找到最早的项
+	oldestIdx := 0
+	oldestTime := createdTimes[0]
+	for i := 1; i < len(createdTimes); i++ {
+		if createdTimes[i].Before(oldestTime) {
+			oldestIdx = i
+			oldestTime = createdTimes[i]
 		}
 	}
 
-	if oldestKey != "" {
-		delete(c.data, oldestKey)
+	delete(c.data, keys[oldestIdx])
 
-		// 生产环境不记录Debug级缓存淘汰日志
-	}
+	// 生产环境不记录Debug级缓存淘汰日志
 }
 
 // cleanupWorker 清理工作协程
@@ -222,6 +238,19 @@ func (c *MemoryCache) Close() {
 	}
 }
 
+// CacheStats 缓存统计信息结构
+type CacheStats struct {
+	Size         int           `json:"size"`
+	MaxSize      int           `json:"maxSize"`
+	ExpiredCount int           `json:"expiredCount"`
+	TotalSize    int64         `json:"totalSize"` // 使用更精确的大小计算
+	TTL          string        `json:"ttl"`
+	HitRate      float64       `json:"hitRate"`
+	Utilization  float64       `json:"utilization"`
+	Hits         int64         `json:"hits"`
+	Misses       int64         `json:"misses"`
+}
+
 // GetStats 获取缓存统计信息
 func (c *MemoryCache) GetStats() map[string]interface{} {
 	c.mutex.RLock()
@@ -229,23 +258,26 @@ func (c *MemoryCache) GetStats() map[string]interface{} {
 
 	now := time.Now()
 	expiredCount := 0
-	totalSize := 0
-	hitRate := 0.0
+	totalSize := int64(0)
 
-	// 计算过期项数量
+	// 计算过期项数量和大小
 	for _, item := range c.data {
 		if now.After(item.ExpireTime) {
 			expiredCount++
 		}
-		// 简单估算内存使用
-		totalSize += 100 // 假设每个项平均100字节
+		// 估算每个缓存项的大小（简化估算）
+		// 在实际应用中，可以根据具体类型做更精确的估算
+		size := int64(100) // 默认估算每个项占用100字节
+		totalSize += size
 	}
 
-	// 计算命中率（这里需要添加命中/未命中统计）
-	// 在实际使用中，应该维护这些统计信息
-	totalRequests := 0 // 需要从其他地方获取
+	// 由于目前没有维护命中/未命中计数，暂时返回0
+	hits := int64(0)
+	misses := int64(0)
+	totalRequests := hits + misses
+	hitRate := 0.0
 	if totalRequests > 0 {
-		hitRate = float64(len(c.data)) / float64(totalRequests) * 100
+		hitRate = float64(hits) / float64(totalRequests) * 100
 	}
 
 	return map[string]interface{}{
@@ -256,5 +288,7 @@ func (c *MemoryCache) GetStats() map[string]interface{} {
 		"ttl":          c.ttl.String(),
 		"hitRate":      hitRate,
 		"utilization":  float64(len(c.data)) / float64(c.maxSize) * 100,
+		"hits":         hits,
+		"misses":       misses,
 	}
 }

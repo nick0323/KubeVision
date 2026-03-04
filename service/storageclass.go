@@ -22,7 +22,7 @@ func ListStorageClasses(ctx context.Context, clientset *kubernetes.Clientset) ([
 
 		isDefault := false
 		if sc.Annotations != nil {
-			if _, ok := sc.Annotations["storageclass.kubernetes.io/is-default-class"]; ok {
+			if _, ok := sc.Annotations[model.AnnotationStorageClassDefault]; ok {
 				isDefault = true
 			}
 		}

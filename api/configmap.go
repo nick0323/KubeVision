@@ -10,9 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
+// RegisterConfigMap 注册 ConfigMap 相关路由
 func RegisterConfigMap(
 	r *gin.RouterGroup,
 	logger *zap.Logger,
@@ -52,31 +54,20 @@ func getConfigMapDetail(
 		ctx := GetRequestContext(c)
 		ns := c.Param("namespace")
 		name := c.Param("name")
+		
 		configMap, err := clientset.CoreV1().ConfigMaps(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
 
-		keys := make([]string, 0, len(configMap.Data))
-		for key := range configMap.Data {
-			keys = append(keys, key)
+		// 转换为 Unstructured 对象（原始 map 格式）
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(configMap)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
 		}
 
-		configMapDetail := model.ConfigMapDetail{
-			CommonResourceFields: model.CommonResourceFields{
-				Namespace: configMap.Namespace,
-				Name:      configMap.Name,
-				Status:    "Active",
-				BaseMetadata: model.BaseMetadata{
-					Labels:      configMap.Labels,
-					Annotations: configMap.Annotations,
-				},
-			},
-			DataCount: len(configMap.Data),
-			Keys:      keys,
-			Data:      configMap.Data,
-		}
-		middleware.ResponseSuccess(c, configMapDetail, DetailSuccessMessage, nil)
+		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

@@ -6,11 +6,11 @@ import (
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
-	"github.com/nick0323/K8sVision/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -18,14 +18,14 @@ import (
 func RegisterStatefulSet(
 	r *gin.RouterGroup,
 	logger *zap.Logger,
-	getK8sClient K8sClientProvider, // 使用类型别名简化签名
+	getK8sClient K8sClientProvider,
 	listStatefulSets func(context.Context, *kubernetes.Clientset, string) ([]model.StatefulSetStatus, error),
 ) {
 	r.GET("/statefulsets", getStatefulSetList(logger, getK8sClient, listStatefulSets))
 	r.GET("/statefulsets/:namespace/:name", getStatefulSetDetail(logger, getK8sClient))
 }
 
-// getStatefulSetList 获取StatefulSet列表的处理函数
+// getStatefulSetList 获取 StatefulSet 列表的处理函数
 func getStatefulSetList(
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
@@ -42,7 +42,7 @@ func getStatefulSetList(
 	}
 }
 
-// getStatefulSetDetail 获取StatefulSet详情的处理函数
+// getStatefulSetDetail 获取 StatefulSet 详情的处理函数
 func getStatefulSetDetail(
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
@@ -54,38 +54,22 @@ func getStatefulSetDetail(
 			return
 		}
 		ctx := GetRequestContext(c)
-		ns := c.Param("namespace")
+		namespace := c.Param("namespace")
 		name := c.Param("name")
-		sts, err := clientset.AppsV1().StatefulSets(ns).Get(ctx, name, metav1.GetOptions{})
+		
+		sts, err := clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
 
-		image := ""
-		if len(sts.Spec.Template.Spec.Containers) > 0 {
-			image = sts.Spec.Template.Spec.Containers[0].Image
+		// 转换为 Unstructured 对象（原始 map 格式）
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(sts)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
 		}
 
-		statefulSetDetail := model.StatefulSetDetail{
-			WorkloadCommonFields: model.WorkloadCommonFields{
-				CommonResourceFields: model.CommonResourceFields{
-					Namespace: sts.Namespace,
-					Name:      sts.Name,
-					Status:    service.GetWorkloadStatus(sts.Status.AvailableReplicas, *sts.Spec.Replicas),
-					BaseMetadata: model.BaseMetadata{
-						Labels:      sts.Labels,
-						Annotations: sts.Annotations,
-					},
-				},
-				Available: sts.Status.AvailableReplicas,
-				Desired:   *sts.Spec.Replicas,
-				Selector:  sts.Spec.Selector.MatchLabels,
-				Image:     image,
-			},
-			Replicas:    *sts.Spec.Replicas,
-			ServiceName: sts.Spec.ServiceName,
-		}
-		middleware.ResponseSuccess(c, statefulSetDetail, DetailSuccessMessage, nil)
+		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

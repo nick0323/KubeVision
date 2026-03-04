@@ -11,8 +11,8 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 func RegisterPod(
@@ -57,7 +57,7 @@ func getPodList(
 
 func getPodDetail(
 	logger *zap.Logger,
-	getK8sClient func() (*kubernetes.Clientset, *versioned.Clientset, error),
+	getK8sClient K8sClientProvider,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientset, _, err := getK8sClient()
@@ -66,32 +66,22 @@ func getPodDetail(
 			return
 		}
 		ctx := GetRequestContext(c)
-		ns := c.Param("namespace")
+		namespace := c.Param("namespace")
 		name := c.Param("name")
-		pod, err := clientset.CoreV1().Pods(ns).Get(ctx, name, metav1.GetOptions{})
+		
+		pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
-		containers := make([]string, 0, len(pod.Spec.Containers))
-		for _, ctn := range pod.Spec.Containers {
-			containers = append(containers, ctn.Name+" ("+ctn.Image+")")
+
+		// 转换为 Unstructured 对象（原始 map 格式）
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
 		}
-		podDetail := model.PodDetail{
-			CommonResourceFields: model.CommonResourceFields{
-				Namespace: pod.Namespace,
-				Name:      pod.Name,
-				Status:    string(pod.Status.Phase),
-				BaseMetadata: model.BaseMetadata{
-					Labels:      pod.Labels,
-					Annotations: pod.Annotations,
-				},
-			},
-			PodIP:      pod.Status.PodIP,
-			NodeName:   pod.Spec.NodeName,
-			StartTime:  pod.Status.StartTime.Format("2006-01-02 15:04:05"),
-			Containers: containers,
-		}
-		middleware.ResponseSuccess(c, podDetail, "success", nil)
+
+		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

@@ -84,7 +84,7 @@ func getNodeDetail(
 			}
 		}
 		podsCapacity := 0
-		if v, ok := node.Status.Allocatable["pods"]; ok {
+		if v, ok := node.Status.Allocatable[v1.ResourceName(model.ResourcePods)]; ok {
 			podsCapacity = int(v.Value())
 		}
 		ip := ""
@@ -96,8 +96,8 @@ func getNodeDetail(
 		}
 		roles := make([]string, 0)
 		for key := range node.Labels {
-			if strings.HasPrefix(key, "node-role.kubernetes.io/") {
-				role := strings.TrimPrefix(key, "node-role.kubernetes.io/")
+			if strings.HasPrefix(key, model.LabelNodeRolePrefix) {
+				role := strings.TrimPrefix(key, model.LabelNodeRolePrefix)
 				if role == "" {
 					role = "worker"
 				}

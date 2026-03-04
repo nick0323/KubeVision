@@ -277,10 +277,52 @@ type ServiceDetail struct {
 }
 
 // 工作负载资源详情结构体
+// 已废弃：改用 K8sRawResource 返回原始 K8s 数据
 type DeploymentDetail struct {
 	WorkloadCommonFields
 	Replicas int32  `json:"replicas"`
 	Strategy string `json:"strategy"`
+}
+
+// K8sRawResource 原始 K8s 资源结构
+// 用于返回完整的 K8s 资源对象，包含 metadata、spec、status
+type K8sRawResource struct {
+	// API 版本
+	ApiVersion string `json:"apiVersion"`
+	// 资源种类
+	Kind string `json:"kind"`
+	// 元数据
+	Metadata ResourceMetadata `json:"metadata"`
+	// 规格（不同类型资源结构不同）
+	Spec interface{} `json:"spec,omitempty"`
+	// 状态（不同类型资源结构不同）
+	Status interface{} `json:"status,omitempty"`
+}
+
+// ResourceMetadata 资源元数据
+type ResourceMetadata struct {
+	Name              string            `json:"name"`
+	Namespace         string            `json:"namespace,omitempty"`
+	UID               string            `json:"uid"`
+	ResourceVersion   string            `json:"resourceVersion"`
+	Generation        int64             `json:"generation,omitempty"`
+	CreationTimestamp string            `json:"creationTimestamp"`
+	DeletionTimestamp *string           `json:"deletionTimestamp,omitempty"`
+	Labels            map[string]string `json:"labels,omitempty"`
+	Annotations       map[string]string `json:"annotations,omitempty"`
+	OwnerReferences   []OwnerReference  `json:"ownerReferences,omitempty"`
+	Finalizers        []string          `json:"finalizers,omitempty"`
+	ManagedFields     []interface{}     `json:"managedFields,omitempty"`
+}
+
+// OwnerReference 所有者引用
+type OwnerReference struct {
+	APIVersion         string `json:"apiVersion"`
+	Kind               string `json:"kind"`
+	Name               string `json:"name"`
+	UID                string `json:"uid"`
+	Controller         *bool  `json:"controller,omitempty"`
+	BlockOwnerDeletion *bool  `json:"blockOwnerDeletion,omitempty"`
 }
 
 type StatefulSetDetail struct {

@@ -2,13 +2,15 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 
+	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -43,33 +45,28 @@ func getServiceDetail(
 	getK8sClient K8sClientProvider,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		HandleDetailWithK8s(c, logger, getK8sClient,
-			func(ctx context.Context, clientset *kubernetes.Clientset, namespace, name string) (model.ServiceDetail, error) {
-				svc, err := clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
-				if err != nil {
-					return model.ServiceDetail{}, err
-				}
+		clientset, _, err := getK8sClient()
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+		ctx := GetRequestContext(c)
+		namespace := c.Param("namespace")
+		name := c.Param("name")
+		
+		svc, err := clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusNotFound)
+			return
+		}
 
-				ports := make([]string, 0, len(svc.Spec.Ports))
-				for _, p := range svc.Spec.Ports {
-					ports = append(ports, fmt.Sprintf("%d/%s", p.Port, p.Protocol))
-				}
+		// 转换为 Unstructured 对象（原始 map 格式）
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(svc)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
 
-				return model.ServiceDetail{
-					CommonResourceFields: model.CommonResourceFields{
-						Namespace: svc.Namespace,
-						Name:      svc.Name,
-						Status:    "Active",
-						BaseMetadata: model.BaseMetadata{
-							Labels:      svc.Labels,
-							Annotations: svc.Annotations,
-						},
-					},
-					Type:      string(svc.Spec.Type),
-					ClusterIP: svc.Spec.ClusterIP,
-					Ports:     ports,
-					Selector:  svc.Spec.Selector,
-				}, nil
-			}, DetailSuccessMessage)
+		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

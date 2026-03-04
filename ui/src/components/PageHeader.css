@@ -1,0 +1,76 @@
+/* PageHeader 组件样式 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* 垂直居中 */
+  margin-bottom: 16px; /* 增加底部边距 */
+  padding: 12px 16px; /* 增加内边距 */
+  background: #ffffff; /* 白色背景 */
+  border-radius: 8px; /* 圆角 */
+  border: 1px solid #bae7ff; /* 更淡的蓝色边框 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+}
+
+.page-header-left {
+  display: flex;
+  align-items: center; /* 垂直居中 */
+  gap: 12px;
+}
+
+.page-title {
+  margin: 0; /* 移除所有外边距 */
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1; /* 固定行高 */
+  display: flex;
+  align-items: center; /* 垂直居中 */
+}
+
+.page-separator {
+  color: #e0e0e0;
+  font-size: 18px;
+  font-weight: 300;
+  margin: 0 2px;
+  line-height: 1; /* 固定行高 */
+  display: inline-block;
+  vertical-align: middle; /* 垂直居中 */
+}
+
+.page-collapse-btn {
+  display: flex;
+  align-items: center; /* 垂直居中 */
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  margin-left: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #999;
+  transition: all 0.2s ease;
+  flex-shrink: 0; /* 防止压缩 */
+}
+
+.page-collapse-btn:hover {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.page-collapse-btn:active {
+  transform: scale(0.95);
+}
+
+.page-header-right {
+  display: flex;
+  align-items: center; /* 垂直居中 */
+  gap: 8px;
+  flex-shrink: 0; /* 防止压缩 */
+}
+
+/* 确保右侧子元素垂直居中 */
+.page-header-right > * {
+  margin: 0; /* 移除子元素的外边距 */
+}

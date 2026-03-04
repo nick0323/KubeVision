@@ -168,6 +168,17 @@ func (m *Metrics) RecordGoroutineCount(count int64) {
 	atomic.StoreInt64(&m.GoroutineCount, count)
 }
 
+// UpdateSystemMetrics 更新系统指标
+func (m *Metrics) UpdateSystemMetrics() {
+	// 更新内存使用情况
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	m.RecordMemoryUsage(int64(memStats.Alloc), int64(memStats.Sys))
+
+	// 更新Goroutine数量
+	m.RecordGoroutineCount(int64(runtime.NumGoroutine()))
+}
+
 // GetStats 获取统计信息
 func (m *Metrics) GetStats() map[string]interface{} {
 	m.mutex.RLock()
@@ -365,13 +376,7 @@ func (m *Monitor) StartPeriodicLogging(interval time.Duration) {
 
 // updateSystemMetrics 更新系统指标
 func (m *Monitor) updateSystemMetrics() {
-	// 更新内存使用情况
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-	m.metrics.RecordMemoryUsage(int64(memStats.Alloc), int64(memStats.Sys))
-
-	// 更新Goroutine数量
-	m.metrics.RecordGoroutineCount(int64(runtime.NumGoroutine()))
+	m.metrics.UpdateSystemMetrics()
 }
 
 // Close 关闭监控器

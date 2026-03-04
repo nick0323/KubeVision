@@ -106,7 +106,7 @@ func getIngressDetail(
 			},
 			Hosts:         hosts,
 			Address:       address,
-			Ports:         []string{"80", "443"},
+			Ports:         model.DefaultIngressPorts,
 			Class:         class,
 			Path:          paths,
 			TargetService: targetServices,

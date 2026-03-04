@@ -160,33 +160,32 @@ func (app *Application) registerRoutes(r *gin.Engine, cfg *model.Config) {
 }
 
 func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
+	// 注册概览
 	api.RegisterOverview(apiGroup, app.logger, app.getOverviewHandler())
 
-	api.RegisterNode(apiGroup, app.logger, service.GetK8sClient, service.ListPodsWithRaw, service.ListNodes)
+	// 注册资源类型（使用原有的注册函数）
 	api.RegisterPod(apiGroup, app.logger, service.GetK8sClient, service.ListPodsWithRaw)
 	api.RegisterDeployment(apiGroup, app.logger, service.GetK8sClient, service.ListDeployments)
-	api.RegisterStatefulSet(apiGroup, app.logger, service.GetK8sClient, service.ListStatefulSets)
-	api.RegisterDaemonSet(apiGroup, app.logger, service.GetK8sClient, service.ListDaemonSets)
-
 	api.RegisterService(apiGroup, app.logger, service.GetK8sClient, service.ListServices)
-	api.RegisterIngress(apiGroup, app.logger, service.GetK8sClient, service.ListIngresses)
-
-	api.RegisterCronJob(apiGroup, app.logger, service.GetK8sClient, service.ListCronJobs)
-	api.RegisterJob(apiGroup, app.logger, service.GetK8sClient, service.ListJobs)
-
+	api.RegisterNode(apiGroup, app.logger, service.GetK8sClient, service.ListPodsWithRaw, service.ListNodes)
 	api.RegisterNamespace(apiGroup, app.logger, service.GetK8sClient, service.ListNamespaces)
 	api.RegisterEvent(apiGroup, app.logger, service.GetK8sClient, service.ListEvents)
 
+	// 注册其他资源类型
+	api.RegisterStatefulSet(apiGroup, app.logger, service.GetK8sClient, service.ListStatefulSets)
+	api.RegisterDaemonSet(apiGroup, app.logger, service.GetK8sClient, service.ListDaemonSets)
+	api.RegisterIngress(apiGroup, app.logger, service.GetK8sClient, service.ListIngresses)
+	api.RegisterCronJob(apiGroup, app.logger, service.GetK8sClient, service.ListCronJobs)
+	api.RegisterJob(apiGroup, app.logger, service.GetK8sClient, service.ListJobs)
 	api.RegisterPVC(apiGroup, app.logger, service.GetK8sClient, service.ListPVCs)
 	api.RegisterPV(apiGroup, app.logger, service.GetK8sClient, service.ListPVs)
 	api.RegisterStorageClass(apiGroup, app.logger, service.GetK8sClient, service.ListStorageClasses)
-
 	api.RegisterConfigMap(apiGroup, app.logger, service.GetK8sClient, service.ListConfigMaps)
 	api.RegisterSecret(apiGroup, app.logger, service.GetK8sClient, service.ListSecrets)
 
+	// 注册管理API
 	api.RegisterPasswordAdmin(apiGroup, app.logger)
 	api.RegisterMetrics(apiGroup, app.logger)
-
 }
 
 func (app *Application) getOverviewHandler() func(limit, offset int) (*model.OverviewStatus, string, error) {

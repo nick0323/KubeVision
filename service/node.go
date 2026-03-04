@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"math"
 	"strconv"
 	"strings"
 
@@ -50,14 +49,14 @@ func ParseMemory(memStr string) float64 {
 }
 
 func GetNodeAllocatableCPU(node v1.Node) float64 {
-	if v, ok := node.Status.Allocatable["cpu"]; ok {
+	if v, ok := node.Status.Allocatable[v1.ResourceName(model.ResourceCPU)]; ok {
 		return float64(v.MilliValue()) / 1000
 	}
 	return 0
 }
 
 func GetNodeAllocatableMemory(node v1.Node) float64 {
-	if v, ok := node.Status.Allocatable["memory"]; ok {
+	if v, ok := node.Status.Allocatable[v1.ResourceName(model.ResourceMemory)]; ok {
 		return float64(v.Value()) / 1024 / 1024 / 1024
 	}
 	return 0
@@ -68,68 +67,8 @@ func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.Po
 	if err != nil {
 		return nil, err
 	}
-	nodeStatuses := make([]model.NodeStatus, 0, len(nodes.Items))
-	for _, node := range nodes.Items {
-		status := "Unknown"
-		ip := ""
-		for _, addr := range node.Status.Addresses {
-			if addr.Type == "InternalIP" {
-				ip = addr.Address
-				break
-			}
-		}
-		for _, cond := range node.Status.Conditions {
-			if cond.Type == "Ready" && cond.Status == "True" {
-				status = "Active"
-				break
-			}
-		}
-		roles := []string{}
-		for k := range node.Labels {
-			if strings.HasPrefix(k, "node-role.kubernetes.io/") {
-				role := strings.TrimPrefix(k, "node-role.kubernetes.io/")
-				if role == "" {
-					role = "worker"
-				}
-				roles = append(roles, role)
-			}
-		}
-		if len(roles) == 0 {
-			roles = append(roles, "worker")
-		}
-		podsUsed := 0
-		for _, pod := range pods.Items {
-			if pod.Spec.NodeName == node.Name {
-				podsUsed++
-			}
-		}
-		podsCapacity := 0
-		if v, ok := node.Status.Allocatable["pods"]; ok {
-			podsCapacity = int(v.Value())
-		}
-		metric := nodeMetricsMap[node.Name]
-		cpuUsed := ParseCPU(metric.CPU)
-		memUsed := ParseMemory(metric.Mem)
-		cpuTotal := GetNodeAllocatableCPU(node)
-		memTotal := GetNodeAllocatableMemory(node)
-		cpuPercent := 0.0
-		memPercent := 0.0
-		if cpuTotal > 0 {
-			cpuPercent = cpuUsed / cpuTotal * 100
-		}
-		if memTotal > 0 {
-			memPercent = memUsed / memTotal * 100
-		}
-		nodeStatuses = append(nodeStatuses, model.NodeStatus{
-			Name:         node.Name,
-			IP:           ip,
-			Status:       status,
-			CPUUsage:     math.Round(cpuPercent*10) / 10,
-			MemoryUsage:  math.Round(memPercent*10) / 10,
-			Role:         roles,
-			PodsUsed:     podsUsed,
-			PodsCapacity: podsCapacity,
-		})
-	}
-	return nodeStatuses, nil
+	
+	// 使用通用映射函数
+	result := MapNodes(nodes.Items, pods, nodeMetricsMap)
+	return result, nil
 }

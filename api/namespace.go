@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -29,19 +30,55 @@ func getNamespaceList(
 	listNamespaces func(context.Context, *kubernetes.Clientset) ([]model.NamespaceDetail, error),
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 命名空间用于下拉选择，返回全集更符合预期（不做分页）
 		clientset, _, err := getK8sClient()
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
 		ctx := GetRequestContext(c)
-		ns, err := listNamespaces(ctx, clientset)
+		
+		// 获取分页参数
+		paginationParams := ParsePaginationParams(c)
+		page := paginationParams.Offset/paginationParams.Limit + 1
+		pageSize := paginationParams.Limit
+		search := paginationParams.Search
+		
+		// 获取所有 namespaces
+		nsList, err := listNamespaces(ctx, clientset)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		middleware.ResponseSuccess(c, ns, ListSuccessMessage, nil)
+		
+		// 搜索过滤
+		if search != "" {
+			filtered := make([]model.NamespaceDetail, 0)
+			for _, ns := range nsList {
+				if strings.Contains(strings.ToLower(ns.Name), strings.ToLower(search)) {
+					filtered = append(filtered, ns)
+				}
+			}
+			nsList = filtered
+		}
+		
+		// 分页
+		total := len(nsList)
+		start := (page - 1) * pageSize
+		end := start + pageSize
+		if start >= total {
+			nsList = []model.NamespaceDetail{}
+		} else {
+			if end > total {
+				end = total
+			}
+			nsList = nsList[start:end]
+		}
+		
+		middleware.ResponseSuccess(c, nsList, ListSuccessMessage, &model.PageMeta{
+			Total:  total,
+			Limit:  pageSize,
+			Offset: start,
+		})
 	}
 }
 

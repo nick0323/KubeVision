@@ -6,12 +6,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ==================== 资源状态常量 ====================
 const (
-	StatusRunning      = "Running"
-	StatusSucceeded    = "Succeeded"
-	StatusFailed       = "Failed"
-	StatusPending      = "Pending"
-	StatusUnknown      = "Unknown"
+	// 通用状态
 	StatusActive       = "Active"
 	StatusSuspended    = "Suspended"
 	StatusHealthy      = "Healthy"
@@ -20,26 +17,46 @@ const (
 	StatusReady        = "Ready"
 	StatusNotReady     = "Not Ready"
 	StatusScaledToZero = "Scaled to zero"
+
+	// PVC 状态
+	StatusBound = "Bound"
+	StatusLost  = "Lost"
 )
 
+// ==================== 时间格式常量 ====================
 const (
-	TimeFormat      = "2006-01-02 15:04:05"
-	TimeFormatShort = "2006-01-02"
-	TimeFormatLong  = "2006-01-02 15:04:05.000"
+	TimeFormat = "2006-01-02 15:04:05"
 )
 
+// ==================== Kubernetes 注解和标签常量 ====================
+const (
+	// StorageClass 注解
+	AnnotationStorageClassDefault = "storageclass.kubernetes.io/is-default-class"
+
+	// Node 角色标签前缀
+	LabelNodeRolePrefix = "node-role.kubernetes.io/"
+)
+
+// ==================== Kubernetes 资源名称常量 ====================
+const (
+	ResourceCPU     = "cpu"
+	ResourceMemory  = "memory"
+	ResourceStorage = "storage"
+	ResourcePods    = "pods"
+)
+
+// ==================== HTTP 状态码常量 ====================
 const (
 	HTTPStatusOK                  = 200
 	HTTPStatusBadRequest          = 400
 	HTTPStatusUnauthorized        = 401
 	HTTPStatusForbidden           = 403
 	HTTPStatusNotFound            = 404
-	HTTPStatusMethodNotAllowed    = 405
-	HTTPStatusConflict            = 409
 	HTTPStatusInternalServerError = 500
 	HTTPStatusServiceUnavailable  = 503
 )
 
+// ==================== 默认配置常量 ====================
 const (
 	DefaultPageSize     = 20
 	DefaultPageOffset   = 0
@@ -48,14 +65,17 @@ const (
 	DefaultPasswordLen  = 12
 	MaxPasswordLen      = 128
 	MinPasswordLen      = 8
+	DefaultOverviewEventsLimit = 5
 )
 
+// ==================== 缓存键前缀常量 ====================
 const (
 	CacheKeyPrefixK8sClient = "k8s_client_"
 	CacheKeyPrefixResource  = "resource_"
 	CacheKeyPrefixMetrics   = "metrics_"
 )
 
+// ==================== 日志配置常量 ====================
 const (
 	LogLevelDebug = "debug"
 	LogLevelInfo  = "info"
@@ -63,14 +83,17 @@ const (
 	LogLevelError = "error"
 )
 
+// ==================== 日志格式常量 ====================
 const (
 	LogFormatConsole = "console"
 	LogFormatJSON    = "json"
 )
 
+// ==================== 业务错误码常量 ====================
 const (
 	CodeSuccess = 0
 
+	// 客户端错误 (1000-1999)
 	CodeBadRequest       = 1000
 	CodeUnauthorized     = 1001
 	CodeForbidden        = 1002
@@ -82,6 +105,7 @@ const (
 	CodeInvalidParameter = 1008
 	CodeMissingParameter = 1009
 
+	// 服务器错误 (2000-2999)
 	CodeInternalServerError = 2000
 	CodeServiceUnavailable  = 2001
 	CodeDatabaseError       = 2002
@@ -90,11 +114,31 @@ const (
 	CodeConfigError         = 2005
 	CodeAuthError           = 2006
 
+	// 资源错误 (3000-3999)
 	CodeResourceNotFound    = 3000
 	CodeResourceExists      = 3001
 	CodeResourceInUse       = 3002
 	CodeResourceQuotaExceed = 3003
 	CodePermissionDenied    = 3004
+)
+
+// ==================== Kubernetes 端口常量 ====================
+const (
+	PortHTTP  = 80
+	PortHTTPS = 443
+)
+
+// ==================== Ingress 默认端口 ====================
+var DefaultIngressPorts = []string{"80", "443"}
+
+// ==================== 密码生成常量 ====================
+const (
+	PasswordCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+)
+
+// ==================== 缓存采样大小 ====================
+const (
+	CacheSampleSize = 10
 )
 
 var ErrorMessages = map[int]string{

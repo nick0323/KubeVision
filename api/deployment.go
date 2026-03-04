@@ -2,13 +2,15 @@ package api
 
 import (
 	"context"
+	"net/http"
 
+	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
-	"github.com/nick0323/K8sVision/service"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -43,37 +45,29 @@ func getDeploymentDetail(
 	getK8sClient K8sClientProvider,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		HandleDetailWithK8s(c, logger, getK8sClient,
-			func(ctx context.Context, clientset *kubernetes.Clientset, namespace, name string) (model.DeploymentDetail, error) {
-				dep, err := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
-				if err != nil {
-					return model.DeploymentDetail{}, err
-				}
+		clientset, _, err := getK8sClient()
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+		ctx := GetRequestContext(c)
+		namespace := c.Param("namespace")
+		name := c.Param("name")
+		
+		// 获取原始 Deployment 对象
+		dep, err := clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusNotFound)
+			return
+		}
 
-				image := ""
-				if len(dep.Spec.Template.Spec.Containers) > 0 {
-					image = dep.Spec.Template.Spec.Containers[0].Image
-				}
+		// 转换为 Unstructured 对象（原始 map 格式）
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(dep)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
 
-				return model.DeploymentDetail{
-					WorkloadCommonFields: model.WorkloadCommonFields{
-						CommonResourceFields: model.CommonResourceFields{
-							Namespace: dep.Namespace,
-							Name:      dep.Name,
-							Status:    service.GetWorkloadStatus(dep.Status.AvailableReplicas, *dep.Spec.Replicas),
-							BaseMetadata: model.BaseMetadata{
-								Labels:      dep.Labels,
-								Annotations: dep.Annotations,
-							},
-						},
-						Available: dep.Status.AvailableReplicas,
-						Desired:   *dep.Spec.Replicas,
-						Selector:  dep.Spec.Selector.MatchLabels,
-						Image:     image,
-					},
-					Replicas: *dep.Spec.Replicas,
-					Strategy: string(dep.Spec.Strategy.Type),
-				}, nil
-			}, DetailSuccessMessage)
+		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

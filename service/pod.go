@@ -23,19 +23,7 @@ func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, podMe
 		return nil, nil, err
 	}
 
-	podStatuses := make([]model.PodStatus, 0, len(pods.Items))
-	for _, pod := range pods.Items {
-		cpuVal, memVal := FormatPodResourceUsage(podMetricsMap, pod.Namespace, pod.Name)
-
-		podStatuses = append(podStatuses, model.PodStatus{
-			Namespace:   pod.Namespace,
-			Name:        pod.Name,
-			Status:      string(pod.Status.Phase),
-			CPUUsage:    cpuVal,
-			MemoryUsage: memVal,
-			PodIP:       pod.Status.PodIP,
-			NodeName:    pod.Spec.NodeName,
-		})
-	}
+	// 使用通用映射函数
+	podStatuses := MapPods(pods.Items, podMetricsMap)
 	return podStatuses, pods, nil
 }

@@ -59,7 +59,7 @@ func getStorageClassDetail(
 
 		isDefault := false
 		if storageClass.Annotations != nil {
-			if _, ok := storageClass.Annotations["storageclass.kubernetes.io/is-default-class"]; ok {
+			if _, ok := storageClass.Annotations[model.AnnotationStorageClassDefault]; ok {
 				isDefault = true
 			}
 		}

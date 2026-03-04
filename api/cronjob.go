@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -50,49 +51,22 @@ func getCronJobDetail(
 			return
 		}
 		ctx := GetRequestContext(c)
-		ns := c.Param("namespace")
+		namespace := c.Param("namespace")
 		name := c.Param("name")
-		cronjob, err := clientset.BatchV1().CronJobs(ns).Get(ctx, name, metav1.GetOptions{})
+		
+		cronjob, err := clientset.BatchV1().CronJobs(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
 
-		status := "Unknown"
-		if len(cronjob.Status.Active) > 0 {
-			status = "Running"
-		} else if cronjob.Status.LastSuccessfulTime != nil {
-			status = "Succeeded"
-		} else {
-			status = "Pending"
+		// 转换为 Unstructured 对象（原始 map 格式）
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(cronjob)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
 		}
 
-		image := ""
-		if len(cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers) > 0 {
-			image = cronjob.Spec.JobTemplate.Spec.Template.Spec.Containers[0].Image
-		}
-
-		lastScheduleTime := ""
-		if cronjob.Status.LastScheduleTime != nil {
-			lastScheduleTime = cronjob.Status.LastScheduleTime.Format("2006-01-02 15:04:05")
-		}
-
-		cronJobDetail := model.CronJobDetail{
-			CommonResourceFields: model.CommonResourceFields{
-				Namespace: cronjob.Namespace,
-				Name:      cronjob.Name,
-				Status:    status,
-				BaseMetadata: model.BaseMetadata{
-					Labels:      cronjob.Labels,
-					Annotations: cronjob.Annotations,
-				},
-			},
-			Schedule:         cronjob.Spec.Schedule,
-			Suspend:          *cronjob.Spec.Suspend,
-			Active:           len(cronjob.Status.Active),
-			LastScheduleTime: lastScheduleTime,
-			Image:            image,
-		}
-		middleware.ResponseSuccess(c, cronJobDetail, DetailSuccessMessage, nil)
+		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }
