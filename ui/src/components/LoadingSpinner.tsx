@@ -9,6 +9,7 @@ interface LoadingSpinnerProps {
   text?: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  overlay?: boolean;
 }
 
 /**
@@ -43,7 +44,8 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   type = 'spinner',
   text = 'Loading...',
   size = 'md',
-  className = ''
+  className = '',
+  overlay = false
 }) => {
   const sizeClasses = {
     sm: 'loading-sm',
@@ -52,46 +54,53 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   const renderLoadingContent = () => {
-    switch (type) {
-      case 'skeleton':
-        return (
-          <div className={`skeleton-container ${sizeClasses[size]} ${className}`}>
-            <div className="skeleton skeleton-title"></div>
-            <div className="skeleton skeleton-text"></div>
-            <div className="skeleton skeleton-text"></div>
-            <div className="skeleton skeleton-text"></div>
-          </div>
-        );
-
-      case 'pulse':
-        return (
-          <div className={`loading-container ${className}`}>
-            <div className={`pulse ${sizeClasses[size]}`}>
-              <div className="loading-spinner"></div>
+    const content = (() => {
+      switch (type) {
+        case 'skeleton':
+          return (
+            <div className={`skeleton-container ${sizeClasses[size]} ${className}`}>
+              <div className="skeleton skeleton-title"></div>
+              <div className="skeleton skeleton-text"></div>
+              <div className="skeleton skeleton-text"></div>
+              <div className="skeleton skeleton-text"></div>
             </div>
-            {text && <div className="loading-text">{text}</div>}
-          </div>
-        );
+          );
 
-      case 'progress':
-        return (
-          <div className={`loading-container ${className}`}>
-            <div className="progress-bar">
-              <div className="progress-fill"></div>
+        case 'pulse':
+          return (
+            <div className={`loading-container ${className}`}>
+              <div className={`pulse ${sizeClasses[size]}`}>
+                <div className="loading-spinner"></div>
+              </div>
+              {text && <div className="loading-text">{text}</div>}
             </div>
-            {text && <div className="loading-text">{text}</div>}
-          </div>
-        );
+          );
 
-      case 'spinner':
-      default:
-        return (
-          <div className={`loading-container ${className}`}>
-            <div className={`loading-spinner ${sizeClasses[size]}`}></div>
-            {text && <div className="loading-text">{text}</div>}
-          </div>
-        );
+        case 'progress':
+          return (
+            <div className={`loading-container ${className}`}>
+              <div className="progress-bar">
+                <div className="progress-fill"></div>
+              </div>
+              {text && <div className="loading-text">{text}</div>}
+            </div>
+          );
+
+        case 'spinner':
+        default:
+          return (
+            <div className={`loading-container ${className}`}>
+              <div className={`loading-spinner ${sizeClasses[size]}`}></div>
+              {text && <div className="loading-text">{text}</div>}
+            </div>
+          );
+      }
+    })();
+
+    if (overlay) {
+      return <div className="loading-overlay">{content}</div>;
     }
+    return content;
   };
 
   return renderLoadingContent();

@@ -1,9 +1,9 @@
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, Suspense, useEffect, useCallback } from 'react';
 import './App.css';
 import LoadingSpinner from './components/LoadingSpinner.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { FaLayerGroup, FaDesktop, FaBell, FaCubes, FaTasks, FaChartPie, FaDatabase, FaShieldAlt, FaProjectDiagram, FaNetworkWired, FaRegClock, FaChevronDown, FaChevronRight, FaHdd, FaBoxOpen, FaBoxes, FaCog, FaKey } from 'react-icons/fa';
+import { FaChartPie, FaCube, FaRocket, FaTree, FaServer, FaCogs, FaBriefcase, FaClock, FaNetworkWired, FaDoorOpen, FaHdd, FaDatabase, FaListAlt, FaFileAlt, FaLock, FaBell, FaThLarge, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import { LuSquareDashed } from 'react-icons/lu';
 import { MENU_LIST } from './constants';
 import LoginPage from './LoginPage.tsx';
@@ -16,22 +16,24 @@ import { PAGE_COMPONENTS } from './pages.tsx';
 // 图标映射 - 使用 useMemo 优化
 const ICON_MAP: Record<string, React.ReactNode> = {
   FaChartPie: <FaChartPie />,
-  FaDesktop: <FaDesktop />,
-  FaCubes: <FaCubes />,
-  FaLayerGroup: <FaLayerGroup />,
-  FaDatabase: <FaDatabase />,
-  FaShieldAlt: <FaShieldAlt />,
-  FaRegClock: <FaRegClock />,
-  FaTasks: <FaTasks />,
+  FaCube: <FaCube />,
+  FaRocket: <FaRocket />,
+  FaTree: <FaTree />,
+  FaServer: <FaServer />,
+  FaCogs: <FaCogs />,
+  FaBriefcase: <FaBriefcase />,
+  FaClock: <FaClock />,
   FaNetworkWired: <FaNetworkWired />,
-  FaProjectDiagram: <FaProjectDiagram />,
-  FaBell: <FaBell />,
+  FaDoorOpen: <FaDoorOpen />,
   FaHdd: <FaHdd />,
-  FaBoxOpen: <FaBoxOpen />,
-  FaBoxes: <FaBoxes />,
-  FaCog: <FaCog />,
-  FaKey: <FaKey />,
-  LuSquareDashed: <LuSquareDashed />,
+  FaDatabase: <FaDatabase />,
+  FaListAlt: <FaListAlt />,
+  FaFileAlt: <FaFileAlt />,
+  FaLock: <FaLock />,
+  FaBell: <FaBell />,
+  FaThLarge: <FaThLarge />,
+  FaChevronDown: <FaChevronDown />,
+  FaChevronRight: <FaChevronRight />,
 };
 
 // 页面组件映射
@@ -48,11 +50,11 @@ const preloadComponent = (componentKey: string) => {
 };
 
 /**
- * 主应用组件
- * 保持与 App.jsx 完全一致的功能
+ * 主应用组件 - 修复登录跳转问题
  */
 export default function App() {
-  const [login, setLogin] = useState<boolean>(authUtils.isLoggedIn());
+  // 使用函数初始化状态，确保读取最新状态
+  const [login, setLogin] = useState<boolean>(() => authUtils.isLoggedIn());
   const [tab, setTab] = useLocalStorage<string>('current_tab', 'overview');
   const [collapsed, setCollapsed] = useLocalStorage<boolean>('sider_collapsed', false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -61,18 +63,31 @@ export default function App() {
     return state;
   });
 
-  // 初始化认证拦截器
+  // 初始化认证拦截器 - 监听未授权事件
   useEffect(() => {
-    if (login) {
-      authUtils.setupAuthInterceptor(() => {
-        authUtils.clearToken();
-        setLogin(false);
-      });
-    }
-    return () => {
-      authUtils.clearAuthInterceptor();
+    const handleUnauthorized = () => {
+      authUtils.clearToken();
+      setLogin(false);
     };
-  }, [login]);
+
+    window.addEventListener('auth-unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('auth-unauthorized', handleUnauthorized);
+    };
+  }, []);
+
+  // 登录成功处理函数 - 使用回调确保状态更新
+  const handleLoginSuccess = useCallback(() => {
+    // 强制重新检查登录状态
+    const isLoggedIn = authUtils.isLoggedIn();
+    setLogin(isLoggedIn);
+    
+    // 触发页面刷新（确保状态同步）
+    if (isLoggedIn) {
+      window.location.href = '/';
+    }
+  }, []);
 
   // 折叠侧边栏 - 不使用 useCallback，直接传递函数
   const toggleCollapsed = () => {
@@ -116,7 +131,7 @@ export default function App() {
   if (!login) {
     return (
       <Suspense fallback={<LoadingSpinner text="加载中..." overlay />}>
-        <LoginPage onLogin={() => setLogin(true)} />
+        <LoginPage onLogin={handleLoginSuccess} />
       </Suspense>
     );
   }

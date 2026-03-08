@@ -14,24 +14,8 @@ func ListCronJobs(ctx context.Context, clientset *kubernetes.Clientset, namespac
 	if err != nil {
 		return nil, err
 	}
-	result := make([]model.CronJobStatus, 0, len(cronjobs.Items))
-	for _, cj := range cronjobs.Items {
-		status := GetCronJobStatus(len(cj.Status.Active), cj.Status.LastSuccessfulTime)
 
-		lastScheduleTime := ""
-		if cj.Status.LastScheduleTime != nil {
-			lastScheduleTime = cj.Status.LastScheduleTime.Format("2006-01-02 15:04:05")
-		}
-
-		result = append(result, model.CronJobStatus{
-			Namespace:        cj.Namespace,
-			Name:             cj.Name,
-			Schedule:         cj.Spec.Schedule,
-			Suspend:          SafeBoolPtr(cj.Spec.Suspend, false),
-			Active:           len(cj.Status.Active),
-			LastScheduleTime: lastScheduleTime,
-			Status:           status,
-		})
-	}
+	// 使用通用映射函数
+	result := MapCronJobs(cronjobs.Items)
 	return result, nil
 }

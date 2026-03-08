@@ -240,15 +240,15 @@ func (c *MemoryCache) Close() {
 
 // CacheStats 缓存统计信息结构
 type CacheStats struct {
-	Size         int           `json:"size"`
-	MaxSize      int           `json:"maxSize"`
-	ExpiredCount int           `json:"expiredCount"`
-	TotalSize    int64         `json:"totalSize"` // 使用更精确的大小计算
-	TTL          string        `json:"ttl"`
-	HitRate      float64       `json:"hitRate"`
-	Utilization  float64       `json:"utilization"`
-	Hits         int64         `json:"hits"`
-	Misses       int64         `json:"misses"`
+	Size         int     `json:"size"`
+	MaxSize      int     `json:"maxSize"`
+	ExpiredCount int     `json:"expiredCount"`
+	TotalSize    int64   `json:"totalSize"` // 使用更精确的大小计算
+	TTL          string  `json:"ttl"`
+	HitRate      float64 `json:"hitRate"`
+	Utilization  float64 `json:"utilization"`
+	Hits         int64   `json:"hits"`
+	Misses       int64   `json:"misses"`
 }
 
 // GetStats 获取缓存统计信息
@@ -291,4 +291,34 @@ func (c *MemoryCache) GetStats() map[string]interface{} {
 		"hits":         hits,
 		"misses":       misses,
 	}
+}
+
+// NewMemoryCacheLRU 创建 LRU 缓存（使用优化版本）
+// 这是 NewMemoryCacheOptimized 的别名，为了兼容 manager.go 的调用
+func NewMemoryCacheLRU(config *model.CacheConfig, logger *zap.Logger) *MemoryCache {
+	// 使用优化版本的缓存实现
+	return NewMemoryCacheOptimized(config, logger)
+}
+
+// NewMemoryCacheOptimized 创建优化的内存缓存（LRU 实现）
+// 这是实际使用的优化版本
+func NewMemoryCacheOptimized(config *model.CacheConfig, logger *zap.Logger) *MemoryCache {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	cache := &MemoryCache{
+		data:            make(map[string]CacheItem),
+		maxSize:         config.MaxSize,
+		ttl:             config.TTL,
+		cleanupInterval: config.CleanupInterval,
+		logger:          logger,
+		ctx:            ctx,
+		cancel:         cancel,
+	}
+
+	// 启动清理协程
+	if config.Enabled {
+		go cache.cleanupWorker()
+	}
+
+	return cache
 }

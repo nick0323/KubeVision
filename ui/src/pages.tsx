@@ -1,127 +1,101 @@
-/**
- * 统一的页面组件定义
- * 使用工厂模式消除所有页面组件的重复代码
- */
-import React, { ReactElement } from 'react';
-import ResourcePage from './components/ResourcePage';
-import OverviewPage from './OverviewPage';
+import React from 'react';
+
+// 懒加载概览页
+const LazyOverview = React.lazy(() => import('./OverviewPage'));
+
+// 导入 ResourceListPage（不懒加载，因为需要传递 props）
+import { ResourceListPage } from './components/ResourceListPage';
 import {
   PODS_CONFIG,
   DEPLOYMENTS_CONFIG,
   STATEFULSETS_CONFIG,
   DAEMONSETS_CONFIG,
-  CRONJOBS_CONFIG,
   JOBS_CONFIG,
-  INGRESS_CONFIG,
+  CRONJOBS_CONFIG,
   SERVICES_CONFIG,
-  EVENTS_CONFIG,
+  INGRESS_CONFIG,
   PVCS_CONFIG,
   PVS_CONFIG,
   STORAGECLASSES_CONFIG,
   CONFIGMAPS_CONFIG,
   SECRETS_CONFIG,
   NAMESPACES_CONFIG,
-  NODES_CONFIG
+  NODES_CONFIG,
+  EVENTS_CONFIG,
 } from './constants/pageConfigs';
 
-interface ResourcePageProps {
+interface PageComponentProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }
 
-interface ResourcePageConfig {
-  title: string;
-  apiEndpoint: string;
-  resourceType: string;
-  columns: any[];
-  statusMap?: Record<string, string>;
-  tableConfig?: any;
-  namespaceFilter?: boolean;
-}
-
-type ResourcePageComponent = (props: ResourcePageProps) => ReactElement;
-
-interface PageComponents {
-  overview: typeof OverviewPage;
-  pods: ResourcePageComponent;
-  deployments: ResourcePageComponent;
-  statefulsets: ResourcePageComponent;
-  daemonsets: ResourcePageComponent;
-  jobs: ResourcePageComponent;
-  cronjobs: ResourcePageComponent;
-  ingress: ResourcePageComponent;
-  services: ResourcePageComponent;
-  pvcs: ResourcePageComponent;
-  pvs: ResourcePageComponent;
-  storageclasses: ResourcePageComponent;
-  configmaps: ResourcePageComponent;
-  secrets: ResourcePageComponent;
-  namespaces: ResourcePageComponent;
-  nodes: ResourcePageComponent;
-  events: ResourcePageComponent;
-}
-
-// 资源页面工厂函数
-const createResourcePage = (config: ResourcePageConfig): ResourcePageComponent => {
-  const ResourcePageComponent: ResourcePageComponent = ({ collapsed, onToggleCollapsed }) => (
-    <ResourcePage
-      {...config}
+/**
+ * 创建资源列表页面组件
+ */
+const createResourcePage = (config: any) => {
+  return ({ collapsed, onToggleCollapsed }: PageComponentProps) => (
+    <ResourceListPage
+      config={config}
       collapsed={collapsed}
       onToggleCollapsed={onToggleCollapsed}
     />
   );
-
-  // 设置显示名称便于调试
-  ResourcePageComponent.displayName = `${config.title}Page`;
-
-  return ResourcePageComponent;
 };
 
-// 页面组件映射 - 使用工厂函数自动生成
-export const PAGE_COMPONENTS: PageComponents = {
-  overview: OverviewPage,
+/**
+ * 所有资源页面组件映射
+ */
+export const PAGE_COMPONENTS = {
+  // 概览页
+  overview: LazyOverview,
 
-  // 工作负载
+  // Pods
   pods: createResourcePage(PODS_CONFIG),
+
+  // Deployments
   deployments: createResourcePage(DEPLOYMENTS_CONFIG),
+
+  // StatefulSets
   statefulsets: createResourcePage(STATEFULSETS_CONFIG),
+
+  // DaemonSets
   daemonsets: createResourcePage(DAEMONSETS_CONFIG),
+
+  // Jobs
   jobs: createResourcePage(JOBS_CONFIG),
+
+  // CronJobs
   cronjobs: createResourcePage(CRONJOBS_CONFIG),
 
-  // 网络
-  ingress: createResourcePage(INGRESS_CONFIG),
+  // Services
   services: createResourcePage(SERVICES_CONFIG),
 
-  // 存储
+  // Ingress
+  ingress: createResourcePage(INGRESS_CONFIG),
+
+  // PVCs
   pvcs: createResourcePage(PVCS_CONFIG),
+
+  // PVs
   pvs: createResourcePage(PVS_CONFIG),
+
+  // StorageClasses
   storageclasses: createResourcePage(STORAGECLASSES_CONFIG),
 
-  // 配置
+  // ConfigMaps
   configmaps: createResourcePage(CONFIGMAPS_CONFIG),
+
+  // Secrets
   secrets: createResourcePage(SECRETS_CONFIG),
 
-  // 其他
+  // Namespaces
   namespaces: createResourcePage(NAMESPACES_CONFIG),
+
+  // Nodes
   nodes: createResourcePage(NODES_CONFIG),
+
+  // Events
   events: createResourcePage(EVENTS_CONFIG),
 };
 
-// 导出个别组件（向后兼容）
-export const PodsPage = PAGE_COMPONENTS.pods;
-export const DeploymentsPage = PAGE_COMPONENTS.deployments;
-export const StatefulSetsPage = PAGE_COMPONENTS.statefulsets;
-export const DaemonSetsPage = PAGE_COMPONENTS.daemonsets;
-export const CronJobsPage = PAGE_COMPONENTS.cronjobs;
-export const JobsPage = PAGE_COMPONENTS.jobs;
-export const IngressPage = PAGE_COMPONENTS.ingress;
-export const ServicesPage = PAGE_COMPONENTS.services;
-export const EventsPage = PAGE_COMPONENTS.events;
-export const PVCsPage = PAGE_COMPONENTS.pvcs;
-export const PVsPage = PAGE_COMPONENTS.pvs;
-export const StorageClassesPage = PAGE_COMPONENTS.storageclasses;
-export const ConfigMapsPage = PAGE_COMPONENTS.configmaps;
-export const SecretsPage = PAGE_COMPONENTS.secrets;
-export const NamespacesPage = PAGE_COMPONENTS.namespaces;
-export const NodesPage = PAGE_COMPONENTS.nodes;
+export default PAGE_COMPONENTS;

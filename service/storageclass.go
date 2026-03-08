@@ -33,6 +33,7 @@ func ListStorageClasses(ctx context.Context, clientset *kubernetes.Clientset) ([
 			ReclaimPolicy:     reclaimPolicy,
 			VolumeBindingMode: volumeBindingMode,
 			IsDefault:         isDefault,
+			Age:               CalculateAge(sc.CreationTimestamp),
 		}
 		scStatuses = append(scStatuses, scStatus)
 	}

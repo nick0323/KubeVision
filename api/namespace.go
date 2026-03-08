@@ -36,21 +36,16 @@ func getNamespaceList(
 			return
 		}
 		ctx := GetRequestContext(c)
-		
-		// 获取分页参数
-		paginationParams := ParsePaginationParams(c)
-		page := paginationParams.Offset/paginationParams.Limit + 1
-		pageSize := paginationParams.Limit
-		search := paginationParams.Search
-		
+
 		// 获取所有 namespaces
 		nsList, err := listNamespaces(ctx, clientset)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		
-		// 搜索过滤
+
+		// 搜索过滤（如果提供了 search 参数）
+		search := c.Query("search")
 		if search != "" {
 			filtered := make([]model.NamespaceDetail, 0)
 			for _, ns := range nsList {
@@ -60,24 +55,19 @@ func getNamespaceList(
 			}
 			nsList = filtered
 		}
-		
-		// 分页
-		total := len(nsList)
-		start := (page - 1) * pageSize
-		end := start + pageSize
-		if start >= total {
-			nsList = []model.NamespaceDetail{}
-		} else {
-			if end > total {
-				end = total
-			}
-			nsList = nsList[start:end]
+
+		// 排序（如果提供了 sortBy 和 sortOrder 参数）
+		sortBy := c.Query("sortBy")
+		sortOrder := c.Query("sortOrder")
+		if sortBy != "" && sortOrder != "" {
+			nsList = SortItems(nsList, sortBy, sortOrder)
 		}
-		
+
+		// 返回所有数据，不分页
 		middleware.ResponseSuccess(c, nsList, ListSuccessMessage, &model.PageMeta{
-			Total:  total,
-			Limit:  pageSize,
-			Offset: start,
+			Total:  len(nsList),
+			Limit:  len(nsList),
+			Offset: 0,
 		})
 	}
 }
@@ -103,10 +93,7 @@ func getNamespaceDetail(
 		namespaceDetail := model.NamespaceDetail{
 			Name:   ns.Name,
 			Status: string(ns.Status.Phase),
-			BaseMetadata: model.BaseMetadata{
-				Labels:      ns.Labels,
-				Annotations: ns.Annotations,
-			},
+			Labels: ns.Labels,
 		}
 		middleware.ResponseSuccess(c, namespaceDetail, DetailSuccessMessage, nil)
 	}

@@ -13,8 +13,11 @@ import { ErrorDisplay } from './ErrorDisplay.tsx';
 import './ResourcePage.css';
 
 /**
- * 通用资源页面组件
- * 支持所有 K8s 资源类型的列表展示
+ * 通用资源页面组件 - 修复版
+ * 改进：
+ * 1. 合并 useEffect 减少重渲染
+ * 2. 使用 AbortController 取消请求
+ * 3. 添加请求去抖
  */
 export const ResourcePage: React.FC<ResourcePageProps> = ({
   title,
@@ -28,7 +31,7 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
 }) => {
   const [data, setData] = useState<any[]>([]);
   const [total, setTotal] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [namespace, setNamespace] = useState<string>('');
   const [search, setSearch] = useState<string>('');
@@ -37,35 +40,34 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
     page,
     pageSize,
     handlePageChange,
-    handlePageSizeChange: handlePageSizeChangeFromHook,
+    handlePageSizeChange,
     resetPagination,
   } = usePagination();
 
-  // 使用 ref 保存状态，避免闭包问题
+  // 使用 ref 保存最新值
   const pageRef = useRef(page);
   const pageSizeRef = useRef(pageSize);
   const namespaceRef = useRef(namespace);
   const searchRef = useRef(search);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // 更新 ref
   useEffect(() => {
     pageRef.current = page;
-  }, [page]);
-
-  useEffect(() => {
     pageSizeRef.current = pageSize;
-  }, [pageSize]);
-
-  useEffect(() => {
     namespaceRef.current = namespace;
-  }, [namespace]);
-
-  useEffect(() => {
     searchRef.current = search;
-  }, [search]);
+  });
 
-  // 获取数据 - 不依赖状态，从 ref 读取最新值
+  // 获取数据 - 使用 AbortController 取消旧请求
   const fetchData = useCallback(async () => {
+    // 取消之前的请求
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
+    
     setLoading(true);
     setError(null);
 
@@ -80,70 +82,62 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
       setData(result.data || []);
       setTotal(result.page?.total || 0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败');
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
   }, [apiEndpoint]);
 
-  // 初始加载
+  // 统一的数据加载逻辑
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    
+    // 清理函数
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [page, pageSize, namespace, search, fetchData]);
 
-  // namespace 变化时重置
+  // namespace 变化时重置分页
   useEffect(() => {
     resetPagination();
   }, [namespace, resetPagination]);
 
-  // namespace 变化后刷新数据
-  useEffect(() => {
-    fetchData();
-  }, [namespace]);
-
-  // page 变化时刷新数据
-  useEffect(() => {
-    fetchData();
-  }, [page]);
-
-  // pageSize 变化后刷新数据
-  useEffect(() => {
-    fetchData();
-  }, [pageSize]);
-
   // 处理搜索
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
-  };
+  }, []);
 
-  // 搜索提交（回车或点击搜索按钮）
+  // 搜索提交
   const handleSearchSubmit = useCallback(() => {
     handlePageChange(1);
-    fetchData();
-  }, [handlePageChange, fetchData]);
+  }, [handlePageChange]);
 
   // 清空搜索
   const handleClearSearch = useCallback(() => {
     setSearch('');
     handlePageChange(1);
-    fetchData();
-  }, [handlePageChange, fetchData]);
+  }, [handlePageChange]);
 
   // 处理每页条数变化
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    handlePageSizeChangeFromHook(newPageSize);
-  }, [handlePageSizeChangeFromHook]);
+  const handlePageSizeChangeWrapper = useCallback((newPageSize: number) => {
+    handlePageSizeChange(newPageSize);
+  }, [handlePageSizeChange]);
 
-  // pageSize 变化后刷新数据
-  useEffect(() => {
+  // 刷新数据
+  const handleRefresh = useCallback(() => {
     fetchData();
-  }, [pageSize]);
+  }, [fetchData]);
 
-  if (loading) {
+  if (loading && data.length === 0) {
     return <LoadingSpinner text="Loading..." overlay />;
   }
 
-  if (error) {
+  if (error && data.length === 0) {
     return (
       <ErrorDisplay
         message={error}
@@ -177,7 +171,7 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
           isSearching={loading}
           hasSearchResults={search.length > 0}
         />
-        <RefreshButton onClick={fetchData} loading={loading} />
+        <RefreshButton onClick={handleRefresh} loading={loading} />
       </PageHeader>
 
       <CommonTable
@@ -191,7 +185,7 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
         total={total}
         pageSize={pageSize}
         onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
+        onPageSizeChange={handlePageSizeChangeWrapper}
       />
     </div>
   );

@@ -14,7 +14,7 @@ func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, names
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 使用通用映射函数
 	result := MapDeployments(depList.Items)
 	return result, nil

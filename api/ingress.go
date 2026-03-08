@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -94,23 +95,19 @@ func getIngressDetail(
 			class = *ingress.Spec.IngressClassName
 		}
 
-		ingressDetail := model.IngressDetail{
-			CommonResourceFields: model.CommonResourceFields{
-				Namespace: ingress.Namespace,
-				Name:      ingress.Name,
-				Status:    "Ready",
-				BaseMetadata: model.BaseMetadata{
-					Labels:      ingress.Labels,
-					Annotations: ingress.Annotations,
-				},
-			},
-			Hosts:         hosts,
-			Address:       address,
-			Ports:         model.DefaultIngressPorts,
-			Class:         class,
-			Path:          paths,
-			TargetService: targetServices,
+		// 返回原始 K8s 对象
+		_ = hosts
+		_ = paths
+		_ = targetServices
+		_ = address
+		_ = class
+
+		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ingress)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
 		}
-		middleware.ResponseSuccess(c, ingressDetail, DetailSuccessMessage, nil)
+
+		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

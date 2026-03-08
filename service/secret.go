@@ -30,6 +30,7 @@ func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace
 			Type:      string(secret.Type),
 			DataCount: len(secret.Data),
 			Keys:      ExtractKeys(secret.Data),
+			Age:       CalculateAge(secret.CreationTimestamp),
 		}
 		secretStatuses = append(secretStatuses, secretStatus)
 	}

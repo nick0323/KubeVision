@@ -1,29 +1,134 @@
-/* NamespaceSelect 组件样式 */
-.namespace-select {
-  padding: 6px 12px;
+/* NamespaceSelect 自定义组件样式 */
+.namespace-select-custom {
+  position: relative;
+  width: 220px; /* 更宽的宽度 */
+  min-width: 220px;
+}
+
+/* 选择框主体 */
+.namespace-select-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
   font-size: 14px;
-  font-family: var(--font-main); /* 使用 Maple Mono 字体，与左侧导航栏一致 */
+  font-family: var(--font-main);
   color: #333;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  background: #fff; /* 白色背景 */
+  border: 2px solid #bae7ff; /* 淡蓝色边框 */
+  border-radius: 8px; /* 圆角 */
   cursor: pointer;
-  outline: none;
   transition: all 0.2s ease;
-  width: 180px; /* 固定宽度 */
-  min-width: 180px; /* 最小宽度 */
+  user-select: none;
 }
 
-.namespace-select:hover {
+.namespace-select-value:hover {
   border-color: #40a9ff;
+  background: #f0faff; /* 极淡蓝色悬停 */
 }
 
-.namespace-select:focus {
+.namespace-select-value.open {
   border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-.namespace-select:disabled {
+.namespace-select-value.disabled {
   background: #f5f5f5;
   cursor: not-allowed;
+}
+
+/* 文本 - 不换行 */
+.namespace-select-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* 不换行 */
+}
+
+/* 箭头 */
+.namespace-select-arrow {
+  margin-left: 8px;
+  color: #595959;
+  font-size: 12px;
+  transition: transform 0.2s;
+  flex-shrink: 0; /* 不压缩 */
+}
+
+.namespace-select-value.open .namespace-select-arrow {
+  color: #1890ff;
+}
+
+/* 下拉选项容器 */
+.namespace-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #fff; /* 白色背景 */
+  border: 2px solid #bae7ff; /* 淡蓝色边框 */
+  border-radius: 8px; /* 圆角 */
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  z-index: 1000;
+}
+
+/* 选项 - 不换行 */
+.namespace-select-option {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #333;
+  background: #fff; /* 白色背景 */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(186, 231, 255, 0.2);
+  white-space: nowrap; /* 不换行 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.namespace-select-option:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.namespace-select-option:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.namespace-select-option:hover {
+  background: #e6f7ff; /* 悬停时极淡蓝色 */
+  color: #0050b3;
+}
+
+.namespace-select-option.selected {
+  background: #1890ff; /* 选中时亮蓝色 */
+  color: #fff;
+  font-weight: 500;
+}
+
+.namespace-select-option.disabled {
+  background: #f5f5f5;
+  color: #8c8c8c;
+  cursor: not-allowed;
+}
+
+/* 滚动条样式 */
+.namespace-select-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.namespace-select-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.namespace-select-dropdown::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.namespace-select-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }

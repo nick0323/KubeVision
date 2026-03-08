@@ -14,16 +14,8 @@ func ListDaemonSets(ctx context.Context, clientset *kubernetes.Clientset, namesp
 	if err != nil {
 		return nil, err
 	}
-	result := make([]model.DaemonSetStatus, 0, len(dsList.Items))
-	for _, ds := range dsList.Items {
-		status := GetResourceStatus(ds.Status.NumberReady, ds.Status.DesiredNumberScheduled)
-		result = append(result, model.DaemonSetStatus{
-			Namespace: ds.Namespace,
-			Name:      ds.Name,
-			Available: ds.Status.NumberReady,
-			Desired:   ds.Status.DesiredNumberScheduled,
-			Status:    status,
-		})
-	}
+
+	// 使用通用映射函数
+	result := MapDaemonSets(dsList.Items)
 	return result, nil
 }

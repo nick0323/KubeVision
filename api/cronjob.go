@@ -53,7 +53,7 @@ func getCronJobDetail(
 		ctx := GetRequestContext(c)
 		namespace := c.Param("namespace")
 		name := c.Param("name")
-		
+
 		cronjob, err := clientset.BatchV1().CronJobs(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)

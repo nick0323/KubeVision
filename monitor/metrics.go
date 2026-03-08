@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
+	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 var globalMonitor *Monitor
@@ -299,10 +301,12 @@ func (m *Metrics) Reset() {
 
 // Monitor 性能监控器
 type Monitor struct {
-	metrics *Metrics
-	logger  *zap.Logger
-	ctx     context.Context
-	cancel  context.CancelFunc
+	metrics       *Metrics
+	logger        *zap.Logger
+	ctx           context.Context
+	cancel        context.CancelFunc
+	clientset     *kubernetes.Clientset
+	metricsClient *metrics.Clientset
 }
 
 // NewMonitor 创建新的性能监控器
@@ -318,6 +322,12 @@ func NewMonitor(logger *zap.Logger) *Monitor {
 
 	globalMonitor = monitor
 	return monitor
+}
+
+// SetK8sClients 设置 K8s 客户端（用于集群指标收集）
+func (m *Monitor) SetK8sClients(clientset *kubernetes.Clientset, metricsClient *metrics.Clientset) {
+	m.clientset = clientset
+	m.metricsClient = metricsClient
 }
 
 // GetMetrics 获取性能指标

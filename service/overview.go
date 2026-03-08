@@ -116,6 +116,7 @@ func GetOverviewStatus(clientset *kubernetes.Clientset) (*model.OverviewStatus, 
 		overview.NodeCount = len(nodes)
 		nodeReady := 0
 		for _, n := range nodes {
+			// Node 的 Status 字段是业务状态（Active/Unknown 等），不是 K8s 原生状态
 			if n.Status == model.StatusActive {
 				nodeReady++
 			}

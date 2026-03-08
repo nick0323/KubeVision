@@ -1,0 +1,113 @@
+/* StatusBadge 样式 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer; /* 显示小手指 */
+  transition: all 0.2s ease;
+}
+
+.status-badge:hover {
+  opacity: 0.8; /* 悬停时略微透明 */
+  transform: scale(1.02); /* 悬停时略微放大 */
+}
+
+/* 状态图标 */
+.status-icon {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* 状态文本 */
+.status-text {
+  line-height: 1.4;
+}
+
+/* 🟢 绿色状态 - 健康/成功 */
+.status-running,
+.status-healthy,
+.status-succeeded,
+.status-ready,
+.status-active,
+.status-bound,
+.status-available {
+  background-color: rgba(82, 196, 26, 0.1);
+  color: #52c41a;
+  border: 1px solid rgba(82, 196, 26, 0.3);
+}
+
+/* 🔵 蓝色状态 - 正常/信息 */
+.status-scaled,
+.status-normal,
+.status-clusterip {
+  background-color: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+  border: 1px solid rgba(24, 144, 255, 0.3);
+}
+
+/* 🟡 黄色状态 - 警告/等待 */
+.status-pending,
+.status-partial,
+.status-progressing,
+.status-terminating,
+.status-released,
+.status-warning,
+.status-disabled,
+.status-external {
+  background-color: rgba(250, 173, 20, 0.1);
+  color: #faad14;
+  border: 1px solid rgba(250, 173, 20, 0.3);
+}
+
+/* 🔴 红色状态 - 错误/失败 */
+.status-failed,
+.status-unavailable,
+.status-lost,
+.status-notready,
+.status-crashloop,
+.status-error {
+  background-color: rgba(245, 34, 45, 0.1);
+  color: #f5222d;
+  border: 1px solid rgba(245, 34, 45, 0.3);
+}
+
+/* 🟣 紫色状态 - 特殊类型 */
+.status-loadbalancer {
+  background-color: rgba(114, 46, 209, 0.1);
+  color: #722ed1;
+  border: 1px solid rgba(114, 46, 209, 0.3);
+}
+
+/* ⚪ 灰色状态 - 未知/默认 */
+.status-unknown,
+.status-suspended {
+  background-color: rgba(140, 140, 140, 0.1);
+  color: #8c8c8c;
+  border: 1px solid rgba(140, 140, 140, 0.3);
+}
+
+/* 悬停效果 */
+.status-badge:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* 紧凑模式 */
+.status-badge.compact {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.status-badge.compact .status-text {
+  display: none;
+}
+
+.status-badge.compact .status-icon {
+  font-size: 12px;
+}

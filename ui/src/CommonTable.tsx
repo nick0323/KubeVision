@@ -3,7 +3,6 @@ import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
 import { Column, CommonTableProps } from '../types';
-import { EMPTY_TEXT } from './constants';
 import './CommonTable.css';
 
 // 单元格组件（判断是否显示省略号）
@@ -69,7 +68,7 @@ export const CommonTable: React.FC<CommonTableProps<any>> = ({
   currentPage = 1,
   total = 0,
   onPageChange,
-  emptyText = EMPTY_TEXT,
+  emptyText = '暂无数据',
   className = '',
   hasFixedPagination = false
 }) => {
@@ -106,15 +105,26 @@ export const CommonTable: React.FC<CommonTableProps<any>> = ({
               data.map((row, i) => (
                 <tr key={i}>
                   {columns.map((col: Column<any>) => {
-                    // 渲染内容
-                    let cellContent = col.render ? col.render(row[col.dataIndex], row, i, false) : row[col.dataIndex];
+                    // 渲染内容 - 优先使用 render 函数，否则直接访问字段
+                    let cellContent: React.ReactNode;
                     
+                    if (col.render) {
+                      // 使用自定义渲染函数
+                      cellContent = col.render(row[col.dataIndex], row, i, false);
+                    } else {
+                      // 直接访问字段，处理 undefined/null 情况
+                      const value = row[col.dataIndex];
+                      cellContent = (value === undefined || value === null) ? '' : value;
+                    }
+
                     // 如果内容是数组，转换为逗号分隔的字符串
                     if (Array.isArray(cellContent)) {
                       cellContent = cellContent.join(', ');
                     }
-                    
-                    const cellContentStr = String(cellContent || '');
+
+                    // 如果内容仍为空，显示'-'
+                    const displayContent = cellContent === '' ? '-' : cellContent;
+                    const cellContentStr = String(displayContent);
 
                     // 使用 TableCell 组件（自动判断是否显示 Tooltip）
                     return (
@@ -123,7 +133,7 @@ export const CommonTable: React.FC<CommonTableProps<any>> = ({
                         data-type={col.dataIndex}
                       >
                         <TableCell
-                          content={cellContent || '-'}
+                          content={displayContent}
                           text={cellContentStr}
                           maxWidth={250}
                         />

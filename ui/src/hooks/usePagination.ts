@@ -1,13 +1,10 @@
 import { useState, useCallback } from 'react';
-import { PAGE_SIZE, PAGE_SIZE_OPTIONS } from '../constants';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '../constants';
 
 /**
- * 自定义分页 Hook
+ * 分页 Hook - 优化版
  */
-export function usePagination(
-  initialPageSize: number = PAGE_SIZE,
-  pageSizeOptions: number[] = PAGE_SIZE_OPTIONS
-) {
+export function usePagination(initialPageSize: number = DEFAULT_PAGE_SIZE) {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(initialPageSize);
 
@@ -22,38 +19,17 @@ export function usePagination(
     setPage(1); // 重置到第一页
   }, []);
 
-  // 重置分页状态
+  // 重置分页
   const resetPagination = useCallback(() => {
     setPage(1);
   }, []);
 
-  // 计算总页数
-  const getTotalPages = useCallback((total: number) => {
-    return Math.ceil(total / pageSize);
-  }, [pageSize]);
-
-  // 计算偏移量
-  const getOffset = useCallback(() => {
-    return (page - 1) * pageSize;
-  }, [page, pageSize]);
-
   return {
-    // 状态
     page,
     pageSize,
-
-    // 操作方法
-    setPage,
-    setPageSize,
     handlePageChange,
     handlePageSizeChange,
     resetPagination,
-
-    // 计算属性
-    getTotalPages,
-    getOffset,
-
-    // 配置
-    pageSizeOptions
+    pageSizeOptions: PAGE_SIZE_OPTIONS,
   };
 }

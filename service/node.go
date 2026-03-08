@@ -67,7 +67,7 @@ func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.Po
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 使用通用映射函数
 	result := MapNodes(nodes.Items, pods, nodeMetricsMap)
 	return result, nil

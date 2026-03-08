@@ -13,7 +13,7 @@ func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]mod
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 使用通用映射函数
 	result := MapNamespaces(nsList.Items)
 	return result, nil

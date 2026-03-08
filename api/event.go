@@ -70,15 +70,10 @@ func getEventDetail(
 		}
 
 		eventDetail := model.EventDetail{
-			CommonResourceFields: model.CommonResourceFields{
-				Namespace: event.Namespace,
-				Name:      event.Name,
-				Status:    event.Type,
-				BaseMetadata: model.BaseMetadata{
-					Labels:      event.Labels,
-					Annotations: event.Annotations,
-				},
-			},
+			Namespace: event.Namespace,
+			Name:      event.Name,
+			Status:    event.Type,
+			Labels:    event.Labels,
 			Reason:    event.Reason,
 			Message:   event.Message,
 			Type:      event.Type,

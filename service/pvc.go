@@ -62,6 +62,7 @@ func ListPVCs(ctx context.Context, clientset *kubernetes.Clientset, namespace st
 			AccessMode:   strings.Join(accessModes, ","),
 			StorageClass: storageClass,
 			VolumeName:   volumeName,
+			Age:          CalculateAge(pvc.CreationTimestamp),
 		}
 		pvcStatuses = append(pvcStatuses, pvcStatus)
 	}

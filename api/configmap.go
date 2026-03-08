@@ -54,7 +54,7 @@ func getConfigMapDetail(
 		ctx := GetRequestContext(c)
 		ns := c.Param("namespace")
 		name := c.Param("name")
-		
+
 		configMap, err := clientset.CoreV1().ConfigMaps(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)

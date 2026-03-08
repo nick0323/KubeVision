@@ -52,6 +52,7 @@ func ListPVs(ctx context.Context, clientset *kubernetes.Clientset) ([]model.PVSt
 			StorageClass:  storageClass,
 			ClaimRef:      claimRef,
 			ReclaimPolicy: reclaimPolicy,
+			Age:           CalculateAge(pv.CreationTimestamp),
 		}
 		pvStatuses = append(pvStatuses, pvStatus)
 	}

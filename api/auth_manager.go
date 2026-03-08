@@ -17,7 +17,7 @@ type LoginAttempt struct {
 }
 
 type AuthManager struct {
-	shards [32]*authShard  // 使用分片锁减少竞争
+	shards [32]*authShard // 使用分片锁减少竞争
 	logger *zap.Logger
 	config *config.Manager
 	stopCh chan struct{}
@@ -153,7 +153,7 @@ func (am *AuthManager) GetStats() map[string]interface{} {
 	for _, shard := range am.shards {
 		shard.mutex.RLock()
 		totalAttempts += len(shard.attempts)
-		
+
 		now := time.Now()
 		authConfig := am.config.GetAuthConfig()
 		for _, attempt := range shard.attempts {

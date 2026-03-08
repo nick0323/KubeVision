@@ -40,14 +40,14 @@ func NewManager(config *model.CacheConfig, logger *zap.Logger) *Manager {
 		cancel: cancel,
 	}
 
-	// 初始化默认缓存
+	// 初始化默认缓存（使用优化的 LRU 缓存）
 	if config.Enabled {
 		switch config.Type {
-		case "memory":
-			manager.caches["default"] = NewMemoryCache(config, logger)
+		case "memory", "lru":
+			manager.caches["default"] = NewMemoryCacheLRU(config, logger)
 		default:
-			logger.Warn("不支持的缓存类型，使用内存缓存", zap.String("type", config.Type))
-			manager.caches["default"] = NewMemoryCache(config, logger)
+			logger.Warn("不支持的缓存类型，使用 LRU 缓存", zap.String("type", config.Type))
+			manager.caches["default"] = NewMemoryCacheLRU(config, logger)
 		}
 	}
 

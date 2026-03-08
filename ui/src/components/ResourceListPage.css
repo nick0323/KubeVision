@@ -1,0 +1,208 @@
+/* ResourceListPage 组件样式 - 恢复原始样式 */
+.resource-list-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+}
+
+/* 表格容器 */
+.table-container {
+  flex: 1;
+  overflow: auto; /* 只在需要时显示滚动条 */
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #bae7ff; /* 淡蓝色边框 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 表格样式 */
+.resource-table {
+  width: 100%;
+  table-layout: fixed; /* 固定表格布局，按百分比分配宽度 */
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 100%; /* 确保表格不小于容器 */
+}
+
+.resource-table thead {
+  background-color: #e6f7ff; /* 淡蓝色表头背景 */
+  border-bottom: 2px solid #91d5ff; /* 深蓝色底边框 */
+}
+
+.resource-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #1890ff; /* 蓝色文字 */
+  border-bottom: none; /* 移除横线 */
+  user-select: none;
+  overflow: hidden; /* 表头也隐藏超出内容 */
+}
+
+.resource-table th.sorted {
+  background-color: #bae7ff; /* 排序列更深的背景 */
+}
+
+.table-header-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.table-header-cell.sortable {
+  cursor: pointer;
+}
+
+.table-header-cell.sortable:hover {
+  color: #096dd9; /* 悬停时更深的蓝色 */
+}
+
+.sort-icon {
+  margin-left: 4px;
+  color: #69c0ff;
+  font-size: 12px;
+}
+
+th.sorted .sort-icon {
+  color: #1890ff;
+}
+
+/* 表格行 */
+.resource-table tbody tr {
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.resource-table tbody tr:hover {
+  background-color: #e6f7ff; /* 悬停时淡蓝色背景 */
+}
+
+.resource-table td {
+  padding: 12px 16px;
+  color: #262626;
+  max-width: 300px; /* 单元格最大宽度 */
+  overflow: hidden; /* 超出隐藏 */
+}
+
+/* 单元格文本 - 超出显示省略号 */
+.table-cell-text {
+  display: block;
+  max-width: 280px; /* 比 td 略小，留出 padding 空间 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* Tippy Tooltip 自定义样式 - 淡蓝色主题 */
+.tippy-box[data-theme~='light'] {
+  background: #e6f7ff; /* 淡蓝色背景 */
+  border: 2px solid #bae7ff; /* 淡蓝色边框 */
+  border-radius: 12px; /* 大圆角 */
+  box-shadow: 0 8px 20px rgba(24, 144, 255, 0.2); /* 柔和蓝色阴影 */
+  max-width: 600px !important;
+}
+
+.tippy-box[data-theme~='light'] .tippy-content {
+  color: #0050b3; /* 深蓝色文字 */
+  font-size: 14px;
+  font-weight: 500;
+  max-width: none;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-all;
+  padding: 12px 16px;
+  line-height: 1.6;
+}
+
+.tippy-box[data-theme~='light'] .tippy-arrow {
+  color: #e6f7ff;
+}
+
+.tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow {
+  bottom: -7px;
+}
+
+.tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow:before {
+  border-top-color: #bae7ff;
+  border-width: 8px 8px 0;
+  left: 0;
+}
+
+.tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow:after {
+  content: '';
+  position: absolute;
+  left: 1px;
+  bottom: -5px;
+  border-top-color: #e6f7ff;
+  border-width: 6px 6px 0;
+}
+
+/* 增强悬停效果 */
+.table-cell-text:hover {
+  color: #1890ff;
+  cursor: pointer;
+}
+
+/* 空状态 */
+.empty-row td {
+  padding: 60px 16px;
+  text-align: center;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-icon {
+  font-size: 48px;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+/* 错误容器 */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.error-container h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #ff4d4f;
+}
+
+.error-container p {
+  margin: 0;
+  font-size: 14px;
+  color: #595959;
+}
+
+.retry-btn {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 6px;
+  background-color: #1890ff;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.retry-btn:hover {
+  background-color: #40a9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}

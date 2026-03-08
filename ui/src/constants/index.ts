@@ -1,5 +1,5 @@
 /**
- * 菜单配置
+ * 常量定义
  */
 
 export interface MenuItem {
@@ -13,81 +13,53 @@ export interface MenuGroup {
   items: MenuItem[];
 }
 
+// 菜单配置
 export const MENU_LIST: MenuGroup[] = [
   {
     group: '',
     items: [
-      { key: 'overview', label: 'Overview', icon: 'FaChartPie' },
+      { key: 'overview', label: 'Overview', icon: 'FaChartPie' }, // 📊 概览图表
     ],
   },
   {
-    group: 'Workloads',
+    group: 'Workloads', // 工作负载
     items: [
-      { key: 'pods', label: 'Pods', icon: 'FaCubes' },
-      { key: 'deployments', label: 'Deployments', icon: 'FaLayerGroup' },
-      { key: 'statefulsets', label: 'StatefulSets', icon: 'FaBoxes' },
-      { key: 'daemonsets', label: 'DaemonSets', icon: 'FaBoxOpen' },
-      { key: 'jobs', label: 'Jobs', icon: 'FaTasks' },
-      { key: 'cronjobs', label: 'CronJobs', icon: 'FaRegClock' },
+      { key: 'pods', label: 'Pods', icon: 'FaCube' }, // 🧊 Pod 是最小单元
+      { key: 'deployments', label: 'Deployments', icon: 'FaRocket' }, // 🚀 部署应用
+      { key: 'statefulsets', label: 'StatefulSets', icon: 'FaTree' }, // 🌲 有状态服务（树状结构）
+      { key: 'daemonsets', label: 'DaemonSets', icon: 'FaCogs' }, // ⚙️ 守护进程
+      { key: 'jobs', label: 'Jobs', icon: 'FaBriefcase' }, // 💼 任务工作
+      { key: 'cronjobs', label: 'CronJobs', icon: 'FaClock' }, // 🕐 定时任务
     ],
   },
   {
-    group: 'Service',
+    group: 'Network', // 网络（更准确的命名）
     items: [
-      { key: 'services', label: 'Services', icon: 'FaProjectDiagram' },
-      { key: 'ingress', label: 'Ingress', icon: 'FaNetworkWired' },
+      { key: 'services', label: 'Services', icon: 'FaNetworkWired' }, // 🌐 服务发现
+      { key: 'ingress', label: 'Ingress', icon: 'FaDoorOpen' }, // 🚪 入口网关
     ],
   },
   {
-    group: 'Storage',
+    group: 'Storage', // 存储
     items: [
-      { key: 'pvcs', label: 'PVCs', icon: 'FaHdd' },
-      { key: 'pvs', label: 'PVs', icon: 'FaDatabase' },
-      { key: 'storageclasses', label: 'StorageClasses', icon: 'FaCog' },
+      { key: 'pvcs', label: 'PVCs', icon: 'FaHdd' }, // 💾 存储申请
+      { key: 'pvs', label: 'PVs', icon: 'FaDatabase' }, // 🗄️ 持久卷
+      { key: 'storageclasses', label: 'StorageClasses', icon: 'FaListAlt' }, // 📋 存储类定义
+      { key: 'configmaps', label: 'ConfigMaps', icon: 'FaFileAlt' }, // 📄 配置文件
+      { key: 'secrets', label: 'Secrets', icon: 'FaLock' }, // 🔒 密钥管理
     ],
   },
   {
-    group: 'Config',
+    group: 'Cluster', // 集群
     items: [
-      { key: 'configmaps', label: 'ConfigMaps', icon: 'FaCog' },
-      { key: 'secrets', label: 'Secrets', icon: 'FaKey' },
-    ],
-  },
-  {
-    group: 'Cluster',
-    items: [
-      { key: 'nodes', label: 'Nodes', icon: 'FaDesktop' },
-      { key: 'namespaces', label: 'Namespaces', icon: 'LuSquareDashed' },
-      { key: 'events', label: 'Events', icon: 'FaBell' },
+      { key: 'nodes', label: 'Nodes', icon: 'FaServer' }, // 🖥️ 节点服务器
+      { key: 'namespaces', label: 'Namespaces', icon: 'FaThLarge' }, // ⬜ 命名空间隔离
+      { key: 'events', label: 'Events', icon: 'FaBell' }, // 🔔 事件通知
     ],
   },
 ];
 
-// API 端点映射
-export const API_MAP: Record<string, string> = {
-  overview: '/api/overview',
-  pods: '/api/pods',
-  deployments: '/api/deployments',
-  statefulsets: '/api/statefulsets',
-  daemonsets: '/api/daemonsets',
-  jobs: '/api/jobs',
-  cronjobs: '/api/cronjobs',
-  services: '/api/services',
-  ingress: '/api/ingress',
-  pvcs: '/api/pvcs',
-  pvs: '/api/pvs',
-  storageclasses: '/api/storageclasses',
-  configmaps: '/api/configmaps',
-  secrets: '/api/secrets',
-  nodes: '/api/nodes',
-  namespaces: '/api/namespaces',
-  events: '/api/events',
-};
+// 分页配置
+export const DEFAULT_PAGE_SIZE = 10;
+export const PAGE_SIZE_OPTIONS = [10, 15, 20, 50];
 
-// 常量
-export const PAGE_SIZE = 10;
-export const PAGE_SIZE_OPTIONS = [10, 15, 20];
-export const SEARCH_PLACEHOLDER = '搜索名称、标签...';
-export const EMPTY_TEXT = '暂无数据';
-export const LOADING_TEXT = '加载中...';
-export const ERROR_TEXT = '错误：';

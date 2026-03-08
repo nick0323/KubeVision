@@ -14,7 +14,7 @@ func ListServices(ctx context.Context, clientset *kubernetes.Clientset, namespac
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 使用通用映射函数
 	result := MapServices(svcs.Items)
 	return result, nil

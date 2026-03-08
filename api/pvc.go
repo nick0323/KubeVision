@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -51,22 +50,20 @@ func getPVCDetail(
 			return
 		}
 		ctx := GetRequestContext(c)
-		ns := c.Param("namespace")
+		namespace := c.Param("namespace")
 		name := c.Param("name")
-		pvc, err := clientset.CoreV1().PersistentVolumeClaims(ns).Get(ctx, name, metav1.GetOptions{})
+		pvc, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
 
 		capacity := ""
-		if pvc.Status.Capacity != nil {
-			if storage, ok := pvc.Status.Capacity[v1.ResourceStorage]; ok {
-				capacity = storage.String()
-			}
+		if !pvc.Status.Capacity.Storage().IsZero() {
+			capacity = pvc.Status.Capacity.Storage().String()
 		}
 
-		accessModes := make([]string, 0)
+		accessModes := []string{}
 		for _, mode := range pvc.Spec.AccessModes {
 			accessModes = append(accessModes, string(mode))
 		}
@@ -77,15 +74,10 @@ func getPVCDetail(
 		}
 
 		pvcDetail := model.PVCDetail{
-			CommonResourceFields: model.CommonResourceFields{
-				Namespace: pvc.Namespace,
-				Name:      pvc.Name,
-				Status:    string(pvc.Status.Phase),
-				BaseMetadata: model.BaseMetadata{
-					Labels:      pvc.Labels,
-					Annotations: pvc.Annotations,
-				},
-			},
+			Namespace:    pvc.Namespace,
+			Name:         pvc.Name,
+			Status:       string(pvc.Status.Phase),
+			Labels:       pvc.Labels,
 			Capacity:     capacity,
 			AccessMode:   accessModes,
 			StorageClass: storageClass,

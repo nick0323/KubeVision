@@ -25,7 +25,7 @@ func Recovery(logger *zap.Logger) gin.HandlerFunc {
 		)
 
 		ResponseError(c, logger, &model.APIError{
-			Code:    model.CodeInternalServerError,
+			Code:    http.StatusInternalServerError,
 			Message: "服务器内部错误",
 			Details: fmt.Sprintf("panic: %v", recovered),
 		}, http.StatusInternalServerError)
@@ -41,11 +41,15 @@ func ResponseError(c *gin.Context, logger *zap.Logger, err error, httpCode int) 
 	case *model.APIError:
 		apiError = e
 	case *errors.StatusError:
-		apiError = ConvertK8sError(e)
+		apiError = &model.APIError{
+			Code:    httpCode,
+			Message: http.StatusText(httpCode),
+			Details: e.Error(),
+		}
 	default:
 		apiError = &model.APIError{
-			Code:    model.CodeInternalServerError,
-			Message: model.GetErrorMessage(model.CodeInternalServerError),
+			Code:    httpCode,
+			Message: http.StatusText(httpCode),
 			Details: e.Error(),
 		}
 	}
@@ -76,38 +80,11 @@ func ResponseError(c *gin.Context, logger *zap.Logger, err error, httpCode int) 
 
 func ResponseSuccess(c *gin.Context, data interface{}, message string, page *model.PageMeta) {
 	c.JSON(http.StatusOK, model.APIResponse{
-		Code:      model.CodeSuccess,
+		Code:      model.CodeSuccess,  // 使用 0 表示成功，而不是 HTTP 状态码
 		Message:   message,
 		Data:      data,
 		TraceID:   c.GetString("traceId"),
 		Timestamp: time.Now().Unix(),
 		Page:      page,
 	})
-}
-
-func ConvertK8sError(k8sErr *errors.StatusError) *model.APIError {
-	errorMappings := map[int32]int{
-		http.StatusNotFound:           model.CodeResourceNotFound,
-		http.StatusConflict:           model.CodeResourceExists,
-		http.StatusForbidden:          model.CodePermissionDenied,
-		http.StatusUnauthorized:       model.CodeUnauthorized,
-		http.StatusBadRequest:         model.CodeBadRequest,
-		http.StatusRequestTimeout:     model.CodeRequestTimeout,
-		http.StatusServiceUnavailable: model.CodeServiceUnavailable,
-	}
-
-	code, exists := errorMappings[k8sErr.Status().Code]
-	if !exists {
-		code = model.CodeK8sAPIError
-	}
-
-	return &model.APIError{
-		Code:    code,
-		Message: model.GetErrorMessage(code),
-		Details: map[string]interface{}{
-			"k8sError":   k8sErr.Error(),
-			"statusCode": k8sErr.Status().Code,
-			"reason":     k8sErr.Status().Reason,
-		},
-	}
 }

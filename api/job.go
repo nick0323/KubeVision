@@ -53,7 +53,7 @@ func getJobDetail(
 		ctx := GetRequestContext(c)
 		namespace := c.Param("namespace")
 		name := c.Param("name")
-		
+
 		job, err := clientset.BatchV1().Jobs(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)

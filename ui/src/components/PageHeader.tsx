@@ -5,7 +5,6 @@ import './PageHeader.css';
 
 /**
  * 页面头部组件
- * 保持与 PageHeader.jsx 完全一致的功能
  */
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,

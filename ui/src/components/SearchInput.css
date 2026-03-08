@@ -1,9 +1,11 @@
-/* SearchInput 组件样式 */
+/* SearchInput 组件样式 - 与 Namespace/状态选择框统一 */
 .search-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 220px; /* 与 Namespace/状态选择框一致的宽度 */
+  min-width: 220px;
 }
 
 .search-input-form {
@@ -13,25 +15,26 @@
 
 .search-input {
   width: 100%;
-  min-width: 200px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   font-size: 14px;
-  font-family: var(--font-main); /* 使用 Maple Mono 字体，与左侧导航栏一致 */
+  font-family: var(--font-main);
   color: #333;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  background: #fff; /* 白色背景 */
+  border: 2px solid #bae7ff; /* 淡蓝色边框 */
+  border-radius: 8px; /* 圆角 */
   transition: all 0.2s ease;
   outline: none;
 }
 
 .search-input:hover {
   border-color: #40a9ff;
+  background: #f0faff; /* 极淡蓝色悬停 */
 }
 
 .search-input:focus {
   border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
 .search-input::placeholder {
@@ -48,7 +51,7 @@
   padding: 0;
   background: #1890ff;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px; /* 圆角 */
   color: #fff;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -71,7 +74,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px; /* 圆角 */
   color: #999;
   cursor: pointer;
   transition: all 0.2s ease;

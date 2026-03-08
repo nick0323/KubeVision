@@ -70,11 +70,8 @@ func getStorageClassDetail(
 			ReclaimPolicy:     string(*storageClass.ReclaimPolicy),
 			VolumeBindingMode: string(*storageClass.VolumeBindingMode),
 			IsDefault:         isDefault,
-			BaseMetadata: model.BaseMetadata{
-				Labels:      storageClass.Labels,
-				Annotations: storageClass.Annotations,
-			},
-			Parameters: storageClass.Parameters,
+			Labels:            storageClass.Labels,
+			Parameters:        storageClass.Parameters,
 		}
 		middleware.ResponseSuccess(c, storageClassDetail, DetailSuccessMessage, nil)
 	}

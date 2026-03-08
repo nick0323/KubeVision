@@ -51,54 +51,54 @@ func FormatResourceUsage(cpu, mem int64) (cpuStr, memStr string) {
 func FormatPodResourceUsage(podMetricsMap model.PodMetricsMap, namespace, name string) (cpuStr, memStr string) {
 	cpuStr, memStr = "-", "-"
 	if m, ok := podMetricsMap[namespace+"/"+name]; ok {
-		cpuStr = fmt.Sprintf("%.2f mCPU", float64(m.CPU))
-		memStr = fmt.Sprintf("%.2f MiB", float64(m.Mem)/(1024*1024))
+		if m.CPU != "" {
+			cpuStr = m.CPU
+		}
+		if m.Mem != "" {
+			memStr = m.Mem
+		}
 	}
 	return cpuStr, memStr
 }
 
 func GetResourceStatus(ready, desired int32) string {
 	if ready == desired && desired > 0 {
-		return "Ready"
+		return model.WorkloadHealthy
 	} else if ready > 0 {
-		return "PartialAvailable"
+		return model.WorkloadPartial
 	} else if desired == 0 {
-		return "Scaled to zero"
-	} else {
-		return "Not Ready"
+		return model.WorkloadScaledToZero
 	}
+	return model.WorkloadUnavailable
 }
 
 func GetWorkloadStatus(ready, desired int32) string {
 	if ready == desired && desired > 0 {
-		return "Healthy"
+		return model.WorkloadHealthy
 	} else if ready > 0 {
-		return "PartialAvailable"
-	} else {
-		return "Abnormal"
+		return model.WorkloadPartial
 	}
+	return model.WorkloadUnavailable
 }
 
 func GetJobStatus(succeeded, failed, active int32) string {
 	if succeeded > 0 {
-		return "Succeeded"
+		return model.PodSucceeded
 	} else if failed > 0 {
-		return "Failed"
+		return model.PodFailed
 	} else if active > 0 {
-		return "Running"
-	} else {
-		return "Pending"
+		return model.PodRunning
 	}
+	return model.PodPending
 }
 
 func GetCronJobStatus(activeCount int, lastSuccessfulTime interface{}) string {
 	if activeCount > 0 {
-		return "Running"
+		return model.PodRunning
 	} else if lastSuccessfulTime != nil {
-		return "Succeeded"
-	} else {
-		return "Pending"
+		return model.PodSucceeded
 	}
+	return model.PodPending
 }
 
 func ExtractKeys[T any](data map[string]T) []string {
@@ -144,14 +144,6 @@ func SafeFloat64Ptr(ptr *float64, defaultValue float64) float64 {
 	return defaultValue
 }
 
-func IsEmptyString(s string) bool {
-	return len(s) == 0
-}
-
-func IsNotEmptyString(s string) bool {
-	return len(s) > 0
-}
-
 func TruncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
@@ -180,15 +172,12 @@ func RemoveEmptyStrings(slice []string) []string {
 
 func MergeStringMaps(m1, m2 map[string]string) map[string]string {
 	result := make(map[string]string)
-
 	for k, v := range m1 {
 		result[k] = v
 	}
-
 	for k, v := range m2 {
 		result[k] = v
 	}
-
 	return result
 }
 

@@ -56,7 +56,7 @@ func getStatefulSetDetail(
 		ctx := GetRequestContext(c)
 		namespace := c.Param("namespace")
 		name := c.Param("name")
-		
+
 		sts, err := clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)

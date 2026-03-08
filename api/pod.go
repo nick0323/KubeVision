@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/nick0323/K8sVision/api/middleware"
@@ -14,6 +15,25 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
+
+// formatCPU 将 CPU 毫核值转换为字符串格式
+func formatCPU(milli int64) string {
+	if milli == 0 {
+		return "-"
+	}
+	return fmt.Sprintf("%dm", milli)
+}
+
+// formatMemory 将内存字节值转换为字符串格式
+func formatMemory(bytes int64) string {
+	if bytes == 0 {
+		return "-"
+	}
+	if bytes < 1024*1024 {
+		return fmt.Sprintf("%dKi", bytes/1024)
+	}
+	return fmt.Sprintf("%dMi", bytes/(1024*1024))
+}
 
 func RegisterPod(
 	r *gin.RouterGroup,
@@ -46,7 +66,10 @@ func getPodList(
 						cpuSum += ctn.Usage.Cpu().MilliValue()
 						memSum += ctn.Usage.Memory().Value()
 					}
-					podMetricsMap[m.Namespace+"/"+m.Name] = model.PodMetrics{CPU: cpuSum, Mem: memSum}
+					podMetricsMap[m.Namespace+"/"+m.Name] = model.PodMetrics{
+						CPU: formatCPU(cpuSum),
+						Mem: formatMemory(memSum),
+					}
 				}
 			}
 			podStatuses, _, err := listPodsWithRaw(ctx, clientset, podMetricsMap, params.Namespace)
@@ -68,7 +91,7 @@ func getPodDetail(
 		ctx := GetRequestContext(c)
 		namespace := c.Param("namespace")
 		name := c.Param("name")
-		
+
 		pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)

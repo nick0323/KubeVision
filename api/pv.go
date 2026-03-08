@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -58,22 +57,13 @@ func getPVDetail(
 			return
 		}
 
-		capacity := ""
-		if pv.Spec.Capacity != nil {
-			if storage, ok := pv.Spec.Capacity[v1.ResourceStorage]; ok {
-				capacity = storage.String()
-			}
-		}
-
-		accessModes := make([]string, 0)
+		capacity := pv.Spec.Capacity.Storage().String()
+		accessModes := []string{}
 		for _, mode := range pv.Spec.AccessModes {
 			accessModes = append(accessModes, string(mode))
 		}
 
-		storageClass := ""
-		if pv.Spec.StorageClassName != "" {
-			storageClass = pv.Spec.StorageClassName
-		}
+		storageClass := pv.Spec.StorageClassName
 
 		claimRef := ""
 		if pv.Spec.ClaimRef != nil {
@@ -88,10 +78,7 @@ func getPVDetail(
 			StorageClass:  storageClass,
 			ClaimRef:      claimRef,
 			ReclaimPolicy: string(pv.Spec.PersistentVolumeReclaimPolicy),
-			BaseMetadata: model.BaseMetadata{
-				Labels:      pv.Labels,
-				Annotations: pv.Annotations,
-			},
+			Labels:        pv.Labels,
 		}
 		middleware.ResponseSuccess(c, pvDetail, DetailSuccessMessage, nil)
 	}

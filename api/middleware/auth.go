@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -22,17 +23,14 @@ func getJWTSecret(provider ConfigProvider) []byte {
 	return provider.GetJWTSecret()
 }
 
-// safeStringClaim 安全地从JWT claims中获取字符串值
 func safeStringClaim(claims jwt.MapClaims, key string) (string, bool) {
 	if claims == nil {
 		return "", false
 	}
-
 	value, exists := claims[key]
 	if !exists {
 		return "", false
 	}
-
 	str, ok := value.(string)
 	return str, ok
 }
@@ -40,8 +38,8 @@ func safeStringClaim(claims jwt.MapClaims, key string) (string, bool) {
 func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		traceId := c.GetString("traceId")
-
 		tokenStr := c.GetHeader("Authorization")
+
 		if tokenStr == "" {
 			logger.Warn("missing authorization header",
 				zap.String("traceId", traceId),
@@ -49,10 +47,10 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 				zap.String("path", c.Request.URL.Path),
 			)
 			ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeUnauthorized,
-				Message: model.GetErrorMessage(model.CodeUnauthorized),
-				Details: "缺少Authorization头",
-			}, 401)
+				Code:    http.StatusUnauthorized,
+				Message: "未授权访问",
+				Details: "缺少 Authorization 头",
+			}, http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
@@ -64,44 +62,41 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 				zap.String("header", tokenStr),
 			)
 			ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeUnauthorized,
-				Message: model.GetErrorMessage(model.CodeUnauthorized),
-				Details: "Authorization格式错误，应为Bearer token",
-			}, 401)
+				Code:    http.StatusUnauthorized,
+				Message: "Authorization 格式错误",
+				Details: "应为 Bearer token",
+			}, http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
 
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
 
-		// 添加基本格式验证
 		if tokenStr == "" {
-			logger.Warn("empty token after prefix removal",
+			logger.Warn("empty token",
 				zap.String("traceId", traceId),
 				zap.String("clientIP", c.ClientIP()),
 			)
 			ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeAuthError,
-				Message: model.GetErrorMessage(model.CodeAuthError),
-				Details: "Token不能为空",
-			}, 401)
+				Code:    http.StatusUnauthorized,
+				Message: "Token 不能为空",
+			}, http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
 
 		segments := strings.Split(tokenStr, ".")
 		if len(segments) != 3 {
-			logger.Warn("invalid token format - wrong number of segments",
+			logger.Warn("invalid token format",
 				zap.String("traceId", traceId),
 				zap.String("clientIP", c.ClientIP()),
 				zap.Int("segments", len(segments)),
-				zap.String("token", maskToken(tokenStr)), // 遮蔽敏感信息
 			)
 			ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeAuthError,
-				Message: model.GetErrorMessage(model.CodeAuthError),
-				Details: fmt.Sprintf("Token格式错误：期望3个段，实际%d个段", len(segments)),
-			}, 401)
+				Code:    http.StatusUnauthorized,
+				Message: "Token 格式错误",
+				Details: fmt.Sprintf("期望 3 个段，实际%d个段", len(segments)),
+			}, http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
@@ -117,14 +112,13 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			logger.Warn("jwt parse error",
 				zap.String("traceId", traceId),
 				zap.String("clientIP", c.ClientIP()),
-				zap.String("maskedToken", maskToken(tokenStr)), // 遮蔽敏感信息
 				zap.Error(err),
 			)
 			ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeAuthError,
-				Message: model.GetErrorMessage(model.CodeAuthError),
-				Details: "Token解析失败: " + err.Error(),
-			}, 401)
+				Code:    http.StatusUnauthorized,
+				Message: "Token 解析失败",
+				Details: err.Error(),
+			}, http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
@@ -133,19 +127,16 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			logger.Warn("invalid jwt token",
 				zap.String("traceId", traceId),
 				zap.String("clientIP", c.ClientIP()),
-				zap.String("maskedToken", maskToken(tokenStr)), // 遮蔽敏感信息
 			)
 			ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeAuthError,
-				Message: model.GetErrorMessage(model.CodeAuthError),
-				Details: "Token无效或已过期",
-			}, 401)
+				Code:    http.StatusUnauthorized,
+				Message: "Token 无效或已过期",
+			}, http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && claims != nil {
-			// 添加额外的安全检查
 			defer func() {
 				if r := recover(); r != nil {
 					logger.Error("JWT claims processing panic recovered",
@@ -153,48 +144,40 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 						zap.String("clientIP", c.ClientIP()),
 					)
 					ResponseError(c, logger, &model.APIError{
-						Code:    model.CodeAuthError,
-						Message: model.GetErrorMessage(model.CodeAuthError),
-						Details: "Token处理失败",
-					}, 401)
+						Code:    http.StatusUnauthorized,
+						Message: "Token 处理失败",
+					}, http.StatusUnauthorized)
 					c.Abort()
 				}
 			}()
-			
-			// 验证必要字段
-			username, usernameExists := safeStringClaim(claims, "username")
 
+			username, usernameExists := safeStringClaim(claims, "username")
 			if !usernameExists || username == "" {
 				logger.Warn("JWT token missing username",
 					zap.String("traceId", traceId),
 					zap.String("clientIP", c.ClientIP()),
 				)
 				ResponseError(c, logger, &model.APIError{
-					Code:    model.CodeAuthError,
-					Message: model.GetErrorMessage(model.CodeAuthError),
-					Details: "Token缺少用户名信息",
-				}, 401)
+					Code:    http.StatusUnauthorized,
+					Message: "Token 缺少用户名",
+				}, http.StatusUnauthorized)
 				c.Abort()
 				return
 			}
 
-			// 安全地获取可选字段
 			iss, issExists := safeStringClaim(claims, "iss")
 			aud, audExists := safeStringClaim(claims, "aud")
 			jti, jtiExists := safeStringClaim(claims, "jti")
 
-			// 验证签发者和受众（如果存在）
 			if issExists && iss != "k8svision" {
 				logger.Warn("JWT token invalid issuer",
 					zap.String("traceId", traceId),
 					zap.String("clientIP", c.ClientIP()),
-					zap.String("issuer", iss),
 				)
 				ResponseError(c, logger, &model.APIError{
-					Code:    model.CodeAuthError,
-					Message: model.GetErrorMessage(model.CodeAuthError),
-					Details: "Token签发者无效",
-				}, 401)
+					Code:    http.StatusUnauthorized,
+					Message: "Token 签发者无效",
+				}, http.StatusUnauthorized)
 				c.Abort()
 				return
 			}
@@ -203,18 +186,15 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 				logger.Warn("JWT token invalid audience",
 					zap.String("traceId", traceId),
 					zap.String("clientIP", c.ClientIP()),
-					zap.String("audience", aud),
 				)
 				ResponseError(c, logger, &model.APIError{
-					Code:    model.CodeAuthError,
-					Message: model.GetErrorMessage(model.CodeAuthError),
-					Details: "Token受众无效",
-				}, 401)
+					Code:    http.StatusUnauthorized,
+					Message: "Token 受众无效",
+				}, http.StatusUnauthorized)
 				c.Abort()
 				return
 			}
 
-			// 验证时间相关声明
 			if exp, ok := claims["exp"]; ok {
 				if expFloat, ok := exp.(float64); ok {
 					if int64(expFloat) < time.Now().Unix() {
@@ -223,10 +203,9 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 							zap.String("clientIP", c.ClientIP()),
 						)
 						ResponseError(c, logger, &model.APIError{
-							Code:    model.CodeAuthError,
-							Message: model.GetErrorMessage(model.CodeAuthError),
-							Details: "Token已过期",
-						}, 401)
+							Code:    http.StatusUnauthorized,
+							Message: "Token 已过期",
+						}, http.StatusUnauthorized)
 						c.Abort()
 						return
 					}
@@ -234,10 +213,8 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			}
 
 			c.Set("username", username)
-
-			// 安全地设置JTI（如果存在）
 			if jtiExists && jti != "" {
-				c.Set("jti", jti) // 保存JTI用于撤销
+				c.Set("jti", jti)
 			}
 		}
 
@@ -251,7 +228,6 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 	}
 }
 
-// maskToken 遮蔽敏感的token信息，只保留部分字符
 func maskToken(token string) string {
 	if len(token) <= 10 {
 		return "***"

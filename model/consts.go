@@ -6,184 +6,98 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ==================== 资源状态常量 ====================
+// Kubernetes 原生资源状态
 const (
-	// 通用状态
-	StatusActive       = "Active"
-	StatusSuspended    = "Suspended"
-	StatusHealthy      = "Healthy"
-	StatusAbnormal     = "Abnormal"
-	StatusPartial      = "PartialAvailable"
-	StatusReady        = "Ready"
-	StatusNotReady     = "Not Ready"
-	StatusScaledToZero = "Scaled to zero"
+	PodPending   = "Pending"
+	PodRunning   = "Running"
+	PodSucceeded = "Succeeded"
+	PodFailed    = "Failed"
 
-	// PVC 状态
-	StatusBound = "Bound"
-	StatusLost  = "Lost"
+	PVCBound = "Bound"
+	PVCLost  = "Lost"
 )
 
-// ==================== 时间格式常量 ====================
+// 业务状态（前端展示用）
 const (
-	TimeFormat = "2006-01-02 15:04:05"
+	WorkloadHealthy      = "Healthy"
+	WorkloadPartial      = "Partial"
+	WorkloadUnavailable  = "Unavailable"
+	WorkloadScaledToZero = "ScaledToZero"
+
+	StatusActive = "Active"
 )
 
-// ==================== Kubernetes 注解和标签常量 ====================
+// Kubernetes 注解和标签常量
 const (
-	// StorageClass 注解
 	AnnotationStorageClassDefault = "storageclass.kubernetes.io/is-default-class"
-
-	// Node 角色标签前缀
-	LabelNodeRolePrefix = "node-role.kubernetes.io/"
+	LabelNodeRolePrefix           = "node-role.kubernetes.io/"
 )
 
-// ==================== Kubernetes 资源名称常量 ====================
+// Kubernetes 资源名称常量
 const (
-	ResourceCPU     = "cpu"
-	ResourceMemory  = "memory"
-	ResourceStorage = "storage"
-	ResourcePods    = "pods"
+	ResourceCPU    = "cpu"
+	ResourceMemory = "memory"
+	ResourcePods   = "pods"
 )
 
-// ==================== HTTP 状态码常量 ====================
+// 时间格式常量
 const (
-	HTTPStatusOK                  = 200
-	HTTPStatusBadRequest          = 400
-	HTTPStatusUnauthorized        = 401
-	HTTPStatusForbidden           = 403
-	HTTPStatusNotFound            = 404
-	HTTPStatusInternalServerError = 500
-	HTTPStatusServiceUnavailable  = 503
+	TimeFormatRFC3339 = time.RFC3339
+	TimeFormatConsole = "2006-01-02 15:04:05"
 )
 
-// ==================== 默认配置常量 ====================
+// 分页配置常量
 const (
-	DefaultPageSize     = 20
-	DefaultPageOffset   = 0
-	DefaultCacheTTL     = 300
-	DefaultJWTSecretLen = 32
-	DefaultPasswordLen  = 12
-	MaxPasswordLen      = 128
-	MinPasswordLen      = 8
-	DefaultOverviewEventsLimit = 5
+	DefaultPageSize   = 15
+	DefaultPageOffset = 0
+	MaxPageSize       = 1000
 )
 
-// ==================== 缓存键前缀常量 ====================
+// 密码策略常量
 const (
-	CacheKeyPrefixK8sClient = "k8s_client_"
-	CacheKeyPrefixResource  = "resource_"
-	CacheKeyPrefixMetrics   = "metrics_"
+	PasswordCharset    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+	MinPasswordLen     = 8
+	MaxPasswordLen     = 128
+	DefaultPasswordLen = 12
 )
 
-// ==================== 日志配置常量 ====================
-const (
-	LogLevelDebug = "debug"
-	LogLevelInfo  = "info"
-	LogLevelWarn  = "warn"
-	LogLevelError = "error"
-)
-
-// ==================== 日志格式常量 ====================
-const (
-	LogFormatConsole = "console"
-	LogFormatJSON    = "json"
-)
-
-// ==================== 业务错误码常量 ====================
-const (
-	CodeSuccess = 0
-
-	// 客户端错误 (1000-1999)
-	CodeBadRequest       = 1000
-	CodeUnauthorized     = 1001
-	CodeForbidden        = 1002
-	CodeNotFound         = 1003
-	CodeMethodNotAllowed = 1004
-	CodeRequestTimeout   = 1005
-	CodeConflict         = 1006
-	CodeValidationFailed = 1007
-	CodeInvalidParameter = 1008
-	CodeMissingParameter = 1009
-
-	// 服务器错误 (2000-2999)
-	CodeInternalServerError = 2000
-	CodeServiceUnavailable  = 2001
-	CodeDatabaseError       = 2002
-	CodeK8sClientError      = 2003
-	CodeK8sAPIError         = 2004
-	CodeConfigError         = 2005
-	CodeAuthError           = 2006
-
-	// 资源错误 (3000-3999)
-	CodeResourceNotFound    = 3000
-	CodeResourceExists      = 3001
-	CodeResourceInUse       = 3002
-	CodeResourceQuotaExceed = 3003
-	CodePermissionDenied    = 3004
-)
-
-// ==================== Kubernetes 端口常量 ====================
-const (
-	PortHTTP  = 80
-	PortHTTPS = 443
-)
-
-// ==================== Ingress 默认端口 ====================
-var DefaultIngressPorts = []string{"80", "443"}
-
-// ==================== 密码生成常量 ====================
-const (
-	PasswordCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
-)
-
-// ==================== 缓存采样大小 ====================
+// 缓存配置常量
 const (
 	CacheSampleSize = 10
 )
 
-var ErrorMessages = map[int]string{
-	CodeSuccess:             "操作成功",
-	CodeBadRequest:          "请求参数错误",
-	CodeUnauthorized:        "未授权访问",
-	CodeForbidden:           "访问被禁止",
-	CodeNotFound:            "资源不存在",
-	CodeMethodNotAllowed:    "请求方法不允许",
-	CodeRequestTimeout:      "请求超时",
-	CodeConflict:            "资源冲突",
-	CodeValidationFailed:    "数据验证失败",
-	CodeInvalidParameter:    "无效参数",
-	CodeMissingParameter:    "缺少必要参数",
-	CodeInternalServerError: "服务器内部错误",
-	CodeServiceUnavailable:  "服务不可用",
-	CodeDatabaseError:       "数据库错误",
-	CodeK8sClientError:      "Kubernetes客户端错误",
-	CodeK8sAPIError:         "Kubernetes API错误",
-	CodeConfigError:         "配置错误",
-	CodeAuthError:           "认证错误",
-	CodeResourceNotFound:    "资源不存在",
-	CodeResourceExists:      "资源已存在",
-	CodeResourceInUse:       "资源正在使用中",
-	CodeResourceQuotaExceed: "资源配额超限",
-	CodePermissionDenied:    "权限不足",
-}
+// 响应配置常量
+const (
+	DefaultOverviewEventsLimit = 5
+)
 
-func GetErrorMessage(code int) string {
-	if msg, exists := ErrorMessages[code]; exists {
-		return msg
-	}
-	return "未知错误"
-}
+// Ingress 配置
+var DefaultIngressPorts = []string{"80", "443"}
 
+// 简化的错误码（只保留常用的）
+const (
+	CodeSuccess             = 0
+	CodeBadRequest          = 400
+	CodeUnauthorized        = 401
+	CodeForbidden           = 403
+	CodeNotFound            = 404
+	CodeConflict            = 409
+	CodeValidationFailed    = 422
+	CodeInternalServerError = 500
+)
+
+// FormatTime 格式化 K8s 时间为 RFC3339 格式
 func FormatTime(t *metav1.Time) string {
 	if t == nil || t.IsZero() {
 		return ""
 	}
-	return t.Time.Format(TimeFormat)
+	return t.Time.Format(TimeFormatRFC3339)
 }
 
-func FormatTimeValue(t time.Time) string {
+// FormatConsoleTime 格式化时间为控制台显示格式
+func FormatConsoleTime(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
-	return t.Format(TimeFormat)
+	return t.Format(TimeFormatConsole)
 }

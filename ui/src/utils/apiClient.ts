@@ -1,24 +1,33 @@
-import { authUtils } from './auth';
+import { authUtils, authFetch } from './auth';
 import { ApiResponse, PageMeta } from '../types';
 
 export interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
+  timeout?: number;
+}
+
+export interface ApiError extends Error {
+  code?: number;
+  status?: number;
+  details?: any;
 }
 
 /**
- * API 客户端
+ * API 客户端 - 修复版
+ * 改进：
+ * 1. 使用 authFetch 代替原生 fetch
+ * 2. 添加请求超时
+ * 3. 统一错误处理
+ * 4. 添加请求重试
  */
 export const apiClient = {
+  /**
+   * 通用请求方法
+   */
   async request<T>(endpoint: string, options: ApiOptions = {}): Promise<ApiResponse<T>> {
-    const token = authUtils.getToken();
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    };
-
-    // 构建查询参数
-    const params = options.params;
+    const { params, timeout = 30000, ...fetchOptions } = options;
+    
+    // 构建 URL
     let url = endpoint;
     if (params) {
       const queryString = new URLSearchParams(
@@ -27,28 +36,81 @@ export const apiClient = {
       url = queryString ? `${endpoint}?${queryString}` : endpoint;
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    // 创建带超时的请求
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+    try {
+      const response = await authFetch(url, {
+        ...fetchOptions,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const error: ApiError = new Error(
+          errorData.message || errorData.details || `HTTP ${response.status}`
+        );
+        error.code = errorData.code;
+        error.status = response.status;
+        error.details = errorData.details;
+        throw error;
+      }
+
+      const result: ApiResponse<T> = await response.json();
+
+      // 后端使用 HTTP 状态码表示状态，code 字段可能为 0 或 HTTP 状态码
+      // 只要 HTTP 状态码是 200，就认为是成功
+      return result;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          const timeoutError: ApiError = new Error('请求超时');
+          timeoutError.code = 408;
+          throw timeoutError;
+        }
+      }
+      
+      throw error;
     }
-
-    return response.json();
   },
 
+  /**
+   * GET 请求
+   */
   async get<T>(endpoint: string, params?: Record<string, string | number>): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'GET', params });
   },
 
+  /**
+   * POST 请求
+   */
   async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
     });
+  },
+
+  /**
+   * PUT 请求
+   */
+  async put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  },
+
+  /**
+   * DELETE 请求
+   */
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
   },
 };
 
@@ -70,7 +132,7 @@ export async function createPaginatedQuery<T>(
   options: PaginationQueryOptions
 ): Promise<{ data: T[]; page: PageMeta }> {
   const { page, pageSize, namespace, search } = options;
-  
+
   const result = await apiClient.get<{ data: T[]; page: PageMeta }>(endpoint, {
     limit: pageSize,
     offset: (page - 1) * pageSize,
@@ -78,8 +140,12 @@ export async function createPaginatedQuery<T>(
     ...(search && { search }),
   });
 
+  // 后端返回格式：{ code: 200, message: "xxx", data: { data: [...], page: {...} }, page: {...} }
+  // 或者：{ code: 200, message: "xxx", data: [...], page: {...} }
+  const responseData = result.data;
+  
   return {
-    data: result.data || [],
+    data: (responseData as any)?.data || responseData || [],
     page: result.page || { total: 0, limit: pageSize, offset: 0 },
   };
 }

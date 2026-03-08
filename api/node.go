@@ -122,21 +122,15 @@ func getNodeDetail(
 			}
 		}
 		nodeDetail := model.NodeDetail{
-			CommonResourceFields: model.CommonResourceFields{
-				Namespace: "", // Node没有namespace
-				Name:      node.Name,
-				Status:    string(node.Status.Conditions[len(node.Status.Conditions)-1].Type),
-				BaseMetadata: model.BaseMetadata{
-					Labels:      node.Labels,
-					Annotations: node.Annotations,
-				},
-			},
+			Name:         node.Name,
+			Status:       string(node.Status.Conditions[len(node.Status.Conditions)-1].Type),
 			IP:           ip,
 			CPUUsage:     cpuPercent,
 			MemoryUsage:  memPercent,
 			Role:         roles,
 			PodsUsed:     podsUsed,
 			PodsCapacity: podsCapacity,
+			Labels:       node.Labels,
 		}
 		middleware.ResponseSuccess(c, nodeDetail, DetailSuccessMessage, nil)
 	}

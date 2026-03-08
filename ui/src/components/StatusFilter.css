@@ -1,0 +1,162 @@
+/* StatusFilter 自定义组件样式 */
+.status-filter-custom {
+  position: relative;
+  width: 220px; /* 与 Namespace 选择框一致的宽度 */
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #595959;
+  font-weight: 500;
+  white-space: nowrap; /* 不换行 */
+}
+
+/* 选择框主体 */
+.status-filter-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: var(--font-main);
+  color: #333;
+  background: #fff; /* 白色背景 */
+  border: 2px solid #bae7ff; /* 淡蓝色边框 */
+  border-radius: 8px; /* 圆角 */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  flex: 1;
+}
+
+.status-filter-value:hover {
+  border-color: #40a9ff;
+  background: #f0faff; /* 极淡蓝色悬停 */
+}
+
+.status-filter-value.open {
+  border-color: #1890ff;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 文本 - 不换行 */
+.status-filter-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* 不换行 */
+}
+
+/* 箭头 */
+.status-filter-arrow {
+  margin-left: 8px;
+  color: #595959;
+  font-size: 12px;
+  transition: transform 0.2s;
+  flex-shrink: 0; /* 不压缩 */
+}
+
+.status-filter-value.open .status-filter-arrow {
+  color: #1890ff;
+}
+
+/* 下拉选项容器 */
+.status-filter-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #fff; /* 白色背景 */
+  border: 2px solid #bae7ff; /* 淡蓝色边框 */
+  border-radius: 8px; /* 圆角 */
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  z-index: 1000;
+}
+
+/* 选项 - 不换行 */
+.status-filter-option {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #333;
+  background: #fff; /* 白色背景 */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(186, 231, 255, 0.2);
+  white-space: nowrap; /* 不换行 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-filter-option:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.status-filter-option:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.status-filter-option:hover {
+  background: #e6f7ff; /* 悬停时极淡蓝色 */
+  color: #0050b3;
+}
+
+.status-filter-option.selected {
+  background: #1890ff; /* 选中时亮蓝色 */
+  color: #fff;
+  font-weight: 500;
+}
+
+.status-filter-option.disabled {
+  background: #f5f5f5;
+  color: #8c8c8c;
+  cursor: not-allowed;
+}
+
+/* 滚动条样式 */
+.status-filter-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.status-filter-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.status-filter-dropdown::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.status-filter-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 清除按钮 */
+.clear-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #8c8c8c;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.clear-btn:hover {
+  background-color: #f5f5f5;
+  color: #595959;
+}

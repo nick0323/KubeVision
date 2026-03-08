@@ -56,7 +56,7 @@ func getDaemonSetDetail(
 		ctx := GetRequestContext(c)
 		namespace := c.Param("namespace")
 		name := c.Param("name")
-		
+
 		ds, err := clientset.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)

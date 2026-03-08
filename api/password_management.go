@@ -239,7 +239,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		// 验证旧密码
-		authConfig := configManager.GetAuthConfig()
+		authConfig := GetAuthConfig()
 		oldPasswordMatch := false
 
 		if isHashedPassword(authConfig.Password) {
@@ -250,7 +250,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 
 		if !oldPasswordMatch {
 			middleware.ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeAuthError,
+				Code:    http.StatusUnauthorized,
 				Message: "旧密码错误",
 				Details: "请提供正确的旧密码",
 			}, http.StatusBadRequest)
@@ -279,8 +279,37 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
+		// 获取当前用户
+		username := GetUsernameFromContext(c)
+		if username == "" {
+			username = "admin"
+		}
+
 		// 持久化更新配置中的密码
-		if configManager == nil {
+		if configStore != nil {
+			// 使用 ConfigMap 存储
+			if err := configStore.UpdatePassword(newHashedPassword, username); err != nil {
+				logger.Error("写入 ConfigMap 失败", zap.Error(err))
+				middleware.ResponseError(c, logger, &model.APIError{
+					Code:    model.CodeInternalServerError,
+					Message: "配置持久化失败",
+					Details: err.Error(),
+				}, http.StatusInternalServerError)
+				return
+			}
+			logger.Info("密码已更新到 ConfigMap", zap.String("username", username))
+		} else if configManager != nil {
+			// 降级使用本地配置文件
+			configManager.Set("auth.password", newHashedPassword)
+			if err := configManager.WriteConfig(); err != nil {
+				logger.Error("写入配置文件失败", zap.Error(err))
+				middleware.ResponseError(c, logger, &model.APIError{
+					Code:    model.CodeInternalServerError,
+					Message: "配置持久化失败",
+				}, http.StatusInternalServerError)
+				return
+			}
+		} else {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeInternalServerError,
 				Message: "系统配置未初始化",
@@ -288,23 +317,12 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 更新 viper 中的配置并写回文件
-		configManager.Set("auth.password", newHashedPassword)
-		if err := configManager.WriteConfig(); err != nil {
-			logger.Error("写入配置文件失败", zap.Error(err))
-			middleware.ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeInternalServerError,
-				Message: "配置持久化失败",
-			}, http.StatusInternalServerError)
-			return
-		}
-
 		// 记录审计日志（不暴露敏感信息）
-		username := c.GetString("username")
-		if username == "" {
-			username = "admin"
+		currentUser := GetUsernameFromContext(c)
+		if currentUser == "" {
+			currentUser = "admin"
 		}
-		logger.Info("密码修改成功", zap.String("username", username))
+		logger.Info("密码修改成功", zap.String("username", currentUser))
 
 		middleware.ResponseSuccess(c, gin.H{
 			"message": "密码修改成功",

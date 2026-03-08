@@ -1,157 +1,81 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/nick0323/K8sVision/model"
-	v1 "k8s.io/api/core/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
-// ResourceConverter 定义资源转换接口
-type ResourceConverter[T, U any] interface {
-	ConvertToModel(resource T) U
-}
-
-// GenericListFunction 通用列表函数类型
-type GenericListFunction[T any] func(context.Context, *kubernetes.Clientset, string) (T, error)
-
-
-// ListResources 通用资源列表函数
-func ListResources[T any, U any](
-	ctx context.Context,
-	clientset *kubernetes.Clientset,
-	namespace string,
-	listFunc func(context.Context, string) (T, error),
-	convertFunc func(T) []U,
-) ([]U, error) {
-	resources, err := listFunc(ctx, namespace)
-	if err != nil {
-		return nil, err
+// CalculateAge 计算资源运行时长
+func CalculateAge(creationTime metav1.Time) string {
+	// 如果是零值时间，返回空字符串
+	if creationTime.IsZero() || creationTime.Time.IsZero() {
+		return ""
 	}
 
-	return convertFunc(resources), nil
+	duration := time.Since(creationTime.Time)
+
+	if duration < time.Minute {
+		return fmt.Sprintf("%ds", int(duration.Seconds()))
+	} else if duration < time.Hour {
+		return fmt.Sprintf("%dm", int(duration.Minutes()))
+	} else if duration < 24*time.Hour {
+		return fmt.Sprintf("%dh", int(duration.Hours()))
+	} else {
+		return fmt.Sprintf("%dd", int(duration.Hours()/24))
+	}
 }
 
-// ListResourceItems 通用资源项列表函数
-func ListResourceItems[T any, U any](
-	ctx context.Context,
-	clientset *kubernetes.Clientset,
-	namespace string,
-	listFunc func(context.Context, string) ([]T, error),
-	convertFunc func(T) U,
-) ([]U, error) {
-	items, err := listFunc(ctx, namespace)
-	if err != nil {
-		return nil, err
+// CalculatePodRestarts 计算 Pod 重启次数
+func CalculatePodRestarts(pod v1.Pod) int32 {
+	var totalRestarts int32 = 0
+	for _, cs := range pod.Status.ContainerStatuses {
+		totalRestarts += cs.RestartCount
 	}
-
-	result := make([]U, len(items))
-	for i, item := range items {
-		result[i] = convertFunc(item)
-	}
-
-	return result, nil
+	return totalRestarts
 }
 
-// ListResourceWithMetrics 通用带指标的资源列表函数
-func ListResourceWithMetrics[T any, U any, M ~map[string]any](
-	ctx context.Context,
-	clientset *kubernetes.Clientset,
-	metricsMap M,
-	namespace string,
-	listFunc func(context.Context, *kubernetes.Clientset, string) (T, error),
-	convertFunc func(T, M) []U,
-) ([]U, error) {
-	resources, err := listFunc(ctx, clientset, namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	return convertFunc(resources, metricsMap), nil
-}
-
-// GetResourceByNamespace 通用资源获取函数（按命名空间）
-func GetResourceByNamespace[T any](
-	ctx context.Context,
-	clientset *kubernetes.Clientset,
-	resourceGetter func(string) T,
-	namespace string,
-) T {
-	if namespace == "" {
-		// 如果没有指定命名空间，获取所有命名空间的资源
-		return resourceGetter(metav1.NamespaceAll)
-	}
-	return resourceGetter(namespace)
-}
-
-// ApplyFilters 通用过滤应用函数
-func ApplyFilters[T any](
-	items []T,
-	filterFunc func(T) bool,
-) []T {
-	var filtered []T
-	for _, item := range items {
-		if filterFunc(item) {
-			filtered = append(filtered, item)
+// CalculatePodReady 计算 Pod 就绪状态
+func CalculatePodReady(pod v1.Pod) string {
+	var readyContainers, totalContainers int32 = 0, 0
+	for _, cs := range pod.Status.ContainerStatuses {
+		totalContainers++
+		if cs.Ready {
+			readyContainers++
 		}
 	}
-	return filtered
+	return fmt.Sprintf("%d/%d", readyContainers, totalContainers)
 }
 
-// ApplySort 通用排序应用函数
-func ApplySort[T any](
-	items []T,
-	sortFunc func(T, T) bool,
-) []T {
-	// 简单的冒泡排序实现，实际项目中应该使用更高效的算法
-	for i := 0; i < len(items); i++ {
-		for j := i + 1; j < len(items); j++ {
-			if sortFunc(items[i], items[j]) {
-				items[i], items[j] = items[j], items[i]
-			}
-		}
-	}
-	return items
-}
-
-// FilterAndMapResource 结合过滤和映射的函数
-func FilterAndMapResource[T, U any](
-	items []T,
-	filterFunc func(T) bool,
-	mapFunc func(T) U,
-) []U {
-	var result []U
-	for _, item := range items {
-		if filterFunc(item) {
-			result = append(result, mapFunc(item))
-		}
-	}
-	return result
-}
-
-// MapDeployments 专门用于映射Deployment的函数
+// MapDeployments 专门用于映射 Deployment 的函数
 func MapDeployments(deployments []appsv1.Deployment) []model.DeploymentStatus {
 	result := make([]model.DeploymentStatus, len(deployments))
 	for i, d := range deployments {
 		status := GetWorkloadStatus(d.Status.ReadyReplicas, d.Status.Replicas)
 		result[i] = model.DeploymentStatus{
-			Namespace: d.Namespace,
-			Name:      d.Name,
-			Available: d.Status.ReadyReplicas,
-			Desired:   d.Status.Replicas,
-			Status:    status,
+			Namespace:       d.Namespace,
+			Name:            d.Name,
+			ReadyReplicas:   d.Status.ReadyReplicas,
+			UpdatedReplicas: d.Status.UpdatedReplicas,
+			Available:       d.Status.AvailableReplicas,
+			Desired:         d.Status.Replicas,
+			Status:          status,
+			Age:             CalculateAge(d.CreationTimestamp),
 		}
 	}
 	return result
 }
 
-// MapPods 专门用于映射Pod的函数
+// MapPods 专门用于映射 Pod 的函数
 func MapPods(pods []v1.Pod, podMetricsMap model.PodMetricsMap) []model.PodStatus {
 	result := make([]model.PodStatus, len(pods))
 	for i, pod := range pods {
@@ -160,6 +84,9 @@ func MapPods(pods []v1.Pod, podMetricsMap model.PodMetricsMap) []model.PodStatus
 			Namespace:   pod.Namespace,
 			Name:        pod.Name,
 			Status:      string(pod.Status.Phase),
+			Ready:       CalculatePodReady(pod),
+			Restarts:    CalculatePodRestarts(pod),
+			Age:         CalculateAge(pod.CreationTimestamp),
 			CPUUsage:    cpuVal,
 			MemoryUsage: memVal,
 			PodIP:       pod.Status.PodIP,
@@ -169,7 +96,7 @@ func MapPods(pods []v1.Pod, podMetricsMap model.PodMetricsMap) []model.PodStatus
 	return result
 }
 
-// MapServices 专门用于映射Service的函数
+// MapServices 专门用于映射 Service 的函数
 func MapServices(services []v1.Service) []model.ServiceStatus {
 	result := make([]model.ServiceStatus, len(services))
 	for i, svc := range services {
@@ -177,18 +104,169 @@ func MapServices(services []v1.Service) []model.ServiceStatus {
 		for j, port := range svc.Spec.Ports {
 			ports[j] = fmt.Sprintf("%d/%s", port.Port, port.Protocol)
 		}
+
+		// 获取 External IP
+		externalIP := ""
+		if len(svc.Status.LoadBalancer.Ingress) > 0 {
+			if svc.Status.LoadBalancer.Ingress[0].IP != "" {
+				externalIP = svc.Status.LoadBalancer.Ingress[0].IP
+			} else if svc.Status.LoadBalancer.Ingress[0].Hostname != "" {
+				externalIP = svc.Status.LoadBalancer.Ingress[0].Hostname
+			}
+		}
+
 		result[i] = model.ServiceStatus{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
-			Type:      string(svc.Spec.Type),
-			ClusterIP: svc.Spec.ClusterIP,
-			Ports:     ports,
+			Namespace:  svc.Namespace,
+			Name:       svc.Name,
+			Type:       string(svc.Spec.Type),
+			ClusterIP:  svc.Spec.ClusterIP,
+			ExternalIP: externalIP,
+			Ports:      ports,
+			Age:        CalculateAge(svc.CreationTimestamp),
 		}
 	}
 	return result
 }
 
-// MapNodes 专门用于映射Node的函数
+// MapStatefulSets 专门用于映射 StatefulSet 的函数
+func MapStatefulSets(statefulSets []appsv1.StatefulSet) []model.StatefulSetStatus {
+	result := make([]model.StatefulSetStatus, len(statefulSets))
+	for i, s := range statefulSets {
+		status := GetWorkloadStatus(s.Status.ReadyReplicas, s.Status.Replicas)
+		result[i] = model.StatefulSetStatus{
+			Namespace:       s.Namespace,
+			Name:            s.Name,
+			ReadyReplicas:   s.Status.ReadyReplicas,
+			UpdatedReplicas: s.Status.UpdatedReplicas,
+			Available:       s.Status.AvailableReplicas,
+			Desired:         s.Status.Replicas,
+			Status:          status,
+			Age:             CalculateAge(s.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+// MapDaemonSets 专门用于映射 DaemonSet 的函数
+func MapDaemonSets(daemonSets []appsv1.DaemonSet) []model.DaemonSetStatus {
+	result := make([]model.DaemonSetStatus, len(daemonSets))
+	for i, d := range daemonSets {
+		status := GetWorkloadStatus(d.Status.NumberReady, d.Status.DesiredNumberScheduled)
+		result[i] = model.DaemonSetStatus{
+			Namespace:       d.Namespace,
+			Name:            d.Name,
+			ReadyReplicas:   d.Status.NumberReady,
+			UpdatedReplicas: d.Status.UpdatedNumberScheduled,
+			Available:       d.Status.NumberReady,
+			Desired:         d.Status.DesiredNumberScheduled,
+			Status:          status,
+			Age:             CalculateAge(d.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+// MapJobs 专门用于映射 Job 的函数
+func MapJobs(jobs []batchv1.Job) []model.JobStatus {
+	result := make([]model.JobStatus, len(jobs))
+	for i, j := range jobs {
+		result[i] = model.JobStatus{
+			Namespace:      j.Namespace,
+			Name:           j.Name,
+			Completions:    *j.Spec.Completions,
+			Succeeded:      j.Status.Succeeded,
+			Failed:         j.Status.Failed,
+			StartTime:      formatTime(j.Status.StartTime),
+			CompletionTime: formatTime(j.Status.CompletionTime),
+			Status:         GetJobStatus(j.Status.Succeeded, j.Status.Failed, j.Status.Active),
+			Age:            CalculateAge(j.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+// MapCronJobs 专门用于映射 CronJob 的函数
+func MapCronJobs(cronJobs []batchv1.CronJob) []model.CronJobStatus {
+	result := make([]model.CronJobStatus, len(cronJobs))
+	for i, c := range cronJobs {
+		result[i] = model.CronJobStatus{
+			Namespace:        c.Namespace,
+			Name:             c.Name,
+			Schedule:         c.Spec.Schedule,
+			Suspend:          *c.Spec.Suspend,
+			Active:           len(c.Status.Active),
+			LastScheduleTime: formatTime(c.Status.LastScheduleTime),
+			Status:           GetCronJobStatus(len(c.Status.Active), c.Status.LastSuccessfulTime),
+			Age:              CalculateAge(c.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+// MapIngresses 专门用于映射 Ingress 的函数
+func MapIngresses(ingresses []networkingv1.Ingress) []model.IngressStatus {
+	result := make([]model.IngressStatus, len(ingresses))
+	for i, ing := range ingresses {
+		hosts := make([]string, 0)
+		paths := make([]string, 0)
+		targetServices := make([]string, 0)
+
+		for _, rule := range ing.Spec.Rules {
+			hosts = append(hosts, rule.Host)
+			if rule.HTTP != nil {
+				for _, path := range rule.HTTP.Paths {
+					paths = append(paths, path.Path)
+					if path.Backend.Service != nil {
+						targetServices = append(targetServices, path.Backend.Service.Name)
+					}
+				}
+			}
+		}
+
+		result[i] = model.IngressStatus{
+			Namespace:     ing.Namespace,
+			Name:          ing.Name,
+			Class:         getClass(ing.Spec.IngressClassName),
+			Hosts:         hosts,
+			Address:       getAddress(ing.Status.LoadBalancer.Ingress),
+			Ports:         []string{"80", "443"},
+			Status:        model.StatusActive,
+			Path:          paths,
+			TargetService: targetServices,
+			Age:           CalculateAge(ing.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+// formatTime 格式化时间
+func formatTime(t *metav1.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("2006-01-02 15:04:05")
+}
+
+// getClass 获取 Ingress 类别名
+func getClass(className *string) string {
+	if className == nil {
+		return ""
+	}
+	return *className
+}
+
+// getAddress 获取 Ingress 地址
+func getAddress(ingressList []networkingv1.IngressLoadBalancerIngress) string {
+	if len(ingressList) == 0 {
+		return ""
+	}
+	if ingressList[0].IP != "" {
+		return ingressList[0].IP
+	}
+	return ingressList[0].Hostname
+}
+
+// MapNodes 专门用于映射 Node 的函数
 func MapNodes(nodes []v1.Node, pods *v1.PodList, nodeMetricsMap model.NodeMetricsMap) []model.NodeStatus {
 	result := make([]model.NodeStatus, len(nodes))
 	for i, node := range nodes {
@@ -218,6 +296,9 @@ func MapNodes(nodes []v1.Node, pods *v1.PodList, nodeMetricsMap model.NodeMetric
 		}
 		if len(roles) == 0 {
 			roles = append(roles, "worker")
+		} else {
+			// 排序 roles 数组，保证顺序一致
+			sort.Strings(roles)
 		}
 		podsUsed := 0
 		for _, pod := range pods.Items {
@@ -251,22 +332,21 @@ func MapNodes(nodes []v1.Node, pods *v1.PodList, nodeMetricsMap model.NodeMetric
 			Role:         roles,
 			PodsUsed:     podsUsed,
 			PodsCapacity: podsCapacity,
+			Age:          CalculateAge(node.CreationTimestamp),
 		}
 	}
 	return result
 }
 
-// MapNamespaces 专门用于映射Namespace的函数
+// MapNamespaces 专门用于映射 Namespace 的函数
 func MapNamespaces(namespaces []v1.Namespace) []model.NamespaceDetail {
 	result := make([]model.NamespaceDetail, len(namespaces))
 	for i, ns := range namespaces {
 		result[i] = model.NamespaceDetail{
 			Name:   ns.Name,
 			Status: string(ns.Status.Phase),
-			BaseMetadata: model.BaseMetadata{
-				Labels:      ns.Labels,
-				Annotations: ns.Annotations,
-			},
+			Labels: ns.Labels,
+			Age:    CalculateAge(ns.CreationTimestamp),
 		}
 	}
 	return result

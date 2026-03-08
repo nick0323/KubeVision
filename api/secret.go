@@ -56,7 +56,7 @@ func getSecretDetail(
 		ctx := GetRequestContext(c)
 		ns := c.Param("namespace")
 		name := c.Param("name")
-		
+
 		secret, err := clientset.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)

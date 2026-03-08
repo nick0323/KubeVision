@@ -29,6 +29,7 @@ func ListConfigMaps(ctx context.Context, clientset *kubernetes.Clientset, namesp
 			Name:      cm.Name,
 			DataCount: len(cm.Data),
 			Keys:      ExtractKeys(cm.Data),
+			Age:       CalculateAge(cm.CreationTimestamp),
 		}
 		cmStatuses = append(cmStatuses, cmStatus)
 	}

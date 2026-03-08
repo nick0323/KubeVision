@@ -14,16 +14,8 @@ func ListStatefulSets(ctx context.Context, clientset *kubernetes.Clientset, name
 	if err != nil {
 		return nil, err
 	}
-	result := make([]model.StatefulSetStatus, 0, len(stsList.Items))
-	for _, s := range stsList.Items {
-		status := GetWorkloadStatus(s.Status.ReadyReplicas, s.Status.Replicas)
-		result = append(result, model.StatefulSetStatus{
-			Namespace: s.Namespace,
-			Name:      s.Name,
-			Available: s.Status.ReadyReplicas,
-			Desired:   s.Status.Replicas,
-			Status:    status,
-		})
-	}
+
+	// 使用通用映射函数
+	result := MapStatefulSets(stsList.Items)
 	return result, nil
 }
