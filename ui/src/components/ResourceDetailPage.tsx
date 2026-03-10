@@ -324,82 +324,102 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
 
       case 'statefulset':
       case 'statefulsets':
+        return (
+          <StatefulSetDetail
+            {...commonProps}
+            relatedPods={relatedData.pods || []}
+          />
+        );
+
       case 'daemonset':
       case 'daemonsets':
+        return (
+          <DaemonSetDetail
+            {...commonProps}
+          />
+        );
+
       case 'job':
       case 'jobs':
+        return (
+          <JobDetail
+            {...commonProps}
+          />
+        );
+
       case 'cronjob':
       case 'cronjobs':
+        return (
+          <CronJobDetail
+            {...commonProps}
+          />
+        );
+
       case 'ingress':
       case 'ingresses':
-      case 'pv':
-      case 'pvs':
+        return (
+          <IngressDetail
+            {...commonProps}
+          />
+        );
+
       case 'pvc':
       case 'pvcs':
+        return (
+          <PVCDetail
+            {...commonProps}
+          />
+        );
+
+      case 'pv':
+      case 'pvs':
+        return (
+          <PVDetail
+            {...commonProps}
+          />
+        );
+
       case 'storageclass':
       case 'storageclasses':
+        return (
+          <StorageClassDetail
+            {...commonProps}
+          />
+        );
+
       case 'namespace':
       case 'namespaces':
+        return (
+          <NamespaceDetail
+            {...commonProps}
+          />
+        );
+
       default:
-        // 使用通用详情视图
+        // Generic detail view for unknown resource types
         return (
           <div className="generic-detail">
             <div className="detail-section">
-              <h3 className="section-title">📊 状态概览</h3>
-              <div className="status-cards-placeholder">
-                <div className="status-card">
-                  <span className="card-label">状态</span>
-                  <span className="card-value">{getStatusValue(data)}</span>
-                  <span className="card-sub">{getStatusSub(data)}</span>
+              <div className="section-title">📊 Overview</div>
+              <div className="info-grid-4">
+                <div className="info-item">
+                  <div className="info-label">Name</div>
+                  <div className="info-value">{data.metadata?.name}</div>
                 </div>
-                <div className="status-card">
-                  <span className="card-label">名称</span>
-                  <span className="card-value">{data.metadata?.name}</span>
+                <div className="info-item">
+                  <div className="info-label">Namespace</div>
+                  <div className="info-value">{data.metadata?.namespace || 'Cluster-Scoped'}</div>
                 </div>
-                <div className="status-card">
-                  <span className="card-label">命名空间</span>
-                  <span className="card-value">{data.metadata?.namespace || 'N/A'}</span>
+                <div className="info-item">
+                  <div className="info-label">Status</div>
+                  <div className="info-value">{getStatusValue(data)}</div>
                 </div>
-              </div>
-            </div>
-
-            <div className="detail-section">
-              <h3 className="section-title">📋 基本信息</h3>
-              <div className="info-card">
-                <div className="info-grid">
-                  <div className="info-item">
-                    <span className="info-label">名称</span>
-                    <span className="info-value">{data.metadata?.name}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">命名空间</span>
-                    <span className="info-value">{data.metadata?.namespace || 'N/A'}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">创建时间</span>
-                    <span className="info-value">{data.metadata?.creationTimestamp}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">UID</span>
-                    <span className="info-value">{data.metadata?.uid}</span>
-                  </div>
+                <div className="info-item">
+                  <div className="info-label">Created</div>
+                  <div className="info-value">{data.metadata?.creationTimestamp ? new Date(data.metadata.creationTimestamp).toLocaleDateString() : '-'}</div>
                 </div>
               </div>
             </div>
-
-            {data.metadata?.labels && Object.keys(data.metadata.labels).length > 0 && (
-              <div className="detail-section">
-                <h3 className="section-title">🏷️ 标签</h3>
-                <LabelList labels={data.metadata.labels} />
-              </div>
-            )}
-
-            {data.metadata?.annotations && Object.keys(data.metadata.annotations).length > 0 && (
-              <div className="detail-section">
-                <h3 className="section-title">📝 注解</h3>
-                <LabelList labels={data.metadata.annotations} />
-              </div>
-            )}
           </div>
         );
     }
