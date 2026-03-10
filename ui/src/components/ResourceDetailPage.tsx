@@ -399,17 +399,17 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
   // 获取标签页配置
   const getTabConfig = () => {
     const tabs = [
-      { id: 'overview', label: '概览' },
+      { id: 'overview', label: 'Overview' },
       { id: 'yaml', label: 'YAML' },
     ];
 
-    // Pod 有容器标签页
+    // Pod has containers tab
     if (resourceType === 'pod' || resourceType === 'pods') {
-      tabs.splice(1, 0, { id: 'containers', label: '容器' });
+      tabs.splice(1, 0, { id: 'containers', label: 'Containers' });
     }
 
-    // 所有资源都有事件标签页
-    tabs.splice(tabs.length - 1, 0, { id: 'events', label: '事件' });
+    // All resources have events tab
+    tabs.splice(tabs.length - 1, 0, { id: 'events', label: 'Events' });
 
     return tabs;
   };
@@ -432,7 +432,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
       <div className="detail-header">
         <div className="header-left">
           <button className="btn-back" onClick={handleBack}>
-            ← 返回
+            ← Back
           </button>
           <div className="header-status">
             <span className={`status-badge status-${getStatusValue(data).toLowerCase()}`}>
@@ -451,10 +451,10 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
           />
 
           <span className="last-refresh">
-            最后刷新：{lastRefresh.toLocaleTimeString()}
+            Last refresh: {lastRefresh.toLocaleTimeString()}
           </span>
           <button className="btn btn-default" onClick={loadData}>
-            🔄 刷新
+            🔄 Refresh
           </button>
         </div>
       </div>
@@ -475,15 +475,16 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
       {/* 内容区 */}
       <div className="detail-content">
         {/* 概览标签页 - 渲染专业详情组件 */}
-        {activeTab === 'overview' && renderResourceDetail()}
+        {activeTab === 'overview' && <div className="tab-content-full">{renderResourceDetail()}</div>}
 
         {/* 容器标签页（仅 Pod） */}
         {activeTab === 'containers' && data.spec?.containers && (
           <div className="tab-content-section">
-            <div className="detail-section">
-              <h3 className="section-title">📦 容器列表</h3>
-              {/* 这里可以复用 PodDetail 中的容器部分 */}
-              {renderResourceDetail()}
+            <div className="tab-content-full">
+              <div className="detail-section">
+                <div className="section-title">📦 Container List</div>
+                {renderResourceDetail()}
+              </div>
             </div>
           </div>
         )}
@@ -491,36 +492,35 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
         {/* 事件标签页 */}
         {activeTab === 'events' && (
           <div className="tab-content-section">
-            <div className="detail-section">
-              <h3 className="section-title">📅 事件</h3>
-              {relatedData.events && relatedData.events.length > 0 ? (
-                <div className="events-list">
-                  {relatedData.events.map((event: any, idx: number) => (
-                    <div key={idx} className="event-item">
-                      <div className="event-header">
-                        <span className={`event-type ${event.type?.toLowerCase()}`}>
-                          {event.type || 'Normal'}
-                        </span>
-                        <span className="event-reason">{event.reason || '-'}</span>
-                        <span className="event-time">
-                          {event.lastTimestamp
-                            ? new Date(event.lastTimestamp).toLocaleString()
-                            : '-'}
-                        </span>
+            <div className="tab-content-full">
+              <div className="detail-section">
+                <div className="section-title">📅 Events</div>
+                {relatedData.events && relatedData.events.length > 0 ? (
+                  <div className="events-list">
+                    {relatedData.events.map((event: any, idx: number) => (
+                      <div key={idx} className="event-item">
+                        <div className="event-header">
+                          <span className={`event-type ${event.type?.toLowerCase()}`}>
+                            {event.type || 'Normal'}
+                          </span>
+                          <span className="event-reason">{event.reason || '-'}</span>
+                          <span className="event-time">
+                            {event.lastTimestamp
+                              ? new Date(event.lastTimestamp).toLocaleString()
+                              : '-'}
+                          </span>
+                        </div>
+                        <div className="event-message">{event.message || '-'}</div>
+                        <div className="event-object">
+                          Object: {event.involvedObject?.kind}/{event.involvedObject?.name}
+                        </div>
                       </div>
-                      <div className="event-message">{event.message || '-'}</div>
-                      <div className="event-object">
-                        对象：{event.involvedObject?.kind}/{event.involvedObject?.name}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <span className="empty-icon">📭</span>
-                  <p>暂无事件</p>
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">No events</div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -528,12 +528,14 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
         {/* YAML 标签页 */}
         {activeTab === 'yaml' && (
           <div className="tab-content-section">
-            <YamlEditor
-              data={data}
-              onRefresh={loadData}
-              onSave={(yamlStr) => console.log('Save YAML:', yamlStr)}
-              onCompare={() => console.log('Compare YAML')}
-            />
+            <div className="tab-content-full">
+              <YamlEditor
+                data={data}
+                onRefresh={loadData}
+                onSave={(yamlStr) => console.log('Save YAML:', yamlStr)}
+                onCompare={() => console.log('Compare YAML')}
+              />
+            </div>
           </div>
         )}
       </div>
