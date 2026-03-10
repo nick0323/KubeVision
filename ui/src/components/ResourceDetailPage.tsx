@@ -8,6 +8,8 @@ import { DeploymentDetail } from './resourceDetails/DeploymentDetail';
 import { NodeDetail } from './resourceDetails/NodeDetail';
 import { ServiceDetail } from './resourceDetails/ServiceDetail';
 import { ConfigDetail } from './resourceDetails/ConfigDetail';
+import { Breadcrumb } from './Breadcrumb';
+import { QuickActions } from './QuickActions';
 import './ResourceDetailPage.css';
 
 interface ResourceDetailPageProps {
@@ -428,6 +430,16 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
 
   return (
     <div className="resource-detail-page">
+      {/* 面包屑导航 */}
+      <Breadcrumb
+        items={[
+          { label: 'Cluster', href: '/' },
+          { label: data.metadata?.namespace || 'Cluster-Scoped', type: 'NS' },
+          { label: resourceType, href: `/${resourceType}` },
+          { label: data.metadata?.name },
+        ]}
+      />
+
       {/* 页面头部 */}
       <div className="detail-header">
         <div className="header-left">
@@ -436,12 +448,31 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
           </button>
           <div className="header-title">
             <h2>{data.metadata?.name}</h2>
-            <span className="header-subtitle">
-              {resourceType} / {data.metadata?.namespace || 'Cluster-Scoped'}
-            </span>
+            <div className="header-meta">
+              <span className={`status-badge status-${getStatusValue(data).toLowerCase()}`}>
+                {getStatusValue(data)}
+              </span>
+              <span className="meta-divider">|</span>
+              <span className="meta-text">{resourceType}</span>
+              {data.metadata?.namespace && (
+                <>
+                  <span className="meta-divider">|</span>
+                  <span className="meta-text">default</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <div className="header-actions">
+          {/* 快速操作区 */}
+          <QuickActions
+            resourceType={resourceType}
+            resourceName={data.metadata?.name}
+            namespace={data.metadata?.namespace}
+            data={data}
+            onRefresh={loadData}
+          />
+
           <div className="refresh-info">
             <label className="auto-refresh-toggle">
               <input
