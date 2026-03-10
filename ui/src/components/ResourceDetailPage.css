@@ -26,7 +26,13 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn-back {
@@ -43,26 +49,6 @@
 .btn-back:hover {
   border-color: #1890ff;
   color: #1890ff;
-}
-
-.header-title {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.header-title h2 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #222;
-  margin: 0;
-}
-
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
 }
 
 .status-badge {
@@ -97,14 +83,6 @@
 .status-badge.status-succeeded {
   background: #dbeafe;
   color: #1e40af;
-}
-
-.meta-divider {
-  color: #d9d9d9;
-}
-
-.meta-text {
-  color: #666;
 }
 
 .header-actions {

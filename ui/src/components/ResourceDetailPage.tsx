@@ -440,27 +440,16 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
         ]}
       />
 
-      {/* 页面头部 */}
+      {/* 页面头部 - 简化版 */}
       <div className="detail-header">
         <div className="header-left">
           <button className="btn-back" onClick={handleBack}>
             ← 返回
           </button>
-          <div className="header-title">
-            <h2>{data.metadata?.name}</h2>
-            <div className="header-meta">
-              <span className={`status-badge status-${getStatusValue(data).toLowerCase()}`}>
-                {getStatusValue(data)}
-              </span>
-              <span className="meta-divider">|</span>
-              <span className="meta-text">{resourceType}</span>
-              {data.metadata?.namespace && (
-                <>
-                  <span className="meta-divider">|</span>
-                  <span className="meta-text">default</span>
-                </>
-              )}
-            </div>
+          <div className="header-status">
+            <span className={`status-badge status-${getStatusValue(data).toLowerCase()}`}>
+              {getStatusValue(data)}
+            </span>
           </div>
         </div>
         <div className="header-actions">
