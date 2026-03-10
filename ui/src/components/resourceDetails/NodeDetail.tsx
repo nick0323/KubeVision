@@ -1,12 +1,13 @@
 /**
- * Node 详情页面组件
- * 专为 Node 设计，展示资源使用、分配情况、条件状态、关联 Pod 等信息
+ * Node Detail Component
+ * Displays comprehensive node information
  */
 import React from 'react';
-import { StatusCards } from '../StatusCards';
 import { ResourceBar } from '../ResourceBar';
 import { LabelList } from '../LabelList';
 import { EventTimeline } from '../EventTimeline';
+import { CollapsibleSection } from '../CollapsibleSection';
+import { RelatedResources } from '../RelatedResources';
 import './ResourceDetail.css';
 
 interface NodeDetailProps {
@@ -25,379 +26,213 @@ export const NodeDetail: React.FC<NodeDetailProps> = ({
   if (!data) return null;
 
   const { metadata, status } = data;
-  
-  // 添加空值检查
-  if (!metadata || !status) {
-    return (
-      <div className="empty-state">
-        <span className="empty-icon">⚠️</span>
-        <p>数据不完整</p>
-      </div>
-    );
-  }
-
   const conditions = status?.conditions || [];
   const addresses = status?.addresses || [];
   const allocatable = status?.allocatable || {};
   const capacity = status?.capacity || {};
-
-  // 节点信息
   const nodeInfo = status?.nodeInfo || {};
+
+  // Node info
   const internalIP = addresses?.find((a: any) => a.type === 'InternalIP')?.address;
   const externalIP = addresses?.find((a: any) => a.type === 'ExternalIP')?.address;
   const hostName = addresses?.find((a: any) => a.type === 'Hostname')?.address;
 
-  // 角色
+  // Roles
   const roles = Object.keys(metadata?.labels || {})
     .filter((k) => k.includes('node-role.kubernetes.io/'))
     .map((k) => k.replace('node-role.kubernetes.io/', ''));
   const roleDisplay = roles.length > 0 ? roles.join(', ') : 'worker';
 
-  // 条件状态
+  // Conditions
   const readyCondition = conditions.find((c: any) => c.type === 'Ready');
-  const memoryPressure = conditions.find((c: any) => c.type === 'MemoryPressure');
-  const diskPressure = conditions.find((c: any) => c.type === 'DiskPressure');
-  const pidPressure = conditions.find((c: any) => c.type === 'PIDPressure');
-  const networkUnavailable = conditions.find((c: any) => c.type === 'NetworkUnavailable');
-
   const isReady = readyCondition?.status === 'True';
-  const hasMemoryPressure = memoryPressure?.status === 'True';
-  const hasDiskPressure = diskPressure?.status === 'True';
-  const hasPidPressure = pidPressure?.status === 'True';
-  const hasNetworkIssue = networkUnavailable?.status === 'True';
-
-  // 状态卡片
-  const statusCards = [
-    {
-      title: '状态',
-      value: isReady ? 'Ready' : 'Not Ready',
-      sub: hasNetworkIssue ? '⚠️ 网络不可用' : '-',
-    },
-    {
-      title: '角色',
-      value: roleDisplay,
-      sub: nodeInfo.kubeletVersion || '-',
-    },
-    {
-      title: 'Pod 容量',
-      value: `${pods.length}/${allocatable.pods || capacity.pods || '110'}`,
-      sub: `可调度：${isReady && !hasMemoryPressure && !hasDiskPressure && !hasPidPressure ? '✅' : '❌'}`,
-    },
-  ];
-
-  // 资源使用（如果有 metrics 数据）
-  const renderResourceBars = () => {
-    // 这里使用模拟数据，实际应从 metrics API 获取
-    const cpuCapacity = parseInt(allocatable.cpu || capacity.cpu || '0');
-    const memCapacity = parseInt(allocatable.memory || capacity.memory || '0') / (1024 * 1024 * 1024);
-    const podCapacity = parseInt(allocatable.pods || capacity.pods || '110');
-
-    const cpuPercent = pods.length > 0 ? 45 : 0; // 模拟数据
-    const memPercent = pods.length > 0 ? 62 : 0; // 模拟数据
-    const podPercent = (pods.length / podCapacity) * 100;
-
-    return (
-      <div className="resource-bars">
-        <ResourceBar
-          items={[
-            {
-              label: 'CPU',
-              value: `${(cpuCapacity * cpuPercent / 100).toFixed(1)} / ${cpuCapacity} 核`,
-              percentage: cpuPercent,
-              type: 'cpu',
-            },
-            {
-              label: '内存',
-              value: `${(memCapacity * memPercent / 100).toFixed(1)} / ${memCapacity.toFixed(1)} Gi`,
-              percentage: memPercent,
-              type: 'memory',
-            },
-            {
-              label: 'Pod',
-              value: `${pods.length} / ${podCapacity}`,
-              percentage: podPercent,
-              type: 'pods',
-            },
-          ]}
-        />
-      </div>
-    );
-  };
-
-  // 渲染条件状态
-  const renderConditions = () => {
-    return (
-      <div className="conditions-grid">
-        <div className={`condition-card ${isReady ? 'good' : 'bad'}`}>
-          <span className="condition-icon">{isReady ? '✅' : '❌'}</span>
-          <span className="condition-name">Ready</span>
-          <span className="condition-value">{isReady ? 'True' : 'False'}</span>
-          {readyCondition?.message && (
-            <span className="condition-message">{readyCondition.message}</span>
-          )}
-        </div>
-
-        <div className={`condition-card ${!hasMemoryPressure ? 'good' : 'bad'}`}>
-          <span className="condition-icon">{!hasMemoryPressure ? '✅' : '⚠️'}</span>
-          <span className="condition-name">Memory Pressure</span>
-          <span className="condition-value">{hasMemoryPressure ? 'True' : 'False'}</span>
-        </div>
-
-        <div className={`condition-card ${!hasDiskPressure ? 'good' : 'bad'}`}>
-          <span className="condition-icon">{!hasDiskPressure ? '✅' : '⚠️'}</span>
-          <span className="condition-name">Disk Pressure</span>
-          <span className="condition-value">{hasDiskPressure ? 'True' : 'False'}</span>
-        </div>
-
-        <div className={`condition-card ${!hasPidPressure ? 'good' : 'bad'}`}>
-          <span className="condition-icon">{!hasPidPressure ? '✅' : '⚠️'}</span>
-          <span className="condition-name">PID Pressure</span>
-          <span className="condition-value">{hasPidPressure ? 'True' : 'False'}</span>
-        </div>
-
-        <div className={`condition-card ${!hasNetworkIssue ? 'good' : 'bad'}`}>
-          <span className="condition-icon">{!hasNetworkIssue ? '✅' : '❌'}</span>
-          <span className="condition-name">Network</span>
-          <span className="condition-value">{hasNetworkIssue ? 'Unavailable' : 'Available'}</span>
-        </div>
-      </div>
-    );
-  };
-
-  // 渲染 Pod 列表
-  const renderPodList = () => {
-    if (pods.length === 0) {
-      return (
-        <div className="empty-state">
-          <span className="empty-icon">📭</span>
-          <p>此节点上没有运行 Pod</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="pod-table">
-        <table className="resource-table">
-          <thead>
-            <tr>
-              <th>名称</th>
-              <th>命名空间</th>
-              <th>状态</th>
-              <th>就绪</th>
-              <th>重启</th>
-              <th>IP</th>
-              <th>年龄</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pods.map((pod: any) => {
-              const containerStatuses = pod.status?.containerStatuses || [];
-              const readyCount = containerStatuses.filter((c: any) => c.ready).length;
-              const restartCount = containerStatuses.reduce(
-                (sum: number, c: any) => sum + (c.restartCount || 0),
-                0
-              );
-
-              return (
-                <tr key={pod.metadata.uid}>
-                  <td
-                    className="link"
-                    onClick={() =>
-                      onResourceClick?.('pod', pod.metadata.namespace, pod.metadata.name)
-                    }
-                  >
-                    {pod.metadata.name}
-                  </td>
-                  <td>{pod.metadata.namespace}</td>
-                  <td>
-                    <span className={`status-badge status-${pod.status?.phase?.toLowerCase()}`}>
-                      {pod.status?.phase || 'Unknown'}
-                    </span>
-                  </td>
-                  <td>
-                    {readyCount}/{containerStatuses.length}
-                  </td>
-                  <td>{restartCount}</td>
-                  <td>{pod.status.podIP || '-'}</td>
-                  <td>
-                    {pod.metadata.creationTimestamp
-                      ? new Date(pod.metadata.creationTimestamp).toLocaleDateString()
-                      : '-'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
 
   return (
-    <div className="node-detail">
-      {/* 状态概览 */}
-      <div className="detail-section">
-        <h3 className="section-title">📊 状态概览</h3>
-        <StatusCards cards={statusCards} />
-
-        {/* 资源使用条 */}
-        {renderResourceBars()}
-
-        {/* 条件状态 */}
-        <div className="info-card" style={{ marginTop: '16px' }}>
-          <h4 className="card-title">❤️ 健康状态</h4>
-          {renderConditions()}
-        </div>
-      </div>
-
-      {/* 节点信息 */}
-      <div className="detail-section">
-        <h3 className="section-title">🖥️ 节点信息</h3>
-        <div className="info-card">
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="info-label">主机名</span>
-              <span className="info-value">{hostName || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">内部 IP</span>
-              <span className="info-value">{internalIP || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">外部 IP</span>
-              <span className="info-value">{externalIP || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">角色</span>
-              <span className="info-value">{roleDisplay}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Kubelet 版本</span>
-              <span className="info-value">{nodeInfo.kubeletVersion || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">容器运行时</span>
-              <span className="info-value">{nodeInfo.containerRuntimeVersion || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">操作系统</span>
-              <span className="info-value">{nodeInfo.osImage || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">架构</span>
-              <span className="info-value">{nodeInfo.architecture || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">内核版本</span>
-              <span className="info-value">{nodeInfo.kernelVersion || '-'}</span>
-            </div>
+    <div className="resource-detail-content">
+      {/* Node Info */}
+      <CollapsibleSection title="Node Information" icon="🖥️" defaultExpanded={true}>
+        <div className="info-grid-4">
+          <div className="info-item">
+            <div className="info-label">Name</div>
+            <div className="info-value">{metadata?.name}</div>
           </div>
-        </div>
-      </div>
-
-      {/* 资源分配 */}
-      <div className="detail-section">
-        <h3 className="section-title">📈 资源分配</h3>
-        <div className="allocatable-card info-card">
-          <div className="allocatable-grid">
-            <div className="allocatable-item">
-              <span className="allocatable-label">CPU 容量</span>
-              <span className="allocatable-value">{capacity.cpu || '-'}</span>
-            </div>
-            <div className="allocatable-item">
-              <span className="allocatable-label">CPU 可分配</span>
-              <span className="allocatable-value">{allocatable.cpu || '-'}</span>
-            </div>
-            <div className="allocatable-item">
-              <span className="allocatable-label">内存容量</span>
-              <span className="allocatable-value">
-                {capacity.memory ? (parseInt(capacity.memory) / (1024 * 1024 * 1024)).toFixed(2) + ' Gi' : '-'}
-              </span>
-            </div>
-            <div className="allocatable-item">
-              <span className="allocatable-label">内存可分配</span>
-              <span className="allocatable-value">
-                {allocatable.memory ? (parseInt(allocatable.memory) / (1024 * 1024 * 1024)).toFixed(2) + ' Gi' : '-'}
-              </span>
-            </div>
-            <div className="allocatable-item">
-              <span className="allocatable-label">Pod 容量</span>
-              <span className="allocatable-value">{capacity.pods || '-'}</span>
-            </div>
-            <div className="allocatable-item">
-              <span className="allocatable-label">Pod 可分配</span>
-              <span className="allocatable-value">{allocatable.pods || '-'}</span>
-            </div>
-            <div className="allocatable-item">
-              <span className="allocatable-label">Ephemeral Storage</span>
-              <span className="allocatable-value">
-                {allocatable['ephemeral-storage'] 
-                  ? (parseInt(allocatable['ephemeral-storage']) / (1024 * 1024 * 1024)).toFixed(2) + ' Gi' 
-                  : '-'}
+          <div className="info-item">
+            <div className="info-label">Status</div>
+            <div className="info-value">
+              <span className={`status-badge ${isReady ? 'status-good' : 'status-bad'}`}>
+                {isReady ? 'Ready' : 'Not Ready'}
               </span>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* 系统信息 */}
-      <div className="detail-section">
-        <h3 className="section-title">🔧 系统信息</h3>
-        <div className="info-card">
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="info-label">机器 ID</span>
-              <span className="info-value code">{nodeInfo.machineID || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">系统 UUID</span>
-              <span className="info-value code">{nodeInfo.systemUUID || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">启动 ID</span>
-              <span className="info-value code">{nodeInfo.bootID || '-'}</span>
-            </div>
+          <div className="info-item">
+            <div className="info-label">Role</div>
+            <div className="info-value">{roleDisplay}</div>
+          </div>
+          <div className="info-item">
+            <div className="info-label">Kubelet Version</div>
+            <div className="info-value">{nodeInfo.kubeletVersion || '-'}</div>
+          </div>
+          <div className="info-item">
+            <div className="info-label">Internal IP</div>
+            <div className="info-value">{internalIP || '-'}</div>
+          </div>
+          <div className="info-item">
+            <div className="info-label">External IP</div>
+            <div className="info-value">{externalIP || '-'}</div>
+          </div>
+          <div className="info-item">
+            <div className="info-label">OS Image</div>
+            <div className="info-value">{nodeInfo.osImage || '-'}</div>
+          </div>
+          <div className="info-item">
+            <div className="info-label">Architecture</div>
+            <div className="info-value">{nodeInfo.architecture || '-'}</div>
           </div>
         </div>
-      </div>
 
-      {/* 标签 */}
-      <div className="detail-section">
-        <h3 className="section-title">🏷️ 标签</h3>
-        {metadata?.labels && Object.keys(metadata.labels).length > 0 && (
+        {/* Conditions */}
+        <div className="conditions-section">
+          <div className="subsection-title">Conditions</div>
+          <div className="conditions-grid">
+            {conditions.map((condition: any, idx: number) => (
+              <div
+                key={idx}
+                className={`condition-badge ${condition.status === 'True' ? 'status-good' : 'status-bad'}`}
+              >
+                <span className="condition-type">{condition.type}</span>
+                <span className="condition-status">{condition.status === 'True' ? '✓' : '✗'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Resource Bars */}
+        <div className="resource-bars-section">
+          <div className="subsection-title">Resource Allocation</div>
+          <ResourceBar
+            items={[
+              {
+                label: 'CPU',
+                value: `${allocatable.cpu || capacity.cpu || '0'} cores`,
+                percentage: 0,
+                type: 'cpu',
+              },
+              {
+                label: 'Memory',
+                value: `${allocatable.memory ? (parseInt(allocatable.memory) / (1024 * 1024 * 1024)).toFixed(1) : '0'} Gi`,
+                percentage: 0,
+                type: 'memory',
+              },
+              {
+                label: 'Pods',
+                value: `${pods.length}/${allocatable.pods || capacity.pods || '110'}`,
+                percentage: (pods.length / parseInt(allocatable.pods || capacity.pods || '110')) * 100,
+                type: 'pods',
+              },
+            ]}
+          />
+        </div>
+      </CollapsibleSection>
+
+      {/* System Info */}
+      <CollapsibleSection title="System Information" icon="🔧" defaultExpanded={false}>
+        <div className="info-grid-2">
+          <div className="info-item">
+            <div className="info-label">Kernel Version</div>
+            <div className="info-value">{nodeInfo.kernelVersion}</div>
+          </div>
+          <div className="info-item">
+            <div className="info-label">Container Runtime</div>
+            <div className="info-value">{nodeInfo.containerRuntimeVersion}</div>
+          </div>
+          <div className="info-item">
+            <div className="info-label">Machine ID</div>
+            <div className="info-value code">{nodeInfo.machineID || '-'}</div>
+          </div>
+          <div className="info-item">
+            <div className="info-label">System UUID</div>
+            <div className="info-value code">{nodeInfo.systemUUID || '-'}</div>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Allocatable Resources */}
+      <CollapsibleSection title="Allocatable Resources" icon="📈" defaultExpanded={false}>
+        <div className="allocatable-grid">
+          <div className="allocatable-item">
+            <div className="allocatable-label">CPU Capacity</div>
+            <div className="allocatable-value">{capacity.cpu || '-'}</div>
+          </div>
+          <div className="allocatable-item">
+            <div className="allocatable-label">CPU Allocatable</div>
+            <div className="allocatable-value">{allocatable.cpu || '-'}</div>
+          </div>
+          <div className="allocatable-item">
+            <div className="allocatable-label">Memory Capacity</div>
+            <div className="allocatable-value">
+              {capacity.memory ? (parseInt(capacity.memory) / (1024 * 1024 * 1024)).toFixed(2) + ' Gi' : '-'}
+            </div>
+          </div>
+          <div className="allocatable-item">
+            <div className="allocatable-label">Memory Allocatable</div>
+            <div className="allocatable-value">
+              {allocatable.memory ? (parseInt(allocatable.memory) / (1024 * 1024 * 1024)).toFixed(2) + ' Gi' : '-'}
+            </div>
+          </div>
+          <div className="allocatable-item">
+            <div className="allocatable-label">Pod Capacity</div>
+            <div className="allocatable-value">{capacity.pods || '-'}</div>
+          </div>
+          <div className="allocatable-item">
+            <div className="allocatable-label">Pod Allocatable</div>
+            <div className="allocatable-value">{allocatable.pods || '-'}</div>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Labels */}
+      <CollapsibleSection title="Labels" icon="🏷️" defaultExpanded={false}>
+        {metadata?.labels && Object.keys(metadata.labels).length > 0 ? (
           <LabelList
             labels={metadata.labels}
             resourceType="node"
-            onLabelClick={(key, value) => {
-              // 处理节点角色标签点击
-              if (key.includes('node-role.kubernetes.io/')) {
-                console.log('Role:', value);
-              }
-            }}
           />
+        ) : (
+          <div className="empty-state">No labels</div>
         )}
-      </div>
+      </CollapsibleSection>
 
-      {/* 注解 */}
-      <div className="detail-section">
-        <h3 className="section-title">📝 注解</h3>
-        {metadata?.annotations && Object.keys(metadata.annotations).length > 0 && (
+      {/* Annotations */}
+      <CollapsibleSection title="Annotations" icon="📝" defaultExpanded={false}>
+        {metadata?.annotations && Object.keys(metadata.annotations).length > 0 ? (
           <LabelList labels={metadata.annotations} />
+        ) : (
+          <div className="empty-state">No annotations</div>
         )}
-      </div>
+      </CollapsibleSection>
 
-      {/* 关联 Pod */}
-      <div className="detail-section">
-        <h3 className="section-title">🔗 运行中的 Pod ({pods.length})</h3>
-        {renderPodList()}
-      </div>
+      {/* Running Pods */}
+      <CollapsibleSection title={`Running Pods (${pods.length})`} icon="🔗" defaultExpanded={false}>
+        {pods.length > 0 ? (
+          <RelatedResources
+            resources={pods.map((pod: any) => ({
+              kind: 'Pod',
+              name: pod.metadata?.name,
+              namespace: pod.metadata?.namespace,
+              status: pod.status?.phase,
+            }))}
+            onResourceClick={onResourceClick}
+          />
+        ) : (
+          <div className="empty-state">No pods running on this node</div>
+        )}
+      </CollapsibleSection>
 
-      {/* 事件 */}
+      {/* Events */}
       {events.length > 0 && (
-        <div className="detail-section">
-          <h3 className="section-title">📅 事件</h3>
+        <CollapsibleSection title="Events" icon="📅" defaultExpanded={false}>
           <EventTimeline events={events} />
-        </div>
+        </CollapsibleSection>
       )}
     </div>
   );
