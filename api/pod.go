@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -12,7 +13,6 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -100,14 +100,48 @@ func getPodDetail(
 			return
 		}
 
-		// 转换为 Unstructured 对象（原始 map 格式）
-		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
+		// 构建完整的对象（包含 kind 和 apiVersion）
+		fullObj := map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "Pod",
+			"metadata": map[string]interface{}{
+				"name":              pod.Name,
+				"namespace":         pod.Namespace,
+				"labels":            pod.Labels,
+				"annotations":       pod.Annotations,
+				"creationTimestamp": pod.CreationTimestamp.Format(time.RFC3339),
+				"uid":               pod.UID,
+				"resourceVersion":   pod.ResourceVersion,
+			},
+			"spec": map[string]interface{}{
+				"containers":       pod.Spec.Containers,
+				"initContainers":   pod.Spec.InitContainers,
+				"volumes":          pod.Spec.Volumes,
+				"nodeName":         pod.Spec.NodeName,
+				"serviceAccountName": pod.Spec.ServiceAccountName,
+				"restartPolicy":    pod.Spec.RestartPolicy,
+				"terminationGracePeriodSeconds": pod.Spec.TerminationGracePeriodSeconds,
+				"dnsPolicy":        pod.Spec.DNSPolicy,
+				"securityContext":  pod.Spec.SecurityContext,
+				"affinity":         pod.Spec.Affinity,
+				"tolerations":      pod.Spec.Tolerations,
+			},
+			"status": map[string]interface{}{
+				"phase":       pod.Status.Phase,
+				"hostIP":      pod.Status.HostIP,
+				"podIP":       pod.Status.PodIP,
+				"podIPs":      pod.Status.PodIPs,
+				"conditions":  pod.Status.Conditions,
+				"containerStatuses": pod.Status.ContainerStatuses,
+				"initContainerStatuses": pod.Status.InitContainerStatuses,
+				"qosClass":    pod.Status.QOSClass,
+				"reason":      pod.Status.Reason,
+				"message":     pod.Status.Message,
+				"startTime":   pod.Status.StartTime,
+			},
 		}
 
-		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
+		middleware.ResponseSuccess(c, fullObj, DetailSuccessMessage, nil)
 	}
 }
 

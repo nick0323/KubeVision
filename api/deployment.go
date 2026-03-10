@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -10,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -61,13 +61,37 @@ func getDeploymentDetail(
 			return
 		}
 
-		// 转换为 Unstructured 对象（原始 map 格式）
-		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(dep)
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
+		// 构建完整的对象（包含 kind 和 apiVersion）
+		fullObj := map[string]interface{}{
+			"apiVersion": "apps/v1",
+			"kind":       "Deployment",
+			"metadata": map[string]interface{}{
+				"name":              dep.Name,
+				"namespace":         dep.Namespace,
+				"labels":            dep.Labels,
+				"annotations":       dep.Annotations,
+				"creationTimestamp": dep.CreationTimestamp.Format(time.RFC3339),
+				"uid":               dep.UID,
+				"resourceVersion":   dep.ResourceVersion,
+			},
+			"spec": map[string]interface{}{
+				"replicas": dep.Spec.Replicas,
+				"selector": dep.Spec.Selector,
+				"template": dep.Spec.Template,
+				"strategy": dep.Spec.Strategy,
+				"minReadySeconds": dep.Spec.MinReadySeconds,
+			},
+			"status": map[string]interface{}{
+				"replicas":          dep.Status.Replicas,
+				"readyReplicas":     dep.Status.ReadyReplicas,
+				"updatedReplicas":   dep.Status.UpdatedReplicas,
+				"availableReplicas": dep.Status.AvailableReplicas,
+				"unavailableReplicas": dep.Status.UnavailableReplicas,
+				"conditions":        dep.Status.Conditions,
+				"observedGeneration": dep.Status.ObservedGeneration,
+			},
 		}
 
-		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
+		middleware.ResponseSuccess(c, fullObj, DetailSuccessMessage, nil)
 	}
 }

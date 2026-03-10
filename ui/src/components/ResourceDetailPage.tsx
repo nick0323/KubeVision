@@ -25,7 +25,6 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
 
   // 获取状态值（根据不同资源类型）
   const getStatusValue = (data: any): string => {
@@ -198,17 +197,6 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  // 自动轮询刷新
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      loadData();
-    }, 5000); // 5 秒刷新一次
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, loadData]);
 
   // 返回列表
   const handleBack = () => {
@@ -462,19 +450,9 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
             onRefresh={loadData}
           />
 
-          <div className="refresh-info">
-            <label className="auto-refresh-toggle">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-              />
-              <span>自动刷新</span>
-            </label>
-            <span className="last-refresh">
-              最后刷新：{lastRefresh.toLocaleTimeString()}
-            </span>
-          </div>
+          <span className="last-refresh">
+            最后刷新：{lastRefresh.toLocaleTimeString()}
+          </span>
           <button className="btn btn-default" onClick={loadData}>
             🔄 刷新
           </button>
