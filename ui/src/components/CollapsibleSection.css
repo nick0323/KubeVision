@@ -1,0 +1,85 @@
+/* 可折叠区块样式 */
+.collapsible-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.collapsible-header:hover {
+  background: #f3f4f6;
+}
+
+.collapsible-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapsible-icon {
+  font-size: 16px;
+}
+
+.collapsible-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.collapsible-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapse-arrow {
+  font-size: 12px;
+  color: #9ca3af;
+  transition: transform 0.2s;
+}
+
+.collapse-arrow.expanded {
+  transform: rotate(0deg);
+}
+
+.collapse-arrow:not(.expanded) {
+  transform: rotate(-90deg);
+}
+
+.collapsible-content {
+  padding: 16px;
+  background: #ffffff;
+}
+
+/* 无内容时的提示 */
+.collapsible-content:empty::before {
+  content: '暂无内容';
+  color: #9ca3af;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* 紧凑模式 */
+.collapsible-section.compact .collapsible-header {
+  padding: 10px 14px;
+}
+
+.collapsible-section.compact .collapsible-content {
+  padding: 12px;
+}
+
+.collapsible-section.compact .collapsible-text {
+  font-size: 13px;
+}

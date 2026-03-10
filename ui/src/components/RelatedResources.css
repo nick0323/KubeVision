@@ -1,0 +1,168 @@
+/* 关联资源面板样式 */
+.related-resources {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  height: 100%;
+}
+
+.related-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.related-title::before {
+  content: '🔗';
+  font-size: 16px;
+}
+
+.related-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.related-empty .empty-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.related-empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.related-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.related-item:hover {
+  background: #e6f7ff;
+  transform: translateX(4px);
+}
+
+.related-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.related-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.related-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.related-kind {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  background: #e5e7eb;
+  border-radius: 4px;
+}
+
+.related-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.related-namespace {
+  color: #9ca3af;
+}
+
+.related-status {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.related-status.status-good {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.related-status.status-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.related-status.status-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.related-arrow {
+  font-size: 16px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.related-item:hover .related-arrow {
+  color: #1890ff;
+}
+
+/* 网格布局 */
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.related-grid .related-item {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.related-grid .related-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.related-grid .related-arrow {
+  display: none;
+}

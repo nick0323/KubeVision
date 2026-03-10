@@ -453,3 +453,79 @@
     white-space: nowrap;
   }
 }
+
+/* ========== 并排布局优化 ========== */
+
+/* 大屏设备使用并排布局 */
+@media (min-width: 1400px) {
+  .detail-content {
+    max-width: 1600px;
+  }
+
+  .tab-content-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  /* 全宽区块 */
+  .tab-content-section .section.full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 中等屏幕 */
+@media (min-width: 1000px) and (max-width: 1399px) {
+  .detail-content {
+    max-width: 1200px;
+  }
+
+  .tab-content-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .tab-content-section .section.full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 响应式信息网格 */
+.info-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+@media (min-width: 1400px) {
+  .info-grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 视觉层次优化 */
+.section-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.section-primary .section-title {
+  color: white;
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+.section-primary .info-label {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.section-primary .info-value {
+  color: white;
+}
+
+.section-elevated {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: none;
+}
