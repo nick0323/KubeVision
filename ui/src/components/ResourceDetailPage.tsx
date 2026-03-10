@@ -198,33 +198,33 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
     loadData();
   }, [loadData]);
 
-  // 返回列表
+  // Navigate back
   const handleBack = () => {
-    navigate(-1); // 返回上一页
+    navigate(-1);
   };
 
-  // 资源跳转
+  // Resource navigation
   const handleResourceClick = (type: string, ns: string, resourceName: string) => {
     navigate(`/${type}s/${ns}/${resourceName}`);
   };
 
-  // 查看日志
+  // View container logs
   const handleViewLog = (containerName: string) => {
-    console.log('查看日志:', containerName);
-    // TODO: 实现日志查看
+    console.log('View logs:', containerName);
+    // TODO: Implement log viewer
   };
 
-  // 进入容器
+  // Exec into container
   const handleExec = (containerName: string) => {
-    console.log('进入容器:', containerName);
-    // TODO: 实现 exec 功能
+    console.log('Exec into:', containerName);
+    // TODO: Implement exec
   };
 
   if (loading) {
     return (
       <div className="resource-detail-page">
         <div className="detail-loading">
-          <div className="loading-spinner">加载中...</div>
+          <div className="loading-spinner">Loading...</div>
         </div>
       </div>
     );
@@ -234,10 +234,10 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
     return (
       <div className="resource-detail-page">
         <div className="detail-error">
-          <h3>加载失败</h3>
+          <h3>Load Failed</h3>
           <p>{error}</p>
           <button className="btn btn-primary" onClick={handleBack}>
-            返回列表
+            ← Back
           </button>
         </div>
       </div>
@@ -248,7 +248,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
     return null;
   }
 
-  // 根据资源类型渲染不同的详情组件
+  // Render different detail components based on resource type
   const renderResourceDetail = () => {
     const commonProps = {
       data,
@@ -396,7 +396,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
     }
   };
 
-  // 获取标签页配置
+  // Get tab configuration
   const getTabConfig = () => {
     const tabs = [
       { id: 'overview', label: 'Overview' },
@@ -418,7 +418,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
 
   return (
     <div className="resource-detail-page">
-      {/* 面包屑导航 */}
+      {/* Breadcrumb */}
       <Breadcrumb
         items={[
           { label: 'Cluster', href: '/' },
@@ -428,7 +428,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
         ]}
       />
 
-      {/* 页面头部 - 简化版 */}
+      {/* Header */}
       <div className="detail-header">
         <div className="header-left">
           <button className="btn-back" onClick={handleBack}>
@@ -441,7 +441,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
           </div>
         </div>
         <div className="header-actions">
-          {/* 快速操作区 */}
+          {/* Quick Actions */}
           <QuickActions
             resourceType={resourceType}
             resourceName={data.metadata?.name}
@@ -459,7 +459,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
         </div>
       </div>
 
-      {/* 标签页导航 */}
+      {/* Tabs */}
       <div className="detail-tabs">
         {tabs.map((tab) => (
           <div
@@ -472,12 +472,12 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
         ))}
       </div>
 
-      {/* 内容区 */}
+      {/* Content */}
       <div className="detail-content">
-        {/* 概览标签页 - 渲染专业详情组件 */}
+        {/* Overview tab */}
         {activeTab === 'overview' && <div className="tab-content-full">{renderResourceDetail()}</div>}
 
-        {/* 容器标签页（仅 Pod） */}
+        {/* Containers tab (Pod only) */}
         {activeTab === 'containers' && data.spec?.containers && (
           <div className="tab-content-section">
             <div className="tab-content-full">
@@ -489,7 +489,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
           </div>
         )}
 
-        {/* 事件标签页 */}
+        {/* Events tab */}
         {activeTab === 'events' && (
           <div className="tab-content-section">
             <div className="tab-content-full">
@@ -525,7 +525,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
           </div>
         )}
 
-        {/* YAML 标签页 */}
+        {/* YAML tab */}
         {activeTab === 'yaml' && (
           <div className="tab-content-section">
             <div className="tab-content-full">
