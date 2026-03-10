@@ -97,19 +97,25 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({ resource
     try {
       const related: any = {};
 
-      // 加载事件
+      // 加载事件 - 修复：处理 404 和空命名空间
       try {
-        const eventResponse = await authFetch(
-          `/api/events/${ns}/${resourceData.metadata?.name}?limit=50`
-        );
-        const eventResult = await eventResponse.json();
-        if (eventResult.code === 0 && eventResult.data) {
-          related.events = eventResult.data.filter((e: any) => 
-            e.involvedObject?.name === resourceData.metadata?.name
+        const resourceName = resourceData.metadata?.name;
+        if (ns && resourceName) {
+          const eventResponse = await authFetch(
+            `/api/events/${ns}/${resourceName}?limit=50`
           );
+          if (eventResponse.ok) {
+            const eventResult = await eventResponse.json();
+            if (eventResult.code === 0 && eventResult.data) {
+              related.events = Array.isArray(eventResult.data) 
+                ? eventResult.data.filter((e: any) => e.involvedObject?.name === resourceName)
+                : [];
+            }
+          }
         }
       } catch (e) {
         console.warn('加载事件失败:', e);
+        related.events = [];
       }
 
       // 根据资源类型加载关联数据

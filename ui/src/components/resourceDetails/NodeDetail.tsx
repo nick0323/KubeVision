@@ -25,6 +25,17 @@ export const NodeDetail: React.FC<NodeDetailProps> = ({
   if (!data) return null;
 
   const { metadata, status } = data;
+  
+  // 添加空值检查
+  if (!metadata || !status) {
+    return (
+      <div className="empty-state">
+        <span className="empty-icon">⚠️</span>
+        <p>数据不完整</p>
+      </div>
+    );
+  }
+
   const conditions = status?.conditions || [];
   const addresses = status?.addresses || [];
   const allocatable = status?.allocatable || {};
@@ -32,12 +43,12 @@ export const NodeDetail: React.FC<NodeDetailProps> = ({
 
   // 节点信息
   const nodeInfo = status?.nodeInfo || {};
-  const internalIP = addresses.find((a: any) => a.type === 'InternalIP')?.address;
-  const externalIP = addresses.find((a: any) => a.type === 'ExternalIP')?.address;
-  const hostName = addresses.find((a: any) => a.type === 'Hostname')?.address;
+  const internalIP = addresses?.find((a: any) => a.type === 'InternalIP')?.address;
+  const externalIP = addresses?.find((a: any) => a.type === 'ExternalIP')?.address;
+  const hostName = addresses?.find((a: any) => a.type === 'Hostname')?.address;
 
   // 角色
-  const roles = Object.keys(metadata.labels || {})
+  const roles = Object.keys(metadata?.labels || {})
     .filter((k) => k.includes('node-role.kubernetes.io/'))
     .map((k) => k.replace('node-role.kubernetes.io/', ''));
   const roleDisplay = roles.length > 0 ? roles.join(', ') : 'worker';
