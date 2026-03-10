@@ -274,6 +274,15 @@ func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	api.RegisterNamespace(apiGroup, app.logger, app.getK8sClient, service.ListNamespaces)
 	api.RegisterEvent(apiGroup, app.logger, app.getK8sClient, service.ListEvents)
 
+	// 注册 Endpoints（用于 Service 详情）
+	api.RegisterEndpoints(apiGroup, app.logger, app.getK8sClient)
+
+	// 注册 Exec WebSocket
+	api.RegisterExecWS(apiGroup, app.logger, app.getK8sClient)
+
+	// 注册资源引用查找
+	api.RegisterReferenceFinder(apiGroup, app.logger, app.getK8sClient)
+
 	// 注册其他资源类型
 	api.RegisterStatefulSet(apiGroup, app.logger, app.getK8sClient, service.ListStatefulSets)
 	api.RegisterDaemonSet(apiGroup, app.logger, app.getK8sClient, service.ListDaemonSets)

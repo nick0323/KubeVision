@@ -1,4 +1,5 @@
 import React, { useState, Suspense, useEffect, useCallback } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import './App.css';
 import LoadingSpinner from './components/LoadingSpinner.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -9,11 +10,10 @@ import { MENU_LIST } from './constants';
 import LoginPage from './LoginPage.tsx';
 import { FiLogOut } from 'react-icons/fi';
 import { authUtils } from './utils/auth.ts';
-
-// 导入页面组件映射
 import { PAGE_COMPONENTS } from './pages.tsx';
+import ResourceDetailPage from './components/ResourceDetailPage';
 
-// 图标映射 - 使用 useMemo 优化
+// 图标映射
 const ICON_MAP: Record<string, React.ReactNode> = {
   FaChartPie: <FaChartPie />,
   FaCube: <FaCube />,
@@ -36,25 +36,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   FaChevronRight: <FaChevronRight />,
 };
 
-// 页面组件映射
-const CURRENT_PAGE_COMPONENTS = {
-  ...PAGE_COMPONENTS
-};
-
-// 预加载策略：当用户 hover 到菜单项时预加载对应组件
-const preloadComponent = (componentKey: string) => {
-  const Component = CURRENT_PAGE_COMPONENTS[componentKey as keyof typeof CURRENT_PAGE_COMPONENTS];
-  if (Component && (Component as any).preload) {
-    (Component as any).preload();
-  }
-};
-
-/**
- * 主应用组件 - 修复登录跳转问题
- */
-export default function App() {
-  // 使用函数初始化状态，确保读取最新状态
-  const [login, setLogin] = useState<boolean>(() => authUtils.isLoggedIn());
+// 列表页面组件
+const ListPage: React.FC = () => {
   const [tab, setTab] = useLocalStorage<string>('current_tab', 'overview');
   const [collapsed, setCollapsed] = useLocalStorage<boolean>('sider_collapsed', false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -63,33 +46,6 @@ export default function App() {
     return state;
   });
 
-  // 初始化认证拦截器 - 监听未授权事件
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      authUtils.clearToken();
-      setLogin(false);
-    };
-
-    window.addEventListener('auth-unauthorized', handleUnauthorized);
-
-    return () => {
-      window.removeEventListener('auth-unauthorized', handleUnauthorized);
-    };
-  }, []);
-
-  // 登录成功处理函数 - 使用回调确保状态更新
-  const handleLoginSuccess = useCallback(() => {
-    // 强制重新检查登录状态
-    const isLoggedIn = authUtils.isLoggedIn();
-    setLogin(isLoggedIn);
-    
-    // 触发页面刷新（确保状态同步）
-    if (isLoggedIn) {
-      window.location.href = '/';
-    }
-  }, []);
-
-  // 折叠侧边栏 - 不使用 useCallback，直接传递函数
   const toggleCollapsed = () => {
     setCollapsed(prev => {
       const next = !prev;
@@ -102,39 +58,13 @@ export default function App() {
     setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
-  const handleTabChange = (newTab: string) => {
-    setTab(newTab);
-    // 预加载相邻的组件
-    const menuItems = MENU_LIST.flatMap(g => g.items);
-    const currentIndex = menuItems.findIndex(item => item.key === newTab);
-    if (currentIndex !== -1) {
-      // 预加载下一个组件
-      if (currentIndex + 1 < menuItems.length) {
-        preloadComponent(menuItems[currentIndex + 1].key);
-      }
-      // 预加载上一个组件
-      if (currentIndex - 1 >= 0) {
-        preloadComponent(menuItems[currentIndex - 1].key);
-      }
-    }
-  };
-
-  // 渲染页面 - 直接渲染
   const renderPage = () => {
-    const PageComponent = CURRENT_PAGE_COMPONENTS[tab as keyof typeof CURRENT_PAGE_COMPONENTS];
+    const PageComponent = PAGE_COMPONENTS[tab as keyof typeof PAGE_COMPONENTS];
     if (PageComponent) {
       return <PageComponent collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />;
     }
     return null;
   };
-
-  if (!login) {
-    return (
-      <Suspense fallback={<LoadingSpinner text="加载中..." overlay />}>
-        <LoginPage onLogin={handleLoginSuccess} />
-      </Suspense>
-    );
-  }
 
   return (
     <div className="layout-root" data-sider-collapsed={collapsed}>
@@ -154,10 +84,7 @@ export default function App() {
               <li
                 key={item.key}
                 className={tab === item.key ? 'active' : ''}
-                onClick={() => handleTabChange(item.key)}
-                onMouseEnter={(e) => {
-                  preloadComponent(item.key);
-                }}
+                onClick={() => setTab(item.key)}
                 data-tip={item.label}
               >
                 <span className="icon">{ICON_MAP[item.icon]}</span>
@@ -183,10 +110,7 @@ export default function App() {
                   <li
                     key={item.key}
                     className={tab === item.key ? 'active' : ''}
-                    onClick={() => handleTabChange(item.key)}
-                    onMouseEnter={(e) => {
-                      preloadComponent(item.key);
-                    }}
+                    onClick={() => setTab(item.key)}
                     data-tip={item.label}
                   >
                     <span className="icon">{ICON_MAP[item.icon]}</span>
@@ -200,7 +124,7 @@ export default function App() {
 
         {/* 退出按钮 */}
         <div className="sider-bottom">
-          <button className="logout-btn" onClick={() => { authUtils.clearToken(); setLogin(false); }}>
+          <button className="logout-btn" onClick={() => { authUtils.clearToken(); }}>
             <span className="icon"><FiLogOut /></span>
             <span>Sign out</span>
           </button>
@@ -226,5 +150,62 @@ export default function App() {
         </ErrorBoundary>
       </div>
     </div>
+  );
+};
+
+// 详情页面包装器
+const ResourceDetailWrapper: React.FC = () => {
+  const { resourceType, namespace, name } = useParams<{ resourceType: string; namespace?: string; name?: string }>();
+  const navigate = useNavigate();
+
+  if (!resourceType || !name) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <ResourceDetailPage resourceType={resourceType} />;
+};
+
+// 主应用组件
+export default function App() {
+  const [login, setLogin] = useState<boolean>(() => authUtils.isLoggedIn());
+
+  // 监听登录状态变化
+  useEffect(() => {
+    const checkLogin = () => {
+      setLogin(authUtils.isLoggedIn());
+    };
+    
+    window.addEventListener('storage', checkLogin);
+    return () => window.removeEventListener('storage', checkLogin);
+  }, []);
+
+  // 登出处理
+  const handleLogout = useCallback(() => {
+    authUtils.clearToken();
+    setLogin(false);
+  }, []);
+
+  if (!login) {
+    return (
+      <Suspense fallback={<LoadingSpinner text="加载中..." overlay />}>
+        <LoginPage onLogin={() => setLogin(true)} />
+      </Suspense>
+    );
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* 列表页面 */}
+        <Route path="/" element={<ListPage />} />
+        
+        {/* 详情页面 */}
+        <Route path="/:resourceType/:namespace/:name" element={<ResourceDetailWrapper />} />
+        <Route path="/:resourceType/:name" element={<ResourceDetailWrapper />} />
+        
+        {/* 重定向 */}
+        <Route path="*" to="/" />
+      </Routes>
+    </BrowserRouter>
   );
 }

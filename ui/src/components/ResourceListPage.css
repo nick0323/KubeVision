@@ -1,4 +1,4 @@
-/* ResourceListPage 组件样式 - 恢复原始样式 */
+/* ResourceListPage 组件样式 */
 .resource-list-page {
   display: flex;
   flex-direction: column;
@@ -76,6 +76,7 @@ th.sorted .sort-icon {
 
 .resource-table tbody tr:hover {
   background-color: #e6f7ff; /* 悬停时淡蓝色背景 */
+  cursor: pointer;
 }
 
 .resource-table td {

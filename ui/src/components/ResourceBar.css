@@ -1,0 +1,57 @@
+.resource-bar {
+  margin-top: 16px;
+}
+
+.resource-bar-item {
+  margin-bottom: 16px;
+}
+
+.resource-bar-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.resource-bar-label {
+  font-size: 13px;
+  color: #666;
+}
+
+.resource-bar-value {
+  font-size: 13px;
+  color: #222;
+  font-weight: 500;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.progress-fill.cpu {
+  background: linear-gradient(90deg, #1890ff 0%, #40a9ff 100%);
+}
+
+.progress-fill.memory {
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+}
+
+.progress-fill.pods {
+  background: linear-gradient(90deg, #faad14 0%, #ffc53d 100%);
+}
+
+.progress-fill.warning {
+  background: linear-gradient(90deg, #faad14 0%, #ffc53d 100%);
+}
+
+.progress-fill.danger {
+  background: linear-gradient(90deg, #ff4d4f 0%, #ff7875 100%);
+}

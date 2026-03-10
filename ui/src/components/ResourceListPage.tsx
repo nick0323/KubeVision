@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
@@ -68,9 +69,10 @@ interface ResourceListPageProps {
 }
 
 /**
- * 通用资源列表页面组件 - 恢复原始样式
+ * 通用资源列表页面组件 - 独立详情页版本
  */
 export const ResourceListPage: React.FC<ResourceListPageProps> = ({ config, collapsed, onToggleCollapsed }) => {
+  const navigate = useNavigate();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -223,6 +225,12 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({ config, coll
   const handleRefresh = useCallback(() => {
     loadData();
   }, [loadData]);
+
+  // 查看详情（导航到独立详情页）
+  const handleViewDetail = useCallback((record: any) => {
+    const ns = record.namespace || '';
+    navigate(`/${config.resourceType}/${ns}/${record.name}`);
+  }, [config.resourceType, navigate]);
 
   // 列配置
   const columns = useMemo(() => {
@@ -389,7 +397,12 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({ config, coll
               </tr>
             ) : (
               data.map((record: any, rowIndex: number) => (
-                <tr key={rowIndex} className="table-row">
+                <tr
+                  key={rowIndex}
+                  className="table-row"
+                  onClick={() => handleViewDetail(record)}
+                  style={{ cursor: 'pointer' }}
+                >
                   {columns.map((column: Column<any>, colIndex: number) => (
                     <td key={colIndex} className="table-cell">
                       {renderCell(record, column)}

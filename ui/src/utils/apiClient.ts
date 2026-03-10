@@ -112,6 +112,15 @@ export const apiClient = {
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   },
+
+  /**
+   * 获取资源详情
+   */
+  async getDetail(resourceType: string, namespace: string, name: string): Promise<any> {
+    const endpoint = `/api/${resourceType}/${namespace}/${name}`;
+    const result = await this.request<any>(endpoint);
+    return result.data;
+  },
 };
 
 /**

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KubeVision - Node 详情（最终清理版）</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      font-size: 14px;
+      color: #222;
+      background: #fafafa;
+    }
+
+    .main-content {
+      padding: 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #1890ff;
+      font-size: 14px;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
+    .back-link:hover {
+      color: #40a9ff;
+    }
+
+    /* 资源头部 - 简化版 */
+    .resource-header {
+      background: #fff;
+      border-radius: 6px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      border: 1px solid #e8e8e8;
+    }
+
+    .resource-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-ready {
+      background: #e6f7e6;
+      color: #52c41a;
+      border: 1px solid #b7eb8f;
+    }
+
+    .resource-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #222;
+    }
+
+    .resource-meta {
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* 标签页 */
+    .tabs {
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid #e8e8e8;
+      overflow: hidden;
+    }
+
+    .tabs-header {
+      display: flex;
+      border-bottom: 1px solid #e8e8e8;
+      background: #fafafa;
+    }
+
+    .tab-item {
+      padding: 12px 20px;
+      font-size: 14px;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+
+    .tab-item:hover {
+      color: #1890ff;
+      background: #e6f7ff;
+    }
+
+    .tab-item.active {
+      color: #1890ff;
+      border-bottom-color: #1890ff;
+      background: #fff;
+    }
+
+    .tab-content {
+      padding: 20px 24px;
+    }
+
+    /* 概览标签页 - 分区布局 */
+    .overview-section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e8e8e8;
+    }
+
+    /* 状态卡片网格 */
+    .status-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .status-card {
+      background: linear-gradient(135deg, #f6f8fa 0%, #fafbfc 100%);
+      border-radius: 6px;
+      padding: 16px;
+      border: 1px solid #e8e8e8;
+    }
+
+    .status-card-title {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 6px;
+    }
+
+    .status-card-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #222;
+    }
+
+    .status-card-sub {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    /* 资源使用进度条 */
+    .resource-bar {
+      margin-top: 16px;
+    }
+
+    .resource-bar-item {
+      margin-bottom: 16px;
+    }
+
+    .resource-bar-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .resource-bar-label {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .resource-bar-value {
+      font-size: 13px;
+      color: #222;
+      font-weight: 500;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .progress-fill.cpu {
+      background: linear-gradient(90deg, #1890ff 0%, #40a9ff 100%);
+    }
+
+    .progress-fill.memory {
+      background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%);
+    }
+
+    .progress-fill.pods {
+      background: linear-gradient(90deg, #faad14 0%, #ffc53d 100%);
+    }
+
+    /* 信息网格 */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px 24px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: #999;
+      text-transform: uppercase;
+    }
+
+    .info-value {
+      font-size: 14px;
+      color: #222;
+    }
+
+    .info-value.link {
+      color: #1890ff;
+      cursor: pointer;
+    }
+
+    .info-value.link:hover {
+      color: #40a9ff;
+    }
+
+    /* 条件状态 */
+    .condition-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .condition-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: #fafafa;
+      border: 1px solid #e8e8e8;
+      border-radius: 4px;
+    }
+
+    .condition-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .condition-status.true {
+      background: #52c41a;
+    }
+
+    .condition-status.false {
+      background: #ff4d4f;
+    }
+
+    .condition-label {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .condition-value {
+      font-size: 13px;
+      color: #222;
+      font-weight: 500;
+    }
+
+    /* Pod 列表 */
+    .pod-list {
+      border: 1px solid #e8e8e8;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .pod-list-header {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      padding: 12px 16px;
+      background: #fafafa;
+      border-bottom: 1px solid #e8e8e8;
+      font-size: 12px;
+      color: #999;
+      font-weight: 500;
+    }
+
+    .pod-list-item {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+
+    .pod-list-item:last-child {
+      border-bottom: none;
+    }
+
+    .pod-list-item:hover {
+      background: #f6f8fa;
+    }
+
+    .pod-name {
+      color: #1890ff;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .pod-name:hover {
+      color: #40a9ff;
+    }
+
+    /* 标签 */
+    .label-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .label-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    .label-key {
+      color: #666;
+    }
+
+    .label-sep {
+      color: #bfbfbf;
+    }
+
+    .label-value {
+      color: #1890ff;
+    }
+
+    /* YAML 代码块 */
+    .yaml-viewer {
+      background: #fafafa;
+      border: 1px solid #e8e8e8;
+      border-radius: 4px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-content">
+    <!-- 返回链接 -->
+    <a class="back-link">← 返回 Nodes 列表</a>
+
+    <!-- 资源头部 - 简化版 -->
+    <div class="resource-header">
+      <div class="resource-title-row">
+        <span class="status-badge status-ready">
+          <span>🟢</span>
+          <span>Ready</span>
+        </span>
+        <h1 class="resource-name">node-1</h1>
+      </div>
+      <div class="resource-meta">
+        Node / master
+      </div>
+    </div>
+
+    <!-- 标签页 -->
+    <div class="tabs">
+      <div class="tabs-header">
+        <div class="tab-item active" onclick="switchTab(this, 'overview')">概览</div>
+        <div class="tab-item" onclick="switchTab(this, 'pods')">Pod 列表</div>
+        <div class="tab-item" onclick="switchTab(this, 'conditions')">条件</div>
+        <div class="tab-item" onclick="switchTab(this, 'events')">事件</div>
+        <div class="tab-item" onclick="switchTab(this, 'yaml')">YAML</div>
+      </div>
+
+      <!-- 概览标签页 -->
+      <div class="tab-content" id="overview">
+        <!-- 状态概览区域 -->
+        <div class="overview-section">
+          <h3 class="section-title">状态概览</h3>
+          
+          <!-- 状态卡片 -->
+          <div class="status-cards">
+            <div class="status-card">
+              <div class="status-card-title">Kubelet 版本</div>
+              <div class="status-card-value">v1.28.0</div>
+              <div class="status-card-sub">Containerd: v1.6.0</div>
+            </div>
+            <div class="status-card">
+              <div class="status-card-title">操作系统</div>
+              <div class="status-card-value">Linux</div>
+              <div class="status-card-sub">Ubuntu 22.04</div>
+            </div>
+            <div class="status-card">
+              <div class="status-card-title">运行时间</div>
+              <div class="status-card-value">30 天</div>
+              <div class="status-card-sub">启动：2024-01-01</div>
+            </div>
+          </div>
+
+          <!-- 资源使用进度条 -->
+          <div class="resource-bar">
+            <div class="resource-bar-item">
+              <div class="resource-bar-header">
+                <span class="resource-bar-label">CPU 使用率</span>
+                <span class="resource-bar-value">5.2 / 8 核 (65%)</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill cpu" style="width: 65%"></div>
+              </div>
+            </div>
+
+            <div class="resource-bar-item">
+              <div class="resource-bar-header">
+                <span class="resource-bar-label">内存使用率</span>
+                <span class="resource-bar-value">25.0 / 32 Gi (78%)</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill memory" style="width: 78%"></div>
+              </div>
+            </div>
+
+            <div class="resource-bar-item">
+              <div class="resource-bar-header">
+                <span class="resource-bar-label">Pod 使用率</span>
+                <span class="resource-bar-value">22 / 110 (20%)</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill pods" style="width: 20%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 基本信息区域 -->
+        <div class="overview-section">
+          <h3 class="section-title">基本信息</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">名称</div>
+              <div class="info-value">node-1</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">角色</div>
+              <div class="info-value">master, control-plane</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">内部 IP</div>
+              <div class="info-value">192.168.1.100</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">外部 IP</div>
+              <div class="info-value">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">架构</div>
+              <div class="info-value">amd64</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">内核版本</div>
+              <div class="info-value">5.15.0-91-generic</div>
+            </div>
+          </div>
+
+          <!-- 标签 -->
+          <div style="margin-top: 20px;">
+            <div class="info-label">标签</div>
+            <div class="label-list">
+              <div class="label-item">
+                <span class="label-key">kubernetes.io/hostname</span>
+                <span class="label-sep">=</span>
+                <span class="label-value">node-1</span>
+              </div>
+              <div class="label-item">
+                <span class="label-key">node-role.kubernetes.io/control-plane</span>
+                <span class="label-sep">=</span>
+                <span class="label-value"></span>
+              </div>
+              <div class="label-item">
+                <span class="label-key">node-role.kubernetes.io/master</span>
+                <span class="label-sep">=</span>
+                <span class="label-value"></span>
+              </div>
+              <div class="label-item">
+                <span class="label-key">topology.kubernetes.io/zone</span>
+                <span class="label-sep">=</span>
+                <span class="label-value">cn-beijing-a</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pod 列表标签页 -->
+      <div class="tab-content" id="pods" style="display: none;">
+        <div class="pod-list">
+          <div class="pod-list-header">
+            <div>名称</div>
+            <div>命名空间</div>
+            <div>状态</div>
+            <div>重启次数</div>
+          </div>
+          <div class="pod-list-item">
+            <div class="pod-name" onclick="alert('跳转到 Pod: kube-apiserver-node-1')">kube-apiserver-node-1</div>
+            <div>kube-system</div>
+            <div><span style="color: #52c41a;">🟢</span> Running</div>
+            <div>0</div>
+          </div>
+          <div class="pod-list-item">
+            <div class="pod-name" onclick="alert('跳转到 Pod: kube-controller-manager-node-1')">kube-controller-manager-node-1</div>
+            <div>kube-system</div>
+            <div><span style="color: #52c41a;">🟢</span> Running</div>
+            <div>0</div>
+          </div>
+          <div class="pod-list-item">
+            <div class="pod-name" onclick="alert('跳转到 Pod: kube-scheduler-node-1')">kube-scheduler-node-1</div>
+            <div>kube-system</div>
+            <div><span style="color: #52c41a;">🟢</span> Running</div>
+            <div>0</div>
+          </div>
+          <div class="pod-list-item">
+            <div class="pod-name" onclick="alert('跳转到 Pod: etcd-node-1')">etcd-node-1</div>
+            <div>kube-system</div>
+            <div><span style="color: #52c41a;">🟢</span> Running</div>
+            <div>0</div>
+          </div>
+          <div class="pod-list-item">
+            <div class="pod-name" onclick="alert('跳转到 Pod: coredns-5dd5756b68-abc12')">coredns-5dd5756b68-abc12</div>
+            <div>kube-system</div>
+            <div><span style="color: #52c41a;">🟢</span> Running</div>
+            <div>0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 条件标签页 -->
+      <div class="tab-content" id="conditions" style="display: none;">
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">内存压力</div>
+            <div class="info-value">False</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">磁盘压力</div>
+            <div class="info-value">False</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">PID 压力</div>
+            <div class="info-value">False</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">网络正常</div>
+            <div class="info-value">True</div>
+          </div>
+        </div>
+
+        <div class="condition-list">
+          <div class="condition-item">
+            <span class="condition-status true"></span>
+            <span class="condition-label">Ready</span>
+            <span class="condition-value">True</span>
+          </div>
+          <div class="condition-item">
+            <span class="condition-status false"></span>
+            <span class="condition-label">MemoryPressure</span>
+            <span class="condition-value">False</span>
+          </div>
+          <div class="condition-item">
+            <span class="condition-status false"></span>
+            <span class="condition-label">DiskPressure</span>
+            <span class="condition-value">False</span>
+          </div>
+          <div class="condition-item">
+            <span class="condition-status false"></span>
+            <span class="condition-label">PIDPressure</span>
+            <span class="condition-value">False</span>
+          </div>
+          <div class="condition-item">
+            <span class="condition-status true"></span>
+            <span class="condition-label">ContainerReady</span>
+            <span class="condition-value">True</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 事件标签页 -->
+      <div class="tab-content" id="events" style="display: none;">
+        <div style="text-align: center; color: #999; padding: 40px;">
+          暂无事件
+        </div>
+      </div>
+
+      <!-- YAML 标签页 -->
+      <div class="tab-content" id="yaml" style="display: none;">
+        <div style="margin-bottom: 12px;">
+          <button class="btn btn-primary">编辑</button>
+          <button class="btn btn-default">刷新</button>
+        </div>
+        <div class="yaml-viewer">
+apiVersion: v1
+kind: Node
+metadata:
+  name: node-1
+  labels:
+    kubernetes.io/hostname: node-1
+    node-role.kubernetes.io/control-plane: ""
+    node-role.kubernetes.io/master: ""
+    topology.kubernetes.io/zone: cn-beijing-a
+spec:
+  podCIDR: 10.244.0.0/24
+  podCIDRs:
+  - 10.244.0.0/24
+status:
+  conditions:
+  - type: MemoryPressure
+    status: "False"
+  - type: DiskPressure
+    status: "False"
+  - type: PIDPressure
+    status: "False"
+  - type: Ready
+    status: "True"
+  addresses:
+  - type: InternalIP
+    address: 192.168.1.100
+  - type: Hostname
+    address: node-1
+  capacity:
+    cpu: "8"
+    memory: 33816268Ki
+    pods: "110"
+  allocatable:
+    cpu: "8"
+    memory: 33713868Ki
+    pods: "110"
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(element, tabId) {
+      document.querySelectorAll('.tab-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      
+      element.classList.add('active');
+      
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+      });
+      
+      document.getElementById(tabId).style.display = 'block';
+    }
+  </script>
+</body>
+</html>
