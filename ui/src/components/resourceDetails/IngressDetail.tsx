@@ -2,6 +2,7 @@
  * Ingress Detail Component
  */
 import React from 'react';
+import { FaExchangeAlt, FaGlobe, FaLock, FaBook, FaCalendarAlt } from 'react-icons/fa';
 import { LabelList } from '../LabelList';
 import { EventTimeline } from '../EventTimeline';
 import { CollapsibleSection } from '../CollapsibleSection';
@@ -28,7 +29,7 @@ export const IngressDetail: React.FC<IngressDetailProps> = ({
 
   return (
     <div className="resource-detail-content">
-      <CollapsibleSection title="🔀 Ingress Information" defaultExpanded={true}>
+      <CollapsibleSection title={<><FaExchangeAlt className="section-icon" /> Ingress Information</>} defaultExpanded={true}>
         <div className="info-grid-4">
           <div className="info-item">
             <div className="info-label">Name</div>
@@ -64,7 +65,7 @@ export const IngressDetail: React.FC<IngressDetailProps> = ({
       </CollapsibleSection>
 
       {rules.length > 0 && (
-        <CollapsibleSection title="🌐 Routing Rules" defaultExpanded={true}>
+        <CollapsibleSection title={<><FaGlobe className="section-icon" /> Routing Rules</>} defaultExpanded={true}>
           <div className="rules-table">
             <table className="resource-table">
               <thead>
@@ -95,7 +96,7 @@ export const IngressDetail: React.FC<IngressDetailProps> = ({
       )}
 
       {tls.length > 0 && (
-        <CollapsibleSection title="🔒 TLS Configuration" defaultExpanded={false}>
+        <CollapsibleSection title={<><FaLock className="section-icon" /> TLS Configuration</>} defaultExpanded={false}>
           <div className="tls-list">
             {tls.map((tlsConfig: any, idx: number) => (
               <div key={idx} className="tls-item">
@@ -113,7 +114,7 @@ export const IngressDetail: React.FC<IngressDetailProps> = ({
         </CollapsibleSection>
       )}
 
-      <CollapsibleSection title="🏷️ Labels & Annotations" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaBook className="section-icon" /> Labels & Annotations</>} defaultExpanded={false}>
         {metadata?.labels && Object.keys(metadata.labels).length > 0 && (
           <div className="labels-subsection">
             <div className="subsection-title">Labels</div>
@@ -129,7 +130,7 @@ export const IngressDetail: React.FC<IngressDetailProps> = ({
       </CollapsibleSection>
 
       {events.length > 0 && (
-        <CollapsibleSection title="📅 Events" defaultExpanded={false}>
+        <CollapsibleSection title={<><FaCalendarAlt className="section-icon" /> Events</>} defaultExpanded={false}>
           <EventTimeline events={events} />
         </CollapsibleSection>
       )}

@@ -2,6 +2,7 @@
  * StorageClass Detail Component
  */
 import React from 'react';
+import { FaHdd, FaBook } from 'react-icons/fa';
 import { LabelList } from '../LabelList';
 import { CollapsibleSection } from '../CollapsibleSection';
 import './ResourceDetail.css';
@@ -22,7 +23,7 @@ export const StorageClassDetail: React.FC<StorageClassDetailProps> = ({
 
   return (
     <div className="resource-detail-content">
-      <CollapsibleSection title="🗄️ StorageClass Information" defaultExpanded={true}>
+      <CollapsibleSection title={<><FaHdd className="section-icon" /> StorageClass Information</>} defaultExpanded={true}>
         <div className="info-grid-4">
           <div className="info-item">
             <div className="info-label">Name</div>
@@ -71,7 +72,7 @@ export const StorageClassDetail: React.FC<StorageClassDetailProps> = ({
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection title="🏷️ Labels & Annotations" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaBook className="section-icon" /> Labels & Annotations</>} defaultExpanded={false}>
         {metadata?.labels && Object.keys(metadata.labels).length > 0 && (
           <div className="labels-subsection">
             <div className="subsection-title">Labels</div>
