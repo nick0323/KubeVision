@@ -1,5 +1,5 @@
 /**
- * 资源详情页面通用样式
+ * Resource Detail Page Styles
  */
 
 /* Resource Detail Page Styles */
@@ -12,6 +12,19 @@
   padding: 24px;
   background: #f5f7fa;
   min-height: 100%;
+}
+
+/* Section icon styles - matching sidebar */
+.section-icon {
+  font-size: 14px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.subsection-icon {
+  font-size: 12px;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
 /* Info grids */
@@ -32,13 +45,6 @@
 @media (max-width: 1200px) {
   .info-grid-4 {
     grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .info-grid-4,
-  .info-grid-2 {
-    grid-template-columns: 1fr;
   }
 }
 

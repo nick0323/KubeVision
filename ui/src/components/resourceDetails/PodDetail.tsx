@@ -1,8 +1,8 @@
 /**
  * Pod Detail Component
- * Displays comprehensive pod information
  */
 import React from 'react';
+import { FaBox, FaFlask, FaBook, FaCalendarAlt } from 'react-icons/fa';
 import { ContainerList } from '../ContainerList';
 import { LabelList } from '../LabelList';
 import { EventTimeline } from '../EventTimeline';
@@ -33,7 +33,6 @@ export const PodDetail: React.FC<PodDetailProps> = ({
   const conditions = status?.conditions || [];
   const containerStatuses = status?.containerStatuses || [];
 
-  // Pod info
   const phase = status?.phase || 'Unknown';
   const podIP = status?.podIP;
   const hostIP = status?.hostIP;
@@ -42,8 +41,7 @@ export const PodDetail: React.FC<PodDetailProps> = ({
 
   return (
     <div className="resource-detail-content">
-      {/* Pod Info Section */}
-      <CollapsibleSection title="Pod Information" icon="📦" defaultExpanded={true}>
+      <CollapsibleSection title={<><FaBox className="section-icon" /> Pod Information</>} defaultExpanded={true}>
         <div className="info-grid-4">
           <div className="info-item">
             <div className="info-label">Name</div>
@@ -83,7 +81,6 @@ export const PodDetail: React.FC<PodDetailProps> = ({
           </div>
         </div>
 
-        {/* Conditions */}
         {conditions.length > 0 && (
           <div className="conditions-section">
             <div className="subsection-title">Conditions</div>
@@ -102,12 +99,10 @@ export const PodDetail: React.FC<PodDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      {/* Containers Section */}
-      <CollapsibleSection title="Containers" icon="📦" defaultExpanded={true}>
-        {/* Init Containers */}
+      <CollapsibleSection title={<><FaBox className="section-icon" /> Containers</>} defaultExpanded={true}>
         {initContainers.length > 0 && (
           <div className="subsection">
-            <div className="subsection-title">Init Containers</div>
+            <div className="subsection-title"><FaFlask className="subsection-icon" /> Init Containers</div>
             <ContainerList
               containers={initContainers}
               statuses={status?.initContainerStatuses || []}
@@ -117,7 +112,6 @@ export const PodDetail: React.FC<PodDetailProps> = ({
           </div>
         )}
 
-        {/* Main Containers */}
         {containers.length > 0 && (
           <div className="subsection">
             <div className="subsection-title">Containers</div>
@@ -131,9 +125,8 @@ export const PodDetail: React.FC<PodDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      {/* Volumes Section */}
       {spec?.volumes && spec.volumes.length > 0 && (
-        <CollapsibleSection title="Volumes" icon="💾" defaultExpanded={false}>
+        <CollapsibleSection title={<><FaBook className="section-icon" /> Volumes</>} defaultExpanded={false}>
           <div className="volumes-grid">
             {spec.volumes.map((volume: any, idx: number) => {
               const volumeType = volume.persistentVolumeClaim
@@ -178,8 +171,7 @@ export const PodDetail: React.FC<PodDetailProps> = ({
         </CollapsibleSection>
       )}
 
-      {/* Labels and Annotations */}
-      <CollapsibleSection title="Labels & Annotations" icon="🏷️" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaBook className="section-icon" /> Labels & Annotations</>} defaultExpanded={false}>
         {metadata?.labels && Object.keys(metadata.labels).length > 0 && (
           <div className="labels-subsection">
             <div className="subsection-title">Labels</div>
@@ -198,9 +190,8 @@ export const PodDetail: React.FC<PodDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      {/* Events */}
       {events.length > 0 && (
-        <CollapsibleSection title="Events" icon="📅" defaultExpanded={false}>
+        <CollapsibleSection title={<><FaCalendarAlt className="section-icon" /> Events</>} defaultExpanded={false}>
           <EventTimeline events={events} />
         </CollapsibleSection>
       )}
