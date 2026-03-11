@@ -1,8 +1,8 @@
 /**
  * Deployment Detail Component
- * Displays comprehensive deployment information
  */
 import React from 'react';
+import { FaRocket, FaBullseye, FaBox, FaBook, FaCalendarAlt, FaLink } from 'react-icons/fa';
 import { LabelList } from '../LabelList';
 import { EventTimeline } from '../EventTimeline';
 import { CollapsibleSection } from '../CollapsibleSection';
@@ -26,25 +26,18 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
 
   const { metadata, spec, status } = data;
   const conditions = status?.conditions || [];
-
-  // Replica info
   const replicas = spec.replicas || 1;
   const readyReplicas = status?.readyReplicas || 0;
   const updatedReplicas = status?.updatedReplicas || 0;
   const availableReplicas = status?.availableReplicas || 0;
   const unavailableReplicas = status?.unavailableReplicas || 0;
-
-  // Strategy info
   const strategy = spec.strategy?.type || 'RollingUpdate';
   const rollingUpdate = spec.strategy?.rollingUpdate || {};
-
-  // Containers
   const containers = spec.template?.spec?.containers || [];
 
   return (
     <div className="resource-detail-content">
-      {/* Deployment Info */}
-      <CollapsibleSection title="Deployment Information" icon="🚀" defaultExpanded={true}>
+      <CollapsibleSection title={<><FaRocket className="section-icon" /> Deployment Information</>} defaultExpanded={true}>
         <div className="info-grid-4">
           <div className="info-item">
             <div className="info-label">Name</div>
@@ -58,7 +51,7 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
             <div className="info-label">Replicas</div>
             <div className="info-value">
               <span className={`status-badge ${readyReplicas === replicas ? 'status-good' : 'status-warning'}`}>
-                {readyReplicas}/{replicas} ready
+                {readyReplicas}/{replicas}
               </span>
             </div>
           </div>
@@ -68,7 +61,6 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
           </div>
         </div>
 
-        {/* Replica Stats */}
         <div className="replica-stats">
           <div className="stat-item">
             <div className="stat-label">Desired</div>
@@ -94,7 +86,6 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
           </div>
         </div>
 
-        {/* Conditions */}
         {conditions.length > 0 && (
           <div className="conditions-section">
             <div className="subsection-title">Conditions</div>
@@ -117,7 +108,6 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
           </div>
         )}
 
-        {/* Strategy Config */}
         {strategy === 'RollingUpdate' && rollingUpdate && (
           <div className="strategy-config">
             <div className="subsection-title">Rolling Update Strategy</div>
@@ -135,8 +125,7 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      {/* Pod Selector */}
-      <CollapsibleSection title="Pod Selector" icon="🎯" defaultExpanded={true}>
+      <CollapsibleSection title={<><FaBullseye className="section-icon" /> Pod Selector</>} defaultExpanded={true}>
         {spec.selector?.matchLabels ? (
           <LabelList labels={spec.selector.matchLabels} />
         ) : (
@@ -144,8 +133,7 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      {/* Containers */}
-      <CollapsibleSection title="Containers" icon="📦" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaBox className="section-icon" /> Containers</>} defaultExpanded={false}>
         {containers.map((container: any, idx: number) => (
           <div key={idx} className="container-info-card">
             <div className="container-header">
@@ -175,8 +163,7 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
         ))}
       </CollapsibleSection>
 
-      {/* Labels and Annotations */}
-      <CollapsibleSection title="Labels & Annotations" icon="🏷️" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaBook className="section-icon" /> Labels & Annotations</>} defaultExpanded={false}>
         {spec.template?.metadata?.labels && (
           <div className="labels-subsection">
             <div className="subsection-title">Pod Template Labels</div>
@@ -197,8 +184,7 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      {/* Related Pods */}
-      <CollapsibleSection title="Related Pods" icon="🔗" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaLink className="section-icon" /> Related Pods</>} defaultExpanded={false}>
         {relatedPods.length > 0 ? (
           <RelatedResources
             resources={relatedPods.map((pod: any) => ({
@@ -214,9 +200,8 @@ export const DeploymentDetail: React.FC<DeploymentDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      {/* Events */}
       {events.length > 0 && (
-        <CollapsibleSection title="Events" icon="📅" defaultExpanded={false}>
+        <CollapsibleSection title={<><FaCalendarAlt className="section-icon" /> Events</>} defaultExpanded={false}>
           <EventTimeline events={events} />
         </CollapsibleSection>
       )}
