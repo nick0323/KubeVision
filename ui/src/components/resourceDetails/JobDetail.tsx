@@ -2,6 +2,7 @@
  * Job Detail Component
  */
 import React from 'react';
+import { FaBriefcase, FaBook, FaCalendarAlt } from 'react-icons/fa';
 import { LabelList } from '../LabelList';
 import { EventTimeline } from '../EventTimeline';
 import { CollapsibleSection } from '../CollapsibleSection';
@@ -29,7 +30,7 @@ export const JobDetail: React.FC<JobDetailProps> = ({
 
   return (
     <div className="resource-detail-content">
-      <CollapsibleSection title="💼 Job Information" defaultExpanded={true}>
+      <CollapsibleSection title={<><FaBriefcase className="section-icon" /> Job Information</>} defaultExpanded={true}>
         <div className="info-grid-4">
           <div className="info-item">
             <div className="info-label">Name</div>
@@ -85,7 +86,7 @@ export const JobDetail: React.FC<JobDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="🏷️ Labels & Annotations" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaBook className="section-icon" /> Labels & Annotations</>} defaultExpanded={false}>
         {metadata?.labels && Object.keys(metadata.labels).length > 0 && (
           <div className="labels-subsection">
             <div className="subsection-title">Labels</div>
@@ -101,7 +102,7 @@ export const JobDetail: React.FC<JobDetailProps> = ({
       </CollapsibleSection>
 
       {events.length > 0 && (
-        <CollapsibleSection title="📅 Events" defaultExpanded={false}>
+        <CollapsibleSection title={<><FaCalendarAlt className="section-icon" /> Events</>} defaultExpanded={false}>
           <EventTimeline events={events} />
         </CollapsibleSection>
       )}

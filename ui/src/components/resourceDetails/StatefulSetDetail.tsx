@@ -2,6 +2,7 @@
  * StatefulSet Detail Component
  */
 import React from 'react';
+import { FaRocket, FaBullseye, FaLink, FaBook, FaCalendarAlt } from 'react-icons/fa';
 import { LabelList } from '../LabelList';
 import { EventTimeline } from '../EventTimeline';
 import { CollapsibleSection } from '../CollapsibleSection';
@@ -29,7 +30,7 @@ export const StatefulSetDetail: React.FC<StatefulSetDetailProps> = ({
 
   return (
     <div className="resource-detail-content">
-      <CollapsibleSection title="🚀 StatefulSet Information" defaultExpanded={true}>
+      <CollapsibleSection title={<><FaRocket className="section-icon" /> StatefulSet Information</>} defaultExpanded={true}>
         <div className="info-grid-4">
           <div className="info-item">
             <div className="info-label">Name</div>
@@ -73,7 +74,7 @@ export const StatefulSetDetail: React.FC<StatefulSetDetailProps> = ({
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection title="🎯 Pod Selector" defaultExpanded={true}>
+      <CollapsibleSection title={<><FaBullseye className="section-icon" /> Pod Selector</>} defaultExpanded={true}>
         {spec.selector?.matchLabels ? (
           <LabelList labels={spec.selector.matchLabels} />
         ) : (
@@ -81,7 +82,7 @@ export const StatefulSetDetail: React.FC<StatefulSetDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="🔗 Related Pods" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaLink className="section-icon" /> Related Pods</>} defaultExpanded={false}>
         {relatedPods.length > 0 ? (
           <RelatedResources
             resources={relatedPods.map((pod: any) => ({
@@ -97,7 +98,7 @@ export const StatefulSetDetail: React.FC<StatefulSetDetailProps> = ({
         )}
       </CollapsibleSection>
 
-      <CollapsibleSection title="🏷️ Labels & Annotations" defaultExpanded={false}>
+      <CollapsibleSection title={<><FaBook className="section-icon" /> Labels & Annotations</>} defaultExpanded={false}>
         {metadata?.labels && Object.keys(metadata.labels).length > 0 && (
           <div className="labels-subsection">
             <div className="subsection-title">Labels</div>
@@ -113,7 +114,7 @@ export const StatefulSetDetail: React.FC<StatefulSetDetailProps> = ({
       </CollapsibleSection>
 
       {events.length > 0 && (
-        <CollapsibleSection title="📅 Events" defaultExpanded={false}>
+        <CollapsibleSection title={<><FaCalendarAlt className="section-icon" /> Events</>} defaultExpanded={false}>
           <EventTimeline events={events} />
         </CollapsibleSection>
       )}
