@@ -1,8 +1,8 @@
 /**
  * Node Detail Component
- * Displays comprehensive node information
  */
 import React from 'react';
+import { FaServer, FaMicrochip, FaClock, FaBook, FaCalendarAlt, FaLink } from 'react-icons/fa';
 import { ResourceBar } from '../ResourceBar';
 import { LabelList } from '../LabelList';
 import { EventTimeline } from '../EventTimeline';
