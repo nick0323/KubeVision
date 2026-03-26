@@ -7,7 +7,7 @@ import './SearchInput.css';
  * 搜索输入框组件
  */
 export const SearchInput: React.FC<SearchInputProps> = ({
-  placeholder = '搜索...',
+  placeholder = 'Search...',
   value,
   onChange,
   onSubmit,

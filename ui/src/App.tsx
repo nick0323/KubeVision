@@ -1,5 +1,5 @@
 import React, { useState, Suspense, useEffect, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import LoadingSpinner from './components/LoadingSpinner.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -11,7 +11,6 @@ import LoginPage from './LoginPage.tsx';
 import { FiLogOut } from 'react-icons/fi';
 import { authUtils } from './utils/auth.ts';
 import { PAGE_COMPONENTS } from './pages.tsx';
-import ResourceDetailPage from './components/ResourceDetailPage';
 
 // 图标映射
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -57,6 +56,17 @@ const ListPage: React.FC = () => {
   const toggleGroup = (group: string) => {
     setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
+
+  // 登出处理
+  const handleLogout = useCallback(() => {
+    authUtils.clearToken();
+    localStorage.removeItem('sider_collapsed');
+    localStorage.removeItem('current_tab');
+    // 触发 storage 事件通知父组件
+    window.dispatchEvent(new Event('storage'));
+    // 强制刷新页面
+    window.location.reload();
+  }, []);
 
   const renderPage = () => {
     const PageComponent = PAGE_COMPONENTS[tab as keyof typeof PAGE_COMPONENTS];
@@ -124,7 +134,7 @@ const ListPage: React.FC = () => {
 
         {/* 退出按钮 */}
         <div className="sider-bottom">
-          <button className="logout-btn" onClick={() => { authUtils.clearToken(); }}>
+          <button className="logout-btn" onClick={handleLogout}>
             <span className="icon"><FiLogOut /></span>
             <span>Sign out</span>
           </button>
@@ -153,18 +163,6 @@ const ListPage: React.FC = () => {
   );
 };
 
-// 详情页面包装器
-const ResourceDetailWrapper: React.FC = () => {
-  const { resourceType, namespace, name } = useParams<{ resourceType: string; namespace?: string; name?: string }>();
-  const navigate = useNavigate();
-
-  if (!resourceType || !name) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <ResourceDetailPage resourceType={resourceType} />;
-};
-
 // 主应用组件
 export default function App() {
   const [login, setLogin] = useState<boolean>(() => authUtils.isLoggedIn());
@@ -174,15 +172,9 @@ export default function App() {
     const checkLogin = () => {
       setLogin(authUtils.isLoggedIn());
     };
-    
+
     window.addEventListener('storage', checkLogin);
     return () => window.removeEventListener('storage', checkLogin);
-  }, []);
-
-  // 登出处理
-  const handleLogout = useCallback(() => {
-    authUtils.clearToken();
-    setLogin(false);
   }, []);
 
   if (!login) {
@@ -198,11 +190,7 @@ export default function App() {
       <Routes>
         {/* 列表页面 */}
         <Route path="/" element={<ListPage />} />
-        
-        {/* 详情页面 */}
-        <Route path="/:resourceType/:namespace/:name" element={<ResourceDetailWrapper />} />
-        <Route path="/:resourceType/:name" element={<ResourceDetailWrapper />} />
-        
+
         {/* 重定向 */}
         <Route path="*" to="/" />
       </Routes>

@@ -272,29 +272,29 @@ type NamespaceDetail struct {
 
 // NodeDetail Node 详情
 type NodeDetail struct {
-	Name         string   `json:"name"`
-	Status       string   `json:"status"`
-	IP           string   `json:"ip"`
-	CPUUsage     float64  `json:"cpuUsage"`
-	MemoryUsage  float64  `json:"memoryUsage"`
-	Role         []string `json:"role"`
-	PodsUsed     int      `json:"podsUsed"`
-	PodsCapacity int      `json:"podsCapacity"`
+	Name         string            `json:"name"`
+	Status       string            `json:"status"`
+	IP           string            `json:"ip"`
+	CPUUsage     float64           `json:"cpuUsage"`
+	MemoryUsage  float64           `json:"memoryUsage"`
+	Role         []string          `json:"role"`
+	PodsUsed     int               `json:"podsUsed"`
+	PodsCapacity int               `json:"podsCapacity"`
 	Labels       map[string]string `json:"labels"`
 }
 
 // EventDetail Event 详情
 type EventDetail struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	Status    string `json:"status"`
-	Reason    string `json:"reason"`
-	Message   string `json:"message"`
-	Type      string `json:"type"`
-	Count     int32  `json:"count"`
-	FirstSeen string `json:"firstSeen"`
-	LastSeen  string `json:"lastSeen"`
-	Duration  string `json:"duration"`
+	Namespace string            `json:"namespace"`
+	Name      string            `json:"name"`
+	Status    string            `json:"status"`
+	Reason    string            `json:"reason"`
+	Message   string            `json:"message"`
+	Type      string            `json:"type"`
+	Count     int32             `json:"count"`
+	FirstSeen string            `json:"firstSeen"`
+	LastSeen  string            `json:"lastSeen"`
+	Duration  string            `json:"duration"`
 	Labels    map[string]string `json:"labels"`
 }
 

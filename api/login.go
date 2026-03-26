@@ -15,6 +15,12 @@ import (
 	"go.uber.org/zap"
 )
 
+// 登录配置常量
+const (
+	UsernameMaxLen = 50
+	PasswordMaxLen = 128
+)
+
 var (
 	authManager *AuthManager
 )
@@ -61,19 +67,19 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		if len(req.Username) > 50 {
+		if len(req.Username) > UsernameMaxLen {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
-				Message: "用户名长度不能超过 50 个字符",
+				Message: fmt.Sprintf("用户名长度不能超过 %d 个字符", UsernameMaxLen),
 				Details: "请使用较短的用户名",
 			}, http.StatusBadRequest)
 			return
 		}
 
-		if len(req.Password) > 128 {
+		if len(req.Password) > PasswordMaxLen {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
-				Message: "密码长度不能超过 128 个字符",
+				Message: fmt.Sprintf("密码长度不能超过 %d 个字符", PasswordMaxLen),
 				Details: "请使用较短的密码",
 			}, http.StatusBadRequest)
 			return
@@ -132,8 +138,8 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 				"username": req.Username,
 				"iat":      time.Now().Unix(),
 				"exp":      time.Now().Add(authConfig.SessionTimeout).Unix(),
-				"iss":      "k8svision",
-				"aud":      "k8svision-client",
+				"iss":      middleware.JWTIssuer,
+				"aud":      middleware.JWTAudience,
 				"jti":      generateJTI(),
 			})
 			tokenString, err := token.SignedString(secret)

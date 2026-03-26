@@ -124,6 +124,12 @@ func ConcurrencyMiddleware(maxConcurrency int) gin.HandlerFunc {
 	}
 }
 
+// 速率限制配置常量
+const (
+	RateLimitCleanupInterval = 5 * time.Minute
+	RateLimitExpiryDuration  = 10 * time.Minute
+)
+
 // rateLimitManager 速率限制管理器（带过期清理）
 type rateLimitManager struct {
 	limiters    map[string]*rateLimiterEntry

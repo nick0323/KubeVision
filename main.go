@@ -4,14 +4,16 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/nick0323/K8sVision/api"
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/cache"
 	"github.com/nick0323/K8sVision/config"
-	"github.com/nick0323/K8sVision/monitor"
 	"github.com/nick0323/K8sVision/model"
+	"github.com/nick0323/K8sVision/monitor"
 	"github.com/nick0323/K8sVision/service"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
+)
+
+// 监控配置常量
+const (
+	MonitorInterval = 5 * time.Minute // 监控数据采集间隔
 )
 
 // 路由常量
@@ -35,15 +42,15 @@ const (
 
 // Application 应用结构
 type Application struct {
-	configFile      string
-	configMapNS     string
-	logger          *zap.Logger
-	configMgr       *config.Manager
-	cacheMgr        *cache.CacheManager  // K8s Informer 缓存管理器
-	lruCacheMgr     *cache.Manager       // LRU 缓存管理器
-	monitorMgr      *monitor.Monitor
-	k8sClientMgr    *service.ClientManager
-	configStore     *service.ConfigMapStore
+	configFile   string
+	configMapNS  string
+	logger       *zap.Logger
+	configMgr    *config.Manager
+	cacheMgr     *cache.CacheManager // K8s Informer 缓存管理器
+	lruCacheMgr  *cache.Manager      // LRU 缓存管理器
+	monitorMgr   *monitor.Monitor
+	k8sClientMgr *service.ClientManager
+	configStore  *service.ConfigMapStore
 }
 
 var configFile = flag.String("config", "", "配置文件路径")
@@ -97,19 +104,23 @@ func NewApplication(configFile string, configMapNS string) *Application {
 
 // Initialize 初始化应用
 func (app *Application) Initialize() error {
-	tempLogger, _ := zap.NewProduction()
-	app.configMgr = config.NewManager(tempLogger)
+	var err error
+	app.logger, err = zap.NewProduction()
+	if err != nil {
+		return fmt.Errorf("初始化日志失败：%w", err)
+	}
+
+	app.configMgr = config.NewManager(app.logger)
 
 	if err := app.configMgr.Load(app.configFile); err != nil {
-		tempLogger.Fatal("加载配置失败", zap.Error(err))
+		app.logger.Fatal("加载配置失败", zap.Error(err))
 	}
 
 	cfg := app.configMgr.GetConfig()
 
-	var err error
 	app.logger, err = initLogger(cfg)
 	if err != nil {
-		tempLogger.Fatal("初始化日志失败", zap.Error(err))
+		app.logger.Fatal("初始化日志失败", zap.Error(err))
 	}
 
 	app.configMgr.UpdateLogger(app.logger)
@@ -140,7 +151,7 @@ func (app *Application) Initialize() error {
 	// 【优化】初始化 K8s 缓存管理器（Informer 机制）
 	if clientset != nil {
 		cacheMgr := cache.NewCacheManager(app.logger)
-		
+
 		// 注册 Pods 缓存
 		podCache, err := cache.NewInformerCache(context.Background(), clientset, cache.ResourcePods, "", app.logger)
 		if err != nil {
@@ -148,7 +159,7 @@ func (app *Application) Initialize() error {
 		} else {
 			cacheMgr.RegisterCache(cache.ResourcePods, podCache)
 		}
-		
+
 		// 注册 Nodes 缓存
 		nodeCache, err := cache.NewInformerCache(context.Background(), clientset, cache.ResourceNodes, "", app.logger)
 		if err != nil {
@@ -156,31 +167,30 @@ func (app *Application) Initialize() error {
 		} else {
 			cacheMgr.RegisterCache(cache.ResourceNodes, nodeCache)
 		}
-		
+
 		// 启动所有缓存
 		cacheMgr.StartAll()
-		
+
 		// 等待缓存同步（最多 2 分钟）
 		if !cacheMgr.WaitForCacheSync(2 * time.Minute) {
 			app.logger.Warn("缓存同步超时")
 		} else {
 			app.logger.Info("K8s 缓存已同步", zap.Any("stats", cacheMgr.GetCacheStats()))
 		}
-		
+
 		// 保存到 Application
 		app.cacheMgr = cacheMgr
-		
+
 		// 设置全局缓存管理器
 		service.SetCacheManager(cacheMgr)
-		
+
 		// 【优化】初始化缓存排序服务
 		sortService := service.NewCachedSortService(cacheMgr, app.logger)
 		service.SetCachedSortService(sortService)
 		app.logger.Info("缓存排序服务已启用")
 	}
 
-	// 设置全局配置管理器
-	service.SetConfigManager(app.configMgr)
+	// 设置全局配置管理器到 API 层
 	api.SetConfigManager(app.configMgr)
 
 	// 【优化】使用 ConfigMap 存储（如果可用）
@@ -298,6 +308,9 @@ func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	// 注册管理 API
 	api.RegisterPasswordAdmin(apiGroup, app.logger)
 	api.RegisterMetrics(apiGroup, app.logger)
+
+	// 注册统一的 describe 接口
+	api.RegisterDescribe(apiGroup, app.logger, app.getK8sClient)
 }
 
 // getK8sClient 【优化】获取 K8s 客户端（使用客户端管理器）
@@ -364,7 +377,7 @@ func (app *Application) Run() error {
 	)
 
 	// 启动定期监控（包含 K8s 集群指标）
-	app.monitorMgr.StartPeriodicLogging(5 * time.Minute)
+	app.monitorMgr.StartPeriodicLogging(MonitorInterval)
 
 	router := app.SetupRouter()
 	return router.Run(serverAddr)
@@ -405,10 +418,10 @@ func main() {
 		// 初始化失败时 logger 可能未完全初始化
 		if app.logger != nil {
 			app.logger.Fatal("应用初始化失败", zap.Error(err))
-		} else {
-			tempLogger, _ := zap.NewProduction()
-			tempLogger.Fatal("应用初始化失败", zap.Error(err))
 		}
+		// 如果 logger 未初始化，使用简单错误输出
+		fmt.Fprintf(os.Stderr, "应用初始化失败：%v\n", err)
+		os.Exit(1)
 	}
 
 	defer app.Close()

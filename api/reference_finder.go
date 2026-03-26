@@ -22,9 +22,9 @@ type ReferenceInfo struct {
 
 // ReferenceList 引用列表
 type ReferenceList struct {
-	Name      string          `json:"name"`
-	Namespace string          `json:"namespace"`
-	Type      string          `json:"type"` // configmap or secret
+	Name       string          `json:"name"`
+	Namespace  string          `json:"namespace"`
+	Type       string          `json:"type"` // configmap or secret
 	References []ReferenceInfo `json:"references"`
 }
 

@@ -40,13 +40,18 @@ export const MENU_LIST: MenuGroup[] = [
     ],
   },
   {
+    group: 'Config',
+    items: [
+      { key: 'configmaps', label: 'ConfigMaps', icon: 'FaFileAlt' },
+      { key: 'secrets', label: 'Secrets', icon: 'FaLock' },
+    ],
+  },
+  {
     group: 'Storage',
     items: [
       { key: 'pvcs', label: 'PVCs', icon: 'FaHdd' },
       { key: 'pvs', label: 'PVs', icon: 'FaDatabase' },
       { key: 'storageclasses', label: 'StorageClasses', icon: 'FaListAlt' },
-      { key: 'configmaps', label: 'ConfigMaps', icon: 'FaFileAlt' },
-      { key: 'secrets', label: 'Secrets', icon: 'FaLock' },
     ],
   },
   {

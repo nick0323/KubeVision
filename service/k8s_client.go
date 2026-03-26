@@ -17,17 +17,24 @@ import (
 	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
+// K8s 客户端配置常量
+const (
+	HealthCheckInterval = 30 * time.Second
+	HealthCheckTimeout  = 5 * time.Second
+	HealthCheckMaxAge   = 2 * time.Minute
+)
+
 // ClientHolder K8s 客户端持有者
 type ClientHolder struct {
-	clientset     *kubernetes.Clientset
-	metricsClient *metrics.Clientset
-	config        *rest.Config
-	mu            sync.RWMutex
-	healthCh      chan struct{}
-	closeCh       chan struct{}
-	logger        *zap.Logger
+	clientset       *kubernetes.Clientset
+	metricsClient   *metrics.Clientset
+	config          *rest.Config
+	mu              sync.RWMutex
+	healthCh        chan struct{}
+	closeCh         chan struct{}
+	logger          *zap.Logger
 	lastHealthCheck time.Time
-	healthy       bool
+	healthy         bool
 }
 
 // ClientManager K8s 客户端管理器 - 支持多集群和连接池
@@ -77,8 +84,8 @@ func NewClientHolder(cfg *rest.Config, logger *zap.Logger) (*ClientHolder, error
 func (h *ClientHolder) startHealthCheck() {
 	// 立即执行首次健康检查
 	h.checkHealth()
-	
-	ticker := time.NewTicker(30 * time.Second)
+
+	ticker := time.NewTicker(HealthCheckInterval)
 	defer ticker.Stop()
 
 	for {
@@ -93,11 +100,11 @@ func (h *ClientHolder) startHealthCheck() {
 
 // checkHealth 检查客户端健康状态
 func (h *ClientHolder) checkHealth() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), HealthCheckTimeout)
 	defer cancel()
 
 	_, err := h.clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
-	
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -117,13 +124,13 @@ func (h *ClientHolder) checkHealth() {
 func (h *ClientHolder) IsHealthy() bool {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	// 首次启动时，如果还未进行检查，认为客户端是健康的（允许宽限期）
 	if h.lastHealthCheck.IsZero() {
 		return true
 	}
-	
-	return h.healthy && time.Since(h.lastHealthCheck) < 2*time.Minute
+
+	return h.healthy && time.Since(h.lastHealthCheck) < HealthCheckMaxAge
 }
 
 // GetClientset 获取客户端集
@@ -151,7 +158,7 @@ func NewClientManager(configMgr *config.Manager, logger *zap.Logger) (*ClientMan
 		configMgr:      configMgr,
 		logger:         logger,
 		defaultClient:  defaultHolder,
-		healthInterval: 30 * time.Second,
+		healthInterval: HealthCheckInterval,
 		stopCh:         make(chan struct{}),
 	}
 
@@ -219,7 +226,7 @@ func applyK8sConfigOptimized(cfg *rest.Config, k8sConfig *model.KubernetesConfig
 	if k8sConfig.Burst > 0 {
 		cfg.Burst = k8sConfig.Burst
 	}
-	
+
 	// 优化 TLS 配置
 	cfg.TLSClientConfig.Insecure = k8sConfig.Insecure
 	if k8sConfig.CertFile != "" {
@@ -231,7 +238,7 @@ func applyK8sConfigOptimized(cfg *rest.Config, k8sConfig *model.KubernetesConfig
 	if k8sConfig.CAFile != "" {
 		cfg.TLSClientConfig.CAFile = k8sConfig.CAFile
 	}
-	
+
 	// 优化用户代理
 	cfg.UserAgent = "KubeVision/1.0"
 }

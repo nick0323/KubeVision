@@ -80,7 +80,7 @@ func ResponseError(c *gin.Context, logger *zap.Logger, err error, httpCode int) 
 
 func ResponseSuccess(c *gin.Context, data interface{}, message string, page *model.PageMeta) {
 	c.JSON(http.StatusOK, model.APIResponse{
-		Code:      model.CodeSuccess,  // 使用 0 表示成功，而不是 HTTP 状态码
+		Code:      model.CodeSuccess, // 使用 0 表示成功，而不是 HTTP 状态码
 		Message:   message,
 		Data:      data,
 		TraceID:   c.GetString("traceId"),

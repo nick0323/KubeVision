@@ -17,7 +17,7 @@ func RegisterEndpoints(
 	getK8sClient K8sClientProvider,
 ) {
 	r.GET("/endpoints", getEndpointsList(logger, getK8sClient))
-	r.GET("/endpoints/:namespace/:name", getEndpointsDetail(logger, getK8sClient))
+	// r.GET("/endpoints/:namespace/:name", getEndpointsDetail(logger, getK8sClient))
 }
 
 func getEndpointsList(
@@ -50,36 +50,5 @@ func getEndpointsList(
 		}
 
 		middleware.ResponseSuccess(c, result, ListSuccessMessage, nil)
-	}
-}
-
-func getEndpointsDetail(
-	logger *zap.Logger,
-	getK8sClient K8sClientProvider,
-) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		clientset, _, err := getK8sClient()
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-		ctx := GetRequestContext(c)
-		namespace := c.Param("namespace")
-		name := c.Param("name")
-
-		endpoints, err := clientset.CoreV1().Endpoints(namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusNotFound)
-			return
-		}
-
-		// 转换为 Unstructured 对象（原始 map 格式）
-		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(endpoints)
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-
-		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

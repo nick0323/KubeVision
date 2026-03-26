@@ -9,6 +9,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// 缓存配置常量
+const (
+	CacheSampleSize  = 10  // LRU 采样大小
+	CacheItemEstSize = 100 // 缓存项估算大小（字节）
+)
+
+// CacheItem 缓存项结构
 type CacheItem struct {
 	Value      interface{}
 	ExpireTime time.Time
@@ -311,8 +318,8 @@ func NewMemoryCacheOptimized(config *model.CacheConfig, logger *zap.Logger) *Mem
 		ttl:             config.TTL,
 		cleanupInterval: config.CleanupInterval,
 		logger:          logger,
-		ctx:            ctx,
-		cancel:         cancel,
+		ctx:             ctx,
+		cancel:          cancel,
 	}
 
 	// 启动清理协程

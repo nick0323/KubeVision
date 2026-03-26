@@ -9,39 +9,42 @@
 /* 表格容器 */
 .table-container {
   flex: 1;
-  overflow: auto; /* 只在需要时显示滚动条 */
+  overflow: auto;
   background: #fff;
   border-radius: 8px;
-  border: 1px solid #bae7ff; /* 淡蓝色边框 */
+  border: 1px solid #bae7ff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* 表格样式 */
 .resource-table {
   width: 100%;
-  table-layout: fixed; /* 固定表格布局，按百分比分配宽度 */
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 14px;
-  min-width: 100%; /* 确保表格不小于容器 */
+  min-width: 100%;
 }
 
 .resource-table thead {
-  background-color: #e6f7ff; /* 淡蓝色表头背景 */
-  border-bottom: 2px solid #91d5ff; /* 深蓝色底边框 */
+  background-color: #e6f7ff;
+  border-bottom: 2px solid #91d5ff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .resource-table th {
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: #1890ff; /* 蓝色文字 */
-  border-bottom: none; /* 移除横线 */
+  color: #1890ff;
+  border-bottom: none;
   user-select: none;
-  overflow: hidden; /* 表头也隐藏超出内容 */
+  overflow: hidden;
 }
 
 .resource-table th.sorted {
-  background-color: #bae7ff; /* 排序列更深的背景 */
+  background-color: #bae7ff;
 }
 
 .table-header-cell {
@@ -55,7 +58,7 @@
 }
 
 .table-header-cell.sortable:hover {
-  color: #096dd9; /* 悬停时更深的蓝色 */
+  color: #096dd9;
 }
 
 .sort-icon {
@@ -75,44 +78,43 @@ th.sorted .sort-icon {
 }
 
 .resource-table tbody tr:hover {
-  background-color: #e6f7ff; /* 悬停时淡蓝色背景 */
+  background-color: #e6f7ff;
+}
+
+.resource-table tbody tr.clickable:hover {
   cursor: pointer;
 }
 
 .resource-table td {
   padding: 12px 16px;
   color: #262626;
-  max-width: 300px; /* 单元格最大宽度 */
-  overflow: hidden; /* 超出隐藏 */
+  max-width: 300px;
+  overflow: hidden;
 }
 
-/* 单元格文本 - 超出显示省略号 */
+/* 单元格文本 */
 .table-cell-text {
   display: block;
-  max-width: 280px; /* 比 td 略小，留出 padding 空间 */
+  max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: default;
 }
 
-/* Tippy Tooltip 自定义样式 - 淡蓝色主题 */
+/* Tippy Tooltip 样式 */
 .tippy-box[data-theme~='light'] {
-  background: #e6f7ff; /* 淡蓝色背景 */
-  border: 2px solid #bae7ff; /* 淡蓝色边框 */
-  border-radius: 12px; /* 大圆角 */
-  box-shadow: 0 8px 20px rgba(24, 144, 255, 0.2); /* 柔和蓝色阴影 */
+  background: #e6f7ff;
+  border: 2px solid #bae7ff;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(24, 144, 255, 0.2);
   max-width: 600px !important;
 }
 
 .tippy-box[data-theme~='light'] .tippy-content {
-  color: #0050b3; /* 深蓝色文字 */
+  color: #0050b3;
   font-size: 14px;
   font-weight: 500;
-  max-width: none;
-  white-space: normal;
-  word-wrap: break-word;
-  word-break: break-all;
   padding: 12px 16px;
   line-height: 1.6;
 }
@@ -121,29 +123,22 @@ th.sorted .sort-icon {
   color: #e6f7ff;
 }
 
-.tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow {
-  bottom: -7px;
+/* 骨架屏样式 */
+.skeleton-row {
+  pointer-events: none;
 }
 
-.tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow:before {
-  border-top-color: #bae7ff;
-  border-width: 8px 8px 0;
-  left: 0;
+.skeleton-placeholder {
+  height: 20px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e6f7ff 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
 }
 
-.tippy-box[data-theme~='light'][data-placement^='top'] > .tippy-arrow:after {
-  content: '';
-  position: absolute;
-  left: 1px;
-  bottom: -5px;
-  border-top-color: #e6f7ff;
-  border-width: 6px 6px 0;
-}
-
-/* 增强悬停效果 */
-.table-cell-text:hover {
-  color: #1890ff;
-  cursor: pointer;
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* 空状态 */
@@ -163,47 +158,244 @@ th.sorted .sort-icon {
   font-size: 48px;
 }
 
-.empty-state p {
+.empty-message {
   margin: 0;
   font-size: 14px;
   color: #8c8c8c;
+  font-weight: 500;
 }
 
-/* 错误容器 */
-.error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 60px 24px;
-  text-align: center;
+.empty-description {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #bfbfbf;
 }
 
-.error-container h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #ff4d4f;
+.empty-action {
+  margin-top: 16px;
 }
 
-.error-container p {
-  margin: 0;
-  font-size: 14px;
-  color: #595959;
-}
-
-.retry-btn {
-  padding: 8px 24px;
-  border: none;
+.clear-search-btn {
+  padding: 8px 20px;
+  border: 1px solid #1890ff;
   border-radius: 6px;
-  background-color: #1890ff;
-  color: #fff;
+  background: #fff;
+  color: #1890ff;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
-.retry-btn:hover {
-  background-color: #40a9ff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+.clear-search-btn:hover {
+  background: #e6f7ff;
+  border-color: #40a9ff;
+}
+
+/* 错误状态 */
+.error-row td {
+  padding: 60px 16px;
+  text-align: center;
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.error-icon {
+  font-size: 40px;
+}
+
+.error-message {
+  margin: 0;
+  font-size: 14px;
+  color: #ff4d4f;
+}
+
+/* 操作按钮 */
+.table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.action-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #f0f0f0;
+  color: #595959;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-btn.danger {
+  color: #ff4d4f;
+}
+
+.action-btn.danger:hover:not(:disabled) {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+/* 确认对话框 */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.2s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirm-modal {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  min-width: 360px;
+  max-width: 480px;
+  overflow: hidden;
+  animation: slide-down 0.3s ease;
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.confirm-modal.danger .confirm-modal-header {
+  background: #fff1f0;
+  border-bottom-color: #ffccc7;
+}
+
+.confirm-modal.danger .confirm-icon {
+  background: #ffccc7;
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #e6f7ff;
+}
+
+.confirm-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #bae7ff;
+  border-radius: 50%;
+  font-size: 18px;
+}
+
+.confirm-modal-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.confirm-modal-body {
+  padding: 20px;
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.6;
+}
+
+.confirm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+}
+
+.confirm-btn {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.confirm-btn.cancel {
+  background: #f0f0f0;
+  color: #595959;
+}
+
+.confirm-btn.cancel:hover {
+  background: #e6e6e6;
+  color: #262626;
+}
+
+.confirm-btn.confirm {
+  background: #1890ff;
+  color: #fff;
+}
+
+.confirm-btn.confirm:hover {
+  background: #40a9ff;
+}
+
+.confirm-btn.confirm.danger {
+  background: #ff4d4f;
+}
+
+.confirm-btn.confirm.danger:hover {
+  background: #ff7875;
+}
+
+/* 刷新状态指示器 */
+.refreshing-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #1890ff, transparent);
+  animation: refresh-loading 1s infinite linear;
+}
+
+@keyframes refresh-loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }

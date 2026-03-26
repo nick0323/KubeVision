@@ -1,0 +1,102 @@
+/* Breadcrumb 样式 */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.breadcrumb-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.breadcrumb-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: #1890ff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  background: #eff6ff;
+  color: #096dd9;
+}
+
+.breadcrumb-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.breadcrumb-icon {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb-separator {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 0 2px;
+}
+
+/* 当前项样式 */
+.breadcrumb-item:last-child .breadcrumb-link,
+.breadcrumb-item:last-child .breadcrumb-text {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.breadcrumb-item:last-child .breadcrumb-link {
+  cursor: default;
+}
+
+.breadcrumb-item:last-child .breadcrumb-link:hover {
+  background: none;
+  color: #1f2937;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .breadcrumb {
+    padding: 10px 16px;
+  }
+
+  .breadcrumb-item {
+    font-size: 13px;
+  }
+
+  .breadcrumb-link,
+  .breadcrumb-text {
+    font-size: 13px;
+  }
+}

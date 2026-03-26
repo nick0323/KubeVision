@@ -2,15 +2,11 @@ package api
 
 import (
 	"context"
-	"net/http"
 
-	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -21,7 +17,6 @@ func RegisterIngress(
 	listIngresses func(context.Context, *kubernetes.Clientset, string) ([]model.IngressStatus, error),
 ) {
 	r.GET("/ingress", getIngressList(logger, getK8sClient, listIngresses))
-	r.GET("/ingress/:namespace/:name", getIngressDetail(logger, getK8sClient))
 }
 
 func getIngressList(
@@ -37,77 +32,5 @@ func getIngressList(
 			}
 			return listIngresses(ctx, clientset, params.Namespace)
 		}, ListSuccessMessage)
-	}
-}
-
-func getIngressDetail(
-	logger *zap.Logger,
-	getK8sClient K8sClientProvider,
-) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		clientset, _, err := getK8sClient()
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-		ctx := GetRequestContext(c)
-		ns := c.Param("namespace")
-		name := c.Param("name")
-		ingress, err := clientset.NetworkingV1().Ingresses(ns).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusNotFound)
-			return
-		}
-
-		hosts := make([]string, 0, len(ingress.Spec.Rules))
-		paths := make([]string, 0)
-		targetServices := make([]string, 0)
-
-		for _, rule := range ingress.Spec.Rules {
-			hosts = append(hosts, rule.Host)
-
-			if rule.HTTP != nil {
-				for _, path := range rule.HTTP.Paths {
-					if path.Path != "" {
-						paths = append(paths, path.Path)
-					} else {
-						paths = append(paths, "/")
-					}
-
-					if path.Backend.Service != nil {
-						targetServices = append(targetServices, path.Backend.Service.Name)
-					}
-				}
-			}
-		}
-
-		address := ""
-		if len(ingress.Status.LoadBalancer.Ingress) > 0 {
-			if ingress.Status.LoadBalancer.Ingress[0].IP != "" {
-				address = ingress.Status.LoadBalancer.Ingress[0].IP
-			} else if ingress.Status.LoadBalancer.Ingress[0].Hostname != "" {
-				address = ingress.Status.LoadBalancer.Ingress[0].Hostname
-			}
-		}
-
-		class := ""
-		if ingress.Spec.IngressClassName != nil {
-			class = *ingress.Spec.IngressClassName
-		}
-
-		// 返回原始 K8s 对象
-		_ = hosts
-		_ = paths
-		_ = targetServices
-		_ = address
-		_ = class
-
-		objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(ingress)
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-
-		middleware.ResponseSuccess(c, objMap, DetailSuccessMessage, nil)
 	}
 }

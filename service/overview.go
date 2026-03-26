@@ -23,7 +23,7 @@ func calcResourceUsage(nodesRaw *corev1.NodeList, podList *corev1.PodList) (cpuC
 			cpuCap += float64(c.MilliValue()) / 1000.0
 		}
 		if m, ok := node.Status.Capacity[corev1.ResourceName(model.ResourceMemory)]; ok {
-			memCap += float64(m.Value()) / (1024 * 1024 * 1024)
+			memCap += float64(m.Value()) / BytesPerGiB
 		}
 	}
 	if podList != nil {
@@ -34,7 +34,7 @@ func calcResourceUsage(nodesRaw *corev1.NodeList, podList *corev1.PodList) (cpuC
 						cpuReq += float64(v.MilliValue()) / 1000.0
 					}
 					if v, ok := c.Resources.Requests[corev1.ResourceName(model.ResourceMemory)]; ok {
-						memReq += float64(v.Value()) / (1024 * 1024 * 1024)
+						memReq += float64(v.Value()) / BytesPerGiB
 					}
 				}
 				if c.Resources.Limits != nil {
@@ -42,7 +42,7 @@ func calcResourceUsage(nodesRaw *corev1.NodeList, podList *corev1.PodList) (cpuC
 						cpuLim += float64(v.MilliValue()) / 1000.0
 					}
 					if v, ok := c.Resources.Limits[corev1.ResourceName(model.ResourceMemory)]; ok {
-						memLim += float64(v.Value()) / (1024 * 1024 * 1024)
+						memLim += float64(v.Value()) / BytesPerGiB
 					}
 				}
 			}

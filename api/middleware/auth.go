@@ -12,6 +12,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// JWT 配置常量
+const (
+	JWTIssuer    = "k8svision"
+	JWTAudience  = "k8svision-client"
+	TokenMaskLen = 10
+)
+
+// ConfigProvider 配置提供者接口
 type ConfigProvider interface {
 	GetJWTSecret() []byte
 }
@@ -169,7 +177,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			aud, audExists := safeStringClaim(claims, "aud")
 			jti, jtiExists := safeStringClaim(claims, "jti")
 
-			if issExists && iss != "k8svision" {
+			if issExists && iss != JWTIssuer {
 				logger.Warn("JWT token invalid issuer",
 					zap.String("traceId", traceId),
 					zap.String("clientIP", c.ClientIP()),
@@ -182,7 +190,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 				return
 			}
 
-			if audExists && aud != "k8svision-client" {
+			if audExists && aud != JWTAudience {
 				logger.Warn("JWT token invalid audience",
 					zap.String("traceId", traceId),
 					zap.String("clientIP", c.ClientIP()),
@@ -228,8 +236,9 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 	}
 }
 
+// maskToken 掩码 token 用于日志记录
 func maskToken(token string) string {
-	if len(token) <= 10 {
+	if len(token) <= TokenMaskLen {
 		return "***"
 	}
 	return token[:4] + "..." + token[len(token)-4:]

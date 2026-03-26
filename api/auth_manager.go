@@ -10,6 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// 认证配置常量
+const (
+	AuthShardCount      = 32               // 分片数量
+	AuthCleanupInterval = 10 * time.Minute // 清理间隔
+	AuthExpiryDuration  = time.Hour        // 过期时间
+)
+
 type LoginAttempt struct {
 	FailCount int       `json:"failCount"`
 	LockUntil time.Time `json:"lockUntil"`
@@ -17,7 +24,7 @@ type LoginAttempt struct {
 }
 
 type AuthManager struct {
-	shards [32]*authShard // 使用分片锁减少竞争
+	shards [AuthShardCount]*authShard // 使用分片锁减少竞争
 	logger *zap.Logger
 	config *config.Manager
 	stopCh chan struct{}
@@ -194,7 +201,7 @@ func (am *AuthManager) clearAttempt(username, ip string) {
 }
 
 func (am *AuthManager) startCleanup() {
-	ticker := time.NewTicker(10 * time.Minute)
+	ticker := time.NewTicker(AuthCleanupInterval)
 	defer ticker.Stop()
 
 	for {
@@ -215,7 +222,7 @@ func (am *AuthManager) cleanup() {
 		now := time.Now()
 
 		for key, attempt := range shard.attempts {
-			if now.After(attempt.LockUntil) && now.Sub(attempt.LastFail) > time.Hour {
+			if now.After(attempt.LockUntil) && now.Sub(attempt.LastFail) > AuthExpiryDuration {
 				delete(shard.attempts, key)
 				cleaned++
 			}

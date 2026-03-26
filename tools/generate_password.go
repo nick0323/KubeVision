@@ -11,15 +11,32 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// 密码生成常量
+const (
+	DefaultPasswordLength = 12
+)
+
+// 输出消息常量
+const (
+	UsageMessage = `使用方法:
+  go run tools/generate_password.go <密码>
+  go run tools/generate_password.go generate <长度>
+
+示例:
+  go run tools/generate_password.go admin123!
+  go run tools/generate_password.go generate 16`
+
+	HashResultTitle   = "=== 密码哈希生成结果 ==="
+	OriginalPassword  = "原始密码"
+	HashedPassword    = "哈希密码"
+	ConfigMethodYaml  = "1. 在 config.yaml 中设置:"
+	ConfigMethodEnv   = "2. 或通过环境变量设置:"
+	RandomPasswordMsg = "生成的随机密码"
+)
+
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("使用方法:")
-		fmt.Println("  go run tools/generate_password.go <密码>")
-		fmt.Println("  go run tools/generate_password.go generate <长度>")
-		fmt.Println("")
-		fmt.Println("示例:")
-		fmt.Println("  go run tools/generate_password.go admin123!")
-		fmt.Println("  go run tools/generate_password.go generate 16")
+		fmt.Println(UsageMessage)
 		os.Exit(1)
 	}
 
@@ -27,7 +44,7 @@ func main() {
 
 	switch command {
 	case "generate":
-		length := 12
+		length := DefaultPasswordLength
 		if len(os.Args) > 2 {
 			if l, err := strconv.Atoi(os.Args[2]); err == nil {
 				length = l

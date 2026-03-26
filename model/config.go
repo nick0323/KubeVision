@@ -75,9 +75,9 @@ func DefaultConfig() *Config {
 			Host: "0.0.0.0",
 		},
 		Kubernetes: KubernetesConfig{
-			Timeout: 30 * time.Second,
-			QPS:     100,
-			Burst:   200,
+			Timeout:  30 * time.Second,
+			QPS:      100,
+			Burst:    200,
 			Insecure: true,
 		},
 		JWT: JWTConfig{

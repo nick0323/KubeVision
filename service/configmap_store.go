@@ -26,11 +26,11 @@ const (
 	ConfigMapNamespace = "k8svision-system"
 	ConfigMapName      = "k8svision-config"
 	ConfigDataKey      = "auth-config.json"
-	
+
 	// 标签
-	LabelApp = "app.kubernetes.io/name"
+	LabelApp       = "app.kubernetes.io/name"
 	LabelComponent = "app.kubernetes.io/component"
-	
+
 	// 默认值
 	defaultSyncInterval = 5 * time.Minute
 	defaultTimeout      = 30 * time.Second
@@ -87,11 +87,11 @@ type ConfigMapStore struct {
 	configMapName string
 	syncInterval  time.Duration
 	timeout       time.Duration
-	
+
 	// 本地缓存
 	localConfig *AuthConfigData
 	cacheMu     sync.RWMutex
-	
+
 	// 后台同步
 	stopCh chan struct{}
 	wg     sync.WaitGroup
@@ -112,12 +112,12 @@ func NewConfigMapStore(
 		timeout:       defaultTimeout,
 		stopCh:        make(chan struct{}),
 	}
-	
+
 	// 如果 namespace 为空，使用默认值
 	if store.namespace == "" {
 		store.namespace = ConfigMapNamespace
 	}
-	
+
 	return store
 }
 
@@ -132,17 +132,17 @@ func (s *ConfigMapStore) Start() error {
 	if err := s.LoadConfig(); err != nil {
 		s.logger.Warn("initial config load failed, will retry", zap.Error(err))
 	}
-	
+
 	// 启动后台同步
 	s.wg.Add(1)
 	go s.syncLoop()
-	
+
 	s.logger.Info("configmap store started",
 		zap.String("namespace", s.namespace),
 		zap.String("configmap", s.configMapName),
 		zap.Duration("syncInterval", s.syncInterval),
 	)
-	
+
 	return nil
 }
 
@@ -156,10 +156,10 @@ func (s *ConfigMapStore) Stop() {
 // syncLoop 后台同步循环
 func (s *ConfigMapStore) syncLoop() {
 	defer s.wg.Done()
-	
+
 	ticker := time.NewTicker(s.syncInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -178,7 +178,7 @@ func (s *ConfigMapStore) syncLoop() {
 func (s *ConfigMapStore) LoadConfig() error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
 	defer cancel()
-	
+
 	// 获取 ConfigMap
 	cm, err := s.clientset.CoreV1().ConfigMaps(s.namespace).Get(ctx, s.configMapName, metav1.GetOptions{})
 	if err != nil {
@@ -188,28 +188,28 @@ func (s *ConfigMapStore) LoadConfig() error {
 		}
 		return fmt.Errorf("failed to get configmap: %w", err)
 	}
-	
+
 	// 解析配置数据
 	configData, exists := cm.Data[ConfigDataKey]
 	if !exists {
 		return fmt.Errorf("config data key not found: %s", ConfigDataKey)
 	}
-	
+
 	var config AuthConfigData
 	if err := json.Unmarshal([]byte(configData), &config); err != nil {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
-	
+
 	// 更新本地缓存
 	s.cacheMu.Lock()
 	s.localConfig = &config
 	s.cacheMu.Unlock()
-	
+
 	s.logger.Info("config loaded from configmap",
 		zap.String("username", config.Username),
 		zap.Time("updatedAt", config.UpdatedAt),
 	)
-	
+
 	return nil
 }
 
@@ -217,17 +217,17 @@ func (s *ConfigMapStore) LoadConfig() error {
 func (s *ConfigMapStore) SaveConfig(config *AuthConfigData, username string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
 	defer cancel()
-	
+
 	// 更新配置
 	config.UpdatedAt = time.Now()
 	config.UpdatedBy = username
-	
+
 	// 序列化配置
 	configData, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	
+
 	// 获取或创建 ConfigMap
 	cm, err := s.clientset.CoreV1().ConfigMaps(s.namespace).Get(ctx, s.configMapName, metav1.GetOptions{})
 	if err != nil {
@@ -236,36 +236,36 @@ func (s *ConfigMapStore) SaveConfig(config *AuthConfigData, username string) err
 		}
 		return fmt.Errorf("failed to get configmap: %w", err)
 	}
-	
+
 	// 更新 ConfigMap
 	if cm.Data == nil {
 		cm.Data = make(map[string]string)
 	}
 	cm.Data[ConfigDataKey] = string(configData)
-	
+
 	// 添加标签
 	if cm.Labels == nil {
 		cm.Labels = make(map[string]string)
 	}
 	cm.Labels[LabelApp] = "k8svision"
 	cm.Labels[LabelComponent] = "auth-config"
-	
+
 	// 更新
 	_, err = s.clientset.CoreV1().ConfigMaps(s.namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update configmap: %w", err)
 	}
-	
+
 	// 更新本地缓存
 	s.cacheMu.Lock()
 	s.localConfig = config
 	s.cacheMu.Unlock()
-	
+
 	s.logger.Info("config saved to configmap",
 		zap.String("username", config.Username),
 		zap.String("updatedBy", username),
 	)
-	
+
 	return nil
 }
 
@@ -273,11 +273,11 @@ func (s *ConfigMapStore) SaveConfig(config *AuthConfigData, username string) err
 func (s *ConfigMapStore) GetConfig() *AuthConfigData {
 	s.cacheMu.RLock()
 	defer s.cacheMu.RUnlock()
-	
+
 	if s.localConfig == nil {
 		return nil
 	}
-	
+
 	// 返回副本
 	config := *s.localConfig
 	return &config
@@ -299,7 +299,7 @@ func (s *ConfigMapStore) UpdatePassword(newPasswordHash, username string) error 
 	if config == nil {
 		return fmt.Errorf("config not loaded")
 	}
-	
+
 	config.PasswordHash = newPasswordHash
 	return s.SaveConfig(config, username)
 }
@@ -309,7 +309,7 @@ func (s *ConfigMapStore) createDefaultConfigMap(ctx context.Context) error {
 	defaultConfig := model.DefaultConfig().Auth
 	configData := &AuthConfigData{}
 	configData.FromAuthConfig(&defaultConfig, "system")
-	
+
 	return s.createConfigMap(ctx, configData)
 }
 
@@ -319,13 +319,13 @@ func (s *ConfigMapStore) createConfigMap(ctx context.Context, config *AuthConfig
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	
+
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.configMapName,
 			Namespace: s.namespace,
 			Labels: map[string]string{
-				LabelApp:      "k8svision",
+				LabelApp:       "k8svision",
 				LabelComponent: "auth-config",
 			},
 		},
@@ -333,22 +333,22 @@ func (s *ConfigMapStore) createConfigMap(ctx context.Context, config *AuthConfig
 			ConfigDataKey: string(configData),
 		},
 	}
-	
+
 	_, err = s.clientset.CoreV1().ConfigMaps(s.namespace).Create(ctx, cm, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create configmap: %w", err)
 	}
-	
+
 	// 更新本地缓存
 	s.cacheMu.Lock()
 	s.localConfig = config
 	s.cacheMu.Unlock()
-	
+
 	s.logger.Info("configmap created",
 		zap.String("namespace", s.namespace),
 		zap.String("name", s.configMapName),
 	)
-	
+
 	return nil
 }
 

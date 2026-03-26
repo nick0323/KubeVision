@@ -3,7 +3,7 @@ package service
 import "github.com/nick0323/K8sVision/cache"
 
 var (
-	cacheManager     *cache.CacheManager
+	cacheManager      *cache.CacheManager
 	cachedSortService *CachedSortService
 )
 

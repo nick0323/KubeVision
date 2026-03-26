@@ -7,6 +7,14 @@ import (
 	"go.uber.org/zap"
 )
 
+// 指标类型常量
+const (
+	MetricTypeCounter   = "counter"
+	MetricTypeGauge     = "gauge"
+	MetricTypeHistogram = "histogram"
+	MetricTypeSummary   = "summary"
+)
+
 type BusinessMetric struct {
 	Name       string
 	Value      float64

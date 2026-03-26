@@ -286,13 +286,26 @@ func (m *Manager) WriteConfigWithBackup() error {
 	if cfgPath == "" {
 		cfgPath = m.configFile
 	}
+
+	// 创建备份
 	if cfgPath != "" {
-		// 创建简单备份
-		if data, err := os.ReadFile(cfgPath); err == nil {
-			_ = os.WriteFile(cfgPath+".bak", data, 0600)
+		if err := m.createBackup(cfgPath); err != nil {
+			m.logger.Warn("创建配置备份失败", zap.Error(err))
 		}
 	}
+
 	return m.viper.WriteConfig()
+}
+
+// createBackup 创建配置文件备份
+func (m *Manager) createBackup(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	backupPath := path + ".bak"
+	return os.WriteFile(backupPath, data, 0600)
 }
 
 // SetAndWrite 原子更新：先设置键值，再写入配置（带备份）

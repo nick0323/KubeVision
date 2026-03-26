@@ -5,10 +5,17 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/gin-gonic/gin"
+	"github.com/nick0323/K8sVision/api/middleware"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// Exec 配置常量
+const (
+	ExecDefaultCommand    = "/bin/sh"
+	ExecWebSocketDisabled = "WebSocket exec 功能需要完整实现，当前为模拟响应"
+	ExecConnectedStatus   = "connected"
 )
 
 // ExecRequest WebSocket 请求参数
@@ -44,10 +51,10 @@ func handleExecWS(
 		}
 
 		// 解析命令
-		command := []string{"/bin/sh"}
+		command := []string{ExecDefaultCommand}
 		if commandStr != "" {
 			// 简单处理：按逗号分割
-			command = []string{"/bin/sh", "-c", commandStr}
+			command = []string{ExecDefaultCommand, "-c", commandStr}
 		}
 
 		// 获取 K8s 客户端
@@ -72,12 +79,12 @@ func handleExecWS(
 
 		// 返回成功消息（实际功能需要完整实现）
 		response := gin.H{
-			"status":    "connected",
+			"status":    ExecConnectedStatus,
 			"namespace": namespace,
 			"pod":       podName,
 			"container": container,
 			"command":   command,
-			"message":   "WebSocket exec 功能需要完整实现，当前为模拟响应",
+			"message":   ExecWebSocketDisabled,
 		}
 
 		c.JSON(http.StatusOK, response)

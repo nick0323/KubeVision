@@ -12,7 +12,15 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// 时间单位常量（用于 CalculateAge）
+const (
+	SecondsPerMinute = 60
+	SecondsPerHour   = 3600
+	SecondsPerDay    = 86400
 )
 
 // CalculateAge 计算资源运行时长
@@ -23,15 +31,16 @@ func CalculateAge(creationTime metav1.Time) string {
 	}
 
 	duration := time.Since(creationTime.Time)
+	seconds := int(duration.Seconds())
 
-	if duration < time.Minute {
-		return fmt.Sprintf("%ds", int(duration.Seconds()))
-	} else if duration < time.Hour {
-		return fmt.Sprintf("%dm", int(duration.Minutes()))
-	} else if duration < 24*time.Hour {
-		return fmt.Sprintf("%dh", int(duration.Hours()))
+	if seconds < SecondsPerMinute {
+		return fmt.Sprintf("%ds", seconds)
+	} else if seconds < SecondsPerHour {
+		return fmt.Sprintf("%dm", seconds/SecondsPerMinute)
+	} else if seconds < SecondsPerDay {
+		return fmt.Sprintf("%dh", seconds/SecondsPerHour)
 	} else {
-		return fmt.Sprintf("%dd", int(duration.Hours()/24))
+		return fmt.Sprintf("%dd", seconds/SecondsPerDay)
 	}
 }
 
@@ -348,6 +357,180 @@ func MapNamespaces(namespaces []v1.Namespace) []model.NamespaceDetail {
 			Labels: ns.Labels,
 			Age:    CalculateAge(ns.CreationTimestamp),
 		}
+	}
+	return result
+}
+
+// MapConfigMaps 专门用于映射 ConfigMap 的函数
+func MapConfigMaps(configMaps []v1.ConfigMap) []model.ConfigMapStatus {
+	result := make([]model.ConfigMapStatus, 0, len(configMaps))
+	for _, cm := range configMaps {
+		result = append(result, model.ConfigMapStatus{
+			Namespace: cm.Namespace,
+			Name:      cm.Name,
+			DataCount: len(cm.Data),
+			Keys:      ExtractKeys(cm.Data),
+			Age:       CalculateAge(cm.CreationTimestamp),
+		})
+	}
+	return result
+}
+
+// MapSecrets 专门用于映射 Secret 的函数
+func MapSecrets(secrets []v1.Secret) []model.SecretStatus {
+	result := make([]model.SecretStatus, 0, len(secrets))
+	for _, secret := range secrets {
+		result = append(result, model.SecretStatus{
+			Namespace: secret.Namespace,
+			Name:      secret.Name,
+			Type:      string(secret.Type),
+			DataCount: len(secret.Data),
+			Keys:      ExtractKeys(secret.Data),
+			Age:       CalculateAge(secret.CreationTimestamp),
+		})
+	}
+	return result
+}
+
+// MapPVCs 专门用于映射 PVC 的函数
+func MapPVCs(pvcs []v1.PersistentVolumeClaim) []model.PVCStatus {
+	result := make([]model.PVCStatus, 0, len(pvcs))
+	for _, pvc := range pvcs {
+		status := "Pending"
+		if pvc.Status.Phase == v1.ClaimBound {
+			status = "Bound"
+		} else if pvc.Status.Phase == v1.ClaimLost {
+			status = "Lost"
+		}
+
+		capacity := ""
+		if pvc.Status.Capacity != nil {
+			if storage, ok := pvc.Status.Capacity[v1.ResourceStorage]; ok {
+				capacity = storage.String()
+			}
+		}
+
+		accessModes := make([]string, 0)
+		for _, mode := range pvc.Spec.AccessModes {
+			accessModes = append(accessModes, string(mode))
+		}
+
+		storageClass := ""
+		if pvc.Spec.StorageClassName != nil {
+			storageClass = *pvc.Spec.StorageClassName
+		}
+
+		volumeName := ""
+		if pvc.Spec.VolumeName != "" {
+			volumeName = pvc.Spec.VolumeName
+		}
+
+		result = append(result, model.PVCStatus{
+			Namespace:    pvc.Namespace,
+			Name:         pvc.Name,
+			Status:       status,
+			Capacity:     capacity,
+			AccessMode:   strings.Join(accessModes, ","),
+			StorageClass: storageClass,
+			VolumeName:   volumeName,
+			Age:          CalculateAge(pvc.CreationTimestamp),
+		})
+	}
+	return result
+}
+
+// MapPVs 专门用于映射 PV 的函数
+func MapPVs(pvs []v1.PersistentVolume) []model.PVStatus {
+	result := make([]model.PVStatus, 0, len(pvs))
+	for _, pv := range pvs {
+		status := string(pv.Status.Phase)
+
+		capacity := ""
+		if pv.Spec.Capacity != nil {
+			if storage, ok := pv.Spec.Capacity[v1.ResourceStorage]; ok {
+				capacity = storage.String()
+			}
+		}
+
+		accessModes := make([]string, 0)
+		for _, mode := range pv.Spec.AccessModes {
+			accessModes = append(accessModes, string(mode))
+		}
+
+		storageClass := ""
+		if pv.Spec.StorageClassName != "" {
+			storageClass = pv.Spec.StorageClassName
+		}
+
+		claimRef := ""
+		if pv.Spec.ClaimRef != nil {
+			claimRef = pv.Spec.ClaimRef.Namespace + "/" + pv.Spec.ClaimRef.Name
+		}
+
+		reclaimPolicy := string(pv.Spec.PersistentVolumeReclaimPolicy)
+
+		result = append(result, model.PVStatus{
+			Name:          pv.Name,
+			Status:        status,
+			Capacity:      capacity,
+			AccessMode:    strings.Join(accessModes, ","),
+			StorageClass:  storageClass,
+			ClaimRef:      claimRef,
+			ReclaimPolicy: reclaimPolicy,
+			Age:           CalculateAge(pv.CreationTimestamp),
+		})
+	}
+	return result
+}
+
+// MapStorageClasses 专门用于映射 StorageClass 的函数
+func MapStorageClasses(storageClasses []storagev1.StorageClass) []model.StorageClassStatus {
+	result := make([]model.StorageClassStatus, 0, len(storageClasses))
+	for _, sc := range storageClasses {
+		reclaimPolicy := ""
+		if sc.ReclaimPolicy != nil {
+			reclaimPolicy = string(*sc.ReclaimPolicy)
+		}
+
+		volumeBindingMode := ""
+		if sc.VolumeBindingMode != nil {
+			volumeBindingMode = string(*sc.VolumeBindingMode)
+		}
+
+		isDefault := false
+		if sc.Annotations != nil {
+			if _, ok := sc.Annotations[model.AnnotationStorageClassDefault]; ok {
+				isDefault = true
+			}
+		}
+
+		result = append(result, model.StorageClassStatus{
+			Name:              sc.Name,
+			Provisioner:       sc.Provisioner,
+			ReclaimPolicy:     reclaimPolicy,
+			VolumeBindingMode: volumeBindingMode,
+			IsDefault:         isDefault,
+			Age:               CalculateAge(sc.CreationTimestamp),
+		})
+	}
+	return result
+}
+
+// MapEvents 专门用于映射 Event 的函数
+func MapEvents(events []v1.Event) []model.EventStatus {
+	result := make([]model.EventStatus, 0, len(events))
+	for _, e := range events {
+		result = append(result, model.EventStatus{
+			Namespace: e.Namespace,
+			Name:      e.Name,
+			Reason:    e.Reason,
+			Message:   e.Message,
+			Type:      e.Type,
+			Count:     e.Count,
+			FirstSeen: model.FormatTime(&e.FirstTimestamp),
+			LastSeen:  model.FormatTime(&e.LastTimestamp),
+			Duration:  e.LastTimestamp.Sub(e.FirstTimestamp.Time).String(),
+		})
 	}
 	return result
 }

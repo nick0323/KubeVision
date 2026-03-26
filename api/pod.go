@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
@@ -14,6 +13,17 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+)
+
+// Pod 资源常量
+const (
+	PodDescribeSuccessMessage = "Pod describe retrieved successfully"
+)
+
+// 格式化常量
+const (
+	BytesPerKiB = 1024
+	BytesPerMiB = 1024 * 1024
 )
 
 // formatCPU 将 CPU 毫核值转换为字符串格式
@@ -29,10 +39,10 @@ func formatMemory(bytes int64) string {
 	if bytes == 0 {
 		return "-"
 	}
-	if bytes < 1024*1024 {
-		return fmt.Sprintf("%dKi", bytes/1024)
+	if bytes < BytesPerMiB {
+		return fmt.Sprintf("%dKi", bytes/BytesPerKiB)
 	}
-	return fmt.Sprintf("%dMi", bytes/(1024*1024))
+	return fmt.Sprintf("%dMi", bytes/BytesPerMiB)
 }
 
 func RegisterPod(
@@ -42,7 +52,6 @@ func RegisterPod(
 	listPodsWithRaw func(context.Context, *kubernetes.Clientset, model.PodMetricsMap, string) ([]model.PodStatus, *v1.PodList, error),
 ) {
 	r.GET("/pods", getPodList(logger, getK8sClient, listPodsWithRaw))
-	r.GET("/pods/:namespace/:name", getPodDetail(logger, getK8sClient))
 	r.GET("/pods/:namespace/:name/logs", getPodLogs(logger, getK8sClient))
 	r.GET("/pods/:namespace/:name/logs/stream", streamPodLogs(logger, getK8sClient))
 }
@@ -77,71 +86,6 @@ func getPodList(
 			podStatuses, _, err := listPodsWithRaw(ctx, clientset, podMetricsMap, params.Namespace)
 			return podStatuses, err
 		}, ListSuccessMessage)
-	}
-}
-
-func getPodDetail(
-	logger *zap.Logger,
-	getK8sClient K8sClientProvider,
-) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		clientset, _, err := getK8sClient()
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-		ctx := GetRequestContext(c)
-		namespace := c.Param("namespace")
-		name := c.Param("name")
-
-		pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusNotFound)
-			return
-		}
-
-		// 构建完整的对象（包含 kind 和 apiVersion）
-		fullObj := map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Pod",
-			"metadata": map[string]interface{}{
-				"name":              pod.Name,
-				"namespace":         pod.Namespace,
-				"labels":            pod.Labels,
-				"annotations":       pod.Annotations,
-				"creationTimestamp": pod.CreationTimestamp.Format(time.RFC3339),
-				"uid":               pod.UID,
-				"resourceVersion":   pod.ResourceVersion,
-			},
-			"spec": map[string]interface{}{
-				"containers":       pod.Spec.Containers,
-				"initContainers":   pod.Spec.InitContainers,
-				"volumes":          pod.Spec.Volumes,
-				"nodeName":         pod.Spec.NodeName,
-				"serviceAccountName": pod.Spec.ServiceAccountName,
-				"restartPolicy":    pod.Spec.RestartPolicy,
-				"terminationGracePeriodSeconds": pod.Spec.TerminationGracePeriodSeconds,
-				"dnsPolicy":        pod.Spec.DNSPolicy,
-				"securityContext":  pod.Spec.SecurityContext,
-				"affinity":         pod.Spec.Affinity,
-				"tolerations":      pod.Spec.Tolerations,
-			},
-			"status": map[string]interface{}{
-				"phase":       pod.Status.Phase,
-				"hostIP":      pod.Status.HostIP,
-				"podIP":       pod.Status.PodIP,
-				"podIPs":      pod.Status.PodIPs,
-				"conditions":  pod.Status.Conditions,
-				"containerStatuses": pod.Status.ContainerStatuses,
-				"initContainerStatuses": pod.Status.InitContainerStatuses,
-				"qosClass":    pod.Status.QOSClass,
-				"reason":      pod.Status.Reason,
-				"message":     pod.Status.Message,
-				"startTime":   pod.Status.StartTime,
-			},
-		}
-
-		middleware.ResponseSuccess(c, fullObj, DetailSuccessMessage, nil)
 	}
 }
 
