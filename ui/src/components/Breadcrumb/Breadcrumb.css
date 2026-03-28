@@ -1,16 +1,5 @@
 /* Breadcrumb 样式 */
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #ffffff, #f8f9fa);
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
 .breadcrumb-list {
   display: flex;
   align-items: center;

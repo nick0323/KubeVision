@@ -90,12 +90,6 @@ export const TableHeaderCell = memo(<T,>({
   sortOrder,
   onSort,
 }: TableHeaderCellProps<T>) => {
-  const handleSortClick = useCallback(() => {
-    if (column.sortable) {
-      onSort(column.dataIndex);
-    }
-  }, [column.sortable, column.dataIndex, onSort]);
-
   const isSorted = sortField === column.dataIndex;
   const sortIcon = isSorted ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : '';
 
@@ -106,13 +100,17 @@ export const TableHeaderCell = memo(<T,>({
     >
       <div
         className={`table-header-cell ${column.sortable ? 'sortable' : ''}`}
-        onClick={handleSortClick}
+        onClick={() => {
+          if (column.sortable) {
+            onSort(column.dataIndex);
+          }
+        }}
         role={column.sortable ? 'button' : undefined}
         tabIndex={column.sortable ? 0 : undefined}
         onKeyDown={(e) => {
           if (column.sortable && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
-            handleSortClick();
+            onSort(column.dataIndex);
           }
         }}
       >

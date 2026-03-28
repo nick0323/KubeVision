@@ -1,9 +1,10 @@
 import React, { useMemo, useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageConfig } from '../types';
 import { StatusBadge } from './StatusBadge';
-import { 
-  TableHeaderCell, 
-  TableRow, 
+import {
+  TableHeaderCell,
+  TableRow,
   TableColumn,
   TableSkeleton,
   EmptyState,
@@ -62,6 +63,8 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
   onRowClick,
   actions = [],
 }) => {
+  const navigate = useNavigate();
+  
   // 使用增强版 hook 管理所有列表逻辑
   const {
     // 数据状态
@@ -106,6 +109,19 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
     debounceMs: 300,         // 300ms 防抖
   });
 
+  /**
+   * 点击资源名称跳转详情页
+   */
+  const handleNameClick = useCallback((record: any) => {
+    const resourceType = config.resourceType;
+    const ns = record.namespace || namespace || 'default';
+    const name = record.name;
+    
+    if (resourceType && name) {
+      navigate(`/${resourceType}/${ns}/${name}`);
+    }
+  }, [config.resourceType, namespace, navigate]);
+
   // 确认对话框
   const { confirm, confirming, config: confirmConfig, onConfirm, onCancel } = useConfirm();
 
@@ -125,16 +141,33 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
   }, [config.columns]);
 
   /**
-   * 列配置（添加默认值）
+   * 列配置（添加默认值，name 列添加点击事件）
    */
   const columns = useMemo<TableColumn[]>(
     () =>
-      config.columns.map((col) => ({
-        ...col,
-        sortable: col.sortable ?? true,
-        render: col.render,
-      })),
-    [config.columns]
+      config.columns.map((col) => {
+        const isNameColumn = col.dataIndex === 'name' || col.dataIndex === 'Name';
+        
+        return {
+          ...col,
+          sortable: col.sortable ?? true,
+          render: col.render || (isNameColumn 
+            ? (value: any, record: any) => (
+                <span 
+                  className="resource-name-link"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNameClick(record);
+                  }}
+                >
+                  {value}
+                </span>
+              )
+            : undefined
+          ),
+        };
+      }),
+    [config.columns, handleNameClick]
   );
 
   /**

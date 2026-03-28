@@ -1,0 +1,103 @@
+/* Events Tab 样式 */
+.events-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.events-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.event-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  transition: box-shadow 0.2s;
+  background: #fff;
+}
+
+.event-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.event-item.normal {
+  border-left: 4px solid #52c41a;
+}
+
+.event-item.warning {
+  border-left: 4px solid #faad14;
+}
+
+.event-time {
+  min-width: 160px;
+  font-size: 13px;
+  color: #8c8c8c;
+  padding-top: 2px;
+}
+
+.event-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.event-type-icon {
+  font-size: 16px;
+}
+
+.event-type-icon.normal {
+  color: #52c41a;
+}
+
+.event-type-icon.warning {
+  color: #faad14;
+}
+
+.event-reason {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.event-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #f0f0f0;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #595959;
+}
+
+.event-message {
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.event-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #8c8c8c;
+  flex-wrap: wrap;
+}

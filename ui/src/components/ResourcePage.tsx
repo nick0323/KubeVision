@@ -1,5 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { ResourcePageProps } from '../types';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import {
+  K8sResource,
+  APIResponse,
+  ListQueryParams,
+  ColumnDef,
+  PaginatedResponse,
+} from '../types/k8s-resources';
 import PageHeader from './PageHeader.tsx';
 import SearchInput from './SearchInput.tsx';
 import NamespaceSelect from './NamespaceSelect.tsx';
@@ -7,19 +13,131 @@ import RefreshButton from './RefreshButton.tsx';
 import CommonTable from '../CommonTable.tsx';
 import Pagination from '../Pagination.tsx';
 import { usePagination } from '../hooks/usePagination.ts';
-import { apiClient, createPaginatedQuery } from '../utils/apiClient.ts';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { ErrorDisplay } from './ErrorDisplay.tsx';
 import './ResourcePage.css';
 
+// ==================== 组件 Props 类型 ====================
+
 /**
- * 通用资源页面组件 - 修复版
- * 改进：
- * 1. 合并 useEffect 减少重渲染
- * 2. 使用 AbortController 取消请求
- * 3. 添加请求去抖
+ * ResourcePage 组件属性（泛型版本）
+ * @template T - K8s 资源类型，必须 extends K8sResource
  */
-export const ResourcePage: React.FC<ResourcePageProps> = ({
+export interface ResourcePageProps<T extends K8sResource> {
+  /** 页面标题 */
+  title: string;
+  /** API 端点 */
+  apiEndpoint: string;
+  /** 资源类型（用于日志和错误提示） */
+  resourceType: string;
+  /** 列定义 */
+  columns: ColumnDef<T>[];
+  /** 侧边栏是否折叠 */
+  collapsed: boolean;
+  /** 切换侧边栏折叠状态 */
+  onToggleCollapsed: () => void;
+  /** 状态映射（可选） */
+  statusMap?: Record<string, {
+    color: 'success' | 'error' | 'warning' | 'default' | 'processing';
+    text?: string;
+  }>;
+  /** 是否启用命名空间过滤 */
+  namespaceFilter?: boolean;
+  /** 默认命名空间（可选） */
+  defaultNamespace?: string;
+  /** 行点击事件（可选） */
+  onRowClick?: (record: T) => void;
+  /** 自定义渲染函数（可选） */
+  customRenderers?: Record<string, (value: any, record: T) => React.ReactNode>;
+}
+
+/**
+ * 查询参数配置（内部使用）
+ */
+interface QueryConfig {
+  page: number;
+  pageSize: number;
+  namespace?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+// ==================== API 工具函数 ====================
+
+/**
+ * 创建分页查询参数
+ */
+function buildQueryParams(config: QueryConfig): URLSearchParams {
+  const params = new URLSearchParams();
+  params.set('limit', config.pageSize.toString());
+  params.set('offset', ((config.page - 1) * config.pageSize).toString());
+
+  if (config.namespace) params.set('namespace', config.namespace);
+  if (config.search) params.set('search', config.search);
+  if (config.sortBy) params.set('sortBy', config.sortBy);
+  if (config.sortOrder) params.set('sortOrder', config.sortOrder);
+
+  return params;
+}
+
+/**
+ * 类型安全的 API 请求函数
+ */
+async function fetchResourceList<T extends K8sResource>(
+  endpoint: string,
+  config: QueryConfig
+): Promise<PaginatedResponse<T>> {
+  const params = buildQueryParams(config);
+  const response = await fetch(`${endpoint}?${params}`, {
+    signal: config.search ? undefined : new AbortController().signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const result: APIResponse<T[]> = await response.json();
+
+  if (result.code !== 0) {
+    throw new Error(result.message || '请求失败');
+  }
+
+  return {
+    data: result.data || [],
+    page: result.page,
+  };
+}
+
+// ==================== ResourcePage 组件 ====================
+
+/**
+ * 通用资源页面组件（泛型版本）
+ *
+ * 类型安全特性：
+ * - data 状态类型与 columns 定义一致
+ * - render 函数参数类型自动推断
+ * - API 响应结构类型保护
+ *
+ * @example
+ * ```tsx
+ * // 使用 Pod 类型
+ * <ResourcePage<Pod>
+ *   title="Pods"
+ *   apiEndpoint="/api/pods"
+ *   resourceType="pod"
+ *   columns={[
+ *     { title: 'Name', dataIndex: 'metadata.name' },
+ *     {
+ *       title: 'Status',
+ *       dataIndex: 'status.phase',
+ *       render: (value, record) => <StatusBadge status={value} />
+ *     }
+ *   ]}
+ * />
+ * ```
+ */
+export function ResourcePage<T extends K8sResource>({
   title,
   apiEndpoint,
   resourceType,
@@ -28,12 +146,17 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
   onToggleCollapsed,
   statusMap = {},
   namespaceFilter = true,
-}) => {
-  const [data, setData] = useState<any[]>([]);
+  defaultNamespace = '',
+  onRowClick,
+  customRenderers = {},
+}: ResourcePageProps<T>) {
+  // ========== 状态定义（类型安全）==========
+
+  const [data, setData] = useState<T[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [namespace, setNamespace] = useState<string>('');
+  const [namespace, setNamespace] = useState<string>(defaultNamespace);
   const [search, setSearch] = useState<string>('');
 
   const {
@@ -44,14 +167,18 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
     resetPagination,
   } = usePagination();
 
-  // 使用 ref 保存最新值
+  // ========== Refs ==========
+
   const pageRef = useRef(page);
   const pageSizeRef = useRef(pageSize);
   const namespaceRef = useRef(namespace);
   const searchRef = useRef(search);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
-  // 更新 ref
+  // ========== Effects ==========
+
+  // 更新 refs
   useEffect(() => {
     pageRef.current = page;
     pageSizeRef.current = pageSize;
@@ -59,42 +186,63 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
     searchRef.current = search;
   });
 
-  // 获取数据 - 使用 AbortController 取消旧请求
+  // 组件挂载状态
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // ========== 数据加载 ==========
+
   const fetchData = useCallback(async () => {
     // 取消之前的请求
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
-    abortControllerRef.current = new AbortController();
-    
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setError(null);
 
     try {
-      const result = await createPaginatedQuery(apiEndpoint, {
+      const result = await fetchResourceList<T>(apiEndpoint, {
         page: pageRef.current,
         pageSize: pageSizeRef.current,
         namespace: namespaceRef.current,
         search: searchRef.current,
       });
 
-      setData(result.data || []);
-      setTotal(result.page?.total || 0);
+      if (!isMountedRef.current) return;
+
+      setData(result.data);
+      setTotal(result.page?.total ?? result.data.length);
     } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        setError(err.message);
+      if (!isMountedRef.current) return;
+
+      if (err instanceof Error) {
+        if (err.name !== 'AbortError') {
+          setError(err.message);
+        }
+      } else {
+        setError('网络错误');
       }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [apiEndpoint]);
 
-  // 统一的数据加载逻辑
+  // 监听依赖变化，自动加载数据
   useEffect(() => {
     fetchData();
-    
-    // 清理函数
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -107,44 +255,74 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
     resetPagination();
   }, [namespace, resetPagination]);
 
-  // 处理搜索
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-  }, []);
+  // ========== 事件处理器 ==========
 
-  // 搜索提交
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearch(e.target.value);
+    },
+    []
+  );
+
   const handleSearchSubmit = useCallback(() => {
     handlePageChange(1);
   }, [handlePageChange]);
 
-  // 清空搜索
   const handleClearSearch = useCallback(() => {
     setSearch('');
     handlePageChange(1);
   }, [handlePageChange]);
 
-  // 处理每页条数变化
-  const handlePageSizeChangeWrapper = useCallback((newPageSize: number) => {
-    handlePageSizeChange(newPageSize);
-  }, [handlePageSizeChange]);
+  const handlePageSizeChangeWrapper = useCallback(
+    (newPageSize: number) => {
+      handlePageSizeChange(newPageSize);
+    },
+    [handlePageSizeChange]
+  );
 
-  // 刷新数据
   const handleRefresh = useCallback(() => {
     fetchData();
   }, [fetchData]);
 
+  // ========== 列处理 ==========
+
+  /**
+   * 处理列的 render 函数，支持自定义渲染器
+   */
+  const processedColumns = useMemo<ColumnDef<T>[]>(() => {
+    return columns.map((col) => {
+      // 如果有自定义渲染器，优先使用
+      if (col.dataIndex && customRenderers[col.dataIndex as string]) {
+        return {
+          ...col,
+          render: (value, record, index) =>
+            customRenderers[col.dataIndex as string](value, record),
+        };
+      }
+      return col;
+    });
+  }, [columns, customRenderers]);
+
+  // ========== 渲染 ==========
+
   if (loading && data.length === 0) {
-    return <LoadingSpinner text="Loading..." overlay />;
+    return (
+      <div className="resource-page">
+        <LoadingSpinner text={`加载${title}...`} size="lg" overlay />
+      </div>
+    );
   }
 
   if (error && data.length === 0) {
     return (
-      <ErrorDisplay
-        message={error}
-        type="error"
-        showRetry
-        onRetry={fetchData}
-      />
+      <div className="resource-page">
+        <ErrorDisplay
+          message={error}
+          type="error"
+          showRetry
+          onRetry={handleRefresh}
+        />
+      </div>
     );
   }
 
@@ -169,15 +347,16 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
           onSubmit={handleSearchSubmit}
           onClear={handleClearSearch}
           isSearching={loading}
-          hasSearchResults={search.length > 0}
+          hasSearchResults={search.length > 0 && data.length > 0}
         />
         <RefreshButton onClick={handleRefresh} loading={loading} />
       </PageHeader>
 
-      <CommonTable
-        columns={columns}
+      <CommonTable<T>
+        columns={processedColumns}
         data={data}
         emptyText={`暂无 ${title} 数据`}
+        onRowClick={onRowClick}
       />
 
       <Pagination
@@ -189,6 +368,6 @@ export const ResourcePage: React.FC<ResourcePageProps> = ({
       />
     </div>
   );
-};
+}
 
 export default ResourcePage;

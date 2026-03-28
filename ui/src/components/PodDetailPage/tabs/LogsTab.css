@@ -1,0 +1,93 @@
+/* Logs Tab 样式 */
+.logs-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logs-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.logs-count {
+  margin-left: auto;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.log-container {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  height: 500px;
+  overflow: auto;
+  color: #d4d4d4;
+}
+
+.log-container.wrap-lines .log-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-container:not(.wrap-lines) .log-line {
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.log-line {
+  min-height: 1.6em;
+  padding: 2px 0;
+}
+
+.log-line.error {
+  color: #ff6b6b;
+}
+
+.log-line.warn {
+  color: #ffd93d;
+}
+
+.log-line.info {
+  color: #6bc9ff;
+}
+
+.log-line.debug {
+  color: #8c8c8c;
+}
+
+.log-line mark {
+  background: rgba(255, 255, 0, 0.3);
+  color: inherit;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.log-line.highlight {
+  background: rgba(255, 255, 0, 0.15);
+}
+
+/* 滚动条样式 */
+.log-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.log-container::-webkit-scrollbar-track {
+  background: #2d2d2d;
+  border-radius: 5px;
+}
+
+.log-container::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 5px;
+}
+
+.log-container::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}

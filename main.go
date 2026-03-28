@@ -278,6 +278,7 @@ func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 
 	// 注册资源类型 - 【优化】使用新的 K8s 客户端管理器
 	api.RegisterPod(apiGroup, app.logger, app.getK8sClient, service.ListPodsWithRaw)
+	api.RegisterPodDetail(apiGroup, app.logger, app.getK8sClient)
 	api.RegisterDeployment(apiGroup, app.logger, app.getK8sClient, service.ListDeployments)
 	api.RegisterService(apiGroup, app.logger, app.getK8sClient, service.ListServices)
 	api.RegisterNode(apiGroup, app.logger, app.getK8sClient, service.ListPodsWithRaw, service.ListNodes)

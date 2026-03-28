@@ -1,0 +1,118 @@
+/* Terminal Tab 样式 */
+.terminal-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.terminal-toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.terminal-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.terminal-select {
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+  cursor: pointer;
+}
+
+.terminal-select:focus {
+  border-color: #1890ff;
+}
+
+.terminal-select:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.terminal-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.terminal-status.connected {
+  color: #52c41a;
+}
+
+.terminal-status.disconnected {
+  color: #ff4d4f;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.terminal-status .separator {
+  color: #d9d9d9;
+  margin: 0 4px;
+}
+
+.xterm-wrapper {
+  height: 500px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.terminal-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: #1e1e1e;
+  color: #8c8c8c;
+  gap: 16px;
+}
+
+.placeholder-icon {
+  font-size: 64px;
+}
+
+.placeholder-text {
+  font-size: 16px;
+  color: #d4d4d4;
+}
+
+.placeholder-hint {
+  font-size: 13px;
+  color: #666;
+}
+
+.terminal-output {
+  height: 100%;
+  padding: 16px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: auto;
+  outline: none;
+}
+
+.terminal-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}

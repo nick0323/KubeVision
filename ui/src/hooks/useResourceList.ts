@@ -44,7 +44,6 @@ export interface UseResourceListConfig<T> {
   initialPageSize?: number;
   staleTime?: number;        // 数据保持新鲜的时长 (ms)，默认 30s
   refreshInterval?: number;  // 自动刷新间隔 (ms)，0 表示不自动刷新
-  debounceMs?: number;       // 搜索防抖时间 (ms)，默认 300ms
 }
 
 /**
@@ -145,7 +144,6 @@ export function useResourceList<T = any>(
     initialPageSize = 20,
     staleTime = 30000,       // 30 秒
     refreshInterval = 0,     // 默认不自动刷新
-    debounceMs = 300,        // 300ms 防抖
   } = config;
 
   // 状态管理
@@ -165,11 +163,19 @@ export function useResourceList<T = any>(
   const searchRef = useRef(search);
   const namespaceRef = useRef(namespace);
 
-  // 排序状态
+  // 排序状态（使用 ref 保存最新值）
   const [sortField, setSortField] = useState(defaultSort?.field || 'name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
     defaultSort?.order || 'asc'
   );
+  const sortFieldRef = useRef(sortField);
+  const sortOrderRef = useRef(sortOrder);
+
+  // 更新 ref
+  useEffect(() => {
+    sortFieldRef.current = sortField;
+    sortOrderRef.current = sortOrder;
+  }, [sortField, sortOrder]);
 
   // 命名空间列表
   const [namespaces, setNamespaces] = useState<string[]>([]);
@@ -179,7 +185,6 @@ export function useResourceList<T = any>(
   const abortControllerRef = useRef<AbortController | null>(null);
   const namespacesLoadedRef = useRef(false);
   const mountedRef = useRef(true);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 更新 ref
   useEffect(() => {
@@ -287,26 +292,12 @@ export function useResourceList<T = any>(
 
     setNamespacesLoading(true);
     try {
-      // 尝试从缓存获取
-      const nsCacheKey = 'namespaces_list';
-      const cachedNs = getCached<{ name: string }[]>(nsCacheKey, 60000);
-      
-      if (cachedNs) {
-        setNamespaces(cachedNs.map(ns => ns.name));
-        namespacesLoadedRef.current = true;
-        return;
-      }
-
       const response = await authFetch('/api/namespaces?limit=1000&offset=0');
       const result = await response.json();
-      
       if (result.code === 0 && result.data) {
         const nsList = Array.isArray(result.data) ? result.data : [];
         setNamespaces(nsList.map((ns: any) => ns.name));
         namespacesLoadedRef.current = true;
-        
-        // 缓存命名空间列表
-        setCache(nsCacheKey, nsList);
       }
     } catch (err) {
       console.error('加载命名空间失败:', err);
@@ -315,33 +306,42 @@ export function useResourceList<T = any>(
     }
   }, [namespaceFilter]);
 
+  // 加载命名空间（只一次）
+  useEffect(() => {
+    loadNamespaces();
+  }, [loadNamespaces]);
+
   /**
-   * 处理排序
+   * 处理排序（使用 ref 避免闭包问题）
    */
   const handleSort = useCallback((field: string) => {
-    setSortField((prevField) => {
-      if (prevField === field) {
-        setSortOrder((prevOrder) => (prevOrder === 'asc' ? 'desc' : 'asc'));
-      } else {
-        setSortOrder('asc');
-      }
-      return field;
-    });
+    const currentField = sortFieldRef.current;
+    const currentOrder = sortOrderRef.current;
+
+    let newOrder: 'asc' | 'desc' = 'asc';
+
+    if (field === currentField) {
+      // 同一字段，切换顺序
+      newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+    }
+
+    // 立即更新 ref
+    sortFieldRef.current = field;
+    sortOrderRef.current = newOrder;
+
+    // 更新状态触发渲染
+    setSortField(field);
+    setSortOrder(newOrder);
     setPage(1);
+    // useEffect 会自动触发 loadData
   }, []);
 
   /**
-   * 提交搜索（带防抖）
+   * 提交搜索（重置页码）
    */
   const handleSubmit = useCallback(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      setPage(1);
-      loadData();
-    }, debounceMs);
-  }, [debounceMs, loadData]);
+    setPage(1);
+  }, []);
 
   /**
    * 清空搜索
@@ -349,20 +349,49 @@ export function useResourceList<T = any>(
   const clearSearch = useCallback(() => {
     setSearch('');
     setPage(1);
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      loadData();
-    }, debounceMs);
-  }, [debounceMs, loadData]);
+  }, []);
 
   /**
    * 刷新数据
    */
   const refresh = useCallback(async () => {
-    await loadData(true);
-  }, [loadData]);
+    setLoading(true);
+    setIsValidating(true);
+    
+    const controller = new AbortController();
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = controller;
+    
+    const params = new URLSearchParams({
+      limit: pageSize.toString(),
+      offset: ((page - 1) * pageSize).toString(),
+      sortBy: sortField,
+      sortOrder,
+      ...(namespace ? { namespace } : {}),
+      ...(search ? { search } : {}),
+    });
+    
+    try {
+      const response = await authFetch(`${apiEndpoint}?${params}`, {
+        signal: controller.signal,
+      });
+      const result = await response.json();
+      
+      if (mountedRef.current && result.code === 0 && result.data) {
+        setData(result.data || []);
+        setTotal(result.page?.total || result.data?.length || 0);
+      }
+    } catch (err) {
+      if (mountedRef.current && err instanceof Error && err.name !== 'AbortError') {
+        setError(err.message);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+        setIsValidating(false);
+      }
+    }
+  }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint]);
 
   /**
    * 手动更新数据（乐观更新）
@@ -371,64 +400,61 @@ export function useResourceList<T = any>(
     if (newData !== undefined) {
       setData(newData);
     } else {
-      // 重新加载
-      loadData(true);
+      // 调用 refresh
+      refresh();
     }
-  }, [loadData]);
+  }, [refresh]);
 
-  // 设置搜索防抖
+  // 设置搜索防抖（只更新 searchRef，不触发加载）
   useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    
-    debounceTimerRef.current = setTimeout(() => {
-      loadData();
-    }, debounceMs);
+    searchRef.current = search;
+  }, [search]);
 
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+  // 统一的数据加载逻辑（监听所有需要触发加载的状态）
+  useEffect(() => {
+    const controller = new AbortController();
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = controller;
+
+    const loadData = async () => {
+      const params = new URLSearchParams({
+        limit: pageSize.toString(),
+        offset: ((page - 1) * pageSize).toString(),
+        sortBy: sortField,
+        sortOrder,
+        ...(namespace ? { namespace } : {}),
+        ...(search ? { search } : {}),
+      });
+
+      try {
+        const response = await authFetch(`${apiEndpoint}?${params}`, {
+          signal: controller.signal,
+        });
+        const result = await response.json();
+
+        if (mountedRef.current && result.code === 0 && result.data) {
+          setData(result.data || []);
+          setTotal(result.page?.total || result.data?.length || 0);
+        }
+      } catch (err) {
+        if (mountedRef.current && err instanceof Error && err.name !== 'AbortError') {
+          setError(err.message);
+        }
+      } finally {
+        if (mountedRef.current) {
+          setLoading(false);
+          setIsValidating(false);
+        }
       }
     };
-  }, [search, namespace, loadData, debounceMs]);
 
-  // 初始加载
-  useEffect(() => {
-    mountedRef.current = true;
+    setLoading(true);
     loadData();
-    loadNamespaces();
 
     return () => {
-      mountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      controller.abort();
     };
-  }, []);
-
-  // 自动刷新
-  useEffect(() => {
-    if (refreshInterval <= 0 || loading) return;
-
-    const interval = setInterval(() => {
-      loadData(true);
-    }, refreshInterval);
-
-    return () => clearInterval(interval);
-  }, [refreshInterval, loading, loadData]);
-
-  // 分页、排序变化时加载数据
-  useEffect(() => {
-    if (page === 1 && namespace === '' && search === '') {
-      // 初始状态，跳过
-      return;
-    }
-    loadData();
-  }, [page, pageSize, sortField, sortOrder]);
+  }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint]);
 
   return {
     data,
