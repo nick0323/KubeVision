@@ -86,12 +86,15 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
   // CronJob 状态
   if (resourceType === 'cronjobs') {
     switch (status) {
+      case 'Running':
       case 'Active':
-        return { className: 'status-active', icon: '🟢' };
+        return { className: 'status-running', icon: '🟢' };
+      case 'Succeeded':
       case 'Suspended':
-        return { className: 'status-suspended', icon: '⚪' };
+        return { className: 'status-succeeded', icon: '🔵' };
+      case 'Pending':
       default:
-        return { className: '', icon: '⚪' };
+        return { className: 'status-pending', icon: '🟡' };
     }
   }
 

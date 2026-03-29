@@ -12,18 +12,19 @@ import { EventsTab } from './tabs/EventsTab';
 import { usePodDetail } from './hooks/usePodDetail';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { ErrorDisplay } from '../ErrorDisplay';
+import { authFetch } from '../../utils/auth';
 import './PodDetailPage.css';
 
 /**
  * Tab 配置
  */
 const TAB_CONFIG: TabItem[] = [
-  { key: 'overview', label: 'Overview', icon: '📊' },
-  { key: 'yaml', label: 'YAML', icon: '📄' },
-  { key: 'logs', label: 'Logs', icon: '📝' },
-  { key: 'terminal', label: 'Terminal', icon: '💻' },
-  { key: 'related', label: 'Related', icon: '🔗' },
-  { key: 'events', label: 'Events', icon: '⚡' },
+  { key: 'overview', label: 'Overview' },
+  { key: 'yaml', label: 'YAML' },
+  { key: 'logs', label: 'Logs' },
+  { key: 'terminal', label: 'Terminal' },
+  { key: 'related', label: 'Related' },
+  { key: 'events', label: 'Events' },
 ];
 
 export interface PodDetailPageProps {
@@ -65,11 +66,11 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
   const handleDelete = useCallback(async () => {
     if (window.confirm(`确定要删除 Pod "${podName}" 吗？此操作不可恢复。`)) {
       try {
-        const response = await fetch(`/api/pods/${namespace}/${podName}`, {
+        const response = await authFetch(`/api/pods/${namespace}/${podName}`, {
           method: 'DELETE',
         });
         const result = await response.json();
-        
+
         if (result.code === 0) {
           alert('Pod 已删除');
           navigate('/pods');
@@ -87,14 +88,21 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
    */
   const handleBreadcrumbClick = useCallback((path: string) => {
     if (path) {
-      navigate(path);
+      // 设置 current_tab
+      localStorage.setItem('current_tab', path);
+
+      // 触发事件
+      window.dispatchEvent(new CustomEvent('tab-change', { detail: path }));
+
+      // 跳转到列表页
+      navigate('/');
     }
   }, [navigate]);
-  
+
   // 面包屑导航
   const breadcrumbs = useMemo(() => [
-    { label: 'Pods', path: '/pods' },
-    { label: namespace, path: `/pods?namespace=${namespace}` },
+    { label: 'Pods', path: 'pods' },
+    { label: namespace, path: '' },  // namespace 不可点击
     { label: podName, path: '' },
   ], [namespace, podName]);
   

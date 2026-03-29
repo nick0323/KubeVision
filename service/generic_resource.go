@@ -16,6 +16,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// podInformerInstance 全局 PodInformer 实例
+var podInformerInstance *PodInformer
+
+// SetPodInformer 设置 PodInformer 实例
+func SetPodInformer(pi *PodInformer) {
+	podInformerInstance = pi
+}
+
+// GetPodInformer 获取 PodInformer 实例
+func GetPodInformer() *PodInformer {
+	return podInformerInstance
+}
+
 // 时间单位常量（用于 CalculateAge）
 const (
 	SecondsPerMinute = 60
@@ -65,11 +78,56 @@ func CalculatePodReady(pod v1.Pod) string {
 	return fmt.Sprintf("%d/%d", readyContainers, totalContainers)
 }
 
+// CalculateDeploymentRestarts 计算 Deployment 总重启次数
+func CalculateDeploymentRestarts(d appsv1.Deployment) int32 {
+	if podInformerInstance == nil {
+		return 0
+	}
+	if len(d.OwnerReferences) == 0 {
+		return 0
+	}
+	return podInformerInstance.GetRestartsByOwnerReference(d.OwnerReferences[0])
+}
+
+// CalculateStatefulSetRestarts 计算 StatefulSet 总重启次数
+func CalculateStatefulSetRestarts(s appsv1.StatefulSet) int32 {
+	if podInformerInstance == nil {
+		return 0
+	}
+	if len(s.OwnerReferences) == 0 {
+		return 0
+	}
+	return podInformerInstance.GetRestartsByOwnerReference(s.OwnerReferences[0])
+}
+
+// CalculateDaemonSetRestarts 计算 DaemonSet 总重启次数
+func CalculateDaemonSetRestarts(d appsv1.DaemonSet) int32 {
+	if podInformerInstance == nil {
+		return 0
+	}
+	if len(d.OwnerReferences) == 0 {
+		return 0
+	}
+	return podInformerInstance.GetRestartsByOwnerReference(d.OwnerReferences[0])
+}
+
+// CalculateJobRestarts 计算 Job 总重启次数
+func CalculateJobRestarts(j batchv1.Job) int32 {
+	if podInformerInstance == nil {
+		return 0
+	}
+	if len(j.OwnerReferences) == 0 {
+		return 0
+	}
+	return podInformerInstance.GetRestartsByOwnerReference(j.OwnerReferences[0])
+}
+
 // MapDeployments 专门用于映射 Deployment 的函数
 func MapDeployments(deployments []appsv1.Deployment) []model.DeploymentStatus {
 	result := make([]model.DeploymentStatus, len(deployments))
 	for i, d := range deployments {
 		status := GetWorkloadStatus(d.Status.ReadyReplicas, d.Status.Replicas)
+		restarts := CalculateDeploymentRestarts(d)
 		result[i] = model.DeploymentStatus{
 			Namespace:       d.Namespace,
 			Name:            d.Name,
@@ -77,6 +135,7 @@ func MapDeployments(deployments []appsv1.Deployment) []model.DeploymentStatus {
 			UpdatedReplicas: d.Status.UpdatedReplicas,
 			Available:       d.Status.AvailableReplicas,
 			Desired:         d.Status.Replicas,
+			Restarts:        restarts,
 			Status:          status,
 			Age:             CalculateAge(d.CreationTimestamp),
 		}
@@ -142,6 +201,7 @@ func MapStatefulSets(statefulSets []appsv1.StatefulSet) []model.StatefulSetStatu
 	result := make([]model.StatefulSetStatus, len(statefulSets))
 	for i, s := range statefulSets {
 		status := GetWorkloadStatus(s.Status.ReadyReplicas, s.Status.Replicas)
+		restarts := CalculateStatefulSetRestarts(s)
 		result[i] = model.StatefulSetStatus{
 			Namespace:       s.Namespace,
 			Name:            s.Name,
@@ -149,6 +209,7 @@ func MapStatefulSets(statefulSets []appsv1.StatefulSet) []model.StatefulSetStatu
 			UpdatedReplicas: s.Status.UpdatedReplicas,
 			Available:       s.Status.AvailableReplicas,
 			Desired:         s.Status.Replicas,
+			Restarts:        restarts,
 			Status:          status,
 			Age:             CalculateAge(s.CreationTimestamp),
 		}
@@ -161,6 +222,7 @@ func MapDaemonSets(daemonSets []appsv1.DaemonSet) []model.DaemonSetStatus {
 	result := make([]model.DaemonSetStatus, len(daemonSets))
 	for i, d := range daemonSets {
 		status := GetWorkloadStatus(d.Status.NumberReady, d.Status.DesiredNumberScheduled)
+		restarts := CalculateDaemonSetRestarts(d)
 		result[i] = model.DaemonSetStatus{
 			Namespace:       d.Namespace,
 			Name:            d.Name,
@@ -168,6 +230,7 @@ func MapDaemonSets(daemonSets []appsv1.DaemonSet) []model.DaemonSetStatus {
 			UpdatedReplicas: d.Status.UpdatedNumberScheduled,
 			Available:       d.Status.NumberReady,
 			Desired:         d.Status.DesiredNumberScheduled,
+			Restarts:        restarts,
 			Status:          status,
 			Age:             CalculateAge(d.CreationTimestamp),
 		}
@@ -179,14 +242,18 @@ func MapDaemonSets(daemonSets []appsv1.DaemonSet) []model.DaemonSetStatus {
 func MapJobs(jobs []batchv1.Job) []model.JobStatus {
 	result := make([]model.JobStatus, len(jobs))
 	for i, j := range jobs {
+		duration := CalculateDuration(j.Status.StartTime, j.Status.CompletionTime)
+		restarts := CalculateJobRestarts(j)
 		result[i] = model.JobStatus{
 			Namespace:      j.Namespace,
 			Name:           j.Name,
 			Completions:    *j.Spec.Completions,
 			Succeeded:      j.Status.Succeeded,
 			Failed:         j.Status.Failed,
+			Restarts:       restarts,
 			StartTime:      formatTime(j.Status.StartTime),
 			CompletionTime: formatTime(j.Status.CompletionTime),
+			Duration:       duration,
 			Status:         GetJobStatus(j.Status.Succeeded, j.Status.Failed, j.Status.Active),
 			Age:            CalculateAge(j.CreationTimestamp),
 		}
@@ -205,6 +272,7 @@ func MapCronJobs(cronJobs []batchv1.CronJob) []model.CronJobStatus {
 			Suspend:          *c.Spec.Suspend,
 			Active:           len(c.Status.Active),
 			LastScheduleTime: formatTime(c.Status.LastScheduleTime),
+			Restarts:         0, // CronJob 本身不直接存储重启次数
 			Status:           GetCronJobStatus(len(c.Status.Active), c.Status.LastSuccessfulTime),
 			Age:              CalculateAge(c.CreationTimestamp),
 		}

@@ -115,6 +115,7 @@ type DeploymentStatus struct {
 	UpdatedReplicas int32  `json:"updatedReplicas"`
 	Available       int32  `json:"availableReplicas"`
 	Desired         int32  `json:"desiredReplicas"`
+	Restarts        int32  `json:"restarts"`
 	Status          string `json:"status"`
 	Age             string `json:"age"`
 }
@@ -127,6 +128,7 @@ type StatefulSetStatus struct {
 	UpdatedReplicas int32  `json:"updatedReplicas"`
 	Available       int32  `json:"availableReplicas"`
 	Desired         int32  `json:"desiredReplicas"`
+	Restarts        int32  `json:"restarts"`
 	Status          string `json:"status"`
 	Age             string `json:"age"`
 }
@@ -139,6 +141,7 @@ type DaemonSetStatus struct {
 	UpdatedReplicas int32  `json:"updatedReplicas"`
 	Available       int32  `json:"availableReplicas"`
 	Desired         int32  `json:"desiredReplicas"`
+	Restarts        int32  `json:"restarts"`
 	Status          string `json:"status"`
 	Age             string `json:"age"`
 }
@@ -176,6 +179,7 @@ type CronJobStatus struct {
 	Suspend          bool   `json:"suspend"`
 	Active           int    `json:"active"`
 	LastScheduleTime string `json:"lastScheduleTime"`
+	Restarts         int32  `json:"restarts"`
 	Status           string `json:"status"`
 	Age              string `json:"age"`
 }
@@ -187,8 +191,10 @@ type JobStatus struct {
 	Completions    int32  `json:"completions"`
 	Succeeded      int32  `json:"succeeded"`
 	Failed         int32  `json:"failed"`
+	Restarts       int32  `json:"restarts"`
 	StartTime      string `json:"startTime"`
 	CompletionTime string `json:"completionTime"`
+	Duration       string `json:"duration"`
 	Status         string `json:"status"`
 	Age            string `json:"age"`
 }

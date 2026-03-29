@@ -29,13 +29,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
 }) => {
   // 构建面包屑项
   const buildBreadcrumbItems = (): BreadcrumbItem[] => {
-    const builtItems: BreadcrumbItem[] = [
-      {
-        label: 'Cluster',
-        path: '/',
-        icon: <FaHome />,
-      },
-    ];
+    const builtItems: BreadcrumbItem[] = [];
 
     // 添加命名空间
     if (namespace && namespace !== '_all') {

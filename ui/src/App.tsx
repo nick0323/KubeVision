@@ -102,8 +102,6 @@ const ListPage: React.FC = () => {
     authUtils.clearToken();
     localStorage.removeItem('sider_collapsed');
     localStorage.removeItem('current_tab');
-    // 触发 storage 事件通知父组件
-    window.dispatchEvent(new Event('storage'));
     // 强制刷新页面
     window.location.reload();
   }, []);

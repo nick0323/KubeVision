@@ -8,6 +8,7 @@ import (
 
 	"github.com/nick0323/K8sVision/model"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -163,6 +164,35 @@ func GetCronJobStatus(activeCount int, lastSuccessfulTime interface{}) string {
 		return model.PodSucceeded
 	}
 	return model.PodPending
+}
+
+// CalculateDuration 计算任务运行时长
+func CalculateDuration(startTime, completionTime *metav1.Time) string {
+	if startTime == nil {
+		return "-"
+	}
+
+	var endTime metav1.Time
+	if completionTime != nil {
+		endTime = *completionTime
+	} else {
+		endTime = metav1.Now()
+	}
+
+	duration := endTime.Time.Sub(startTime.Time)
+
+	// 格式化时长
+	hours := int(duration.Hours())
+	minutes := int(duration.Minutes()) % 60
+	seconds := int(duration.Seconds()) % 60
+
+	if hours > 0 {
+		return fmt.Sprintf("%dh%dm", hours, minutes)
+	} else if minutes > 0 {
+		return fmt.Sprintf("%dm%ds", minutes, seconds)
+	} else {
+		return fmt.Sprintf("%ds", seconds)
+	}
 }
 
 func ExtractKeys[T any](data map[string]T) []string {

@@ -33,7 +33,7 @@ export const PageHeader: React.FC<PageHeaderWithBreadcrumbProps> = ({
         </button>
         <span className="page-separator">|</span>
         {breadcrumbs && breadcrumbs.length > 0 ? (
-          <Breadcrumb items={breadcrumbs} onItemClick={onBreadcrumbClick || (() => {})} />
+          <Breadcrumb items={breadcrumbs} onNavigate={onBreadcrumbClick || (() => {})} />
         ) : (
           <h1 className="page-title">{title}</h1>
         )}

@@ -2,14 +2,16 @@
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 12px;
+  gap: 4px;
+  padding: 0 8px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  cursor: pointer; /* 显示小手指 */
+  cursor: pointer;
   transition: all 0.2s ease;
+  line-height: 1;
+  height: 20px;
 }
 
 .status-badge:hover {

@@ -4,7 +4,6 @@ import './TabNavigation.css';
 export interface TabItem {
   key: string;
   label: string;
-  icon?: string;
 }
 
 export interface TabNavigationProps {
@@ -29,7 +28,6 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
           className={`tab-item ${activeTab === tab.key ? 'active' : ''}`}
           onClick={() => onTabChange(tab.key)}
         >
-          {tab.icon && <span className="tab-icon">{tab.icon}</span>}
           <span className="tab-label">{tab.label}</span>
         </button>
       ))}

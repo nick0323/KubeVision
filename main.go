@@ -211,6 +211,12 @@ func (app *Application) Initialize() error {
 		_, metricsClient, _ := app.k8sClientMgr.GetDefaultClient()
 		app.monitorMgr.SetK8sClients(clientset, metricsClient)
 		app.logger.Info("K8s 监控已启用")
+
+		// 【新增】初始化 PodInformer 用于计算 Restarts
+		podInformer := service.NewPodInformer(clientset, "")
+		service.SetPodInformer(podInformer)
+		go podInformer.Start(context.Background())
+		app.logger.Info("Pod Informer 已启动")
 	}
 
 	if err := app.configMgr.Watch(); err != nil {

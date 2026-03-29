@@ -41,11 +41,18 @@ export const DEPLOYMENTS_CONFIG = {
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
-    { title: 'Status', dataIndex: 'status', width: '12%', sortable: true },
-    { title: 'Ready', dataIndex: 'readyReplicas', width: '12%', sortable: false },
-    { title: 'Up-to-date', dataIndex: 'updatedReplicas', width: '12%', sortable: false },
-    { title: 'Available', dataIndex: 'availableReplicas', width: '12%', sortable: false },
-    { title: 'Age', dataIndex: 'age', width: '12%', sortable: false },
+    { title: 'Status', dataIndex: 'status', width: '10%', sortable: true },
+    {
+      title: 'Ready',
+      dataIndex: 'readyReplicas',
+      width: '10%',
+      sortable: false,
+      render: (value: any, record: any) => `${value}/${record.desiredReplicas || 0}`
+    },
+    { title: 'Restarts', dataIndex: 'restarts', width: '10%', sortable: true },
+    { title: 'Up-to-date', dataIndex: 'updatedReplicas', width: '10%', sortable: false },
+    { title: 'Available', dataIndex: 'availableReplicas', width: '10%', sortable: false },
+    { title: 'Age', dataIndex: 'age', width: '10%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
   statusFilter: ['Healthy', 'Partial', 'Unavailable', 'ScaledToZero'],
@@ -60,9 +67,14 @@ export const STATEFULSETS_CONFIG = {
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
     { title: 'Status', dataIndex: 'status', width: '12%', sortable: true },
-    { title: 'Ready', dataIndex: 'readyReplicas', width: '12%', sortable: false },
-    { title: 'Up-to-date', dataIndex: 'updatedReplicas', width: '12%', sortable: false },
-    { title: 'Available', dataIndex: 'availableReplicas', width: '12%', sortable: false },
+    {
+      title: 'Ready',
+      dataIndex: 'readyReplicas',
+      width: '12%',
+      sortable: false,
+      render: (value: any, record: any) => `${value}/${record.desiredReplicas || 0}`
+    },
+    { title: 'Restarts', dataIndex: 'restarts', width: '12%', sortable: true },
     { title: 'Age', dataIndex: 'age', width: '12%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
@@ -78,10 +90,10 @@ export const DAEMONSETS_CONFIG = {
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
     { title: 'Status', dataIndex: 'status', width: '12%', sortable: true },
-    { title: 'Ready', dataIndex: 'readyReplicas', width: '12%', sortable: false },
-    { title: 'Up-to-date', dataIndex: 'updatedReplicas', width: '12%', sortable: false },
-    { title: 'Available', dataIndex: 'availableReplicas', width: '12%', sortable: false },
-    { title: 'Age', dataIndex: 'age', width: '12%', sortable: false },
+    { title: 'Desired', dataIndex: 'desiredReplicas', width: '10%', sortable: false },
+    { title: 'Ready', dataIndex: 'readyReplicas', width: '10%', sortable: false },
+    { title: 'Restarts', dataIndex: 'restarts', width: '10%', sortable: true },
+    { title: 'Age', dataIndex: 'age', width: '8%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
   statusFilter: ['Healthy', 'Partial', 'Unavailable'],
@@ -96,10 +108,19 @@ export const JOBS_CONFIG = {
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
     { title: 'Status', dataIndex: 'status', width: '12%', sortable: true },
-    { title: 'Succeeded', dataIndex: 'succeeded', width: '10%', sortable: false },
-    { title: 'Failed', dataIndex: 'failed', width: '10%', sortable: false },
-    { title: 'Completions', dataIndex: 'completions', width: '10%', sortable: false },
-    { title: 'Age', dataIndex: 'age', width: '8%', sortable: false },
+    {
+      title: 'Completions',
+      dataIndex: 'succeeded',
+      width: '12%',
+      sortable: false,
+      render: (value: any, record: any) => {
+        const completions = record.completions || 1;
+        return `${value || 0}/${completions}`;
+      }
+    },
+    { title: 'Restarts', dataIndex: 'restarts', width: '12%', sortable: true },
+    { title: 'Duration', dataIndex: 'duration', width: '12%', sortable: false },
+    { title: 'Age', dataIndex: 'age', width: '12%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
   statusFilter: ['Running', 'Succeeded', 'Failed', 'Pending'],
@@ -117,8 +138,8 @@ export const CRONJOBS_CONFIG = {
     { title: 'Suspend', dataIndex: 'suspend', width: '10%', sortable: false },
     { title: 'Schedule', dataIndex: 'schedule', width: '15%', sortable: false },
     { title: 'Active', dataIndex: 'active', width: '8%', sortable: false },
-    { title: 'Last Schedule', dataIndex: 'lastScheduleTime', width: '10%', sortable: false },
-    { title: 'Age', dataIndex: 'age', width: '5%', sortable: false },
+    { title: 'Restarts', dataIndex: 'restarts', width: '8%', sortable: true },
+    { title: 'Age', dataIndex: 'age', width: '7%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
   statusFilter: ['Active', 'Suspended'],
@@ -132,12 +153,11 @@ export const SERVICES_CONFIG = {
   apiEndpoint: '/api/services',
   resourceType: 'services',
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '22%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
-    { title: 'Type', dataIndex: 'type', width: '12%', sortable: false },
-    { title: 'Cluster IP', dataIndex: 'clusterIP', width: '15%', sortable: false },
-    { title: 'External IP', dataIndex: 'externalIP', width: '15%', sortable: false },
-    { title: 'Ports', dataIndex: 'ports', width: '13%', sortable: false },
+    { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
+    { title: 'Namespace', dataIndex: 'namespace', width: '18%', sortable: false },
+    { title: 'Type', dataIndex: 'type', width: '15%', sortable: false },
+    { title: 'Cluster IP', dataIndex: 'clusterIP', width: '18%', sortable: false },
+    { title: 'Ports', dataIndex: 'ports', width: '16%', sortable: false },
     { title: 'Age', dataIndex: 'age', width: '8%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
@@ -149,13 +169,27 @@ export const INGRESS_CONFIG = {
   apiEndpoint: '/api/ingress',
   resourceType: 'ingress',
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
-    { title: 'Class', dataIndex: 'class', width: '12%', sortable: false },
-    { title: 'Hosts', dataIndex: 'hosts', width: '18%', sortable: false },
-    { title: 'Address', dataIndex: 'address', width: '12%', sortable: false },
-    { title: 'Path', dataIndex: 'path', width: '10%', sortable: false },
-    { title: 'Age', dataIndex: 'age', width: '8%', sortable: false },
+    { title: 'Name', dataIndex: 'name', width: '20%', sortable: true },
+    { title: 'Namespace', dataIndex: 'namespace', width: '10%', sortable: false },
+    { title: 'Class', dataIndex: 'class', width: '10%', sortable: false },
+    { title: 'Hosts', dataIndex: 'hosts', width: '15%', sortable: false },
+    { 
+      title: 'Target Service', 
+      dataIndex: 'targetService', 
+      width: '15%', 
+      sortable: false,
+      render: (value: any) => {
+        // 去重展示
+        if (!value) return '-';
+        if (Array.isArray(value)) {
+          const unique = [...new Set(value)];
+          return unique.join(', ');
+        }
+        return value;
+      }
+    },
+    { title: 'Path', dataIndex: 'path', width: '25%', sortable: false },
+    { title: 'Age', dataIndex: 'age', width: '5%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
 };
