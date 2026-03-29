@@ -1,13 +1,70 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { YamlTabProps } from '../types';
 import { LoadingSpinner } from '../../LoadingSpinner';
 import { ErrorDisplay } from '../../ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
 import jsyaml from 'js-yaml';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-yaml';
+import ReactDiffViewer from 'react-diff-viewer-continued';
 import './YamlTab.css';
 
 /**
+ * 始终隐藏的字段（内部使用/已废弃）
+ */
+const ALWAYS_HIDDEN_FIELDS = [
+  'managedFields',           // 托管字段（已废弃）
+  'resourceVersion',         // 资源版本（内部使用，频繁变化）
+  'uid',                     // 唯一标识符（内部使用）
+  'selfLink',                // 自链接（已废弃）
+  'clusterName',             // 集群名称（通常为空）
+  'generation',              // 代次（内部使用）
+];
+
+/**
+ * 默认隐藏但可切换显示的字段（只读/高级功能）
+ */
+const DEFAULT_HIDDEN_FIELDS = [
+  'status',                  // 状态信息（只读）
+];
+
+/**
+ * YAML 显示选项
+ */
+interface YamlDisplayOptions {
+  showStatus: boolean;
+}
+
+/**
+ * 递归过滤 YAML 对象中的隐藏字段
+ */
+const filterHiddenFields = (obj: any, options: YamlDisplayOptions): any => {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(item => filterHiddenFields(item, options));
+  
+  const filtered: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    // 始终隐藏的字段
+    if (ALWAYS_HIDDEN_FIELDS.includes(key)) continue;
+    
+    // 根据选项隐藏字段
+    if (!options.showStatus && key === 'status') continue;
+    
+    filtered[key] = filterHiddenFields(value, options);
+  }
+  return filtered;
+};
+
+/**
  * YAML Tab - 查看/编辑 Pod YAML
+ * 功能：
+ * - 语法高亮显示
+ * - 行号显示
+ * - 复制功能
+ * - 编辑模式
+ * - Diff 对比
+ * - 保存/应用
+ * - 自动过滤无用字段
  */
 export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
   const [yamlContent, setYamlContent] = useState<string>('');
@@ -16,21 +73,29 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDiff, setShowDiff] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  
+  // YAML 显示选项
+  const [displayOptions, setDisplayOptions] = useState<YamlDisplayOptions>({
+    showStatus: false,
+  });
+  
+  const editorRef = useRef<HTMLPreElement>(null);
 
   // 加载 YAML
   const loadYaml = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await authFetch(`/api/pods/${namespace}/${name}/yaml`);
       const result = await response.json();
-      
+
       if (result.code === 0 && result.data) {
-        const yaml = typeof result.data === 'string' 
-          ? result.data 
+        const yaml = typeof result.data === 'string'
+          ? result.data
           : jsyaml.dump(result.data);
-        
+
         setYamlContent(yaml);
         setOriginalYaml(yaml);
       } else {
@@ -44,20 +109,47 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
   }, [namespace, name]);
 
   // 初始加载
-  React.useEffect(() => {
+  useEffect(() => {
     if (pod) {
-      const yaml = jsyaml.dump(pod);
+      // 过滤掉不需要的字段
+      const filteredPod = filterHiddenFields(pod, displayOptions);
+      
+      // 确保包含完整的 TypeMeta 字段
+      const podWithMeta = {
+        apiVersion: 'v1',
+        kind: 'Pod',
+        ...filteredPod,
+      };
+      const yaml = jsyaml.dump(podWithMeta, {
+        indent: 2,
+        lineWidth: -1, // 不限制行宽
+        noRefs: true,  // 不使用引用
+        quotingType: '"',
+        forceQuotes: false,
+      });
       setYamlContent(yaml);
       setOriginalYaml(yaml);
     } else {
       loadYaml();
     }
-  }, [pod, loadYaml]);
+  }, [pod, loadYaml, displayOptions]);
+
+  // 语法高亮
+  useEffect(() => {
+    if (editorRef.current && !editing) {
+      Prism.highlightAllUnder(editorRef.current);
+    }
+  }, [yamlContent, editing]);
 
   // 复制 YAML
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(yamlContent);
-    alert('YAML 已复制到剪贴板');
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(yamlContent);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      alert('复制失败');
+    }
   }, [yamlContent]);
 
   // 进入编辑模式
@@ -84,7 +176,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
         body: JSON.stringify({ yaml: parsed }),
       });
       const result = await response.json();
-      
+
       if (result.code === 0) {
         alert('YAML 已保存');
         setEditing(false);
@@ -102,7 +194,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
   // 应用更改
   const handleApply = useCallback(async () => {
     if (!window.confirm('确定要应用此 YAML 配置到集群吗？')) return;
-    
+
     setLoading(true);
     try {
       const parsed = jsyaml.load(yamlContent);
@@ -112,7 +204,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
         body: JSON.stringify(parsed),
       });
       const result = await response.json();
-      
+
       if (result.code === 0) {
         alert('配置已应用');
         setEditing(false);
@@ -142,61 +234,115 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
 
   return (
     <div className="yaml-tab">
+      {/* 工具栏 */}
       <div className="yaml-toolbar">
-        <span className="yaml-title">Pod YAML</span>
+        <div className="yaml-toolbar-left">
+          <span className="yaml-title">Pod YAML</span>
+          {editing && <span className="yaml-editing-badge">Editing</span>}
+        </div>
         <div className="yaml-toolbar-actions">
+          {/* 显示选项切换 */}
+          <div className="yaml-display-toggles">
+            <button 
+              className={`toolbar-btn toggle-btn ${displayOptions.showStatus ? 'active' : ''}`} 
+              onClick={() => setDisplayOptions(prev => ({ ...prev, showStatus: !prev.showStatus }))} 
+              title="Toggle Status field"
+            >
+              Status
+            </button>
+          </div>
+          
           {!editing ? (
             <>
-              <button className="toolbar-btn" onClick={handleCopy} title="复制">
-                📋 Copy
+              <button 
+                className={`toolbar-btn ${copySuccess ? 'success' : ''}`} 
+                onClick={handleCopy} 
+                title="Copy to clipboard"
+              >
+                {copySuccess ? 'Copied' : 'Copy'}
               </button>
-              <button className="toolbar-btn" onClick={handleEdit} title="编辑">
-                ✏️ Edit
+              <button className="toolbar-btn" onClick={handleEdit} title="Edit YAML">
+                Edit
               </button>
             </>
           ) : (
             <>
-              <button className="toolbar-btn" onClick={toggleDiff} title="对比">
-                ↔️ Diff
+              <button className="toolbar-btn" onClick={toggleDiff} title="Show diff">
+                {showDiff ? 'Hide Diff' : 'Show Diff'}
               </button>
-              <button className="toolbar-btn" onClick={handleSave} title="保存">
-                💾 Save
+              <button className="toolbar-btn" onClick={handleSave} title="Save changes">
+                Save
               </button>
-              <button className="toolbar-btn primary" onClick={handleApply} title="应用">
-                🚀 Apply
+              <button className="toolbar-btn primary" onClick={handleApply} title="Apply to cluster">
+                Apply
               </button>
-              <button className="toolbar-btn danger" onClick={handleCancel} title="取消">
-                ✖ Cancel
+              <button className="toolbar-btn danger" onClick={handleCancel} title="Cancel editing">
+                Cancel
               </button>
             </>
           )}
         </div>
       </div>
 
-      <div className="yaml-editor-container">
-        {editing ? (
+      {/* 编辑器/查看器 */}
+      {showDiff && editing ? (
+        <div className="diff-container">
+          <ReactDiffViewer
+            oldValue={originalYaml}
+            newValue={yamlContent}
+            splitView={true}
+            leftTitle="原始版本"
+            rightTitle="当前版本"
+            useDarkTheme={false}
+            styles={{
+              variables: {
+                light: {
+                  primaryBackgroundColor: '#fff',
+                  secondaryBackgroundColor: '#fafafa',
+                },
+              },
+              line: {
+                '&:hover': {
+                  background: 'rgba(0, 0, 0, 0.05)',
+                },
+              },
+              marker: {
+                markerBackground: 'rgba(0, 0, 0, 0.1)',
+              },
+            }}
+          />
+        </div>
+      ) : editing ? (
+        <div className="yaml-editor-container">
           <textarea
-            className="yaml-editor"
+            className="yaml-editor-textarea"
             value={yamlContent}
             onChange={(e) => setYamlContent(e.target.value)}
             spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
           />
-        ) : (
-          <pre className="yaml-editor" contentEditable={false}>
-            <code>{yamlContent}</code>
+        </div>
+      ) : (
+        <div className="yaml-editor-container">
+          <pre className="yaml-editor-pre" ref={editorRef}>
+            <code className="language-yaml">{yamlContent}</code>
           </pre>
-        )}
-      </div>
-
-      {showDiff && editing && (
-        <div className="diff-container">
-          <div className="diff-header">YAML Diff</div>
-          <div className="diff-view">
-            {/* 简化的 Diff 展示 */}
-            <pre className="diff-content">{yamlContent}</pre>
-          </div>
         </div>
       )}
+
+      {/* Status Bar */}
+      <div className="yaml-status-bar">
+        <span className="yaml-status-info">
+          Lines: {yamlContent.split('\n').length} |
+          Chars: {yamlContent.length}
+        </span>
+        {editing && (
+          <span className="yaml-dirty-indicator">
+            {yamlContent !== originalYaml ? '● Modified' : '○ Unmodified'}
+          </span>
+        )}
+      </div>
     </div>
   );
 };

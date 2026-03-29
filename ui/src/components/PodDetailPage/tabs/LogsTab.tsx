@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { LogsTabProps } from '../types';
 import { LoadingSpinner } from '../../LoadingSpinner';
 import { ErrorDisplay } from '../../ErrorDisplay';
@@ -6,291 +6,388 @@ import { authFetch } from '../../../utils/auth';
 import './LogsTab.css';
 
 const TIME_OPTIONS = [
-  { value: '5m', label: '5 分钟' },
-  { value: '15m', label: '15 分钟' },
-  { value: '30m', label: '30 分钟' },
-  { value: '1h', label: '1 小时' },
-  { value: '4h', label: '4 小时' },
-  { value: '1d', label: '1 天' },
+  { value: '5m', label: '5m' },
+  { value: '15m', label: '15m' },
+  { value: '30m', label: '30m' },
+  { value: '1h', label: '1h' },
+  { value: '4h', label: '4h' },
+  { value: '1d', label: '1d' },
 ];
 
+// Performance: max log lines to display
+const MAX_LOG_LINES = 1000;
+// Virtual scrolling: line height in pixels
+const LINE_HEIGHT = 23;
+// Virtual scrolling: overscan rows
+const OVERSCAN_ROWS = 20;
+
 /**
- * Logs Tab - 日志查看
+ * Remove ANSI escape sequences from string
+ */
+const stripAnsiCodes = (str: string): string => {
+  return str.replace(/\x1b\[[0-9;]*m/g, '');
+};
+
+/**
+ * Logs Tab - Log Viewer
+ * Performance optimizations:
+ * - Virtual scrolling: only render visible rows
+ * - useMemo: cache search results
+ * - Line limit: max 1000 lines displayed
  */
 export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers }) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // 过滤选项
   const [selectedContainer, setSelectedContainer] = useState<string>('');
   const [since, setSince] = useState<string>('30m');
   const [previous, setPrevious] = useState(false);
   const [timestamps, setTimestamps] = useState(false);
   const [wrapLines, setWrapLines] = useState(true);
-  
+
   // 搜索
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<number[]>([]);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
-  
+
+  // 虚拟滚动
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(500);
+
   const logsEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // 设置默认容器
+  // Set default container
   useEffect(() => {
-    if (containers.length === 1) {
+    if (containers.length > 0 && !selectedContainer) {
       setSelectedContainer(containers[0].name);
     }
-  }, [containers]);
+  }, [containers, selectedContainer]);
 
-  // 加载日志
+  // Limit log lines
+  const limitedLogs = useMemo(() => {
+    if (logs.length <= MAX_LOG_LINES) return logs;
+    return logs.slice(logs.length - MAX_LOG_LINES);
+  }, [logs]);
+
+  const offset = useMemo(() => {
+    return logs.length > MAX_LOG_LINES ? logs.length - MAX_LOG_LINES : 0;
+  }, [logs]);
+
+  // Load logs
   const loadLogs = useCallback(async () => {
     if (!selectedContainer) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const params = new URLSearchParams({
         since,
         previous: previous.toString(),
         timestamps: timestamps.toString(),
       });
-      
+
       const response = await authFetch(
         `/api/pods/${namespace}/${name}/logs?container=${selectedContainer}&${params}`
       );
       const result = await response.json();
-      
+
       if (result.code === 0 && result.data) {
-        const logLines = typeof result.data === 'string' 
+        const logLines = typeof result.data === 'string'
           ? result.data.split('\n')
           : result.data;
-        
-        setLogs(logLines);
+
+        // Filter ANSI escape sequences
+        const cleanedLogs = logLines.map(line => stripAnsiCodes(line));
+        setLogs(cleanedLogs);
       } else {
-        setError(result.message || '加载日志失败');
+        setError(result.message || 'Failed to load logs');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败');
+      setError(err instanceof Error ? err.message : 'Load failed');
     } finally {
       setLoading(false);
     }
   }, [namespace, name, selectedContainer, since, previous, timestamps]);
 
-  // 初始加载和过滤条件变化时加载日志
+  // Load logs when filter options change
   useEffect(() => {
     if (selectedContainer) {
       loadLogs();
     }
   }, [selectedContainer, since, previous, timestamps, loadLogs]);
 
-  // 滚动到底部
+  // Scroll to bottom on initial load only
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
-
-  // 搜索日志
-  const handleSearch = useCallback(() => {
-    if (!searchTerm) {
-      setSearchResults([]);
-      setCurrentSearchIndex(0);
-      return;
+    if (logs.length > 0 && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-    
+  }, []);
+
+  // Handle container scroll
+  const handleScroll = useCallback(() => {
+    if (containerRef.current) {
+      setScrollTop(containerRef.current.scrollTop);
+      setContainerHeight(containerRef.current.clientHeight);
+    }
+  }, []);
+
+  // Search logs - memoized (real-time search as you type)
+  const searchResults = useMemo(() => {
+    if (!searchTerm || limitedLogs.length === 0) return [];
+
     const results: number[] = [];
-    logs.forEach((line, index) => {
+    limitedLogs.forEach((line, index) => {
       if (line.toLowerCase().includes(searchTerm.toLowerCase())) {
         results.push(index);
       }
     });
-    
-    setSearchResults(results);
-    setCurrentSearchIndex(0);
-    
-    // 滚动到第一个匹配项
-    if (results.length > 0 && logsEndRef.current) {
-      const element = document.getElementById(`log-line-${results[0]}`);
-      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [searchTerm, logs]);
+    return results;
+  }, [searchTerm, limitedLogs]);
 
-  // 下一个匹配项
+  // Reset search index when search results change
+  useEffect(() => {
+    setCurrentSearchIndex(0);
+  }, [searchResults.length]);
+
+  // Next match
   const handleNext = useCallback(() => {
     if (searchResults.length === 0) return;
-    
     const nextIndex = (currentSearchIndex + 1) % searchResults.length;
     setCurrentSearchIndex(nextIndex);
-    
     const element = document.getElementById(`log-line-${searchResults[nextIndex]}`);
     element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [searchResults, currentSearchIndex]);
 
-  // 复制日志
+  // Copy logs
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(logs.join('\n'));
-    alert('日志已复制');
-  }, [logs]);
+    navigator.clipboard.writeText(limitedLogs.join('\n'));
+    alert('Logs copied to clipboard');
+  }, [limitedLogs]);
 
-  // 下载日志
+  // Download logs
   const handleDownload = useCallback(() => {
-    const blob = new Blob([logs.join('\n')], { type: 'text/plain' });
+    const blob = new Blob([limitedLogs.join('\n')], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `${name}-${selectedContainer}-logs.txt`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [logs, name, selectedContainer]);
+  }, [limitedLogs, name, selectedContainer]);
 
-  // 清空日志
+  // Clear logs
   const handleClear = useCallback(() => {
     setLogs([]);
   }, []);
 
-  // 高亮搜索词
-  const highlightSearch = (line: string, index: number) => {
-    if (!searchTerm || !searchResults.includes(index)) {
-      return line;
-    }
-    
-    const parts = line.split(new RegExp(`(${searchTerm})`, 'gi'));
-    return parts.map((part, i) => 
-      part.toLowerCase() === searchTerm.toLowerCase() 
-        ? <mark key={i}>{part}</mark> 
-        : part
-    );
-  };
+  // Render log lines with virtual scrolling
+  const renderedLines = useMemo(() => {
+    // Wrap mode: render all lines (virtual scrolling not suitable for variable height)
+    if (wrapLines) {
+      const searchLower = searchTerm.toLowerCase();
+      const lines: React.ReactNode[] = limitedLogs.map((line, i) => {
+        const actualIndex = i + offset;
+        const isMatch = searchTerm && line.toLowerCase().includes(searchLower);
+        const isInSearchResults = searchResults.includes(i);
 
-  // 获取日志行样式
-  const getLineClass = (line: string, index: number) => {
-    const classes = ['log-line'];
-    
-    if (searchResults.includes(index)) {
-      classes.push('highlight');
+        let className = 'log-line';
+        if (isInSearchResults) className += ' highlight';
+        if (line.toLowerCase().includes('error')) className += ' error';
+        else if (line.toLowerCase().includes('warn')) className += ' warn';
+        else if (line.toLowerCase().includes('info')) className += ' info';
+
+        let content: React.ReactNode = line;
+        if (isMatch && searchTerm) {
+          const parts = line.split(new RegExp(`(${searchTerm})`, 'gi'));
+          content = parts.map((part, j) =>
+            part.toLowerCase() === searchLower
+              ? <mark key={j}>{part}</mark>
+              : part
+          );
+        }
+
+        return (
+          <div
+            key={actualIndex}
+            id={`log-line-${actualIndex}`}
+            className={className}
+          >
+            {content}
+          </div>
+        );
+      });
+      return { lines, visibleStart: 0, visibleEnd: lines.length };
     }
-    
-    if (line.toLowerCase().includes('error')) {
-      classes.push('error');
-    } else if (line.toLowerCase().includes('warn')) {
-      classes.push('warn');
-    } else if (line.toLowerCase().includes('info')) {
-      classes.push('info');
+
+    // Non-wrap mode: use virtual scrolling
+    const visibleStart = Math.max(0, Math.floor(scrollTop / LINE_HEIGHT) - OVERSCAN_ROWS);
+    const visibleEnd = Math.min(
+      limitedLogs.length,
+      Math.ceil((scrollTop + containerHeight) / LINE_HEIGHT) + OVERSCAN_ROWS
+    );
+
+    const searchLower = searchTerm.toLowerCase();
+
+    const lines: React.ReactNode[] = [];
+    for (let i = visibleStart; i < visibleEnd; i++) {
+      const line = limitedLogs[i];
+      const actualIndex = i + offset;
+      const isMatch = searchTerm && line.toLowerCase().includes(searchLower);
+      const isInSearchResults = searchResults.includes(i);
+
+      // Determine class name
+      let className = 'log-line';
+      if (isInSearchResults) className += ' highlight';
+      if (line.toLowerCase().includes('error')) className += ' error';
+      else if (line.toLowerCase().includes('warn')) className += ' warn';
+      else if (line.toLowerCase().includes('info')) className += ' info';
+
+      // Highlight search term
+      let content: React.ReactNode = line;
+      if (isMatch && searchTerm) {
+        const parts = line.split(new RegExp(`(${searchTerm})`, 'gi'));
+        content = parts.map((part, j) =>
+          part.toLowerCase() === searchLower
+            ? <mark key={j}>{part}</mark>
+            : part
+        );
+      }
+
+      lines.push(
+        <div
+          key={actualIndex}
+          id={`log-line-${actualIndex}`}
+          className={className}
+          style={wrapLines ? {} : { height: `${LINE_HEIGHT}px` }}
+        >
+          {content}
+        </div>
+      );
     }
-    
-    return classes.join(' ');
-  };
+
+    return { lines, visibleStart, visibleEnd };
+  }, [limitedLogs, scrollTop, containerHeight, searchTerm, searchResults, offset, wrapLines]);
 
   return (
     <div className="logs-tab">
-      {/* 搜索和过滤栏 */}
-      <div className="search-bar">
+      {/* Search and Filter Bar */}
+      <div className="filter-options">
         <div className="search-input-wrapper">
           <input
             ref={searchInputRef}
             type="text"
             className="search-input"
-            placeholder="搜索日志..."
+            placeholder="Search logs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
-          <button className="search-btn" onClick={handleSearch}>
-            搜索
-          </button>
+          {searchTerm && (
+            <button className="search-btn clear-btn" onClick={() => setSearchTerm('')}>
+              ✕
+            </button>
+          )}
           {searchResults.length > 0 && (
             <button className="search-btn" onClick={handleNext}>
-              下一个 ({currentSearchIndex + 1}/{searchResults.length})
+              Next ({currentSearchIndex + 1}/{searchResults.length})
             </button>
           )}
         </div>
-        
-        <div className="filter-options">
-          {containers.length > 1 && (
-            <div className="filter-option">
-              <label>容器:</label>
-              <select value={selectedContainer} onChange={(e) => setSelectedContainer(e.target.value)}>
-                {containers.map((c) => (
-                  <option key={c.name} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          
+
+        {containers.length > 1 && (
           <div className="filter-option">
-            <label>时间:</label>
-            <select value={since} onChange={(e) => setSince(e.target.value)}>
-              {TIME_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <label>Container:</label>
+            <select value={selectedContainer} onChange={(e) => setSelectedContainer(e.target.value)}>
+              {containers.map((c) => (
+                <option key={c.name} value={c.name}>{c.name}</option>
               ))}
             </select>
           </div>
-          
-          <div className="filter-option">
-            <label>
-              <input
-                type="checkbox"
-                checked={previous}
-                onChange={(e) => setPrevious(e.target.checked)}
-              />
-              Previous
-            </label>
-          </div>
-          
-          <div className="filter-option">
-            <label>
-              <input
-                type="checkbox"
-                checked={timestamps}
-                onChange={(e) => setTimestamps(e.target.checked)}
-              />
-              时间戳
-            </label>
-          </div>
-          
-          <div className="filter-option">
-            <label>
-              <input
-                type="checkbox"
-                checked={wrapLines}
-                onChange={(e) => setWrapLines(e.target.checked)}
-              />
-              自动换行
-            </label>
-          </div>
+        )}
+
+        <div className="filter-option">
+          <label>Time:</label>
+          <select value={since} onChange={(e) => setSince(e.target.value)}>
+            {TIME_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="filter-option">
+          <label>
+            <input
+              type="checkbox"
+              checked={previous}
+              onChange={(e) => setPrevious(e.target.checked)}
+            />
+            Previous
+          </label>
+        </div>
+
+        <div className="filter-option">
+          <label>
+            <input
+              type="checkbox"
+              checked={timestamps}
+              onChange={(e) => setTimestamps(e.target.checked)}
+            />
+            Timestamps
+          </label>
+        </div>
+
+        <div className="filter-option">
+          <label>
+            <input
+              type="checkbox"
+              checked={wrapLines}
+              onChange={(e) => setWrapLines(e.target.checked)}
+            />
+            Wrap Lines
+          </label>
+        </div>
+
+        <div className="filter-actions">
+          <button className="toolbar-btn" onClick={handleDownload}>Download</button>
+          <button className="toolbar-btn" onClick={handleClear}>Clear</button>
+          <span className="logs-count">
+            {logs.length} lines {logs.length > MAX_LOG_LINES && `(last ${MAX_LOG_LINES})`}
+          </span>
         </div>
       </div>
 
-      {/* 操作按钮 */}
-      <div className="logs-actions">
-        <button className="toolbar-btn" onClick={handleCopy}>📋 复制</button>
-        <button className="toolbar-btn" onClick={handleDownload}>⬇️ 下载</button>
-        <button className="toolbar-btn" onClick={handleClear}>🗑️ 清空</button>
-        <span className="logs-count">共 {logs.length} 行</span>
-      </div>
-
-      {/* 日志内容 */}
+      {/* Log Content */}
       {loading && logs.length === 0 ? (
-        <LoadingSpinner text="加载日志..." size="lg" />
+        <LoadingSpinner text="Loading logs..." size="lg" />
       ) : error ? (
         <ErrorDisplay message={error} type="error" showRetry onRetry={loadLogs} />
       ) : logs.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state-icon">📭</span>
-          <span className="empty-state-text">暂无日志</span>
+          <span className="empty-state-text">No logs available</span>
         </div>
       ) : (
-        <div className={`log-container ${wrapLines ? 'wrap-lines' : ''}`}>
-          {logs.map((line, index) => (
-            <div
-              key={index}
-              id={`log-line-${index}`}
-              className={getLineClass(line, index)}
-            >
-              {highlightSearch(line, index)}
-            </div>
-          ))}
+        <div
+          ref={containerRef}
+          className={`log-container ${wrapLines ? 'wrap-lines' : ''}`}
+          onScroll={handleScroll}
+        >
+          {/* Virtual scrolling: top spacer (non-wrap mode only) */}
+          {!wrapLines && (
+            <div style={{ height: `${renderedLines.visibleStart * LINE_HEIGHT}px` }} />
+          )}
+
+          {/* Log lines */}
+          {renderedLines.lines}
+
+          {/* Virtual scrolling: bottom spacer (non-wrap mode only) */}
+          {!wrapLines && (
+            <div style={{ height: `${(limitedLogs.length - renderedLines.visibleEnd) * LINE_HEIGHT}px` }} />
+          )}
+
           <div ref={logsEndRef} />
         </div>
       )}

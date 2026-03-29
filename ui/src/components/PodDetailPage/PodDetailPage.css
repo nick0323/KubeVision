@@ -372,8 +372,85 @@
   color: #ff4d4f;
 }
 
-/* 日志终端样式 */
-.log-container,
+/* 日志容器样式 - 浅色主题 */
+.log-container {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace, var(--font-family);
+  font-size: 13px;
+  line-height: 1.8;
+  height: 500px;
+  overflow: auto;
+  color: #262626;
+  border: 1px solid #bae7ff;
+  box-sizing: border-box;
+}
+
+.log-container.wrap-lines .log-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-container:not(.wrap-lines) .log-line {
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.log-line {
+  min-height: 1.6em;
+  padding: 2px 0;
+  display: block;
+}
+
+.log-line.error {
+  color: #d9363e;
+}
+
+.log-line.warn {
+  color: #d48806;
+}
+
+.log-line.info {
+  color: #096dd9;
+}
+
+.log-line.debug {
+  color: #595959;
+}
+
+.log-line mark {
+  background: rgba(255, 214, 0, 0.5);
+  color: inherit;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.log-line.highlight {
+  background: rgba(255, 214, 0, 0.3);
+}
+
+/* 滚动条样式 */
+.log-container::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.log-container::-webkit-scrollbar-track {
+  background: #e8e8e8;
+  border-radius: 5px;
+}
+
+.log-container::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 5px;
+}
+
+.log-container::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* 终端容器样式 - 保持深色主题 */
 .terminal-container {
   background: #1e1e1e;
   border-radius: 6px;
@@ -383,116 +460,13 @@
   line-height: 1.6;
   height: 500px;
   overflow: auto;
-}
-
-.log-line {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.log-line.error {
-  color: #ff6b6b;
-}
-
-.log-line.warn {
-  color: #ffd93d;
-}
-
-.log-line.info {
-  color: #6bc9ff;
-}
-
-.log-line.debug {
-  color: #8c8c8c;
-}
-
-.log-line.highlight {
-  background: rgba(255, 255, 0, 0.2);
-}
-
-/* 搜索栏 */
-.search-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.search-input-wrapper {
-  display: flex;
-  flex: 1;
-  min-width: 200px;
-}
-
-.search-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px 0 0 6px;
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.search-input:focus {
-  border-color: #1890ff;
-}
-
-.search-btn {
-  padding: 8px 16px;
-  border: 1px solid #1890ff;
-  border-left: none;
-  border-radius: 0 6px 6px 0;
-  background: #1890ff;
-  color: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.2s;
-}
-
-.search-btn:hover {
-  background: #40a9ff;
-}
-
-/* 过滤选项 */
-.filter-options {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.filter-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #595959;
-}
-
-.filter-option select {
-  padding: 6px 10px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  font-size: 13px;
-  outline: none;
-  cursor: pointer;
-}
-
-.filter-option select:focus {
-  border-color: #1890ff;
-}
-
-.filter-option input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+  color: #d4d4d4;
 }
 
 /* YAML 编辑器 */
 .yaml-editor-container {
   position: relative;
-  border: 1px solid #d9d9d9;
+  border: 1px solid #bae7ff;
   border-radius: 6px;
   overflow: hidden;
 }

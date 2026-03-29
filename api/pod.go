@@ -7,6 +7,7 @@ import (
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
+	"github.com/nick0323/K8sVision/tools"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -110,6 +111,8 @@ func getPodLogs(
 		tailLines := c.Query("tailLines")
 		timestamps := c.Query("timestamps")
 		follow := c.Query("follow")
+		since := c.Query("since")
+		previous := c.Query("previous")
 
 		// 构建日志选项
 		opts := &v1.PodLogOptions{}
@@ -122,10 +125,18 @@ func getPodLogs(
 		if follow == "true" {
 			opts.Follow = true
 		}
+		if previous == "true" {
+			opts.Previous = true
+		}
 		if tailLines != "" && tailLines != "0" {
 			var lines int64
 			if _, err := fmt.Sscanf(tailLines, "%d", &lines); err == nil && lines > 0 {
 				opts.TailLines = &lines
+			}
+		}
+		if since != "" {
+			if seconds := tools.ParseSinceSeconds(since); seconds > 0 {
+				opts.SinceSeconds = &seconds
 			}
 		}
 

@@ -1,9 +1,3 @@
-/**
- * KubeVision 页面配置规范 - 排序字段优化版
- * 基于 Kubernetes 资源列表展示最佳实践
- * 优化说明：移除不必要的排序字段，提升性能 43%
- * 文档：SORT_OPTIMIZATION.md
- */
 import { Column } from '../types';
 
 // 扩展 Column 类型以支持 sortable
@@ -41,7 +35,7 @@ export const DEPLOYMENTS_CONFIG = {
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
-    { title: 'Status', dataIndex: 'status', width: '10%', sortable: true },
+    { title: 'Status', dataIndex: 'status', width: '15%', sortable: true },
     {
       title: 'Ready',
       dataIndex: 'readyReplicas',
@@ -49,9 +43,9 @@ export const DEPLOYMENTS_CONFIG = {
       sortable: false,
       render: (value: any, record: any) => `${value}/${record.desiredReplicas || 0}`
     },
-    { title: 'Restarts', dataIndex: 'restarts', width: '10%', sortable: true },
-    { title: 'Up-to-date', dataIndex: 'updatedReplicas', width: '10%', sortable: false },
+    { title: 'Up To Date', dataIndex: 'updatedReplicas', width: '10%', sortable: false },
     { title: 'Available', dataIndex: 'availableReplicas', width: '10%', sortable: false },
+    { title: 'Restarts', dataIndex: 'restarts', width: '5%', sortable: true },
     { title: 'Age', dataIndex: 'age', width: '10%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
