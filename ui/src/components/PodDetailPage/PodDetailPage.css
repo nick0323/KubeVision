@@ -1,4 +1,4 @@
-/* Pod 详情页样式 */
+/* Pod 详情页样�?*/
 .pod-detail-page {
   display: flex;
   flex-direction: column;
@@ -108,7 +108,7 @@
   color: #096dd9;
 }
 
-/* 状态徽章 */
+/* 状态徽�?*/
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -214,7 +214,7 @@
   padding: 16px;
 }
 
-/* 子模块 */
+/* 子模�?*/
 .sub-module {
   margin-bottom: 16px;
   padding-bottom: 16px;
@@ -323,7 +323,7 @@
   color: #1890ff;
 }
 
-/* 空状态 */
+/* 空状�?*/
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -341,7 +341,7 @@
   font-size: 14px;
 }
 
-/* 操作按钮组 */
+/* 操作按钮�?*/
 .action-btn-group {
   display: flex;
   gap: 8px;
@@ -377,7 +377,7 @@
   background: #fafafa;
   border-radius: 8px;
   padding: 16px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace, var(--font-family);
+  font-family: var(--font-main);
   font-size: 13px;
   line-height: 1.8;
   height: 500px;
@@ -401,6 +401,12 @@
   min-height: 1.6em;
   padding: 2px 0;
   display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-line span {
+  font-family: var(--font-main);
 }
 
 .log-line.error {
@@ -430,7 +436,20 @@
   background: rgba(255, 214, 0, 0.3);
 }
 
-/* 滚动条样式 */
+.log-line.highlight-flash {
+  animation: highlight-flash 0.5s ease;
+}
+
+@keyframes highlight-flash {
+  0%, 100% {
+    background: rgba(255, 214, 0, 0.3);
+  }
+  50% {
+    background: rgba(255, 214, 0, 0.6);
+  }
+}
+
+/* 滚动条样�?*/
 .log-container::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -450,20 +469,7 @@
   background: #999;
 }
 
-/* 终端容器样式 - 保持深色主题 */
-.terminal-container {
-  background: #1e1e1e;
-  border-radius: 6px;
-  padding: 16px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  height: 500px;
-  overflow: auto;
-  color: #d4d4d4;
-}
-
-/* YAML 编辑器 */
+/* YAML 编辑�?*/
 .yaml-editor-container {
   position: relative;
   border: 1px solid #bae7ff;
@@ -492,134 +498,62 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #bae7ff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .yaml-toolbar-actions {
   display: flex;
   gap: 8px;
-}
-
-.toolbar-btn {
-  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+}
+
+/* 统计卡片 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin: 0 0 10px 0;
+}
+
+.stat-card {
   background: #fff;
-  color: #595959;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: left;
 }
 
-.toolbar-btn:hover {
-  border-color: #1890ff;
-  color: #1890ff;
-}
-
-.toolbar-btn.primary {
-  background: #1890ff;
-  border-color: #1890ff;
-  color: #fff;
-}
-
-.toolbar-btn.primary:hover {
-  background: #40a9ff;
-}
-
-.toolbar-btn.danger {
-  color: #ff4d4f;
-}
-
-.toolbar-btn.danger:hover {
-  border-color: #ff4d4f;
-  background: #fff1f0;
-}
-
-/* Diff 视图 */
-.diff-view {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.diff-line {
-  padding: 2px 12px;
-  white-space: pre;
-}
-
-.diff-line.added {
-  background: #f6ffed;
-  color: #52c41a;
-}
-
-.diff-line.removed {
-  background: #fff2f0;
-  color: #ff4d4f;
-}
-
-.diff-line.unchanged {
-  color: #595959;
-}
-
-/* 关联资源 */
-.related-section {
-  margin-bottom: 24px;
-}
-
-.related-section-title {
-  font-size: 14px;
+.stat-value {
+  font-size: 24px;
   font-weight: 600;
   color: #262626;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  margin-bottom: 4px;
 }
 
-.related-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.related-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  background: #fafafa;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.related-item:hover {
-  background: #e6f7ff;
-  transform: translateX(4px);
-}
-
-.related-item-icon {
-  font-size: 20px;
-  margin-right: 12px;
-}
-
-.related-item-type {
+.stat-label {
   font-size: 12px;
   color: #8c8c8c;
-  margin-right: 8px;
 }
 
-.related-item-name {
-  font-size: 14px;
-  color: #262626;
-  font-weight: 500;
+.stat-card.warning .stat-value {
+  color: #faad14;
+}
+
+.stat-card.error .stat-value {
+  color: #ff4d4f;
 }
 
 /* 事件列表 */
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .event-item {
   display: flex;
   gap: 16px;
@@ -689,93 +623,4 @@
   gap: 16px;
   font-size: 12px;
   color: #8c8c8c;
-}
-
-/* 统计卡片 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin: 0 0 10px 0;
-}
-
-.stat-card {
-  background: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px;
-  text-align: left;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: #262626;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.stat-card.warning .stat-value {
-  color: #faad14;
-}
-
-.stat-card.error .stat-value {
-  color: #ff4d4f;
-}
-
-/* 终端 */
-.xterm-wrapper {
-  height: 100%;
-  padding: 16px;
-  background: #1e1e1e;
-  border-radius: 6px;
-}
-
-.terminal-toolbar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.terminal-select {
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  font-size: 13px;
-  outline: none;
-  background: #fff;
-  cursor: pointer;
-}
-
-.terminal-select:focus {
-  border-color: #1890ff;
-}
-
-.terminal-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #595959;
-}
-
-.terminal-status.connected {
-  color: #52c41a;
-}
-
-.terminal-status.disconnected {
-  color: #ff4d4f;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
 }

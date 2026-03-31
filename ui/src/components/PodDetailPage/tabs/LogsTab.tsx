@@ -3,15 +3,14 @@ import { LogsTabProps } from '../types';
 import { LoadingSpinner } from '../../LoadingSpinner';
 import { ErrorDisplay } from '../../ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
+import { FaCog, FaDownload, FaTrash, FaChevronDown, FaEraser } from 'react-icons/fa';
+import NamespaceSelect from '../../NamespaceSelect';
 import './LogsTab.css';
 
-const TIME_OPTIONS = [
-  { value: '5m', label: '5m' },
-  { value: '15m', label: '15m' },
-  { value: '30m', label: '30m' },
-  { value: '1h', label: '1h' },
-  { value: '4h', label: '4h' },
-  { value: '1d', label: '1d' },
+const LINES_OPTIONS = [
+  { value: '100', label: '100' },
+  { value: '200', label: '200' },
+  { value: '500', label: '500' },
 ];
 
 // Performance: max log lines to display
@@ -41,8 +40,10 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const [error, setError] = useState<string | null>(null);
 
   // 过滤选项
-  const [selectedContainer, setSelectedContainer] = useState<string>('');
-  const [since, setSince] = useState<string>('30m');
+  const [selectedContainer, setSelectedContainer] = useState<string>(
+    containers.length > 0 ? containers[0].name : ''
+  );
+  const [tailLines, setTailLines] = useState<string>('100');
   const [previous, setPrevious] = useState(false);
   const [timestamps, setTimestamps] = useState(false);
   const [wrapLines, setWrapLines] = useState(true);
@@ -51,20 +52,42 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
 
-  // 虚拟滚动
+  // 设置面板
+  const [showSettings, setShowSettings] = useState(false);
+  
+  // Tail Lines 下拉
+  const [showLinesDropdown, setShowLinesDropdown] = useState(false);
+  const linesRef = useRef<HTMLDivElement>(null);
+  
+  // 点击外部关闭 Tail Lines 下拉
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (linesRef.current && !linesRef.current.contains(event.target as Node)) {
+        setShowLinesDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(500);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
-  // Set default container
+  // 点击外部关闭设置面板
   useEffect(() => {
-    if (containers.length > 0 && !selectedContainer) {
-      setSelectedContainer(containers[0].name);
-    }
-  }, [containers, selectedContainer]);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setShowSettings(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Limit log lines
   const limitedLogs = useMemo(() => {
@@ -85,24 +108,32 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
     try {
       const params = new URLSearchParams({
-        since,
+        container: selectedContainer,
+        tailLines,
         previous: previous.toString(),
         timestamps: timestamps.toString(),
       });
 
       const response = await authFetch(
-        `/api/pods/${namespace}/${name}/logs?container=${selectedContainer}&${params}`
+        `/api/pods/${namespace}/${name}/logs?${params}`
       );
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        const logLines = typeof result.data === 'string'
+        let logLines = typeof result.data === 'string'
           ? result.data.split('\n')
           : result.data;
 
-        // Filter ANSI escape sequences
+        // 移除末尾空行
+        if (logLines.length > 0 && logLines[logLines.length - 1].trim() === '') {
+          logLines = logLines.slice(0, -1);
+        }
+
+        // Remove ANSI escape sequences
         const cleanedLogs = logLines.map(line => stripAnsiCodes(line));
-        setLogs(cleanedLogs);
+
+        // 倒序排列（最新的在前）
+        setLogs(cleanedLogs.reverse());
       } else {
         setError(result.message || 'Failed to load logs');
       }
@@ -111,14 +142,14 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     } finally {
       setLoading(false);
     }
-  }, [namespace, name, selectedContainer, since, previous, timestamps]);
+  }, [namespace, name, selectedContainer, tailLines, previous, timestamps]);
 
   // Load logs when filter options change
   useEffect(() => {
     if (selectedContainer) {
       loadLogs();
     }
-  }, [selectedContainer, since, previous, timestamps, loadLogs]);
+  }, [selectedContainer, tailLines, previous, timestamps, loadLogs]);
 
   // Scroll to bottom on initial load only
   useEffect(() => {
@@ -137,16 +168,18 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
   // Search logs - memoized (real-time search as you type)
   const searchResults = useMemo(() => {
-    if (!searchTerm || limitedLogs.length === 0) return [];
+    if (!searchTerm || searchTerm.trim() === '' || limitedLogs.length === 0) return [];
 
     const results: number[] = [];
+    const searchLower = searchTerm.toLowerCase().trim();
     limitedLogs.forEach((line, index) => {
-      if (line.toLowerCase().includes(searchTerm.toLowerCase())) {
-        results.push(index);
+      if (line.toLowerCase().includes(searchLower)) {
+        // 存储实际索引（与 DOM id 一致）
+        results.push(index + offset);
       }
     });
     return results;
-  }, [searchTerm, limitedLogs]);
+  }, [searchTerm, limitedLogs, offset]);
 
   // Reset search index when search results change
   useEffect(() => {
@@ -158,8 +191,18 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     if (searchResults.length === 0) return;
     const nextIndex = (currentSearchIndex + 1) % searchResults.length;
     setCurrentSearchIndex(nextIndex);
-    const element = document.getElementById(`log-line-${searchResults[nextIndex]}`);
-    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // 使用 setTimeout 确保状态更新后再滚动
+    setTimeout(() => {
+      // searchResults 现在存储的是实际索引（与 DOM id 一致）
+      const actualIndex = searchResults[nextIndex];
+      const element = document.getElementById(`log-line-${actualIndex}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.classList.add('highlight-flash');
+        setTimeout(() => element.classList.remove('highlight-flash'), 500);
+      }
+    }, 50);
   }, [searchResults, currentSearchIndex]);
 
   // Copy logs
@@ -192,7 +235,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       const lines: React.ReactNode[] = limitedLogs.map((line, i) => {
         const actualIndex = i + offset;
         const isMatch = searchTerm && line.toLowerCase().includes(searchLower);
-        const isInSearchResults = searchResults.includes(i);
+        const isInSearchResults = searchResults.includes(actualIndex);
 
         let className = 'log-line';
         if (isInSearchResults) className += ' highlight';
@@ -200,23 +243,13 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
         else if (line.toLowerCase().includes('warn')) className += ' warn';
         else if (line.toLowerCase().includes('info')) className += ' info';
 
-        let content: React.ReactNode = line;
-        if (isMatch && searchTerm) {
-          const parts = line.split(new RegExp(`(${searchTerm})`, 'gi'));
-          content = parts.map((part, j) =>
-            part.toLowerCase() === searchLower
-              ? <mark key={j}>{part}</mark>
-              : part
-          );
-        }
-
         return (
           <div
             key={actualIndex}
             id={`log-line-${actualIndex}`}
             className={className}
           >
-            {content}
+            {line}
           </div>
         );
       });
@@ -237,25 +270,13 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       const line = limitedLogs[i];
       const actualIndex = i + offset;
       const isMatch = searchTerm && line.toLowerCase().includes(searchLower);
-      const isInSearchResults = searchResults.includes(i);
+      const isInSearchResults = searchResults.includes(actualIndex);
 
-      // Determine class name
       let className = 'log-line';
       if (isInSearchResults) className += ' highlight';
       if (line.toLowerCase().includes('error')) className += ' error';
       else if (line.toLowerCase().includes('warn')) className += ' warn';
       else if (line.toLowerCase().includes('info')) className += ' info';
-
-      // Highlight search term
-      let content: React.ReactNode = line;
-      if (isMatch && searchTerm) {
-        const parts = line.split(new RegExp(`(${searchTerm})`, 'gi'));
-        content = parts.map((part, j) =>
-          part.toLowerCase() === searchLower
-            ? <mark key={j}>{part}</mark>
-            : part
-        );
-      }
 
       lines.push(
         <div
@@ -264,7 +285,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
           className={className}
           style={wrapLines ? {} : { height: `${LINE_HEIGHT}px` }}
         >
-          {content}
+          {line}
         </div>
       );
     }
@@ -276,86 +297,119 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     <div className="logs-tab">
       {/* Search and Filter Bar */}
       <div className="filter-options">
-        <div className="search-input-wrapper">
-          <input
-            ref={searchInputRef}
-            type="text"
-            className="search-input"
-            placeholder="Search logs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <button className="search-btn clear-btn" onClick={() => setSearchTerm('')}>
-              ✕
-            </button>
-          )}
-          {searchResults.length > 0 && (
-            <button className="search-btn" onClick={handleNext}>
-              Next ({currentSearchIndex + 1}/{searchResults.length})
-            </button>
-          )}
-        </div>
-
-        {containers.length > 1 && (
-          <div className="filter-option">
-            <label>Container:</label>
-            <select value={selectedContainer} onChange={(e) => setSelectedContainer(e.target.value)}>
-              {containers.map((c) => (
-                <option key={c.name} value={c.name}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="filter-option">
-          <label>Time:</label>
-          <select value={since} onChange={(e) => setSince(e.target.value)}>
-            {TIME_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-option">
-          <label>
-            <input
-              type="checkbox"
-              checked={previous}
-              onChange={(e) => setPrevious(e.target.checked)}
-            />
-            Previous
-          </label>
-        </div>
-
-        <div className="filter-option">
-          <label>
-            <input
-              type="checkbox"
-              checked={timestamps}
-              onChange={(e) => setTimestamps(e.target.checked)}
-            />
-            Timestamps
-          </label>
-        </div>
-
-        <div className="filter-option">
-          <label>
-            <input
-              type="checkbox"
-              checked={wrapLines}
-              onChange={(e) => setWrapLines(e.target.checked)}
-            />
-            Wrap Lines
-          </label>
-        </div>
-
-        <div className="filter-actions">
-          <button className="toolbar-btn" onClick={handleDownload}>Download</button>
-          <button className="toolbar-btn" onClick={handleClear}>Clear</button>
-          <span className="logs-count">
-            {logs.length} lines {logs.length > MAX_LOG_LINES && `(last ${MAX_LOG_LINES})`}
+        <div className="filter-options-left">
+          <span className="logs-title">
+            Logs
+            <span className="logs-total">{logs.filter(line => line.trim() !== '').length} Lines</span>
           </span>
+          <div className="search-input-wrapper">
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="search-input"
+              placeholder="Search logs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button className="search-btn clear-btn" onClick={() => setSearchTerm('')} title="Clear search">
+                ✕
+              </button>
+            )}
+            {searchResults.length > 0 && (
+              <button className="search-btn" onClick={handleNext} title="Next match">
+                ↓ ({currentSearchIndex + 1}/{searchResults.length})
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="filter-options-right">
+          {/* Container 选择 */}
+          {containers.length > 1 && (
+            <NamespaceSelect
+              value={selectedContainer}
+              onChange={setSelectedContainer}
+              placeholder=""
+              options={containers.map(c => c.name)}
+              className="logs-container-select"
+              width="120px"
+            />
+          )}
+
+          {/* Settings dropdown */}
+          <div className="settings-dropdown" ref={settingsRef}>
+            <button
+              className={`settings-btn ${showSettings ? 'active' : ''}`}
+              onClick={() => setShowSettings(!showSettings)}
+              title="Settings"
+            >
+              <FaCog />
+            </button>
+            {showSettings && (
+              <div className="settings-panel">
+                <div className="setting-item setting-item-select" ref={linesRef}>
+                  <label>Tail Lines</label>
+                  <div className="custom-dropdown">
+                    <button
+                      className={`dropdown-trigger ${showLinesDropdown ? 'active' : ''}`}
+                      onClick={() => setShowLinesDropdown(!showLinesDropdown)}
+                    >
+                      <span className="dropdown-value">{tailLines}</span>
+                      <FaChevronDown className={`dropdown-arrow ${showLinesDropdown ? 'rotate' : ''}`} />
+                    </button>
+                    {showLinesDropdown && (
+                      <div className="dropdown-menu">
+                        {LINES_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            className={`dropdown-option ${tailLines === opt.value ? 'selected' : ''}`}
+                            onClick={() => {
+                              setTailLines(opt.value);
+                              setShowLinesDropdown(false);
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="setting-item setting-item-toggle">
+                  <label>Show Timestamps</label>
+                  <button
+                    className={`toggle-btn ${timestamps ? 'active' : ''}`}
+                    onClick={() => setTimestamps(!timestamps)}
+                  />
+                </div>
+                <div className="setting-item setting-item-toggle">
+                  <label>Previous Container</label>
+                  <button
+                    className={`toggle-btn ${previous ? 'active' : ''}`}
+                    onClick={() => setPrevious(!previous)}
+                  />
+                </div>
+                <div className="setting-item setting-item-toggle">
+                  <label>Word Wrap</label>
+                  <button
+                    className={`toggle-btn ${wrapLines ? 'active' : ''}`}
+                    onClick={() => setWrapLines(!wrapLines)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="filter-actions">
+            <button className="action-btn" onClick={handleDownload} title="Download logs">
+              <FaDownload />
+            </button>
+            <button className="action-btn" onClick={handleClear} title="Clear logs">
+              <FaEraser />
+            </button>
+          </div>
         </div>
       </div>
 

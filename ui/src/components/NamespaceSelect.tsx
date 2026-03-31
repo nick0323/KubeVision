@@ -8,6 +8,8 @@ interface NamespaceSelectProps {
   placeholder?: string;
   disabled?: boolean;
   options?: string[]; // 父组件传入的命名空间列表
+  className?: string; // 自定义 className
+  width?: string; // 自定义宽度
 }
 
 /**
@@ -19,6 +21,8 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
   placeholder = '选择命名空间',
   disabled = false,
   options = [],
+  className = '',
+  width,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,7 +53,7 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
   const selectedLabel = value || placeholder;
 
   return (
-    <div className="namespace-select-custom" ref={containerRef}>
+    <div className={`namespace-select-custom ${className || ''}`} ref={containerRef} style={width ? { width, minWidth: width } : {}}>
       {/* 选择框主体 */}
       <div
         className={`namespace-select-value ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
@@ -64,13 +68,15 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
       {/* 下拉选项 */}
       {isOpen && (
         <div className="namespace-select-dropdown">
-          {/* 全部选项 */}
-          <div
-            className={`namespace-select-option ${!value ? 'selected' : ''}`}
-            onClick={() => handleSelect('')}
-          >
-            {placeholder}
-          </div>
+          {/* 全部选项 - 只在 placeholder 有值时显示 */}
+          {placeholder && (
+            <div
+              className={`namespace-select-option ${!value ? 'selected' : ''}`}
+              onClick={() => handleSelect('')}
+            >
+              {placeholder}
+            </div>
+          )}
 
           {/* 命名空间列表 */}
           {options.length === 0 ? (

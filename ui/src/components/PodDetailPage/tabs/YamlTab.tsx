@@ -3,6 +3,7 @@ import { YamlTabProps } from '../types';
 import { LoadingSpinner } from '../../LoadingSpinner';
 import { ErrorDisplay } from '../../ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
+import { FaCopy, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes, FaEye } from 'react-icons/fa';
 import jsyaml from 'js-yaml';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-yaml';
@@ -238,46 +239,53 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
       <div className="yaml-toolbar">
         <div className="yaml-toolbar-left">
           <span className="yaml-title">Pod YAML</span>
+          <span className="yaml-title-separator">|</span>
+          <span className="yaml-status-inline">
+            Lines: {yamlContent.split('\n').length} | Chars: {yamlContent.length}
+          </span>
           {editing && <span className="yaml-editing-badge">Editing</span>}
         </div>
         <div className="yaml-toolbar-actions">
-          {/* 显示选项切换 */}
+          {/* 显示选项切换 - Toggle Switch */}
           <div className="yaml-display-toggles">
-            <button 
-              className={`toolbar-btn toggle-btn ${displayOptions.showStatus ? 'active' : ''}`} 
-              onClick={() => setDisplayOptions(prev => ({ ...prev, showStatus: !prev.showStatus }))} 
-              title="Toggle Status field"
-            >
-              Status
-            </button>
+            <label className="toggle-label">
+              <span className="toggle-text">Status</span>
+              <button
+                className={`toggle-switch ${displayOptions.showStatus ? 'active' : ''}`}
+                onClick={() => setDisplayOptions(prev => ({ ...prev, showStatus: !prev.showStatus }))}
+                title="Toggle Status field"
+              >
+                <span className="toggle-slider"></span>
+              </button>
+            </label>
           </div>
-          
+
           {!editing ? (
             <>
-              <button 
-                className={`toolbar-btn ${copySuccess ? 'success' : ''}`} 
-                onClick={handleCopy} 
+              <button
+                className={`toolbar-btn ${copySuccess ? 'success' : ''}`}
+                onClick={handleCopy}
                 title="Copy to clipboard"
               >
-                {copySuccess ? 'Copied' : 'Copy'}
+                <FaCopy />
               </button>
               <button className="toolbar-btn" onClick={handleEdit} title="Edit YAML">
-                Edit
+                <FaEdit />
               </button>
             </>
           ) : (
             <>
               <button className="toolbar-btn" onClick={toggleDiff} title="Show diff">
-                {showDiff ? 'Hide Diff' : 'Show Diff'}
+                <FaExchangeAlt />
               </button>
               <button className="toolbar-btn" onClick={handleSave} title="Save changes">
-                Save
+                <FaSave />
               </button>
               <button className="toolbar-btn primary" onClick={handleApply} title="Apply to cluster">
-                Apply
+                <FaRocket />
               </button>
               <button className="toolbar-btn danger" onClick={handleCancel} title="Cancel editing">
-                Cancel
+                <FaTimes />
               </button>
             </>
           )}
@@ -330,19 +338,6 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
           </pre>
         </div>
       )}
-
-      {/* Status Bar */}
-      <div className="yaml-status-bar">
-        <span className="yaml-status-info">
-          Lines: {yamlContent.split('\n').length} |
-          Chars: {yamlContent.length}
-        </span>
-        {editing && (
-          <span className="yaml-dirty-indicator">
-            {yamlContent !== originalYaml ? '● Modified' : '○ Unmodified'}
-          </span>
-        )}
-      </div>
     </div>
   );
 };

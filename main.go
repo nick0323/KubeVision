@@ -255,6 +255,11 @@ func (app *Application) registerMiddlewares(r *gin.Engine, cfg *model.Config) {
 	r.Use(middleware.LoggingMiddleware(app.logger))
 	r.Use(middleware.MetricsMiddleware(app.monitorMgr.GetMetrics()))
 
+	// 开发环境启用 CORS
+	if cfg.IsDevelopment() {
+		r.Use(middleware.CORSMiddleware())
+	}
+
 	if cfg.Auth.EnableRateLimit {
 		r.Use(middleware.ConcurrencyMiddleware(cfg.Auth.RateLimit))
 	}
@@ -273,6 +278,9 @@ func (app *Application) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	if cfg.Cache.Enabled {
 		apiGroup.Use(middleware.CacheMiddleware(app.cacheMgr, cfg.Cache.TTL))
 	}
+
+	// WebSocket 路由需要绕过认证（在 WebSocket 内部处理认证）
+	r.GET(APIPrefix+"/ws/exec", api.HandleExecWS(app.logger, app.getK8sClient))
 
 	app.registerAPIRoutes(apiGroup)
 }

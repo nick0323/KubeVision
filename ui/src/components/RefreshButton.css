@@ -8,8 +8,8 @@
   padding: 0;
   margin: 0;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  border: 2px solid transparent;
+  border-radius: 8px;
   cursor: pointer;
   color: #999;
   font-size: 18px;
@@ -19,6 +19,7 @@
 .refresh-button:hover {
   background: #e6f7ff;
   color: #1890ff;
+  border-color: #bae7ff;
 }
 
 .refresh-button:active {

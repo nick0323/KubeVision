@@ -7,7 +7,6 @@ import (
 
 	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
-	"github.com/nick0323/K8sVision/tools"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -111,8 +110,14 @@ func getPodLogs(
 		tailLines := c.Query("tailLines")
 		timestamps := c.Query("timestamps")
 		follow := c.Query("follow")
-		since := c.Query("since")
 		previous := c.Query("previous")
+
+		logger.Debug("获取日志参数",
+			zap.String("container", container),
+			zap.String("tailLines", tailLines),
+			zap.String("previous", previous),
+			zap.String("timestamps", timestamps),
+		)
 
 		// 构建日志选项
 		opts := &v1.PodLogOptions{}
@@ -128,15 +133,13 @@ func getPodLogs(
 		if previous == "true" {
 			opts.Previous = true
 		}
+		// 默认获取最后 1000 行日志
+		var tailLinesDefault int64 = 1000
+		opts.TailLines = &tailLinesDefault
 		if tailLines != "" && tailLines != "0" {
 			var lines int64
 			if _, err := fmt.Sscanf(tailLines, "%d", &lines); err == nil && lines > 0 {
 				opts.TailLines = &lines
-			}
-		}
-		if since != "" {
-			if seconds := tools.ParseSinceSeconds(since); seconds > 0 {
-				opts.SinceSeconds = &seconds
 			}
 		}
 
@@ -144,6 +147,13 @@ func getPodLogs(
 		req := clientset.CoreV1().Pods(namespace).GetLogs(name, opts)
 		podLogs, err := req.Stream(ctx)
 		if err != nil {
+			// 处理 Previous 日志不存在的情况
+			if previous == "true" {
+				// 返回空日志而不是 500 错误
+				logger.Debug("Previous 日志不存在或不可用", zap.Error(err))
+				middleware.ResponseSuccess(c, "", "Previous 日志不存在", nil)
+				return
+			}
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}

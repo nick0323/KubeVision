@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 6px 12px;
   font-size: 14px;
   font-family: var(--font-main);
   color: #333;
@@ -20,6 +20,8 @@
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
+  height: 32px;
+  box-sizing: border-box;
 }
 
 .namespace-select-value:hover {
@@ -67,6 +69,7 @@
   right: 0;
   max-height: 300px;
   overflow-y: auto;
+  overflow-x: hidden;
   background: #fff; /* 白色背景 */
   border: 2px solid #bae7ff; /* 淡蓝色边框 */
   border-radius: 8px; /* 圆角 */
@@ -76,7 +79,7 @@
 
 /* 选项 - 不换行 */
 .namespace-select-option {
-  padding: 10px 16px;
+  padding: 6px 12px;
   font-size: 14px;
   color: #333;
   background: #fff; /* 白色背景 */
