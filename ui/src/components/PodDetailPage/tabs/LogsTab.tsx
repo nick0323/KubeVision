@@ -38,6 +38,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
 
   // 过滤选项
   const [selectedContainer, setSelectedContainer] = useState<string>(
@@ -51,6 +52,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   // 搜索
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+
+  // WebSocket ref
+  const wsRef = useRef<WebSocket | null>(null);
 
   // 设置面板
   const [showSettings, setShowSettings] = useState(false);
@@ -99,57 +103,99 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     return logs.length > MAX_LOG_LINES ? logs.length - MAX_LOG_LINES : 0;
   }, [logs]);
 
-  // Load logs
-  const loadLogs = useCallback(async () => {
+  // Load logs via WebSocket
+  const loadLogs = useCallback(() => {
     if (!selectedContainer) return;
+
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
 
     setLoading(true);
     setError(null);
+    setLogs([]);
 
-    try {
-      const params = new URLSearchParams({
-        container: selectedContainer,
-        tailLines,
-        previous: previous.toString(),
-        timestamps: timestamps.toString(),
-      });
+    // Build WebSocket URL with token
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const token = localStorage.getItem('token');
+    const wsUrl = `${protocol}//${window.location.hostname}:8080/api/pods/${namespace}/${name}/logs/stream?container=${selectedContainer}&tailLines=${tailLines}&timestamps=${timestamps}&token=${token}`;
 
-      const response = await authFetch(
-        `/api/pods/${namespace}/${name}/logs?${params}`
-      );
-      const result = await response.json();
+    // WebSocket doesn't support custom headers, so we pass token in query param
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
-      if (result.code === 0 && result.data) {
-        let logLines = typeof result.data === 'string'
-          ? result.data.split('\n')
-          : result.data;
-
-        // 移除末尾空行
-        if (logLines.length > 0 && logLines[logLines.length - 1].trim() === '') {
-          logLines = logLines.slice(0, -1);
-        }
-
-        // Remove ANSI escape sequences
-        const cleanedLogs = logLines.map(line => stripAnsiCodes(line));
-
-        // 倒序排列（最新的在前）
-        setLogs(cleanedLogs.reverse());
-      } else {
-        setError(result.message || 'Failed to load logs');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Load failed');
-    } finally {
+    ws.onopen = () => {
+      setConnected(true);
       setLoading(false);
-    }
-  }, [namespace, name, selectedContainer, tailLines, previous, timestamps]);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'log') {
+          // Remove ANSI codes and split into lines
+          const newLines = data.content
+            .replace(/\x1b\[[0-9;]*m/g, '')
+            .split('\n')
+            .filter(line => line.length > 0);
+
+          setLogs(prev => {
+            const updated = [...prev, ...newLines];
+            if (updated.length > MAX_LOG_LINES) {
+              return updated.slice(updated.length - MAX_LOG_LINES);
+            }
+            return updated;
+          });
+        } else if (data.type === 'error') {
+          setError(data.message);
+          setLoading(false);
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    };
+
+    ws.onerror = () => {
+      // Ignore error, wait for onclose
+    };
+
+    ws.onclose = () => {
+      setConnected(false);
+      setLoading(false);
+      
+      // Auto reconnect after 5 seconds
+      setTimeout(() => {
+        if (!connected) {
+          loadLogs();
+        }
+      }, 5000);
+    };
+  }, [namespace, name, selectedContainer, tailLines, timestamps]);
 
   // Load logs when filter options change
   useEffect(() => {
     if (selectedContainer) {
       loadLogs();
     }
-  }, [selectedContainer, tailLines, previous, timestamps, loadLogs]);
+  }, [selectedContainer, tailLines, timestamps, loadLogs]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, []);
+
+  // Auto scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [logs]);
 
   // Scroll to bottom on initial load only
   useEffect(() => {
@@ -349,7 +395,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
             {showSettings && (
               <div className="settings-panel">
                 <div className="setting-item setting-item-select" ref={linesRef}>
-                  <label>Tail Lines</label>
+                  <label>Initial Lines</label>
                   <div className="custom-dropdown">
                     <button
                       className={`dropdown-trigger ${showLinesDropdown ? 'active' : ''}`}
@@ -409,6 +455,12 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
             <button className="action-btn" onClick={handleClear} title="Clear logs">
               <FaEraser />
             </button>
+          </div>
+
+          {/* Status Display */}
+          <div className={`filter-status ${connected ? 'connected' : 'disconnected'}`}>
+            <span className="status-dot"></span>
+            <span>{connected ? 'Live' : 'Disconnected'}</span>
           </div>
         </div>
       </div>

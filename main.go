@@ -281,6 +281,7 @@ func (app *Application) registerRoutes(r *gin.Engine, cfg *model.Config) {
 
 	// WebSocket 路由需要绕过认证（在 WebSocket 内部处理认证）
 	r.GET(APIPrefix+"/ws/exec", api.HandleExecWS(app.logger, app.getK8sClient))
+	r.GET(APIPrefix+"/pods/:namespace/:name/logs/stream", api.StreamPodLogs(app.logger, app.getK8sClient))
 
 	app.registerAPIRoutes(apiGroup)
 }
