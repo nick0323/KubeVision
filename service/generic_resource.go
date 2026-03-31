@@ -588,6 +588,12 @@ func MapStorageClasses(storageClasses []storagev1.StorageClass) []model.StorageC
 func MapEvents(events []v1.Event) []model.EventStatus {
 	result := make([]model.EventStatus, 0, len(events))
 	for _, e := range events {
+		// 构建对象引用
+		objectRef := fmt.Sprintf("%s/%s", e.InvolvedObject.Kind, e.InvolvedObject.Name)
+		if e.InvolvedObject.Namespace != "" {
+			objectRef = fmt.Sprintf("%s/%s/%s", e.InvolvedObject.Namespace, e.InvolvedObject.Kind, e.InvolvedObject.Name)
+		}
+
 		result = append(result, model.EventStatus{
 			Namespace: e.Namespace,
 			Name:      e.Name,
@@ -595,6 +601,8 @@ func MapEvents(events []v1.Event) []model.EventStatus {
 			Message:   e.Message,
 			Type:      e.Type,
 			Count:     e.Count,
+			Object:    objectRef,
+			Source:    e.Source.Component,
 			FirstSeen: model.FormatTime(&e.FirstTimestamp),
 			LastSeen:  model.FormatTime(&e.LastTimestamp),
 			Duration:  e.LastTimestamp.Sub(e.FirstTimestamp.Time).String(),

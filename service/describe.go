@@ -31,6 +31,7 @@ type EventInfo struct {
 	Reason    string `json:"reason"`
 	Message   string `json:"message"`
 	Count     int32  `json:"count"`
+	Object    string `json:"object"`
 	FirstTime string `json:"firstTime"`
 	LastTime  string `json:"lastTime"`
 	Source    string `json:"source"`
@@ -608,11 +609,18 @@ func getEventsForResource(ctx context.Context, clientset *kubernetes.Clientset, 
 			source = event.ReportingController
 		}
 
+		// 构建对象引用
+		objectRef := fmt.Sprintf("%s/%s", event.InvolvedObject.Kind, event.InvolvedObject.Name)
+		if event.InvolvedObject.Namespace != "" {
+			objectRef = fmt.Sprintf("%s/%s/%s", event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.InvolvedObject.Name)
+		}
+
 		events = append(events, EventInfo{
 			Type:      event.Type,
 			Reason:    event.Reason,
 			Message:   event.Message,
 			Count:     event.Count,
+			Object:    objectRef,
 			FirstTime: event.FirstTimestamp.Format(time.RFC3339),
 			LastTime:  event.LastTimestamp.Format(time.RFC3339),
 			Source:    source,

@@ -2,102 +2,63 @@
 .events-tab {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.events-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.events-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.event-item {
-  display: flex;
   gap: 16px;
-  padding: 16px;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  transition: box-shadow 0.2s;
-  background: #fff;
+  padding-bottom: 10px;
 }
 
-.event-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.event-item.normal {
-  border-left: 4px solid #52c41a;
-}
-
-.event-item.warning {
-  border-left: 4px solid #faad14;
-}
-
-.event-time {
-  min-width: 160px;
-  font-size: 13px;
-  color: #8c8c8c;
-  padding-top: 2px;
-}
-
-.event-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.event-header {
-  display: flex;
+.event-type {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.event-type-icon {
-  font-size: 16px;
-}
-
-.event-type-icon.normal {
+.event-type.normal {
+  background: #f6ffed;
   color: #52c41a;
+  border: 1px solid #b7eb8f;
 }
 
-.event-type-icon.warning {
+.event-type.warning {
+  background: #fff7e6;
   color: #faad14;
+  border: 1px solid #ffd591;
 }
 
 .event-reason {
-  font-size: 14px;
   font-weight: 600;
   color: #262626;
-}
-
-.event-count {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  background: #f0f0f0;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #595959;
+  font-family: var(--font-main);
 }
 
 .event-message {
-  font-size: 13px;
   color: #595959;
-  line-height: 1.6;
-  margin-bottom: 8px;
-  word-break: break-word;
+  font-family: var(--font-main);
 }
 
-.event-meta {
-  display: flex;
-  gap: 16px;
-  font-size: 12px;
+.event-source {
   color: #8c8c8c;
-  flex-wrap: wrap;
+  font-family: var(--font-main);
+}
+
+.event-time {
+  color: #8c8c8c;
+  font-family: var(--font-main);
+  white-space: nowrap;
+}
+
+.table-row.warning {
+  background: #fff7e6;
+}
+
+.table-row.warning:hover {
+  background: #fffbe6;
+}
+
+.table-row.normal:hover {
+  background: #f5f5f5;
 }

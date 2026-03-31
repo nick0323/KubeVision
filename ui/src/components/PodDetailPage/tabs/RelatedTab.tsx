@@ -20,20 +20,6 @@ const RESOURCE_ICONS: Record<string, string> = {
   Namespace: '📁',
 };
 
-const RESOURCE_CATEGORY: Record<string, string> = {
-  ReplicaSet: 'ownership',
-  Deployment: 'ownership',
-  StatefulSet: 'ownership',
-  DaemonSet: 'ownership',
-  Service: 'network',
-  Ingress: 'network',
-  PersistentVolumeClaim: 'storage',
-  ConfigMap: 'configuration',
-  Secret: 'configuration',
-  Node: 'infrastructure',
-  Namespace: 'infrastructure',
-};
-
 /**
  * Related Tab - 关联资源
  */
@@ -48,11 +34,11 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
     const loadRelated = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         const response = await authFetch(`/api/pods/${namespace}/${name}/related`);
         const result = await response.json();
-        
+
         if (result.code === 0 && result.data) {
           setRelatedResources(result.data || []);
         } else {
@@ -81,32 +67,10 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
   }, [namespace, name, ownerReferences]);
 
   // 跳转到资源详情
-  const handleResourceClick = useCallback((resource: RelatedResource) => {
-    const resourceType = resource.kind.toLowerCase() + 's';
-    navigate(`/${resourceType}/${namespace}/${resource.name}`);
+  const handleResourceClick = useCallback((kind: string, name: string) => {
+    const resourceType = kind.toLowerCase() + 's';
+    navigate(`/${resourceType}/${namespace}/${name}`);
   }, [namespace, navigate]);
-
-  // 导出资源列表
-  const handleExport = useCallback(() => {
-    const content = relatedResources.map(r => `${r.kind}: ${r.name}`).join('\n');
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name}-related-resources.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [relatedResources, name]);
-
-  // 按类别分组
-  const groupedResources = relatedResources.reduce((acc, resource) => {
-    const category = RESOURCE_CATEGORY[resource.kind] || 'other';
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(resource);
-    return acc;
-  }, {} as Record<string, RelatedResource[]>);
 
   if (loading) {
     return <LoadingSpinner text="加载关联资源..." size="lg" />;
@@ -116,54 +80,44 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
     return <ErrorDisplay message={error} type="error" showRetry onRetry={() => window.location.reload()} />;
   }
 
-  if (relatedResources.length === 0) {
-    return (
-      <div className="related-tab">
-        <div className="empty-state">
-          <span className="empty-state-icon">🔗</span>
-          <span className="empty-state-text">暂无关联资源</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="related-tab">
-      {/* 操作按钮 */}
-      <div className="related-actions">
-        <button className="toolbar-btn" onClick={handleExport}>📥 导出</button>
-        <button className="toolbar-btn" onClick={() => window.location.reload()}>🔄 刷新</button>
+      <div className="detail-card">
+        <h3 className="detail-card-title">Related</h3>
+        {relatedResources.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-state-text">No related resources found</span>
+          </div>
+        ) : (
+          <table className="detail-table">
+            <thead>
+              <tr>
+                <th style={{ width: '200px' }}>Kind</th>
+                <th>Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {relatedResources.map((resource, index) => (
+                <tr key={index} className="table-row">
+                  <td>
+                    <span className="kind-badge">
+                      {resource.kind}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      className="related-resource-name"
+                      onClick={() => handleResourceClick(resource.kind, resource.name)}
+                    >
+                      {resource.name}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
-
-      {/* 资源列表 */}
-      {Object.entries(groupedResources).map(([category, resources]) => (
-        <div key={category} className="related-section">
-          <div className="related-section-title">
-            {category === 'ownership' && '📦 OWNERSHIP'}
-            {category === 'network' && '🌐 NETWORK'}
-            {category === 'storage' && '💾 STORAGE'}
-            {category === 'configuration' && '⚙️ CONFIGURATION'}
-            {category === 'infrastructure' && '🖥️ INFRASTRUCTURE'}
-            {category === 'other' && '🔗 OTHER'}
-          </div>
-          
-          <div className="related-list">
-            {resources.map((resource, index) => (
-              <div
-                key={index}
-                className="related-item"
-                onClick={() => handleResourceClick(resource)}
-              >
-                <span className="related-item-icon">
-                  {RESOURCE_ICONS[resource.kind] || '📄'}
-                </span>
-                <span className="related-item-type">{resource.kind}</span>
-                <span className="related-item-name">{resource.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 };

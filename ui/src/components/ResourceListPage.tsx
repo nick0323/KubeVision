@@ -141,19 +141,42 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
   }, [config.columns]);
 
   /**
+   * 格式化时间
+   */
+  const formatTime = (timestamp?: string) => {
+    if (!timestamp) return '-';
+    try {
+      const date = new Date(timestamp);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      console.log('formatTime:', timestamp, '->', formatted);
+      return formatted;
+    } catch (e) {
+      console.error('formatTime error:', timestamp, e);
+      return timestamp;
+    }
+  };
+
+  /**
    * 列配置（添加默认值，name 列添加点击事件）
    */
   const columns = useMemo<TableColumn[]>(
     () =>
       config.columns.map((col) => {
         const isNameColumn = col.dataIndex === 'name' || col.dataIndex === 'Name';
-        
+        const isTimeColumn = col.dataIndex === 'lastSeen' || col.dataIndex === 'firstSeen' || col.dataIndex === 'LastSeen' || col.dataIndex === 'FirstSeen';
+
         return {
           ...col,
           sortable: col.sortable ?? true,
-          render: col.render || (isNameColumn 
+          render: col.render || (isNameColumn
             ? (value: any, record: any) => (
-                <span 
+                <span
                   className="resource-name-link"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -163,6 +186,8 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
                   {value}
                 </span>
               )
+            : isTimeColumn
+            ? (value: any) => formatTime(value)
             : undefined
           ),
         };

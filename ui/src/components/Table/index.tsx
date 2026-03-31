@@ -161,9 +161,11 @@ export const TableCell = memo(<T,>({
   // 使用自定义渲染函数
   if (column.render) {
     const content = column.render(value, record, index);
+    // 将渲染结果转换为字符串用于 Tooltip
+    const tooltipText = typeof content === 'string' ? content : String(value ?? '');
     return (
       <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-        <TooltipCell content={content} text={String(value ?? '')} />
+        <TooltipCell content={content} text={tooltipText} />
       </td>
     );
   }

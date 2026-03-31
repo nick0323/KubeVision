@@ -26,6 +26,42 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
   }, [pod?.status?.containerStatuses]);
 
   /**
+   * 计算 Ready Containers
+   * 如果容器状态为空，显示 0 / 期望容器数
+   */
+  const readyContainers = useMemo(() => {
+    const ready = containerStatuses.filter((c) => c.ready).length;
+    const total = containerStatuses.length || pod?.spec?.containers?.length || 0;
+    return { ready, total };
+  }, [containerStatuses, pod?.spec?.containers?.length]);
+
+  /**
+   * 计算 Restart Count
+   */
+  const restartCount = useMemo(() => {
+    return containerStatuses.reduce((sum, c) => sum + c.restartCount, 0);
+  }, [containerStatuses]);
+
+  /**
+   * 判断 Pod 是否正在初始化
+   */
+  const isInitializing = useMemo(() => {
+    // 如果容器状态为空但 spec 中有容器定义，说明正在创建
+    return (!pod?.status?.containerStatuses || pod.status.containerStatuses.length === 0) &&
+           pod?.spec?.containers && pod.spec.containers.length > 0;
+  }, [pod?.status?.containerStatuses, pod?.spec?.containers]);
+
+  /**
+   * 获取 Pod 显示状态
+   */
+  const getPodStatus = () => {
+    if (isInitializing) {
+      return 'Pending';
+    }
+    return pod.status?.phase || 'Unknown';
+  };
+
+  /**
    * Pod 条件
    */
   const conditions = useMemo<PodCondition[]>(() => {
@@ -63,19 +99,19 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
           <div className="stats-grid">
             <div className="stat-card">
               <div className="stat-value">
-                <StatusBadge status={pod.status?.phase || 'Unknown'} resourceType="pods" />
+                <StatusBadge status={getPodStatus()} resourceType="pods" />
               </div>
               <div className="stat-label">Phase</div>
             </div>
             <div className="stat-card">
               <div className="stat-value">
-                {containerStatuses.filter((c) => c.ready).length} / {containerStatuses.length}
+                {readyContainers.ready} / {readyContainers.total}
               </div>
               <div className="stat-label">Ready Containers</div>
             </div>
             <div className="stat-card">
               <div className="stat-value">
-                {containerStatuses.reduce((sum, c) => sum + c.restartCount, 0)}
+                {restartCount}
               </div>
               <div className="stat-label">Restart Count</div>
             </div>

@@ -165,6 +165,8 @@ type EventStatus struct {
 	Message   string `json:"message"`
 	Type      string `json:"type"`
 	Count     int32  `json:"count"`
+	Object    string `json:"object"`
+	Source    string `json:"source"`
 	FirstSeen string `json:"firstSeen"`
 	LastSeen  string `json:"lastSeen"`
 	Duration  string `json:"duration"`
