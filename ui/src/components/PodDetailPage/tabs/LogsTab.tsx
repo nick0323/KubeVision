@@ -55,6 +55,10 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
   // WebSocket ref
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectCountRef = useRef(0);
+  const MAX_RECONNECT_COUNT = 5;  // 最多重连 5 次
+  const isReconnectingRef = useRef(false);  // 防止 StrictMode 下重复重连
 
   // 设置面板
   const [showSettings, setShowSettings] = useState(false);
@@ -105,10 +109,13 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
   // Load logs via WebSocket
   const loadLogs = useCallback(() => {
-    if (!selectedContainer) return;
+    const containerToUse = selectedContainer || (containers.length > 0 ? containers[0].name : '');
+
+    if (!containerToUse) return;
 
     // Close existing connection
     if (wsRef.current) {
+      console.log('[LogsTab] Closing existing connection before creating new one');
       wsRef.current.close();
     }
 
@@ -116,26 +123,30 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     setError(null);
     setLogs([]);
 
-    // Build WebSocket URL with token
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Connect directly to backend WebSocket
     const token = localStorage.getItem('token');
-    const wsUrl = `${protocol}//${window.location.hostname}:8080/api/pods/${namespace}/${name}/logs/stream?container=${selectedContainer}&tailLines=${tailLines}&timestamps=${timestamps}&token=${token}`;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/pods/${namespace}/${name}/logs/stream?container=${containerToUse}&tailLines=${tailLines}&timestamps=${timestamps}&token=${token}`;
 
-    // WebSocket doesn't support custom headers, so we pass token in query param
+    console.log('[LogsTab] Creating WebSocket connection:', wsUrl);
+
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('[LogsTab] WebSocket connected');
       setConnected(true);
       setLoading(false);
+      // 重连成功后重置计数器
+      reconnectCountRef.current = 0;
+      isReconnectingRef.current = false;
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         if (data.type === 'log') {
-          // Remove ANSI codes and split into lines
           const newLines = data.content
             .replace(/\x1b\[[0-9;]*m/g, '')
             .split('\n')
@@ -151,42 +162,79 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
         } else if (data.type === 'error') {
           setError(data.message);
           setLoading(false);
+        } else if (data.type === 'ping') {
+          // 响应后端心跳，保持连接
+          console.log('[LogsTab] Received ping, sending pong...');
+          ws.send(JSON.stringify({ type: 'pong' }));
         }
       } catch (e) {
         // Ignore parse errors
       }
     };
 
-    ws.onerror = () => {
-      // Ignore error, wait for onclose
+    ws.onerror = (error) => {
+      console.error('[LogsTab] WebSocket error:', error);
     };
 
     ws.onclose = () => {
+      console.log('[LogsTab] WebSocket closed');
       setConnected(false);
       setLoading(false);
       
-      // Auto reconnect after 5 seconds
-      setTimeout(() => {
-        if (!connected) {
-          loadLogs();
-        }
-      }, 5000);
+      // 防止 StrictMode 下重复重连
+      if (isReconnectingRef.current) {
+        console.log('[LogsTab] Already reconnecting, skip...');
+        return;
+      }
+      
+      // 检查重连次数
+      if (reconnectCountRef.current >= MAX_RECONNECT_COUNT) {
+        console.log('[LogsTab] Max reconnect count reached, stopping reconnect');
+        return;
+      }
+      
+      reconnectCountRef.current += 1;
+      isReconnectingRef.current = true;
+      
+      // 3 秒后自动重连
+      console.log(`[LogsTab] Will reconnect in 3 seconds... (attempt ${reconnectCountRef.current}/${MAX_RECONNECT_COUNT})`);
+      reconnectTimeoutRef.current = setTimeout(() => {
+        console.log('[LogsTab] Reconnecting...');
+        isReconnectingRef.current = false;
+        loadLogs();
+      }, 3000);
     };
-  }, [namespace, name, selectedContainer, tailLines, timestamps]);
+  }, [namespace, name, selectedContainer, containers, tailLines, timestamps]);
 
   // Load logs when filter options change
   useEffect(() => {
-    if (selectedContainer) {
-      loadLogs();
-    }
-  }, [selectedContainer, tailLines, timestamps, loadLogs]);
+    loadLogs();
+  }, [loadLogs]);
 
   // Cleanup on unmount
   useEffect(() => {
+    let isUnmounted = false;
+    
     return () => {
+      console.log('[LogsTab] Cleanup: component unmounting');
+      isUnmounted = true;
+      isReconnectingRef.current = false;
+      
+      // 关闭 WebSocket 连接
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
+      
+      // 清除重连定时器
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      
+      reconnectCountRef.current = 0;
+      
+      console.log('[LogsTab] Cleanup: completed');
     };
   }, []);
 

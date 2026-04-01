@@ -84,11 +84,23 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     });
 
     // Handle resize
-    const handleResize = () => fitAddon.fit();
+    const handleResize = () => {
+      if (xtermRef.current && fitAddonRef.current) {
+        fitAddonRef.current.fit();
+      }
+    };
     window.addEventListener('resize', handleResize);
 
     return () => {
-      term.dispose();
+      console.log('[TerminalTab] Cleanup: disposing xterm');
+      if (fitAddonRef.current) {
+        fitAddonRef.current.dispose();
+        fitAddonRef.current = null;
+      }
+      if (xtermRef.current) {
+        xtermRef.current.dispose();
+        xtermRef.current = null;
+      }
       window.removeEventListener('resize', handleResize);
     };
   }, []);

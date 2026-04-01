@@ -3,11 +3,32 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
+
+// maskSensitiveQuery 脱敏敏感查询参数
+func maskSensitiveQuery(query string) string {
+	if query == "" {
+		return ""
+	}
+
+	// 脱敏 token 参数
+	if strings.Contains(query, "token=") {
+		parts := strings.Split(query, "&")
+		for i, part := range parts {
+			if strings.HasPrefix(part, "token=") {
+				parts[i] = "token=***"
+			}
+		}
+		return strings.Join(parts, "&")
+	}
+
+	return query
+}
 
 // LoggingMiddleware 请求日志记录中间件
 func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
@@ -18,12 +39,15 @@ func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		method := c.Request.Method
 		traceId := c.GetString("traceId")
 
+		// 脱敏敏感信息
+		maskedQuery := maskSensitiveQuery(raw)
+
 		// 记录请求开始日志
 		logger.Info("request started",
 			zap.String("traceId", traceId),
 			zap.String("method", method),
 			zap.String("path", path),
-			zap.String("query", raw),
+			zap.String("query", maskedQuery),
 			zap.String("clientIP", c.ClientIP()),
 			zap.String("userAgent", c.Request.UserAgent()),
 		)
