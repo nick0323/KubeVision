@@ -19,11 +19,10 @@ export const PODS_CONFIG = {
     { title: 'Ready', dataIndex: 'ready', width: '8%', sortable: false },
     { title: 'Restarts', dataIndex: 'restarts', width: '8%', sortable: true },
     { title: 'IP', dataIndex: 'podIP', width: '11%', sortable: false },
-    { title: 'Node', dataIndex: 'nodeName', width: '10%', sortable: false }, 
+    { title: 'Node', dataIndex: 'nodeName', width: '10%', sortable: false },
     { title: 'Age', dataIndex: 'age', width: '8%', sortable: true },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
-  statusFilter: ['Running', 'Pending', 'Failed', 'Succeeded', 'Unknown'],
   defaultSort: { field: 'age', order: 'desc' as const },
 };
 
@@ -49,7 +48,6 @@ export const DEPLOYMENTS_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '10%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
-  statusFilter: ['Healthy', 'Partial', 'Unavailable', 'ScaledToZero'],
 };
 
 // StatefulSets 页面配置 - 简化排序（7→3）
@@ -72,7 +70,6 @@ export const STATEFULSETS_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '12%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
-  statusFilter: ['Healthy', 'Partial', 'Unavailable'],
 };
 
 // DaemonSets 页面配置 - 简化排序（7→3）
@@ -90,7 +87,6 @@ export const DAEMONSETS_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '8%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
-  statusFilter: ['Healthy', 'Partial', 'Unavailable'],
 };
 
 // Jobs 页面配置 - 简化排序（7→5）
@@ -117,7 +113,6 @@ export const JOBS_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '12%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
-  statusFilter: ['Running', 'Succeeded', 'Failed', 'Pending'],
 };
 
 // CronJobs 页面配置 - 简化排序（7→4）
@@ -136,7 +131,6 @@ export const CRONJOBS_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '7%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
-  statusFilter: ['Active', 'Suspended'],
 };
 
 // ==================== Network ====================
@@ -206,7 +200,6 @@ export const PVCS_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '8%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
-  statusFilter: ['Bound', 'Pending', 'Lost'],
 };
 
 // PVs 页面配置 - 简化排序（6→2）
@@ -225,7 +218,6 @@ export const PVS_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '5%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: false,
-  statusFilter: ['Available', 'Bound', 'Released', 'Failed'],
 };
 
 // StorageClasses 页面配置 - 简化排序（4→2）
@@ -289,7 +281,6 @@ export const NAMESPACES_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '15%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: false,
-  statusFilter: ['Active', 'Terminating'],
 };
 
 // Nodes 页面配置 - 简化排序（7→3）
@@ -308,7 +299,6 @@ export const NODES_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '10%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: false,
-  statusFilter: ['Ready', 'NotReady', 'Unknown'],
 };
 
 // Events 页面配置 - 简化排序（6→3）
@@ -325,7 +315,6 @@ export const EVENTS_CONFIG = {
     { title: 'Count', dataIndex: 'count', width: '8%', sortable: false },
   ] as ExtendedColumn<any>[],
   namespaceFilter: true,
-  typeFilter: ['Normal', 'Warning'],
   defaultSort: { field: 'lastSeen', order: 'desc' as const },
 };
 

@@ -186,14 +186,18 @@ func ListConfigMaps(ctx context.Context, clientset *kubernetes.Clientset, namesp
 
 // ListSecrets 获取 Secret 列表
 func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.SecretStatus, error) {
-	secretList, err := ListResourcesWithNamespace(ctx, namespace,
-		func() (*v1.SecretList, error) {
-			return clientset.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
-		},
-		func(ns string) (*v1.SecretList, error) {
-			return clientset.CoreV1().Secrets(ns).List(ctx, metav1.ListOptions{})
-		},
-	)
+	var secretList *v1.SecretList
+	var err error
+
+	// 优化：指定命名空间时只获取该命名空间的 Secrets
+	// 避免全量获取导致性能问题
+	if namespace != "" {
+		secretList, err = clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	} else {
+		// 全量获取（所有命名空间）- 性能开销较大
+		secretList, err = clientset.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
+	}
+
 	if err != nil {
 		return nil, err
 	}

@@ -50,13 +50,6 @@ export type {
 
 // ==================== 本地类型定义 ====================
 
-// 基础 Props
-export interface BaseProps {
-  className?: string;
-  style?: React.CSSProperties;
-  children?: React.ReactNode;
-}
-
 // 菜单项
 export interface MenuItem {
   key: string;
@@ -111,13 +104,6 @@ export interface InfoCardProps {
   status?: React.ReactNode;
 }
 
-// Loading Props
-export interface LoadingProps {
-  text?: string;
-  size?: 'sm' | 'md' | 'lg';
-  overlay?: boolean;
-}
-
 // ErrorDisplay Props
 export interface ErrorDisplayProps {
   message: string;
@@ -132,22 +118,6 @@ export interface PageHeaderProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   children?: React.ReactNode;
-}
-
-// CommonTable Props（保留向后兼容，建议使用 ColumnDef）
-export interface Column<T = any> {
-  title: string;
-  dataIndex: string;
-  width?: number | string;
-  sortable?: boolean;
-  render?: (text: any, record: T, index: number) => React.ReactNode;
-}
-
-export interface CommonTableProps<T> {
-  columns: Column<T>[];
-  data: T[];
-  emptyText?: string;
-  onRowClick?: (record: T) => void;
 }
 
 // Pagination Props
@@ -217,16 +187,6 @@ export interface OverviewPageProps {
   onToggleCollapsed: () => void;
 }
 
-// ResourcePage Props（保留向后兼容，建议使用泛型版本）
-export interface ResourcePageProps {
-  title: string;
-  apiEndpoint: string;
-  resourceType: string;
-  columns: Column<any>[];
-  statusMap?: Record<string, string>;
-  namespaceFilter?: boolean;
-}
-
 // ==================== 页面配置 ====================
 
 // 页面配置
@@ -236,8 +196,6 @@ export interface PageConfig {
   resourceType: string;
   columns: Column<any>[];
   namespaceFilter?: boolean;
-  statusFilter?: string[];
-  typeFilter?: string[];
   defaultSort?: {
     field: string;
     order: 'asc' | 'desc';
@@ -248,26 +206,4 @@ export interface PageConfig {
 export interface StatusBadgeProps {
   status: string;
   resourceType?: string;
-}
-
-// SearchFilter Props
-export interface SearchFilterProps {
-  value: string;
-  onSearch: (value: string) => void;
-  placeholder?: string;
-  debounceMs?: number;
-}
-
-// NamespaceFilter Props
-export interface NamespaceFilterProps {
-  namespaces: string[];
-  value: string;
-  onChange: (value: string) => void;
-}
-
-// StatusFilter Props
-export interface StatusFilterProps {
-  statuses: string[];
-  value: string;
-  onChange: (value: string) => void;
 }
