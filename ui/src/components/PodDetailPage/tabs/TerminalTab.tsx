@@ -304,7 +304,32 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
 
       {/* Terminal Output */}
       <div className="xterm-wrapper">
-        <div ref={terminalRef} style={{ height: '100%' }} />
+        {!connected && (
+          <div className="terminal-guide">
+            <div className="guide-title">Terminal</div>
+            <div className="guide-steps">
+              <div className="guide-step">
+                <span className="step-number">1</span>
+                <span className="step-text">Select Container (if multiple)</span>
+              </div>
+              <div className="guide-step">
+                <span className="step-number">2</span>
+                <span className="step-text">Choose Shell (bash/sh/zsh)</span>
+              </div>
+              <div className="guide-step">
+                <span className="step-number">3</span>
+                <span className="step-text">Click <FaPlug className="inline-icon" /> to connect</span>
+              </div>
+            </div>
+            <button
+              className="connect-guide-btn"
+              onClick={handleConnect}
+            >
+              <FaPlug /> Connect to Terminal
+            </button>
+          </div>
+        )}
+        <div ref={terminalRef} style={{ height: '100%', display: connected ? 'block' : 'none' }} />
       </div>
     </div>
   );
