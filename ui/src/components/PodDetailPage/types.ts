@@ -2,7 +2,7 @@
  * Pod 详情页类型定义
  */
 
-import { Pod, K8sOwnerReference, Container, K8sEvent } from '../../types/k8s-resources';
+import { Pod, K8sOwnerReference } from '../../types/k8s-resources';
 
 /**
  * Pod 详情页 Props
@@ -36,7 +36,7 @@ export interface YamlTabProps {
 export interface LogsTabProps {
   namespace: string;
   name: string;
-  containers: Container[];
+  containers: Pod['spec']['containers'];
 }
 
 /**
@@ -45,7 +45,7 @@ export interface LogsTabProps {
 export interface TerminalTabProps {
   namespace: string;
   name: string;
-  containers: Container[];
+  containers: Pod['spec']['containers'];
 }
 
 /**
@@ -82,7 +82,17 @@ export interface ContainerStatusSummary {
   name: string;
   ready: boolean;
   restartCount: number;
-  state: ContainerState;
+  state: {
+    waiting?: { reason?: string; message?: string };
+    running?: { startedAt?: string };
+    terminated?: {
+      exitCode?: number;
+      reason?: string;
+      message?: string;
+      startedAt?: string;
+      finishedAt?: string;
+    };
+  };
   image: string;
 }
 

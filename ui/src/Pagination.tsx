@@ -17,11 +17,11 @@ export const Pagination: React.FC<PaginationProps> = ({
   fixed = false,
   fixedBottom = false,
 }) => {
-  if (total <= pageSize) return null;
   const totalPages = Math.ceil(total / pageSize);
 
   // 键盘快捷键支持（仅在固定模式下启用）
   useEffect(() => {
+    // 只在固定模式下启用快捷键
     if (!fixedBottom && !fixed) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -41,6 +41,9 @@ export const Pagination: React.FC<PaginationProps> = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [fixedBottom, fixed, currentPage, totalPages, onPageChange]);
+
+  // 如果总数小于每页数量，不显示分页
+  if (total <= pageSize) return null;
 
   // 构建 CSS 类名
   let className = 'table-pagination-area';

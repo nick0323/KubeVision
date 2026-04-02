@@ -25,7 +25,6 @@ import {
   FaChevronDown,
   FaChevronRight,
 } from 'react-icons/fa';
-import { LuSquareDashed } from 'react-icons/lu';
 import { MENU_LIST } from './constants';
 import LoginPage from './LoginPage.tsx';
 import { FiLogOut } from 'react-icons/fi';
@@ -403,7 +402,7 @@ export default function App() {
         <Route path="/pods/:namespace/:name" element={<PodDetailWrapper />} />
 
         {/* 重定向 */}
-        <Route path="*" to="/" />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

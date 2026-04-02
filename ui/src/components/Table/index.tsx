@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, memo, useCallback } from 'react';
+import React, { useRef, useEffect, useState, memo, useCallback, ReactElement } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
@@ -109,9 +109,9 @@ export const TableHeaderCell = memo(
       </th>
     );
   }
-) as <T>(props: TableHeaderCellProps<T>) => JSX.Element;
+) as <T>(props: TableHeaderCellProps<T>) => ReactElement;
 
-TableHeaderCell.displayName = 'TableHeaderCell';
+(TableHeaderCell as any).displayName = 'TableHeaderCell';
 
 // ==================== TableCell 组件 ====================
 
@@ -189,9 +189,9 @@ export const TableCell = memo(
       </td>
     );
   }
-) as <T>(props: TableCellProps<T>) => JSX.Element;
+) as <T>(props: TableCellProps<T>) => ReactElement;
 
-TableCell.displayName = 'TableCell';
+(TableCell as any).displayName = 'TableCell';
 
 // ==================== TableRow 组件 ====================
 
@@ -246,9 +246,9 @@ export const TableRow = memo(
       </tr>
     );
   }
-) as <T>(props: TableRowProps<T>) => JSX.Element;
+) as <T>(props: TableRowProps<T>) => ReactElement;
 
-TableRow.displayName = 'TableRow';
+(TableRow as any).displayName = 'TableRow';
 
 // ==================== Table Skeleton 组件 ====================
 

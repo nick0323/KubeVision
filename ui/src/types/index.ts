@@ -1,8 +1,7 @@
 /**
  * 通用类型定义
+ * 统一导出所有类型，简化导入路径
  */
-
-import React from 'react';
 
 // ==================== 从 k8s-resources 导出核心类型 ====================
 
@@ -11,6 +10,8 @@ export type {
   K8sResource,
   K8sMetadata,
   K8sResourceList,
+  K8sOwnerReference,
+  K8sLocalObjectReference,
 
   // API 响应类型
   APIResponse,
@@ -20,15 +21,36 @@ export type {
   ListQueryParams,
 
   // 表格列类型
-  ColumnDef,
   StatusColumnDef,
+
+  // 容器相关
+  Container,
+  ContainerPort,
+  ContainerStatus,
+  ContainerStatusState,
+  ResourceRequirements,
+  Probe,
+  Volume,
+  VolumeMount,
+  EnvVar,
+  EnvFromSource,
+  SecurityContext,
+  PodSpec,
+  PodStatus,
+  PodCondition,
+  LabelSelector,
+  Toleration,
+  Affinity,
 
   // 资源类型
   Pod,
+  PodPhase,
   Deployment,
   StatefulSet,
   DaemonSet,
   Service,
+  ServiceType,
+  ServicePort,
   Node,
 
   // 列表项类型
@@ -46,25 +68,48 @@ export type {
   ResourceType,
   GetListItem,
   GetResource,
+
+  // K8s 事件
+  K8sEvent,
+  ObjectReference,
+  EventSource,
+  EventSeries,
+
+  // UI 类型
+  ResourceListItem,
+  ActionButton,
 } from './k8s-resources';
 
-// ==================== 本地类型定义 ====================
+// ==================== 菜单类型 ====================
 
-// 菜单项
 export interface MenuItem {
   key: string;
   label: string;
   icon: string;
 }
 
-// 菜单组
 export interface MenuGroup {
   group: string;
   items: MenuItem[];
 }
 
-// K8s 事件（保留，用于概览页）
-export interface K8sEvent {
+// ==================== 表格列定义（本地定义） ====================
+
+export interface ColumnDef<T> {
+  title: string;
+  dataIndex: keyof T | string;
+  width?: number | string;
+  sortable?: boolean;
+  render?: (value: T[keyof T], record: T, index: number) => React.ReactNode;
+  className?: string;
+  hidden?: boolean;
+}
+
+export type Column<T = any> = ColumnDef<T>;
+
+// ==================== 概览页类型 ====================
+
+export interface K8sEventSimple {
   namespace: string;
   name: string;
   type: string;
@@ -79,7 +124,6 @@ export interface K8sEvent {
   cloneset?: string;
 }
 
-// 概览数据
 export interface OverviewData {
   nodeCount: number;
   nodeReady: number;
@@ -93,18 +137,19 @@ export interface OverviewData {
   memoryCapacity: number;
   memoryRequests: number;
   memoryLimits: number;
-  events: K8sEvent[];
+  events: K8sEventSimple[];
 }
 
-// InfoCard Props
+// ==================== 组件 Props 类型 ====================
+
 export interface InfoCardProps {
   icon: React.ReactNode;
   title: string;
   value: number;
   status?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-// ErrorDisplay Props
 export interface ErrorDisplayProps {
   message: string;
   type?: 'error' | 'warning' | 'info';
@@ -112,15 +157,15 @@ export interface ErrorDisplayProps {
   showRetry?: boolean;
 }
 
-// PageHeader Props
 export interface PageHeaderProps {
   title: string;
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  breadcrumbs?: { label: string; path: string }[];
+  onBreadcrumbClick?: (path: string) => void;
   children?: React.ReactNode;
 }
 
-// Pagination Props
 export interface PaginationProps {
   currentPage: number;
   total: number;
@@ -133,7 +178,6 @@ export interface PaginationProps {
   showQuickJumper?: boolean;
 }
 
-// ResourceSummary Props
 export interface ResourceSummaryProps {
   title: string;
   requestsValue: number | string;
@@ -145,16 +189,16 @@ export interface ResourceSummaryProps {
   unit: string;
 }
 
-// NamespaceSelect Props
 export interface NamespaceSelectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
   options?: string[];
+  className?: string;
+  width?: string;
 }
 
-// SearchInput Props
 export interface SearchInputProps {
   placeholder?: string;
   value: string;
@@ -168,7 +212,6 @@ export interface SearchInputProps {
   disabled?: boolean;
 }
 
-// RefreshButton Props
 export interface RefreshButtonProps {
   onClick: () => void;
   loading?: boolean;
@@ -176,12 +219,15 @@ export interface RefreshButtonProps {
   showLastUpdated?: boolean;
 }
 
-// LoginPage Props
+export interface StatusBadgeProps {
+  status: string;
+  resourceType?: string;
+}
+
 export interface LoginPageProps {
   onLogin: () => void;
 }
 
-// OverviewPage Props
 export interface OverviewPageProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -189,7 +235,6 @@ export interface OverviewPageProps {
 
 // ==================== 页面配置 ====================
 
-// 页面配置
 export interface PageConfig {
   title: string;
   apiEndpoint: string;
@@ -200,10 +245,4 @@ export interface PageConfig {
     field: string;
     order: 'asc' | 'desc';
   };
-}
-
-// StatusBadge Props
-export interface StatusBadgeProps {
-  status: string;
-  resourceType?: string;
 }

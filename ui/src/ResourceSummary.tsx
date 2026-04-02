@@ -1,5 +1,5 @@
 import React from 'react';
-import { ResourceSummaryProps } from '../types';
+import { ResourceSummaryProps } from './types';
 import './ResourceSummary.css';
 
 /**

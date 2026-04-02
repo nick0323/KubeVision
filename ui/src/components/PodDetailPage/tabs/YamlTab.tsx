@@ -3,7 +3,7 @@ import { YamlTabProps } from '../types';
 import { LoadingSpinner } from '../../LoadingSpinner';
 import { ErrorDisplay } from '../../ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
-import { FaCopy, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes, FaEye } from 'react-icons/fa';
+import { FaCopy, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
 import jsyaml from 'js-yaml';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-yaml';
@@ -17,16 +17,9 @@ const ALWAYS_HIDDEN_FIELDS = [
   'managedFields', // 托管字段（已废弃）
   'resourceVersion', // 资源版本（内部使用，频繁变化）
   'uid', // 唯一标识符（内部使用）
-  'selfLink', // 自链接（已废弃）
-  'clusterName', // 集群名称（通常为空）
-  'generation', // 代次（内部使用）
-];
-
-/**
- * 默认隐藏但可切换显示的字段（只读/高级功能）
- */
-const DEFAULT_HIDDEN_FIELDS = [
-  'status', // 状态信息（只读）
+  'selfLink',
+  'clusterName',
+  'generation',
 ];
 
 /**
@@ -100,8 +93,8 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
       } else {
         setError(result.message || '加载 YAML 失败');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败');
+    } catch {
+      setError('加载失败');
     } finally {
       setLoading(false);
     }
@@ -146,7 +139,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
       await navigator.clipboard.writeText(yamlContent);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
-    } catch (err) {
+    } catch {
       alert('复制失败');
     }
   }, [yamlContent]);
@@ -309,8 +302,8 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
             styles={{
               variables: {
                 light: {
-                  primaryBackgroundColor: '#fff',
-                  secondaryBackgroundColor: '#fafafa',
+                  diffViewerBackground: '#fff',
+                  diffViewerColor: '#333',
                 },
               },
               line: {

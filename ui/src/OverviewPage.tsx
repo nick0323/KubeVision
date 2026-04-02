@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import InfoCard from './InfoCard.tsx';
 import ResourceSummary from './ResourceSummary.tsx';
 import PageHeader from './components/PageHeader.tsx';
-import { FaChartPie, FaServer, FaCube, FaNetworkWired } from 'react-icons/fa';
+import { FaServer, FaCube, FaNetworkWired } from 'react-icons/fa';
 import { FaThLarge } from 'react-icons/fa';
-import { OverviewPageProps, OverviewData, K8sEvent } from './types';
+import { OverviewPageProps, OverviewData, K8sEventSimple } from './types';
 import { apiClient } from './utils/apiClient';
 
 /**
@@ -87,12 +87,14 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
             ) : (
               <span
                 className={
-                  safeData.nodeReady === safeData.nodeCount ? 'status-ready' : 'status-failed'
+                  (safeData.nodeReady ?? 0) === (safeData.nodeCount ?? 0)
+                    ? 'status-ready'
+                    : 'status-failed'
                 }
               >
-                {safeData.nodeReady === safeData.nodeCount
+                {(safeData.nodeReady ?? 0) === (safeData.nodeCount ?? 0)
                   ? 'All Ready'
-                  : `${safeData.nodeCount - safeData.nodeReady} Not Ready`}
+                  : `${(safeData.nodeCount ?? 0) - (safeData.nodeReady ?? 0)} Not Ready`}
               </span>
             )
           }
@@ -107,8 +109,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
                 <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
               </div>
             ) : (
-              <span className={safeData.podNotReady === 0 ? 'status-ready' : 'status-failed'}>
-                {safeData.podNotReady === 0 ? 'All Ready' : `${safeData.podNotReady} Not Ready`}
+              <span
+                className={(safeData.podNotReady ?? 0) === 0 ? 'status-ready' : 'status-failed'}
+              >
+                {(safeData.podNotReady ?? 0) === 0
+                  ? 'All Ready'
+                  : `${safeData.podNotReady} Not Ready`}
               </span>
             )
           }
@@ -147,26 +153,36 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
         <div className="overview-left-col">
           <ResourceSummary
             title="CPU"
-            requestsValue={safeData.cpuRequests?.toFixed(1) || 0}
-            requestsPercent={((safeData.cpuRequests / safeData.cpuCapacity) * 100 || 0).toFixed(1)}
-            limitsValue={safeData.cpuLimits?.toFixed(1) || 0}
-            limitsPercent={((safeData.cpuLimits / safeData.cpuCapacity) * 100 || 0).toFixed(1)}
-            totalValue={safeData.cpuCapacity?.toFixed(1) || 0}
-            availableValue={(safeData.cpuCapacity - safeData.cpuRequests)?.toFixed(1) || 0}
+            requestsValue={(safeData.cpuRequests ?? 0).toFixed(1)}
+            requestsPercent={(
+              ((safeData.cpuRequests ?? 0) / (safeData.cpuCapacity ?? 1)) *
+              100
+            ).toFixed(1)}
+            limitsValue={(safeData.cpuLimits ?? 0).toFixed(1)}
+            limitsPercent={(
+              ((safeData.cpuLimits ?? 0) / (safeData.cpuCapacity ?? 1)) *
+              100
+            ).toFixed(1)}
+            totalValue={(safeData.cpuCapacity ?? 0).toFixed(1)}
+            availableValue={((safeData.cpuCapacity ?? 0) - (safeData.cpuRequests ?? 0)).toFixed(1)}
             unit="cores"
           />
           <ResourceSummary
             title="Memory"
-            requestsValue={safeData.memoryRequests?.toFixed(1) || 0}
+            requestsValue={(safeData.memoryRequests ?? 0).toFixed(1)}
             requestsPercent={(
-              (safeData.memoryRequests / safeData.memoryCapacity) * 100 || 0
+              ((safeData.memoryRequests ?? 0) / (safeData.memoryCapacity ?? 1)) *
+              100
             ).toFixed(1)}
-            limitsValue={safeData.memoryLimits?.toFixed(1) || 0}
-            limitsPercent={((safeData.memoryLimits / safeData.memoryCapacity) * 100 || 0).toFixed(
-              1
-            )}
-            totalValue={safeData.memoryCapacity?.toFixed(1) || 0}
-            availableValue={(safeData.memoryCapacity - safeData.memoryRequests)?.toFixed(1) || 0}
+            limitsValue={(safeData.memoryLimits ?? 0).toFixed(1)}
+            limitsPercent={(
+              ((safeData.memoryLimits ?? 0) / (safeData.memoryCapacity ?? 1)) *
+              100
+            ).toFixed(1)}
+            totalValue={(safeData.memoryCapacity ?? 0).toFixed(1)}
+            availableValue={(
+              (safeData.memoryCapacity ?? 0) - (safeData.memoryRequests ?? 0)
+            ).toFixed(1)}
             unit="GiB"
           />
         </div>
@@ -178,11 +194,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
               safeData.events
                 .slice()
                 .sort(
-                  (a: K8sEvent, b: K8sEvent) =>
+                  (a: K8sEventSimple, b: K8sEventSimple) =>
                     new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime()
                 )
                 .slice(0, 5)
-                .map((e: K8sEvent, i: number) => (
+                .map((e: K8sEventSimple, i: number) => (
                   <div
                     key={i}
                     style={{

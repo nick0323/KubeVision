@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { TerminalTabProps } from '../types';
-import { LoadingSpinner } from '../../LoadingSpinner';
 import { FaPlug, FaTimes, FaEraser, FaChevronDown } from 'react-icons/fa';
 import NamespaceSelect from '../../NamespaceSelect';
 import { Terminal } from 'xterm';
@@ -47,7 +46,6 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
         background: '#ffffff',
         foreground: '#000000',
         cursor: '#000000',
-        selection: 'rgba(0, 0, 0, 0.2)',
         black: '#000000',
         red: '#c62828',
         green: '#2e7d32',
@@ -92,7 +90,6 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     window.addEventListener('resize', handleResize);
 
     return () => {
-      console.log('[TerminalTab] Cleanup: disposing xterm');
       if (fitAddonRef.current) {
         fitAddonRef.current.dispose();
         fitAddonRef.current = null;
@@ -133,13 +130,10 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/ws/exec?namespace=${namespace}&pod=${name}&container=${containerToUse}&command=${shell}&token=${token}`;
 
-    console.log('Connecting to:', wsUrl);
-
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('WebSocket connected');
       setConnected(true);
       setSessionStart(new Date());
       xtermRef.current?.writeln('\r\n\x1b[32mConnected!\x1b[0m\r\n');
@@ -148,7 +142,6 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     ws.onmessage = event => {
       try {
         const data = JSON.parse(event.data);
-        console.log('Received:', data);
         if (data.status === 'connected') {
           xtermRef.current?.writeln(`\x1b[32m${data.message}\x1b[0m`);
           xtermRef.current?.writeln('');
@@ -157,20 +150,18 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
         } else if (data.message) {
           xtermRef.current?.writeln(data.message);
         }
-      } catch (e) {
+      } catch {
         // Plain text
         xtermRef.current?.write(event.data);
       }
     };
 
-    ws.onerror = error => {
-      console.error('WebSocket error:', error);
+    ws.onerror = () => {
       setConnected(false);
       xtermRef.current?.writeln('\r\n\x1b[31mConnection failed\x1b[0m\r\n');
     };
 
     ws.onclose = () => {
-      console.log('WebSocket closed');
       setConnected(false);
       setSessionStart(null);
       xtermRef.current?.writeln('\r\n\x1b[33mDisconnected\x1b[0m\r\n');
@@ -190,22 +181,17 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     xtermRef.current?.clear();
   }, []);
 
-  // Calculate session duration
-  const getSessionDuration = () => {
-    if (!sessionStart) return '00:00';
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - sessionStart.getTime()) / 1000);
-    const mins = Math.floor(diff / 60);
-    const secs = diff % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const [duration, setDuration] = useState('00:00');
 
   useEffect(() => {
     if (!connected) return;
     const interval = setInterval(() => {
-      setDuration(getSessionDuration());
+      if (!sessionStart) return;
+      const now = new Date();
+      const diff = Math.floor((now.getTime() - sessionStart.getTime()) / 1000);
+      const mins = Math.floor(diff / 60);
+      const secs = diff % 60;
+      setDuration(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
     }, 1000);
     return () => clearInterval(interval);
   }, [connected, sessionStart]);

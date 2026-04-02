@@ -34,7 +34,7 @@ export interface ListResponse<T = any> {
 /**
  * 资源列表 Hook 配置
  */
-export interface UseResourceListConfig<T> {
+export interface UseResourceListConfig {
   apiEndpoint: string;
   namespaceFilter?: boolean;
   defaultSort?: {
@@ -42,8 +42,7 @@ export interface UseResourceListConfig<T> {
     order: 'asc' | 'desc';
   };
   initialPageSize?: number;
-  staleTime?: number; // 数据保持新鲜的时长 (ms)，默认 30s
-  refreshInterval?: number; // 自动刷新间隔 (ms)，0 表示不自动刷新
+  staleTime?: number;
 }
 
 /**
@@ -121,7 +120,15 @@ function setCache<T>(key: string, data: T): void {
  * 生成缓存键
  */
 function getCacheKey(endpoint: string, params: ListQueryParams): string {
-  return `${endpoint}?${new URLSearchParams(params as Record<string, string>).toString()}`;
+  const paramsObj: Record<string, string> = {
+    limit: params.limit.toString(),
+    offset: params.offset.toString(),
+    sortBy: params.sortBy,
+    sortOrder: params.sortOrder,
+  };
+  if (params.namespace) paramsObj.namespace = params.namespace;
+  if (params.search) paramsObj.search = params.search;
+  return `${endpoint}?${new URLSearchParams(paramsObj).toString()}`;
 }
 
 /**
@@ -134,16 +141,13 @@ function getCacheKey(endpoint: string, params: ListQueryParams): string {
  * - 请求取消
  * - 乐观更新
  */
-export function useResourceList<T = any>(
-  config: UseResourceListConfig<T>
-): UseResourceListReturn<T> {
+export function useResourceList<T = any>(config: UseResourceListConfig): UseResourceListReturn<T> {
   const {
     apiEndpoint,
     namespaceFilter,
     defaultSort,
     initialPageSize = 20,
-    staleTime = 30000, // 30 秒
-    refreshInterval = 0, // 默认不自动刷新
+    staleTime = 30000,
   } = config;
 
   // 状态管理
@@ -204,88 +208,6 @@ export function useResourceList<T = any>(
       ...(search ? { search } : {}),
     }),
     [pageSize, page, sortField, sortOrder, namespace, search]
-  );
-
-  /**
-   * 加载资源列表数据
-   */
-  const loadData = useCallback(
-    async (isRefresh = false) => {
-      const cacheKey = getCacheKey(apiEndpoint, queryParams);
-
-      // 检查缓存
-      const cachedData = getCached<ListResponse<T>>(cacheKey, staleTime);
-      if (cachedData && !isRefresh) {
-        setData(cachedData.data || []);
-        setTotal(cachedData.page?.total || cachedData.data?.length || 0);
-        setLoading(false);
-        return;
-      }
-
-      // 取消之前的请求
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      if (isRefresh) {
-        setIsValidating(true);
-      } else {
-        setLoading(true);
-      }
-      setError(null);
-
-      try {
-        const params = new URLSearchParams({
-          limit: queryParams.limit.toString(),
-          offset: queryParams.offset.toString(),
-          sortBy: queryParams.sortBy,
-          sortOrder: queryParams.sortOrder,
-        });
-
-        if (queryParams.namespace) params.set('namespace', queryParams.namespace);
-        if (queryParams.search) params.set('search', queryParams.search);
-
-        const response = await authFetch(`${apiEndpoint}?${params}`, {
-          signal: controller.signal,
-        });
-        const result = await response.json();
-
-        if (!mountedRef.current) return;
-
-        if (result.code === 0 && result.data) {
-          const newData = result.data || [];
-          const newTotal = result.page?.total || newData.length || 0;
-
-          setData(newData);
-          setTotal(newTotal);
-
-          // 写入缓存
-          setCache(cacheKey, result);
-          setError(null);
-        } else {
-          setError(result.message || '加载失败');
-        }
-      } catch (err) {
-        if (!mountedRef.current) return;
-
-        if (err instanceof Error) {
-          if (err.name !== 'AbortError') {
-            setError(err.message || '网络错误');
-          }
-        } else {
-          setError('网络错误');
-        }
-      } finally {
-        if (mountedRef.current) {
-          setLoading(false);
-          setIsValidating(false);
-        }
-      }
-    },
-    [apiEndpoint, queryParams, staleTime]
   );
 
   /**

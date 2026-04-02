@@ -3,7 +3,7 @@
  * 格式：Cluster > Namespace > Resource Type > Resource Name
  */
 import React from 'react';
-import { FaHome, FaChevronRight } from 'react-icons/fa';
+import { FaChevronRight } from 'react-icons/fa';
 import './Breadcrumb.css';
 
 export interface BreadcrumbItem {
@@ -12,7 +12,7 @@ export interface BreadcrumbItem {
   icon?: React.ReactNode;
 }
 
-interface BreadcrumbProps {
+export interface BreadcrumbProps {
   items?: BreadcrumbItem[];
   namespace?: string;
   resourceType?: string;

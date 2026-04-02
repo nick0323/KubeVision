@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Pod } from '../../types/k8s-resources';
 import { StatusBadge } from '../../StatusBadge';
-import { CollapsibleSection } from '../../CollapsibleSection';
 import { OverviewTabProps, ContainerStatusSummary, PodCondition } from '../types';
 import './OverviewTab.css';
 
 /**
  * Overview Tab - Pod 概览
  */
-export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefresh }) => {
+export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading }) => {
   const [containersExpanded, setContainersExpanded] = useState<Record<string, boolean>>({});
 
   /**
@@ -27,7 +25,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
 
   /**
    * 计算 Ready Containers
-   * 如果容器状态为空，显示 0 / 期望容器数
    */
   const readyContainers = useMemo(() => {
     const ready = containerStatuses.filter(c => c.ready).length;
@@ -46,7 +43,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
    * 判断 Pod 是否正在初始化
    */
   const isInitializing = useMemo(() => {
-    // 如果容器状态为空但 spec 中有容器定义，说明正在创建
     return (
       (!pod?.status?.containerStatuses || pod.status.containerStatuses.length === 0) &&
       pod?.spec?.containers &&
@@ -61,7 +57,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
     if (isInitializing) {
       return 'Pending';
     }
-    return pod.status?.phase || 'Unknown';
+    return pod?.status?.phase || 'Unknown';
   };
 
   /**
@@ -228,11 +224,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                       <span className="container-card-title">{container.name}</span>
                       <span className="container-card-image">{container.image}</span>
                     </div>
-                    {containerSpec?.imagePullPolicy && (
-                      <span className="container-card-pull-policy">
-                        {containerSpec.imagePullPolicy}
-                      </span>
-                    )}
+                    {containerSpec &&
+                      'imagePullPolicy' in containerSpec &&
+                      containerSpec.imagePullPolicy && (
+                        <span className="container-card-pull-policy">
+                          {containerSpec.imagePullPolicy}
+                        </span>
+                      )}
                   </div>
 
                   {isExpanded && (
@@ -243,7 +241,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                         <div className="info-grid">
                           {pod.spec?.containers
                             ?.find(c => c.name === container.name)
-                            ?.ports?.map((port, idx) => (
+                            ?.ports?.map((port: any, idx) => (
                               <div key={idx} className="info-item">
                                 <span className="info-value">
                                   {port.name ? `${port.name}: ` : ''}
@@ -264,7 +262,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                         <div className="info-grid">
                           {pod.spec?.containers
                             ?.find(c => c.name === container.name)
-                            ?.env?.map((env, idx) => (
+                            ?.env?.map((env: any, idx) => (
                               <div key={idx} className="info-item">
                                 <span className="info-value">
                                   <span className="env-key">{env.name}</span>
@@ -348,7 +346,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                         <div className="info-grid">
                           {pod.spec?.containers
                             ?.find(c => c.name === container.name)
-                            ?.volumeMounts?.map((mount, idx) => (
+                            ?.volumeMounts?.map((mount: any, idx) => (
                               <div key={idx} className="info-item">
                                 <span className="info-label">{mount.name}</span>
                                 <span className="info-value">

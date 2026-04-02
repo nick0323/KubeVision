@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStatusRenderer as createStatusRendererWrapper } from '../components/StatusRenderer';
+import { StatusBadge } from '../components/StatusBadge';
 
 /**
  * 创建名称渲染器（带点击链接）
@@ -160,9 +160,11 @@ export const createUsageRenderer = () => {
 };
 
 /**
- * 创建状态渲染器（导出）
+ * 创建状态渲染器
  */
-export const createStatusRenderer = createStatusRendererWrapper;
+export const createStatusRenderer = (status: string, resourceType?: string) => {
+  return <StatusBadge status={status} resourceType={resourceType} />;
+};
 
 export default {
   createNameRenderer,

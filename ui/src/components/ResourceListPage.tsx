@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageConfig } from '../types';
 import { StatusBadge } from './StatusBadge';
@@ -93,7 +93,6 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
 
     // 操作
     refresh,
-    mutate,
     handleSubmit,
     clearSearch,
 
@@ -106,7 +105,6 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
     defaultSort: config.defaultSort,
     initialPageSize: 20,
     staleTime: 30000, // 30 秒缓存
-    debounceMs: 300, // 300ms 防抖
   });
 
   /**
@@ -127,12 +125,6 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
 
   // 确认对话框
   const { confirm, confirming, config: confirmConfig, onConfirm, onCancel } = useConfirm();
-
-  // 待处理的操作
-  const [pendingAction, setPendingAction] = useState<{
-    action: NonNullable<ResourceListPageProps['actions']>[0];
-    record: any;
-  } | null>(null);
 
   /**
    * 检测状态列
@@ -157,10 +149,8 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
       const minutes = String(date.getMinutes()).padStart(2, '0');
       const seconds = String(date.getSeconds()).padStart(2, '0');
       const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      console.log('formatTime:', timestamp, '->', formatted);
       return formatted;
-    } catch (e) {
-      console.error('formatTime error:', timestamp, e);
+    } catch {
       return timestamp;
     }
   };
@@ -198,7 +188,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
               : isTimeColumn
                 ? (value: any) => formatTime(value)
                 : undefined),
-        };
+        } as TableColumn;
       }),
     [config.columns, handleNameClick]
   );
@@ -475,7 +465,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
                     rowIndex={rowIndex}
                     columns={allColumns}
                     isStatusColumn={!!statusColumnIndex}
-                    statusColumnIndex={statusColumnIndex}
+                    statusColumnIndex={statusColumnIndex as string | undefined}
                     StatusBadge={StatusBadge}
                     resourceType={config.resourceType}
                     onClick={handleRowClick}

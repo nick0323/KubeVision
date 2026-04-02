@@ -2,8 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { LogsTabProps } from '../types';
 import { LoadingSpinner } from '../../LoadingSpinner';
 import { ErrorDisplay } from '../../ErrorDisplay';
-import { authFetch } from '../../../utils/auth';
-import { FaCog, FaDownload, FaTrash, FaChevronDown, FaEraser } from 'react-icons/fa';
+import { FaCog, FaDownload, FaChevronDown, FaEraser } from 'react-icons/fa';
 import NamespaceSelect from '../../NamespaceSelect';
 import './LogsTab.css';
 
@@ -19,13 +18,6 @@ const MAX_LOG_LINES = 1000;
 const LINE_HEIGHT = 23;
 // Virtual scrolling: overscan rows
 const OVERSCAN_ROWS = 20;
-
-/**
- * Remove ANSI escape sequences from string
- */
-const stripAnsiCodes = (str: string): string => {
-  return str.replace(/\x1b\[[0-9;]*m/g, '');
-};
 
 /**
  * Logs Tab - Log Viewer
@@ -115,7 +107,6 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
     // Close existing connection
     if (wsRef.current) {
-      console.log('[LogsTab] Closing existing connection before creating new one');
       wsRef.current.close();
     }
 
@@ -128,13 +119,10 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/pods/${namespace}/${name}/logs/stream?container=${containerToUse}&tailLines=${tailLines}&timestamps=${timestamps}&token=${token}`;
 
-    console.log('[LogsTab] Creating WebSocket connection:', wsUrl);
-
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('[LogsTab] WebSocket connected');
       setConnected(true);
       setLoading(false);
       // 重连成功后重置计数器
@@ -148,9 +136,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
         if (data.type === 'log') {
           const newLines = data.content
-            .replace(/\x1b\[[0-9;]*m/g, '')
+            .replace(/\u001b\[[0-9;]*m/g, '')
             .split('\n')
-            .filter(line => line.length > 0);
+            .filter((line: string) => line.length > 0);
 
           setLogs(prev => {
             const updated = [...prev, ...newLines];
@@ -164,32 +152,28 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
           setLoading(false);
         } else if (data.type === 'ping') {
           // 响应后端心跳，保持连接
-          console.log('[LogsTab] Received ping, sending pong...');
           ws.send(JSON.stringify({ type: 'pong' }));
         }
-      } catch (e) {
+      } catch {
         // Ignore parse errors
       }
     };
 
-    ws.onerror = error => {
-      console.error('[LogsTab] WebSocket error:', error);
+    ws.onerror = () => {
+      // WebSocket error handler
     };
 
     ws.onclose = () => {
-      console.log('[LogsTab] WebSocket closed');
       setConnected(false);
       setLoading(false);
 
       // 防止 StrictMode 下重复重连
       if (isReconnectingRef.current) {
-        console.log('[LogsTab] Already reconnecting, skip...');
         return;
       }
 
       // 检查重连次数
       if (reconnectCountRef.current >= MAX_RECONNECT_COUNT) {
-        console.log('[LogsTab] Max reconnect count reached, stopping reconnect');
         return;
       }
 
@@ -197,11 +181,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       isReconnectingRef.current = true;
 
       // 3 秒后自动重连
-      console.log(
-        `[LogsTab] Will reconnect in 3 seconds... (attempt ${reconnectCountRef.current}/${MAX_RECONNECT_COUNT})`
-      );
       reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('[LogsTab] Reconnecting...');
         isReconnectingRef.current = false;
         loadLogs();
       }, 3000);
@@ -215,11 +195,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
   // Cleanup on unmount
   useEffect(() => {
-    let isUnmounted = false;
-
     return () => {
-      console.log('[LogsTab] Cleanup: component unmounting');
-      isUnmounted = true;
       isReconnectingRef.current = false;
 
       // 关闭 WebSocket 连接
@@ -235,8 +211,6 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       }
 
       reconnectCountRef.current = 0;
-
-      console.log('[LogsTab] Cleanup: completed');
     };
   }, []);
 
@@ -246,13 +220,6 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [logs]);
-
-  // Scroll to bottom on initial load only
-  useEffect(() => {
-    if (logs.length > 0 && containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-    }
-  }, []);
 
   // Handle container scroll
   const handleScroll = useCallback(() => {
@@ -302,10 +269,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   }, [searchResults, currentSearchIndex]);
 
   // Copy logs
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(limitedLogs.join('\n'));
-    alert('Logs copied to clipboard');
-  }, [limitedLogs]);
+  // const handleCopy = useCallback(() => {
+  //   navigator.clipboard.writeText(limitedLogs.join('\n'));
+  // }, [limitedLogs]);
 
   // Download logs
   const handleDownload = useCallback(() => {
@@ -327,10 +293,8 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const renderedLines = useMemo(() => {
     // Wrap mode: render all lines (virtual scrolling not suitable for variable height)
     if (wrapLines) {
-      const searchLower = searchTerm.toLowerCase();
       const lines: React.ReactNode[] = limitedLogs.map((line, i) => {
         const actualIndex = i + offset;
-        const isMatch = searchTerm && line.toLowerCase().includes(searchLower);
         const isInSearchResults = searchResults.includes(actualIndex);
 
         let className = 'log-line';
@@ -355,13 +319,10 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       Math.ceil((scrollTop + containerHeight) / LINE_HEIGHT) + OVERSCAN_ROWS
     );
 
-    const searchLower = searchTerm.toLowerCase();
-
     const lines: React.ReactNode[] = [];
     for (let i = visibleStart; i < visibleEnd; i++) {
       const line = limitedLogs[i];
       const actualIndex = i + offset;
-      const isMatch = searchTerm && line.toLowerCase().includes(searchLower);
       const isInSearchResults = searchResults.includes(actualIndex);
 
       let className = 'log-line';
@@ -383,7 +344,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     }
 
     return { lines, visibleStart, visibleEnd };
-  }, [limitedLogs, scrollTop, containerHeight, searchTerm, searchResults, offset, wrapLines]);
+  }, [limitedLogs, scrollTop, containerHeight, searchResults, offset, wrapLines]);
 
   return (
     <div className="logs-tab">

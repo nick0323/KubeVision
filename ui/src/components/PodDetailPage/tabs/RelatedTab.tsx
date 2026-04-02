@@ -6,20 +6,6 @@ import { authFetch } from '../../../utils/auth';
 import { useNavigate } from 'react-router-dom';
 import './RelatedTab.css';
 
-const RESOURCE_ICONS: Record<string, string> = {
-  ReplicaSet: '📦',
-  Deployment: '🚀',
-  StatefulSet: '📋',
-  DaemonSet: '📱',
-  Service: '🌐',
-  Ingress: '🌍',
-  PersistentVolumeClaim: '💾',
-  ConfigMap: '⚙️',
-  Secret: '🔐',
-  Node: '🖥️',
-  Namespace: '📁',
-};
-
 /**
  * Related Tab - 关联资源
  */
@@ -50,7 +36,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
           }));
           setRelatedResources(owners);
         }
-      } catch (err) {
+      } catch {
         // 降级处理：只显示 ownerReferences
         const owners: RelatedResource[] = ownerReferences.map(ref => ({
           kind: ref.kind,

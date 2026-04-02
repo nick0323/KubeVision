@@ -1,5 +1,5 @@
 import React from 'react';
-import { InfoCardProps } from '../types';
+import { InfoCardProps } from './types';
 import './App.css';
 
 /**

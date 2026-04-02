@@ -1,5 +1,5 @@
-import { authUtils, authFetch } from './auth';
-import { ApiResponse, PageMeta } from '../types';
+import { authFetch } from './auth';
+import { APIResponse, PageMeta } from '../types';
 
 export interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
@@ -24,7 +24,7 @@ export const apiClient = {
   /**
    * 通用请求方法
    */
-  async request<T>(endpoint: string, options: ApiOptions = {}): Promise<ApiResponse<T>> {
+  async request<T>(endpoint: string, options: ApiOptions = {}): Promise<APIResponse<T>> {
     const { params, timeout = 30000, ...fetchOptions } = options;
 
     // 构建 URL
@@ -61,7 +61,7 @@ export const apiClient = {
         throw error;
       }
 
-      const result: ApiResponse<T> = await response.json();
+      const result: APIResponse<T> = await response.json();
 
       // 后端使用 HTTP 状态码表示状态，code 字段可能为 0 或 HTTP 状态码
       // 只要 HTTP 状态码是 200，就认为是成功
@@ -87,14 +87,14 @@ export const apiClient = {
   async get<T>(
     endpoint: string,
     params?: Record<string, string | number>
-  ): Promise<ApiResponse<T>> {
+  ): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, { method: 'GET', params });
   },
 
   /**
    * POST 请求
    */
-  async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body?: unknown): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -104,7 +104,7 @@ export const apiClient = {
   /**
    * PUT 请求
    */
-  async put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body?: unknown): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(body),
@@ -114,7 +114,7 @@ export const apiClient = {
   /**
    * DELETE 请求
    */
-  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+  async delete<T>(endpoint: string): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   },
 

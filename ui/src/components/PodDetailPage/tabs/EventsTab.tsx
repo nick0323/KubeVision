@@ -29,8 +29,8 @@ export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName }) => {
       } else {
         setError(result.message || '加载事件失败');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '加载失败');
+    } catch {
+      setError('加载失败');
     } finally {
       setLoading(false);
     }
@@ -54,7 +54,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName }) => {
       const minutes = String(date.getMinutes()).padStart(2, '0');
       const seconds = String(date.getSeconds()).padStart(2, '0');
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    } catch (e) {
+    } catch {
       return timestamp;
     }
   };

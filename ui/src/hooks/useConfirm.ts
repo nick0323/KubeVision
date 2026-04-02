@@ -126,34 +126,25 @@ export function createPermissionChecker(userPermissions: string[] = []): Permiss
 export function usePermission(userPermissions: string[] = []) {
   const checker = createPermissionChecker(userPermissions);
 
-  /**
-   * 检查是否有权限
-   */
   const hasPermission = useCallback(
     (permission: string): boolean => {
       return checker.hasPermission(permission);
     },
-    [checker, userPermissions]
+    [checker]
   );
 
-  /**
-   * 检查是否有任何一个权限
-   */
   const hasAnyPermission = useCallback(
     (permissions: string[]): boolean => {
       return permissions.some(p => checker.hasPermission(p));
     },
-    [checker, userPermissions]
+    [checker]
   );
 
-  /**
-   * 检查是否拥有所有权限
-   */
   const hasAllPermissions = useCallback(
     (permissions: string[]): boolean => {
       return checker.checkPermissions(permissions);
     },
-    [checker, userPermissions]
+    [checker]
   );
 
   return {
