@@ -16,7 +16,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
    */
   const containerStatuses = useMemo<ContainerStatusSummary[]>(() => {
     if (!pod?.status?.containerStatuses) return [];
-    return pod.status.containerStatuses.map((cs) => ({
+    return pod.status.containerStatuses.map(cs => ({
       name: cs.name,
       ready: cs.ready,
       restartCount: cs.restartCount,
@@ -30,7 +30,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
    * 如果容器状态为空，显示 0 / 期望容器数
    */
   const readyContainers = useMemo(() => {
-    const ready = containerStatuses.filter((c) => c.ready).length;
+    const ready = containerStatuses.filter(c => c.ready).length;
     const total = containerStatuses.length || pod?.spec?.containers?.length || 0;
     return { ready, total };
   }, [containerStatuses, pod?.spec?.containers?.length]);
@@ -47,8 +47,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
    */
   const isInitializing = useMemo(() => {
     // 如果容器状态为空但 spec 中有容器定义，说明正在创建
-    return (!pod?.status?.containerStatuses || pod.status.containerStatuses.length === 0) &&
-           pod?.spec?.containers && pod.spec.containers.length > 0;
+    return (
+      (!pod?.status?.containerStatuses || pod.status.containerStatuses.length === 0) &&
+      pod?.spec?.containers &&
+      pod.spec.containers.length > 0
+    );
   }, [pod?.status?.containerStatuses, pod?.spec?.containers]);
 
   /**
@@ -110,9 +113,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
               <div className="stat-label">Ready Containers</div>
             </div>
             <div className="stat-card">
-              <div className="stat-value">
-                {restartCount}
-              </div>
+              <div className="stat-value">{restartCount}</div>
               <div className="stat-label">Restart Count</div>
             </div>
             <div className="stat-card">
@@ -164,7 +165,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
               <div className="info-item">
                 <span className="info-label">Ports</span>
                 <span className="info-value">
-                  {pod.spec.containers[0].ports.map((p) => `${p.containerPort}/${p.protocol || 'TCP'}`).join(', ')}
+                  {pod.spec.containers[0].ports
+                    .map(p => `${p.containerPort}/${p.protocol || 'TCP'}`)
+                    .join(', ')}
                 </span>
               </div>
             )}
@@ -205,7 +208,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
         <div className="detail-card">
           <h3 className="detail-card-title">Containers</h3>
           <div className="detail-card-body">
-            {containerStatuses.map((container) => {
+            {containerStatuses.map(container => {
               const isExpanded = containersExpanded[container.name] || false;
               const containerSpec = pod.spec?.containers?.find(c => c.name === container.name);
 
@@ -213,10 +216,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                 <div key={container.name} className="container-card">
                   <div
                     className="container-card-header"
-                    onClick={() => setContainersExpanded(prev => ({
-                      ...prev,
-                      [container.name]: !isExpanded,
-                    }))}
+                    onClick={() =>
+                      setContainersExpanded(prev => ({
+                        ...prev,
+                        [container.name]: !isExpanded,
+                      }))
+                    }
                   >
                     <div>
                       <span className="collapse-btn">{isExpanded ? '▼' : '▶'}</span>
@@ -224,23 +229,32 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                       <span className="container-card-image">{container.image}</span>
                     </div>
                     {containerSpec?.imagePullPolicy && (
-                      <span className="container-card-pull-policy">{containerSpec.imagePullPolicy}</span>
+                      <span className="container-card-pull-policy">
+                        {containerSpec.imagePullPolicy}
+                      </span>
                     )}
                   </div>
-                  
+
                   {isExpanded && (
                     <div className="container-card-body">
                       {/* PORTS */}
                       <div className="sub-module">
                         <div className="sub-module-title">Ports</div>
                         <div className="info-grid">
-                          {pod.spec?.containers?.find(c => c.name === container.name)?.ports?.map((port, idx) => (
-                            <div key={idx} className="info-item">
-                              <span className="info-value">
-                                {port.name ? `${port.name}: ` : ''}{port.containerPort}/{port.protocol || 'TCP'}
-                              </span>
+                          {pod.spec?.containers
+                            ?.find(c => c.name === container.name)
+                            ?.ports?.map((port, idx) => (
+                              <div key={idx} className="info-item">
+                                <span className="info-value">
+                                  {port.name ? `${port.name}: ` : ''}
+                                  {port.containerPort}/{port.protocol || 'TCP'}
+                                </span>
+                              </div>
+                            )) || (
+                            <div className="empty-state">
+                              <span className="empty-state-text">No ports defined</span>
                             </div>
-                          )) || <div className="empty-state"><span className="empty-state-text">No ports defined</span></div>}
+                          )}
                         </div>
                       </div>
 
@@ -248,15 +262,23 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                       <div className="sub-module">
                         <div className="sub-module-title">Environment Variables</div>
                         <div className="info-grid">
-                          {pod.spec?.containers?.find(c => c.name === container.name)?.env?.map((env, idx) => (
-                            <div key={idx} className="info-item">
-                              <span className="info-value">
-                                <span className="env-key">{env.name}</span>
-                                <span className="env-separator">: </span>
-                                <span className="env-value">{env.value || (env.valueFrom ? '(From ConfigMap/Secret)' : '-')}</span>
-                              </span>
+                          {pod.spec?.containers
+                            ?.find(c => c.name === container.name)
+                            ?.env?.map((env, idx) => (
+                              <div key={idx} className="info-item">
+                                <span className="info-value">
+                                  <span className="env-key">{env.name}</span>
+                                  <span className="env-separator">: </span>
+                                  <span className="env-value">
+                                    {env.value || (env.valueFrom ? '(From ConfigMap/Secret)' : '-')}
+                                  </span>
+                                </span>
+                              </div>
+                            )) || (
+                            <div className="empty-state">
+                              <span className="empty-state-text">No environment variables</span>
                             </div>
-                          )) || <div className="empty-state"><span className="empty-state-text">No environment variables</span></div>}
+                          )}
                         </div>
                       </div>
 
@@ -267,25 +289,29 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                           <div className="info-item">
                             <span className="info-label">Requests (CPU)</span>
                             <span className="info-value">
-                              {pod.spec.containers.find(c => c.name === container.name)?.resources?.requests?.cpu || '-'}
+                              {pod.spec.containers.find(c => c.name === container.name)?.resources
+                                ?.requests?.cpu || '-'}
                             </span>
                           </div>
                           <div className="info-item">
                             <span className="info-label">Requests (Memory)</span>
                             <span className="info-value">
-                              {pod.spec.containers.find(c => c.name === container.name)?.resources?.requests?.memory || '-'}
+                              {pod.spec.containers.find(c => c.name === container.name)?.resources
+                                ?.requests?.memory || '-'}
                             </span>
                           </div>
                           <div className="info-item">
                             <span className="info-label">Limits (CPU)</span>
                             <span className="info-value">
-                              {pod.spec.containers.find(c => c.name === container.name)?.resources?.limits?.cpu || '-'}
+                              {pod.spec.containers.find(c => c.name === container.name)?.resources
+                                ?.limits?.cpu || '-'}
                             </span>
                           </div>
                           <div className="info-item">
                             <span className="info-label">Limits (Memory)</span>
                             <span className="info-value">
-                              {pod.spec.containers.find(c => c.name === container.name)?.resources?.limits?.memory || '-'}
+                              {pod.spec.containers.find(c => c.name === container.name)?.resources
+                                ?.limits?.memory || '-'}
                             </span>
                           </div>
                         </div>
@@ -298,13 +324,19 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                           <div className="info-item">
                             <span className="info-label">Liveness Probe</span>
                             <span className="info-value">
-                              {pod.spec?.containers?.find(c => c.name === container.name)?.livenessProbe ? 'Configured' : 'Not Configured'}
+                              {pod.spec?.containers?.find(c => c.name === container.name)
+                                ?.livenessProbe
+                                ? 'Configured'
+                                : 'Not Configured'}
                             </span>
                           </div>
                           <div className="info-item">
                             <span className="info-label">Readiness Probe</span>
                             <span className="info-value">
-                              {pod.spec?.containers?.find(c => c.name === container.name)?.readinessProbe ? 'Configured' : 'Not Configured'}
+                              {pod.spec?.containers?.find(c => c.name === container.name)
+                                ?.readinessProbe
+                                ? 'Configured'
+                                : 'Not Configured'}
                             </span>
                           </div>
                         </div>
@@ -314,14 +346,20 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
                       <div className="sub-module">
                         <div className="sub-module-title">Volumes</div>
                         <div className="info-grid">
-                          {pod.spec?.containers?.find(c => c.name === container.name)?.volumeMounts?.map((mount, idx) => (
-                            <div key={idx} className="info-item">
-                              <span className="info-label">{mount.name}</span>
-                              <span className="info-value">
-                                {mount.mountPath} {mount.readOnly ? '(RO)' : '(RW)'}
-                              </span>
+                          {pod.spec?.containers
+                            ?.find(c => c.name === container.name)
+                            ?.volumeMounts?.map((mount, idx) => (
+                              <div key={idx} className="info-item">
+                                <span className="info-label">{mount.name}</span>
+                                <span className="info-value">
+                                  {mount.mountPath} {mount.readOnly ? '(RO)' : '(RW)'}
+                                </span>
+                              </div>
+                            )) || (
+                            <div className="empty-state">
+                              <span className="empty-state-text">No volumes</span>
                             </div>
-                          )) || <div className="empty-state"><span className="empty-state-text">No volumes</span></div>}
+                          )}
                         </div>
                       </div>
                     </div>
@@ -339,11 +377,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading, onRefres
           <h3 className="detail-card-title">Conditions</h3>
           <div className="detail-card-body">
             <div className="condition-list">
-              {conditions.map((condition) => (
+              {conditions.map(condition => (
                 <div key={condition.type} className="condition-item">
                   <span className="condition-type">{condition.type}</span>
-                  <span className={`condition-status status-badge ${condition.status === 'True' ? 'success' : condition.status === 'False' ? 'error' : 'warning'}`}>
-                    {condition.status === 'True' ? '✓' : condition.status === 'False' ? '✗' : '?'} {condition.status}
+                  <span
+                    className={`condition-status status-badge ${condition.status === 'True' ? 'success' : condition.status === 'False' ? 'error' : 'warning'}`}
+                  >
+                    {condition.status === 'True' ? '✓' : condition.status === 'False' ? '✗' : '?'}{' '}
+                    {condition.status}
                   </span>
                   {condition.lastTransitionTime && (
                     <span className="condition-time">

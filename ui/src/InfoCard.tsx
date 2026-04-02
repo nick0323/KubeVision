@@ -14,14 +14,18 @@ export const InfoCard: React.FC<InfoCardProps> = ({ icon, title, value, status, 
           <span className="overview-icon">{icon}</span>
         </div>
       )}
-      <div className="overview-card-content-col" style={{minHeight: 110, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+      <div
+        className="overview-card-content-col"
+        style={{
+          minHeight: 110,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
         <div className="overview-title">{title}</div>
-        {value !== undefined && (
-          <div className="overview-value">{value}</div>
-        )}
-        {status && (
-          <div className="overview-status">{status}</div>
-        )}
+        {value !== undefined && <div className="overview-value">{value}</div>}
+        {status && <div className="overview-status">{status}</div>}
         {children}
       </div>
     </div>

@@ -42,8 +42,8 @@ export interface UseResourceListConfig<T> {
     order: 'asc' | 'desc';
   };
   initialPageSize?: number;
-  staleTime?: number;        // 数据保持新鲜的时长 (ms)，默认 30s
-  refreshInterval?: number;  // 自动刷新间隔 (ms)，0 表示不自动刷新
+  staleTime?: number; // 数据保持新鲜的时长 (ms)，默认 30s
+  refreshInterval?: number; // 自动刷新间隔 (ms)，0 表示不自动刷新
 }
 
 /**
@@ -53,7 +53,7 @@ export interface UseResourceListReturn<T> {
   // 数据状态
   data: T[];
   loading: boolean;
-  isValidating: boolean;     // 正在重新验证/刷新
+  isValidating: boolean; // 正在重新验证/刷新
   error: string | null;
   total: number;
 
@@ -76,7 +76,7 @@ export interface UseResourceListReturn<T> {
 
   // 操作
   refresh: () => Promise<void>;
-  mutate: (newData?: T[]) => void;  // 手动更新数据
+  mutate: (newData?: T[]) => void; // 手动更新数据
   handleSubmit: () => void;
   clearSearch: () => void;
 
@@ -101,7 +101,7 @@ const cache = new Map<string, CacheEntry<any>>();
 function getCached<T>(key: string, staleTime: number): T | null {
   const entry = cache.get(key);
   if (!entry) return null;
-  
+
   const isStale = Date.now() - entry.timestamp > staleTime;
   if (isStale) {
     cache.delete(key);
@@ -126,7 +126,7 @@ function getCacheKey(endpoint: string, params: ListQueryParams): string {
 
 /**
  * 通用资源列表 Hook（增强版）
- * 
+ *
  * 特性：
  * - SWR 缓存模式，避免重复请求
  * - 搜索防抖
@@ -142,8 +142,8 @@ export function useResourceList<T = any>(
     namespaceFilter,
     defaultSort,
     initialPageSize = 20,
-    staleTime = 30000,       // 30 秒
-    refreshInterval = 0,     // 默认不自动刷新
+    staleTime = 30000, // 30 秒
+    refreshInterval = 0, // 默认不自动刷新
   } = config;
 
   // 状态管理
@@ -165,9 +165,7 @@ export function useResourceList<T = any>(
 
   // 排序状态（使用 ref 保存最新值）
   const [sortField, setSortField] = useState(defaultSort?.field || 'name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
-    defaultSort?.order || 'asc'
-  );
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(defaultSort?.order || 'asc');
   const sortFieldRef = useRef(sortField);
   const sortOrderRef = useRef(sortOrder);
 
@@ -196,93 +194,99 @@ export function useResourceList<T = any>(
   }, [namespace]);
 
   // 构建查询参数
-  const queryParams = useMemo<ListQueryParams>(() => ({
-    limit: pageSize,
-    offset: (page - 1) * pageSize,
-    sortBy: sortField,
-    sortOrder,
-    ...(namespace ? { namespace } : {}),
-    ...(search ? { search } : {}),
-  }), [pageSize, page, sortField, sortOrder, namespace, search]);
+  const queryParams = useMemo<ListQueryParams>(
+    () => ({
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+      sortBy: sortField,
+      sortOrder,
+      ...(namespace ? { namespace } : {}),
+      ...(search ? { search } : {}),
+    }),
+    [pageSize, page, sortField, sortOrder, namespace, search]
+  );
 
   /**
    * 加载资源列表数据
    */
-  const loadData = useCallback(async (isRefresh = false) => {
-    const cacheKey = getCacheKey(apiEndpoint, queryParams);
-    
-    // 检查缓存
-    const cachedData = getCached<ListResponse<T>>(cacheKey, staleTime);
-    if (cachedData && !isRefresh) {
-      setData(cachedData.data || []);
-      setTotal(cachedData.page?.total || cachedData.data?.length || 0);
-      setLoading(false);
-      return;
-    }
+  const loadData = useCallback(
+    async (isRefresh = false) => {
+      const cacheKey = getCacheKey(apiEndpoint, queryParams);
 
-    // 取消之前的请求
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    if (isRefresh) {
-      setIsValidating(true);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      const params = new URLSearchParams({
-        limit: queryParams.limit.toString(),
-        offset: queryParams.offset.toString(),
-        sortBy: queryParams.sortBy,
-        sortOrder: queryParams.sortOrder,
-      });
-
-      if (queryParams.namespace) params.set('namespace', queryParams.namespace);
-      if (queryParams.search) params.set('search', queryParams.search);
-
-      const response = await authFetch(`${apiEndpoint}?${params}`, {
-        signal: controller.signal,
-      });
-      const result = await response.json();
-
-      if (!mountedRef.current) return;
-
-      if (result.code === 0 && result.data) {
-        const newData = result.data || [];
-        const newTotal = result.page?.total || newData.length || 0;
-        
-        setData(newData);
-        setTotal(newTotal);
-        
-        // 写入缓存
-        setCache(cacheKey, result);
-        setError(null);
-      } else {
-        setError(result.message || '加载失败');
-      }
-    } catch (err) {
-      if (!mountedRef.current) return;
-      
-      if (err instanceof Error) {
-        if (err.name !== 'AbortError') {
-          setError(err.message || '网络错误');
-        }
-      } else {
-        setError('网络错误');
-      }
-    } finally {
-      if (mountedRef.current) {
+      // 检查缓存
+      const cachedData = getCached<ListResponse<T>>(cacheKey, staleTime);
+      if (cachedData && !isRefresh) {
+        setData(cachedData.data || []);
+        setTotal(cachedData.page?.total || cachedData.data?.length || 0);
         setLoading(false);
-        setIsValidating(false);
+        return;
       }
-    }
-  }, [apiEndpoint, queryParams, staleTime]);
+
+      // 取消之前的请求
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      if (isRefresh) {
+        setIsValidating(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          limit: queryParams.limit.toString(),
+          offset: queryParams.offset.toString(),
+          sortBy: queryParams.sortBy,
+          sortOrder: queryParams.sortOrder,
+        });
+
+        if (queryParams.namespace) params.set('namespace', queryParams.namespace);
+        if (queryParams.search) params.set('search', queryParams.search);
+
+        const response = await authFetch(`${apiEndpoint}?${params}`, {
+          signal: controller.signal,
+        });
+        const result = await response.json();
+
+        if (!mountedRef.current) return;
+
+        if (result.code === 0 && result.data) {
+          const newData = result.data || [];
+          const newTotal = result.page?.total || newData.length || 0;
+
+          setData(newData);
+          setTotal(newTotal);
+
+          // 写入缓存
+          setCache(cacheKey, result);
+          setError(null);
+        } else {
+          setError(result.message || '加载失败');
+        }
+      } catch (err) {
+        if (!mountedRef.current) return;
+
+        if (err instanceof Error) {
+          if (err.name !== 'AbortError') {
+            setError(err.message || '网络错误');
+          }
+        } else {
+          setError('网络错误');
+        }
+      } finally {
+        if (mountedRef.current) {
+          setLoading(false);
+          setIsValidating(false);
+        }
+      }
+    },
+    [apiEndpoint, queryParams, staleTime]
+  );
 
   /**
    * 加载命名空间列表（只加载一次）
@@ -357,11 +361,11 @@ export function useResourceList<T = any>(
   const refresh = useCallback(async () => {
     setLoading(true);
     setIsValidating(true);
-    
+
     const controller = new AbortController();
     abortControllerRef.current?.abort();
     abortControllerRef.current = controller;
-    
+
     const params = new URLSearchParams({
       limit: pageSize.toString(),
       offset: ((page - 1) * pageSize).toString(),
@@ -370,13 +374,13 @@ export function useResourceList<T = any>(
       ...(namespace ? { namespace } : {}),
       ...(search ? { search } : {}),
     });
-    
+
     try {
       const response = await authFetch(`${apiEndpoint}?${params}`, {
         signal: controller.signal,
       });
       const result = await response.json();
-      
+
       if (mountedRef.current && result.code === 0 && result.data) {
         setData(result.data || []);
         setTotal(result.page?.total || result.data?.length || 0);
@@ -396,14 +400,17 @@ export function useResourceList<T = any>(
   /**
    * 手动更新数据（乐观更新）
    */
-  const mutate = useCallback((newData?: T[]) => {
-    if (newData !== undefined) {
-      setData(newData);
-    } else {
-      // 调用 refresh
-      refresh();
-    }
-  }, [refresh]);
+  const mutate = useCallback(
+    (newData?: T[]) => {
+      if (newData !== undefined) {
+        setData(newData);
+      } else {
+        // 调用 refresh
+        refresh();
+      }
+    },
+    [refresh]
+  );
 
   // 设置搜索防抖（只更新 searchRef，不触发加载）
   useEffect(() => {

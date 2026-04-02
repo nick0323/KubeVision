@@ -67,17 +67,27 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
   }, [namespace, name, ownerReferences]);
 
   // 跳转到资源详情
-  const handleResourceClick = useCallback((kind: string, name: string) => {
-    const resourceType = kind.toLowerCase() + 's';
-    navigate(`/${resourceType}/${namespace}/${name}`);
-  }, [namespace, navigate]);
+  const handleResourceClick = useCallback(
+    (kind: string, name: string) => {
+      const resourceType = kind.toLowerCase() + 's';
+      navigate(`/${resourceType}/${namespace}/${name}`);
+    },
+    [namespace, navigate]
+  );
 
   if (loading) {
     return <LoadingSpinner text="加载关联资源..." size="lg" />;
   }
 
   if (error && relatedResources.length === 0) {
-    return <ErrorDisplay message={error} type="error" showRetry onRetry={() => window.location.reload()} />;
+    return (
+      <ErrorDisplay
+        message={error}
+        type="error"
+        showRetry
+        onRetry={() => window.location.reload()}
+      />
+    );
   }
 
   return (
@@ -100,9 +110,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
               {relatedResources.map((resource, index) => (
                 <tr key={index} className="table-row">
                   <td>
-                    <span className="kind-badge">
-                      {resource.kind}
-                    </span>
+                    <span className="kind-badge">{resource.kind}</span>
                   </td>
                   <td>
                     <span

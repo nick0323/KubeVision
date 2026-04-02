@@ -33,7 +33,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
@@ -92,7 +92,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   return (
     <div className="login-bg">
       <form onSubmit={handleSubmit} className="login-form-card">
-        <h2 style={{fontWeight:700, fontSize:'var(--font-size-lg)', marginBottom:24, letterSpacing:1, color:'#2563eb'}}>
+        <h2
+          style={{
+            fontWeight: 700,
+            fontSize: 'var(--font-size-lg)',
+            marginBottom: 24,
+            letterSpacing: 1,
+            color: '#2563eb',
+          }}
+        >
           KubeVision For Kubernetes
         </h2>
 
@@ -120,10 +128,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             type="checkbox"
             checked={remember}
             onChange={handleRememberChange}
-            style={{marginRight:6}}
+            style={{ marginRight: 6 }}
             disabled={loading}
           />
-          <label htmlFor="rememberMe" style={{fontSize:'var(--font-size-lg)', color:'#666', userSelect:'none'}}>
+          <label
+            htmlFor="rememberMe"
+            style={{ fontSize: 'var(--font-size-lg)', color: '#666', userSelect: 'none' }}
+          >
             Remember Username
           </label>
         </div>
@@ -132,7 +143,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           className="login-btn"
           type="submit"
           disabled={loading}
-          style={{opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer'}}
+          style={{ opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>

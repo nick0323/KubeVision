@@ -19,15 +19,17 @@ export const ResourceSummary: React.FC<ResourceSummaryProps> = ({
     <div className="resource-summary-card">
       <div className="resource-summary-title">{title}</div>
       <div className="resource-summary-info">
-        Requests: <span className="summary-num">{requestsValue}</span> /
-        Limits: <span className="summary-num">{limitsValue}</span> /
-        Total: <span className="summary-num">{totalValue}</span> {unit}
+        Requests: <span className="summary-num">{requestsValue}</span> / Limits:{' '}
+        <span className="summary-num">{limitsValue}</span> / Total:{' '}
+        <span className="summary-num">{totalValue}</span> {unit}
       </div>
       <div className="resource-summary-row">
         <div className="resource-block">
           <div className="resource-header">
             <span className="label requests">Requests</span>
-            <span className="value">{requestsValue} {unit}</span>
+            <span className="value">
+              {requestsValue} {unit}
+            </span>
           </div>
           <div className="progress-bar requests">
             <div className="progress" style={{ width: `${requestsPercent}%` }} />
@@ -37,7 +39,9 @@ export const ResourceSummary: React.FC<ResourceSummaryProps> = ({
         <div className="resource-block">
           <div className="resource-header">
             <span className="label limits">Limits</span>
-            <span className="value">{limitsValue} {unit}</span>
+            <span className="value">
+              {limitsValue} {unit}
+            </span>
           </div>
           <div className="progress-bar limits">
             <div className="progress" style={{ width: `${limitsPercent}%` }} />

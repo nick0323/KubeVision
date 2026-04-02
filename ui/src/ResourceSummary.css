@@ -2,7 +2,7 @@
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
   border: 1px solid #bae7ff; /* 更淡的蓝色边框 */
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.06);
   padding: 16px 20px 12px 20px;
   margin-bottom: 0;
   width: 100%;
@@ -109,4 +109,4 @@
   font-family: var(--font-main);
 }
 
-/* 滚动条隐藏已移至 ScrollbarHide.css 统一管理 */ 
+/* 滚动条隐藏已移至 ScrollbarHide.css 统一管理 */

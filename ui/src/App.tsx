@@ -4,7 +4,27 @@ import './App.css';
 import LoadingSpinner from './components/LoadingSpinner.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { FaChartPie, FaCube, FaRocket, FaTree, FaServer, FaCogs, FaBriefcase, FaClock, FaNetworkWired, FaDoorOpen, FaHdd, FaDatabase, FaListAlt, FaFileAlt, FaLock, FaBell, FaThLarge, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import {
+  FaChartPie,
+  FaCube,
+  FaRocket,
+  FaTree,
+  FaServer,
+  FaCogs,
+  FaBriefcase,
+  FaClock,
+  FaNetworkWired,
+  FaDoorOpen,
+  FaHdd,
+  FaDatabase,
+  FaListAlt,
+  FaFileAlt,
+  FaLock,
+  FaBell,
+  FaThLarge,
+  FaChevronDown,
+  FaChevronRight,
+} from 'react-icons/fa';
 import { LuSquareDashed } from 'react-icons/lu';
 import { MENU_LIST } from './constants';
 import LoginPage from './LoginPage.tsx';
@@ -48,12 +68,14 @@ const ListPage: React.FC = () => {
       return 'overview';
     }
   };
-  
+
   const [tab, setTab] = useState<string>(getInitialTab);
   const [collapsed, setCollapsed] = useLocalStorage<boolean>('sider_collapsed', false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const state: Record<string, boolean> = {};
-    MENU_LIST.forEach(g => { state[g.group] = true; });
+    MENU_LIST.forEach(g => {
+      state[g.group] = true;
+    });
     return state;
   });
 
@@ -147,24 +169,37 @@ const ListPage: React.FC = () => {
                   <li className="menu-group-title">
                     <span>{group.group}</span>
                     <span
-                      style={{marginLeft:8,cursor:'pointer',display:'flex',alignItems:'center'}}
-                      onClick={(e) => { e.stopPropagation(); toggleGroup(group.group); }}
+                      style={{
+                        marginLeft: 8,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        toggleGroup(group.group);
+                      }}
                     >
-                      {openGroups[group.group] ? <FaChevronDown size={12}/> : <FaChevronRight size={12}/>}
+                      {openGroups[group.group] ? (
+                        <FaChevronDown size={12} />
+                      ) : (
+                        <FaChevronRight size={12} />
+                      )}
                     </span>
                   </li>
                 )}
-                {(collapsed || openGroups[group.group]) && group.items.map(item => (
-                  <li
-                    key={item.key}
-                    className={tab === item.key ? 'active' : ''}
-                    onClick={() => setTab(item.key)}
-                    data-tip={item.label}
-                  >
-                    <span className="icon">{ICON_MAP[item.icon]}</span>
-                    <span>{item.label}</span>
-                  </li>
-                ))}
+                {(collapsed || openGroups[group.group]) &&
+                  group.items.map(item => (
+                    <li
+                      key={item.key}
+                      className={tab === item.key ? 'active' : ''}
+                      onClick={() => setTab(item.key)}
+                      data-tip={item.label}
+                    >
+                      <span className="icon">{ICON_MAP[item.icon]}</span>
+                      <span>{item.label}</span>
+                    </li>
+                  ))}
               </React.Fragment>
             ))}
           </ul>
@@ -173,7 +208,9 @@ const ListPage: React.FC = () => {
         {/* 退出按钮 */}
         <div className="sider-bottom">
           <button className="logout-btn" onClick={handleLogout}>
-            <span className="icon"><FiLogOut /></span>
+            <span className="icon">
+              <FiLogOut />
+            </span>
             <span>Sign out</span>
           </button>
         </div>
@@ -192,7 +229,9 @@ const ListPage: React.FC = () => {
             </div>
           )}
         >
-          <Suspense fallback={<LoadingSpinner text="加载中..." size="lg" className="app-loading" />}>
+          <Suspense
+            fallback={<LoadingSpinner text="加载中..." size="lg" className="app-loading" />}
+          >
             {renderPage()}
           </Suspense>
         </ErrorBoundary>
@@ -206,7 +245,9 @@ const PodDetailWrapper: React.FC = () => {
   const [collapsed, setCollapsed] = useLocalStorage<boolean>('sider_collapsed', false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const state: Record<string, boolean> = {};
-    MENU_LIST.forEach(g => { state[g.group] = true; });
+    MENU_LIST.forEach(g => {
+      state[g.group] = true;
+    });
     return state;
   });
   const navigate = useNavigate();
@@ -275,24 +316,37 @@ const PodDetailWrapper: React.FC = () => {
                   <li className="menu-group-title">
                     <span>{group.group}</span>
                     <span
-                      style={{marginLeft:8,cursor:'pointer',display:'flex',alignItems:'center'}}
-                      onClick={(e) => { e.stopPropagation(); toggleGroup(group.group); }}
+                      style={{
+                        marginLeft: 8,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        toggleGroup(group.group);
+                      }}
                     >
-                      {openGroups[group.group] ? <FaChevronDown size={12}/> : <FaChevronRight size={12}/>}
+                      {openGroups[group.group] ? (
+                        <FaChevronDown size={12} />
+                      ) : (
+                        <FaChevronRight size={12} />
+                      )}
                     </span>
                   </li>
                 )}
-                {(collapsed || openGroups[group.group]) && group.items.map(item => (
-                  <li
-                    key={item.key}
-                    className=""
-                    data-tip={item.label}
-                    onClick={() => handleMenuClick(item.key)}
-                  >
-                    <span className="icon">{ICON_MAP[item.icon]}</span>
-                    <span>{item.label}</span>
-                  </li>
-                ))}
+                {(collapsed || openGroups[group.group]) &&
+                  group.items.map(item => (
+                    <li
+                      key={item.key}
+                      className=""
+                      data-tip={item.label}
+                      onClick={() => handleMenuClick(item.key)}
+                    >
+                      <span className="icon">{ICON_MAP[item.icon]}</span>
+                      <span>{item.label}</span>
+                    </li>
+                  ))}
               </React.Fragment>
             ))}
           </ul>
@@ -301,7 +355,9 @@ const PodDetailWrapper: React.FC = () => {
         {/* 退出按钮 */}
         <div className="sider-bottom">
           <button className="logout-btn" onClick={handleLogout}>
-            <span className="icon"><FiLogOut /></span>
+            <span className="icon">
+              <FiLogOut />
+            </span>
             <span>Sign out</span>
           </button>
         </div>

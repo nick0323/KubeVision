@@ -441,7 +441,8 @@
 }
 
 @keyframes highlight-flash {
-  0%, 100% {
+  0%,
+  100% {
     background: rgba(255, 214, 0, 0.3);
   }
   50% {
@@ -490,7 +491,7 @@
   background: #fafafa;
 }
 
-.yaml-editor[contenteditable="true"] {
+.yaml-editor[contenteditable='true'] {
   background: #fff;
 }
 

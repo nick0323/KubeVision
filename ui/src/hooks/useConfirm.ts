@@ -21,17 +21,17 @@ export interface ConfirmResult {
 
 /**
  * 操作确认 Hook
- * 
+ *
  * 用法：
  * const { confirm, confirming, confirmConfig } = useConfirm();
- * 
+ *
  * const handleDelete = async (record) => {
  *   const result = await confirm({
  *     title: '删除确认',
  *     message: `确定要删除 ${record.name} 吗？`,
  *     danger: true,
  *   });
- *   
+ *
  *   if (result.confirmed) {
  *     // 执行删除
  *   }
@@ -46,7 +46,7 @@ export function useConfirm() {
    * 显示确认对话框
    */
   const confirm = useCallback((options: ConfirmOptions): Promise<ConfirmResult> => {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       setConfig(options);
       setConfirming(true);
       setResolver(() => resolve);
@@ -103,12 +103,10 @@ export interface PermissionCheck {
 
 /**
  * 创建权限检查器
- * 
+ *
  * @param userPermissions 用户拥有的权限列表
  */
-export function createPermissionChecker(
-  userPermissions: string[] = []
-): PermissionCheck {
+export function createPermissionChecker(userPermissions: string[] = []): PermissionCheck {
   return {
     hasPermission: (permission: string) => {
       return userPermissions.includes(permission) || userPermissions.includes('*');
@@ -122,7 +120,7 @@ export function createPermissionChecker(
 
 /**
  * 权限检查 Hook
- * 
+ *
  * @param userPermissions 用户拥有的权限列表
  */
 export function usePermission(userPermissions: string[] = []) {

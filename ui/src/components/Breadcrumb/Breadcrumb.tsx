@@ -92,10 +92,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
       {breadcrumbItems.map((item, index) => (
         <li key={index} className="breadcrumb-item">
           {item.path && onNavigate ? (
-            <button
-              className="breadcrumb-link"
-              onClick={() => onNavigate(item.path!)}
-            >
+            <button className="breadcrumb-link" onClick={() => onNavigate(item.path!)}>
               {item.icon && <span className="breadcrumb-icon">{item.icon}</span>}
               {item.label}
             </button>

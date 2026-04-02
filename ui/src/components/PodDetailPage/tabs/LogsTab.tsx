@@ -57,16 +57,16 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectCountRef = useRef(0);
-  const MAX_RECONNECT_COUNT = 5;  // 最多重连 5 次
-  const isReconnectingRef = useRef(false);  // 防止 StrictMode 下重复重连
+  const MAX_RECONNECT_COUNT = 5; // 最多重连 5 次
+  const isReconnectingRef = useRef(false); // 防止 StrictMode 下重复重连
 
   // 设置面板
   const [showSettings, setShowSettings] = useState(false);
-  
+
   // Tail Lines 下拉
   const [showLinesDropdown, setShowLinesDropdown] = useState(false);
   const linesRef = useRef<HTMLDivElement>(null);
-  
+
   // 点击外部关闭 Tail Lines 下拉
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -142,7 +142,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       isReconnectingRef.current = false;
     };
 
-    ws.onmessage = (event) => {
+    ws.onmessage = event => {
       try {
         const data = JSON.parse(event.data);
 
@@ -172,7 +172,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       }
     };
 
-    ws.onerror = (error) => {
+    ws.onerror = error => {
       console.error('[LogsTab] WebSocket error:', error);
     };
 
@@ -180,24 +180,26 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       console.log('[LogsTab] WebSocket closed');
       setConnected(false);
       setLoading(false);
-      
+
       // 防止 StrictMode 下重复重连
       if (isReconnectingRef.current) {
         console.log('[LogsTab] Already reconnecting, skip...');
         return;
       }
-      
+
       // 检查重连次数
       if (reconnectCountRef.current >= MAX_RECONNECT_COUNT) {
         console.log('[LogsTab] Max reconnect count reached, stopping reconnect');
         return;
       }
-      
+
       reconnectCountRef.current += 1;
       isReconnectingRef.current = true;
-      
+
       // 3 秒后自动重连
-      console.log(`[LogsTab] Will reconnect in 3 seconds... (attempt ${reconnectCountRef.current}/${MAX_RECONNECT_COUNT})`);
+      console.log(
+        `[LogsTab] Will reconnect in 3 seconds... (attempt ${reconnectCountRef.current}/${MAX_RECONNECT_COUNT})`
+      );
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log('[LogsTab] Reconnecting...');
         isReconnectingRef.current = false;
@@ -214,26 +216,26 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   // Cleanup on unmount
   useEffect(() => {
     let isUnmounted = false;
-    
+
     return () => {
       console.log('[LogsTab] Cleanup: component unmounting');
       isUnmounted = true;
       isReconnectingRef.current = false;
-      
+
       // 关闭 WebSocket 连接
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
-      
+
       // 清除重连定时器
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
-      
+
       reconnectCountRef.current = 0;
-      
+
       console.log('[LogsTab] Cleanup: completed');
     };
   }, []);
@@ -285,7 +287,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     if (searchResults.length === 0) return;
     const nextIndex = (currentSearchIndex + 1) % searchResults.length;
     setCurrentSearchIndex(nextIndex);
-    
+
     // 使用 setTimeout 确保状态更新后再滚动
     setTimeout(() => {
       // searchResults 现在存储的是实际索引（与 DOM id 一致）
@@ -338,11 +340,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
         else if (line.toLowerCase().includes('info')) className += ' info';
 
         return (
-          <div
-            key={actualIndex}
-            id={`log-line-${actualIndex}`}
-            className={className}
-          >
+          <div key={actualIndex} id={`log-line-${actualIndex}`} className={className}>
             {line}
           </div>
         );
@@ -394,7 +392,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
         <div className="filter-options-left">
           <span className="logs-title">
             Logs
-            <span className="logs-total">{logs.filter(line => line.trim() !== '').length} Lines</span>
+            <span className="logs-total">
+              {logs.filter(line => line.trim() !== '').length} Lines
+            </span>
           </span>
           <div className="search-input-wrapper">
             <input
@@ -403,10 +403,14 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
               className="search-input"
               placeholder="Search logs..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
             />
             {searchTerm && (
-              <button className="search-btn clear-btn" onClick={() => setSearchTerm('')} title="Clear search">
+              <button
+                className="search-btn clear-btn"
+                onClick={() => setSearchTerm('')}
+                title="Clear search"
+              >
                 ✕
               </button>
             )}
@@ -450,11 +454,13 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
                       onClick={() => setShowLinesDropdown(!showLinesDropdown)}
                     >
                       <span className="dropdown-value">{tailLines}</span>
-                      <FaChevronDown className={`dropdown-arrow ${showLinesDropdown ? 'rotate' : ''}`} />
+                      <FaChevronDown
+                        className={`dropdown-arrow ${showLinesDropdown ? 'rotate' : ''}`}
+                      />
                     </button>
                     {showLinesDropdown && (
                       <div className="dropdown-menu">
-                        {LINES_OPTIONS.map((opt) => (
+                        {LINES_OPTIONS.map(opt => (
                           <button
                             key={opt.value}
                             className={`dropdown-option ${tailLines === opt.value ? 'selected' : ''}`}
@@ -539,7 +545,11 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
           {/* Virtual scrolling: bottom spacer (non-wrap mode only) */}
           {!wrapLines && (
-            <div style={{ height: `${(limitedLogs.length - renderedLines.visibleEnd) * LINE_HEIGHT}px` }} />
+            <div
+              style={{
+                height: `${(limitedLogs.length - renderedLines.visibleEnd) * LINE_HEIGHT}px`,
+              }}
+            />
           )}
 
           <div ref={logsEndRef} />

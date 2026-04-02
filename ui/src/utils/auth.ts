@@ -19,11 +19,11 @@ export const authUtils = {
   isLoggedIn: (): boolean => {
     const token = localStorage.getItem('token');
     if (!token) return false;
-    
+
     // 验证 token 格式（JWT 有 3 个部分）
     const parts = token.split('.');
     if (parts.length !== 3) return false;
-    
+
     // 检查是否过期
     try {
       const payload = JSON.parse(atob(parts[1]));
@@ -34,7 +34,7 @@ export const authUtils = {
     } catch {
       return false;
     }
-    
+
     return true;
   },
 
@@ -50,7 +50,7 @@ export const authUtils = {
    */
   setToken: (token: string): void => {
     localStorage.setItem('token', token);
-    
+
     // 解析 token 获取过期时间
     try {
       const parts = token.split('.');
@@ -90,11 +90,11 @@ export const authUtils = {
   isTokenExpiringSoon: (minutes = 5): boolean => {
     const expiry = localStorage.getItem('token_expiry');
     if (!expiry) return false;
-    
+
     const expiryTime = parseInt(expiry, 10);
     const now = Date.now();
     const threshold = minutes * 60 * 1000;
-    
+
     return expiryTime - now < threshold;
   },
 
@@ -114,7 +114,7 @@ export const authUtils = {
 export function createAuthFetch() {
   return async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const token = authUtils.getToken();
-    
+
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),

@@ -26,12 +26,14 @@ export const apiClient = {
    */
   async request<T>(endpoint: string, options: ApiOptions = {}): Promise<ApiResponse<T>> {
     const { params, timeout = 30000, ...fetchOptions } = options;
-    
+
     // 构建 URL
     let url = endpoint;
     if (params) {
       const queryString = new URLSearchParams(
-        Object.entries(params).filter(([_, v]) => v != null).map(([k, v]) => [k, String(v)])
+        Object.entries(params)
+          .filter(([_, v]) => v != null)
+          .map(([k, v]) => [k, String(v)])
       ).toString();
       url = queryString ? `${endpoint}?${queryString}` : endpoint;
     }
@@ -66,7 +68,7 @@ export const apiClient = {
       return result;
     } catch (error) {
       clearTimeout(timeoutId);
-      
+
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           const timeoutError: ApiError = new Error('请求超时');
@@ -74,7 +76,7 @@ export const apiClient = {
           throw timeoutError;
         }
       }
-      
+
       throw error;
     }
   },
@@ -82,7 +84,10 @@ export const apiClient = {
   /**
    * GET 请求
    */
-  async get<T>(endpoint: string, params?: Record<string, string | number>): Promise<ApiResponse<T>> {
+  async get<T>(
+    endpoint: string,
+    params?: Record<string, string | number>
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: 'GET', params });
   },
 
@@ -152,7 +157,7 @@ export async function createPaginatedQuery<T>(
   // 后端返回格式：{ code: 200, message: "xxx", data: { data: [...], page: {...} }, page: {...} }
   // 或者：{ code: 200, message: "xxx", data: [...], page: {...} }
   const responseData = result.data;
-  
+
   return {
     data: (responseData as any)?.data || responseData || [],
     page: result.page || { total: 0, limit: pageSize, offset: 0 },

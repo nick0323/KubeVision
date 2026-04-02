@@ -77,7 +77,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     fitAddonRef.current = fitAddon;
 
     // Handle terminal input
-    term.onData((data) => {
+    term.onData(data => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(data);
       }
@@ -145,7 +145,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
       xtermRef.current?.writeln('\r\n\x1b[32mConnected!\x1b[0m\r\n');
     };
 
-    ws.onmessage = (event) => {
+    ws.onmessage = event => {
       try {
         const data = JSON.parse(event.data);
         console.log('Received:', data);
@@ -163,7 +163,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
       }
     };
 
-    ws.onerror = (error) => {
+    ws.onerror = error => {
       console.error('WebSocket error:', error);
       setConnected(false);
       xtermRef.current?.writeln('\r\n\x1b[31mConnection failed\x1b[0m\r\n');
@@ -243,7 +243,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
             </button>
             {showShellDropdown && (
               <div className="shell-menu">
-                {SHELL_OPTIONS.map((s) => (
+                {SHELL_OPTIONS.map(s => (
                   <button
                     key={s}
                     className={`shell-option ${shell === s ? 'selected' : ''}`}
@@ -270,11 +270,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
                 <FaPlug />
               </button>
             ) : (
-              <button
-                className="toolbar-btn danger"
-                onClick={handleDisconnect}
-                title="Disconnect"
-              >
+              <button className="toolbar-btn danger" onClick={handleDisconnect} title="Disconnect">
                 <FaTimes />
               </button>
             )}
@@ -318,13 +314,12 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
               </div>
               <div className="guide-step">
                 <span className="step-number">3</span>
-                <span className="step-text">Click <FaPlug className="inline-icon" /> to connect</span>
+                <span className="step-text">
+                  Click <FaPlug className="inline-icon" /> to connect
+                </span>
               </div>
             </div>
-            <button
-              className="connect-guide-btn"
-              onClick={handleConnect}
-            >
+            <button className="connect-guide-btn" onClick={handleConnect}>
               <FaPlug /> Connect to Terminal
             </button>
           </div>

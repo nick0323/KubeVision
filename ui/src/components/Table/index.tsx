@@ -15,11 +15,7 @@ interface TooltipCellProps {
  * 带 Tooltip 的单元格组件
  * 只有当内容溢出时才显示 Tooltip
  */
-export const TooltipCell: React.FC<TooltipCellProps> = memo(({ 
-  content, 
-  text, 
-  maxWidth = 600 
-}) => {
+export const TooltipCell: React.FC<TooltipCellProps> = memo(({ content, text, maxWidth = 600 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const spanRef = useRef<HTMLSpanElement>(null);
 
@@ -84,42 +80,36 @@ interface TableHeaderCellProps<T> {
 /**
  * 表头单元格组件
  */
-export const TableHeaderCell = memo(<T,>({
-  column,
-  sortField,
-  sortOrder,
-  onSort,
-}: TableHeaderCellProps<T>) => {
-  const isSorted = sortField === column.dataIndex;
-  const sortIcon = isSorted ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : '';
+export const TableHeaderCell = memo(
+  <T,>({ column, sortField, sortOrder, onSort }: TableHeaderCellProps<T>) => {
+    const isSorted = sortField === column.dataIndex;
+    const sortIcon = isSorted ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : '';
 
-  return (
-    <th
-      style={{ width: column.width }}
-      className={isSorted ? 'sorted' : ''}
-    >
-      <div
-        className={`table-header-cell ${column.sortable ? 'sortable' : ''}`}
-        onClick={() => {
-          if (column.sortable) {
-            onSort(column.dataIndex);
-          }
-        }}
-        role={column.sortable ? 'button' : undefined}
-        tabIndex={column.sortable ? 0 : undefined}
-        onKeyDown={(e) => {
-          if (column.sortable && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault();
-            onSort(column.dataIndex);
-          }
-        }}
-      >
-        <span>{column.title}</span>
-        {column.sortable && <span className="sort-icon">{sortIcon}</span>}
-      </div>
-    </th>
-  );
-}) as <T>(props: TableHeaderCellProps<T>) => JSX.Element;
+    return (
+      <th style={{ width: column.width }} className={isSorted ? 'sorted' : ''}>
+        <div
+          className={`table-header-cell ${column.sortable ? 'sortable' : ''}`}
+          onClick={() => {
+            if (column.sortable) {
+              onSort(column.dataIndex);
+            }
+          }}
+          role={column.sortable ? 'button' : undefined}
+          tabIndex={column.sortable ? 0 : undefined}
+          onKeyDown={e => {
+            if (column.sortable && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              onSort(column.dataIndex);
+            }
+          }}
+        >
+          <span>{column.title}</span>
+          {column.sortable && <span className="sort-icon">{sortIcon}</span>}
+        </div>
+      </th>
+    );
+  }
+) as <T>(props: TableHeaderCellProps<T>) => JSX.Element;
 
 TableHeaderCell.displayName = 'TableHeaderCell';
 
@@ -139,65 +129,67 @@ interface TableCellProps<T> {
 /**
  * 数据单元格组件
  */
-export const TableCell = memo(<T,>({
-  value,
-  column,
-  record,
-  index,
-  isStatusColumn,
-  statusColumnIndex,
-  StatusBadge,
-  resourceType,
-}: TableCellProps<T>) => {
-  // 状态列使用 StatusBadge
-  if (isStatusColumn && column.dataIndex === statusColumnIndex) {
-    return (
-      <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-        {StatusBadge && <StatusBadge status={value} resourceType={resourceType} />}
-      </td>
-    );
-  }
+export const TableCell = memo(
+  <T,>({
+    value,
+    column,
+    record,
+    index,
+    isStatusColumn,
+    statusColumnIndex,
+    StatusBadge,
+    resourceType,
+  }: TableCellProps<T>) => {
+    // 状态列使用 StatusBadge
+    if (isStatusColumn && column.dataIndex === statusColumnIndex) {
+      return (
+        <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
+          {StatusBadge && <StatusBadge status={value} resourceType={resourceType} />}
+        </td>
+      );
+    }
 
-  // 使用自定义渲染函数
-  if (column.render) {
-    const content = column.render(value, record, index);
-    // 将渲染结果转换为字符串用于 Tooltip
-    const tooltipText = typeof content === 'string' ? content : String(value ?? '');
-    return (
-      <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-        <TooltipCell content={content} text={tooltipText} />
-      </td>
-    );
-  }
+    // 使用自定义渲染函数
+    if (column.render) {
+      const content = column.render(value, record, index);
+      // 将渲染结果转换为字符串用于 Tooltip
+      const tooltipText = typeof content === 'string' ? content : String(value ?? '');
+      return (
+        <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
+          <TooltipCell content={content} text={tooltipText} />
+        </td>
+      );
+    }
 
-  // 数组显示
-  if (Array.isArray(value)) {
-    const text = value.join(', ');
+    // 数组显示
+    if (Array.isArray(value)) {
+      const text = value.join(', ');
+      return (
+        <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
+          <TooltipCell content={text} text={text} />
+        </td>
+      );
+    }
+
+    // 对象显示
+    if (typeof value === 'object' && value !== null) {
+      const text = JSON.stringify(value);
+      return (
+        <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
+          <TooltipCell content={text} text={text} />
+        </td>
+      );
+    }
+
+    // 普通文本
+    const text = String(value ?? '');
     return (
       <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
         <TooltipCell content={text} text={text} />
       </td>
     );
   }
-
-  // 对象显示
-  if (typeof value === 'object' && value !== null) {
-    const text = JSON.stringify(value);
-    return (
-      <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-        <TooltipCell content={text} text={text} />
-      </td>
-    );
-  }
-
-  // 普通文本
-  const text = String(value ?? '');
-  return (
-    <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-      <TooltipCell content={text} text={text} />
-    </td>
-  );
-}) as <T>(props: TableCellProps<T>) => JSX.Element;
+) as <T>(props: TableCellProps<T>) => JSX.Element;
 
 TableCell.displayName = 'TableCell';
 
@@ -217,42 +209,44 @@ interface TableRowProps<T> {
 /**
  * 表格行组件
  */
-export const TableRow = memo(<T,>({
-  record,
-  rowIndex,
-  columns,
-  isStatusColumn,
-  statusColumnIndex,
-  StatusBadge,
-  resourceType,
-  onClick,
-}: TableRowProps<T>) => {
-  const handleClick = useCallback(() => {
-    onClick?.(record);
-  }, [onClick, record]);
+export const TableRow = memo(
+  <T,>({
+    record,
+    rowIndex,
+    columns,
+    isStatusColumn,
+    statusColumnIndex,
+    StatusBadge,
+    resourceType,
+    onClick,
+  }: TableRowProps<T>) => {
+    const handleClick = useCallback(() => {
+      onClick?.(record);
+    }, [onClick, record]);
 
-  return (
-    <tr 
-      key={rowIndex} 
-      className={`table-row ${onClick ? 'clickable' : ''}`}
-      onClick={handleClick}
-    >
-      {columns.map((column, colIndex) => (
-        <TableCell
-          key={colIndex}
-          value={(record as any)[column.dataIndex]}
-          column={column}
-          record={record}
-          index={rowIndex}
-          isStatusColumn={isStatusColumn}
-          statusColumnIndex={statusColumnIndex}
-          StatusBadge={StatusBadge}
-          resourceType={resourceType}
-        />
-      ))}
-    </tr>
-  );
-}) as <T>(props: TableRowProps<T>) => JSX.Element;
+    return (
+      <tr
+        key={rowIndex}
+        className={`table-row ${onClick ? 'clickable' : ''}`}
+        onClick={handleClick}
+      >
+        {columns.map((column, colIndex) => (
+          <TableCell
+            key={colIndex}
+            value={(record as any)[column.dataIndex]}
+            column={column}
+            record={record}
+            index={rowIndex}
+            isStatusColumn={isStatusColumn}
+            statusColumnIndex={statusColumnIndex}
+            StatusBadge={StatusBadge}
+            resourceType={resourceType}
+          />
+        ))}
+      </tr>
+    );
+  }
+) as <T>(props: TableRowProps<T>) => JSX.Element;
 
 TableRow.displayName = 'TableRow';
 
@@ -266,10 +260,7 @@ interface TableSkeletonProps {
 /**
  * 表格骨架屏
  */
-export const TableSkeleton: React.FC<TableSkeletonProps> = memo(({ 
-  columns, 
-  rows = 10 
-}) => {
+export const TableSkeleton: React.FC<TableSkeletonProps> = memo(({ columns, rows = 10 }) => {
   return (
     <>
       {Array.from({ length: rows }).map((_, rowIndex) => (
@@ -300,26 +291,22 @@ interface EmptyStateProps {
 /**
  * 空状态组件
  */
-export const EmptyState: React.FC<EmptyStateProps> = memo(({
-  message = '暂无数据',
-  description,
-  icon = '📭',
-  colSpan,
-  action,
-}) => {
-  return (
-    <tr className="empty-row">
-      <td colSpan={colSpan}>
-        <div className="empty-state">
-          <span className="empty-icon">{icon}</span>
-          <p className="empty-message">{message}</p>
-          {description && <p className="empty-description">{description}</p>}
-          {action && <div className="empty-action">{action}</div>}
-        </div>
-      </td>
-    </tr>
-  );
-});
+export const EmptyState: React.FC<EmptyStateProps> = memo(
+  ({ message = '暂无数据', description, icon = '📭', colSpan, action }) => {
+    return (
+      <tr className="empty-row">
+        <td colSpan={colSpan}>
+          <div className="empty-state">
+            <span className="empty-icon">{icon}</span>
+            <p className="empty-message">{message}</p>
+            {description && <p className="empty-description">{description}</p>}
+            {action && <div className="empty-action">{action}</div>}
+          </div>
+        </td>
+      </tr>
+    );
+  }
+);
 
 EmptyState.displayName = 'EmptyState';
 
@@ -335,27 +322,24 @@ interface ErrorStateProps {
 /**
  * 错误状态组件
  */
-export const ErrorState: React.FC<ErrorStateProps> = memo(({
-  message,
-  colSpan,
-  onRetry,
-  retryText = '重试',
-}) => {
-  return (
-    <tr className="error-row">
-      <td colSpan={colSpan}>
-        <div className="error-state">
-          <span className="error-icon">⚠️</span>
-          <p className="error-message">{message}</p>
-          {onRetry && (
-            <button onClick={onRetry} className="retry-btn">
-              {retryText}
-            </button>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-});
+export const ErrorState: React.FC<ErrorStateProps> = memo(
+  ({ message, colSpan, onRetry, retryText = '重试' }) => {
+    return (
+      <tr className="error-row">
+        <td colSpan={colSpan}>
+          <div className="error-state">
+            <span className="error-icon">⚠️</span>
+            <p className="error-message">{message}</p>
+            {onRetry && (
+              <button onClick={onRetry} className="retry-btn">
+                {retryText}
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  }
+);
 
 ErrorState.displayName = 'ErrorState';

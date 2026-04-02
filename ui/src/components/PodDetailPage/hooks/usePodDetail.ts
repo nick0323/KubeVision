@@ -21,17 +21,12 @@ export interface UsePodDetailReturn {
  * Pod 详情数据 Hook
  */
 export function usePodDetail(options: UsePodDetailOptions): UsePodDetailReturn {
-  const {
-    namespace,
-    name,
-    autoRefresh = false,
-    refreshInterval = 30000,
-  } = options;
+  const { namespace, name, autoRefresh = false, refreshInterval = 30000 } = options;
 
   const [data, setData] = useState<Pod | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
 
@@ -51,10 +46,9 @@ export function usePodDetail(options: UsePodDetailOptions): UsePodDetailReturn {
     setError(null);
 
     try {
-      const response = await authFetch(
-        `/api/pods/${namespace}/${name}`,
-        { signal: controller.signal }
-      );
+      const response = await authFetch(`/api/pods/${namespace}/${name}`, {
+        signal: controller.signal,
+      });
       const result = await response.json();
 
       if (!mountedRef.current) return;
@@ -66,7 +60,7 @@ export function usePodDetail(options: UsePodDetailOptions): UsePodDetailReturn {
       }
     } catch (err) {
       if (!mountedRef.current) return;
-      
+
       if (err instanceof Error) {
         if (err.name !== 'AbortError') {
           setError(err.message || '网络错误');

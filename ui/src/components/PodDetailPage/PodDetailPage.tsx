@@ -38,28 +38,23 @@ export interface PodDetailPageProps {
 export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggleCollapsed }) => {
   const params = useParams<{ namespace: string; name: string }>();
   const navigate = useNavigate();
-  
+
   const namespace = params.namespace || 'default';
   const podName = params.name || '';
-  
+
   // 当前激活的 Tab
   const [activeTab, setActiveTab] = useState<string>('overview');
-  
+
   // 使用 Pod 数据 Hook
-  const {
-    data: pod,
-    loading,
-    error,
-    refresh,
-  } = usePodDetail({ namespace, name: podName });
-  
+  const { data: pod, loading, error, refresh } = usePodDetail({ namespace, name: podName });
+
   /**
    * 处理 Tab 切换
    */
   const handleTabChange = useCallback((tabKey: string) => {
     setActiveTab(tabKey);
   }, []);
-  
+
   /**
    * 处理删除
    */
@@ -82,30 +77,36 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
       }
     }
   }, [namespace, podName, navigate]);
-  
+
   /**
    * 处理面包屑跳转
    */
-  const handleBreadcrumbClick = useCallback((path: string) => {
-    if (path) {
-      // 设置 current_tab
-      localStorage.setItem('current_tab', path);
+  const handleBreadcrumbClick = useCallback(
+    (path: string) => {
+      if (path) {
+        // 设置 current_tab
+        localStorage.setItem('current_tab', path);
 
-      // 触发事件
-      window.dispatchEvent(new CustomEvent('tab-change', { detail: path }));
+        // 触发事件
+        window.dispatchEvent(new CustomEvent('tab-change', { detail: path }));
 
-      // 跳转到列表页
-      navigate('/');
-    }
-  }, [navigate]);
+        // 跳转到列表页
+        navigate('/');
+      }
+    },
+    [navigate]
+  );
 
   // 面包屑导航
-  const breadcrumbs = useMemo(() => [
-    { label: 'Pods', path: 'pods' },
-    { label: namespace, path: '' },  // namespace 不可点击
-    { label: podName, path: '' },
-  ], [namespace, podName]);
-  
+  const breadcrumbs = useMemo(
+    () => [
+      { label: 'Pods', path: 'pods' },
+      { label: namespace, path: '' }, // namespace 不可点击
+      { label: podName, path: '' },
+    ],
+    [namespace, podName]
+  );
+
   // 渲染加载状态
   if (loading && !pod) {
     return (
@@ -114,7 +115,7 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
       </div>
     );
   }
-  
+
   // 渲染错误状态
   if (error && !pod) {
     return (
@@ -128,7 +129,7 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
       </div>
     );
   }
-  
+
   return (
     <div className="pod-detail-page">
       {/* 页面头部 - 使用 PageHeader 组件 */}
@@ -141,7 +142,7 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
       >
         {/* 右侧操作按钮可以放在这里 */}
       </PageHeader>
-      
+
       {/* 资源信息栏 */}
       <ResourceActionBar
         name={pod?.metadata?.name || podName}
@@ -150,31 +151,15 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
         onDelete={handleDelete}
         onDescribe={() => {}}
       />
-      
+
       {/* Tab 导航 */}
-      <TabNavigation
-        tabs={TAB_CONFIG}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
+      <TabNavigation tabs={TAB_CONFIG} activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Tab 内容 */}
-      {activeTab === 'overview' && (
-        <OverviewTab pod={pod} loading={loading} onRefresh={refresh} />
-      )}
-      {activeTab === 'yaml' && (
-        <YamlTab
-          namespace={namespace}
-          name={podName}
-          pod={pod}
-        />
-      )}
+      {activeTab === 'overview' && <OverviewTab pod={pod} loading={loading} onRefresh={refresh} />}
+      {activeTab === 'yaml' && <YamlTab namespace={namespace} name={podName} pod={pod} />}
       {activeTab === 'logs' && (
-        <LogsTab
-          namespace={namespace}
-          name={podName}
-          containers={pod?.spec?.containers || []}
-        />
+        <LogsTab namespace={namespace} name={podName} containers={pod?.spec?.containers || []} />
       )}
       {activeTab === 'terminal' && (
         <TerminalTab
@@ -190,12 +175,7 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
           ownerReferences={pod?.metadata?.ownerReferences || []}
         />
       )}
-      {activeTab === 'events' && (
-        <EventsTab
-          namespace={namespace}
-          podName={podName}
-        />
-      )}
+      {activeTab === 'events' && <EventsTab namespace={namespace} podName={podName} />}
     </div>
   );
 };

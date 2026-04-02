@@ -33,7 +33,7 @@ export const createNamespaceRenderer = () => {
 export const createLabelsRenderer = () => {
   return (labels: Record<string, string>) => {
     if (!labels || Object.keys(labels).length === 0) return '-';
-    
+
     return (
       <div className="labels-container">
         {Object.entries(labels).map(([key, value]) => (
@@ -52,11 +52,11 @@ export const createLabelsRenderer = () => {
 export const createTimeRenderer = (format: 'relative' | 'absolute' = 'relative') => {
   return (text: string) => {
     if (!text) return '-';
-    
+
     if (format === 'absolute') {
       return <span className="timestamp">{text}</span>;
     }
-    
+
     // 相对时间
     const date = new Date(text);
     const now = new Date();
@@ -65,7 +65,7 @@ export const createTimeRenderer = (format: 'relative' | 'absolute' = 'relative')
     const diffMin = Math.floor(diffSec / 60);
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
-    
+
     if (diffSec < 60) return <span className="timestamp">Just now</span>;
     if (diffMin < 60) return <span className="timestamp">{diffMin}m ago</span>;
     if (diffHour < 24) return <span className="timestamp">{diffHour}h ago</span>;
@@ -89,12 +89,20 @@ export const createDetailedTimeRenderer = () => {
 export const createNumberRenderer = (suffix = '', formatter?: (value: number) => string) => {
   return (value: number) => {
     if (value === undefined || value === null) return '-';
-    
+
     if (formatter) {
-      return <span className="number-value">{formatter(value)} {suffix}</span>;
+      return (
+        <span className="number-value">
+          {formatter(value)} {suffix}
+        </span>
+      );
     }
-    
-    return <span className="number-value">{value} {suffix}</span>;
+
+    return (
+      <span className="number-value">
+        {value} {suffix}
+      </span>
+    );
   };
 };
 
@@ -104,10 +112,10 @@ export const createNumberRenderer = (suffix = '', formatter?: (value: number) =>
 export const createBooleanRenderer = (trueText = 'Yes', falseText = 'No') => {
   return (value: boolean) => {
     if (value === undefined || value === null) return '-';
-    
+
     const displayValue = value ? trueText : falseText;
     const className = value ? 'boolean-true' : 'boolean-false';
-    
+
     return <span className={`boolean-value ${className}`}>{displayValue}</span>;
   };
 };
@@ -118,10 +126,10 @@ export const createBooleanRenderer = (trueText = 'Yes', falseText = 'No') => {
 export const createArrayRenderer = (separator = ', ', maxItems = 999) => {
   return (array: any[]) => {
     if (!Array.isArray(array) || array.length === 0) return '-';
-    
+
     const displayItems = array.slice(0, maxItems);
     const text = displayItems.join(separator);
-    
+
     return <span className="array-value">{text}</span>;
   };
 };
@@ -132,11 +140,11 @@ export const createArrayRenderer = (separator = ', ', maxItems = 999) => {
 export const createUniqueArrayRenderer = (separator = ', ', maxItems = 999) => {
   return (array: any[]) => {
     if (!Array.isArray(array) || array.length === 0) return '-';
-    
+
     const uniqueItems = [...new Set(array.filter(item => item && item.toString().trim()))];
     const displayItems = uniqueItems.slice(0, maxItems);
     const text = displayItems.join(separator);
-    
+
     return <span className="array-value">{text}</span>;
   };
 };

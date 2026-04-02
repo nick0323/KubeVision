@@ -38,9 +38,7 @@ export const PageHeader: React.FC<PageHeaderWithBreadcrumbProps> = ({
           <h1 className="page-title">{title}</h1>
         )}
       </div>
-      <div className="page-header-right">
-        {children}
-      </div>
+      <div className="page-header-right">{children}</div>
     </div>
   );
 };

@@ -15,14 +15,10 @@ export interface TabNavigationProps {
 /**
  * Tab 导航组件
  */
-export const TabNavigation: React.FC<TabNavigationProps> = ({
-  tabs,
-  activeTab,
-  onTabChange,
-}) => {
+export const TabNavigation: React.FC<TabNavigationProps> = ({ tabs, activeTab, onTabChange }) => {
   return (
     <div className="tab-list">
-      {tabs.map((tab) => (
+      {tabs.map(tab => (
         <button
           key={tab.key}
           className={`tab-item ${activeTab === tab.key ? 'active' : ''}`}

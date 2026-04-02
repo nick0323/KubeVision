@@ -14,19 +14,19 @@ import './YamlTab.css';
  * 始终隐藏的字段（内部使用/已废弃）
  */
 const ALWAYS_HIDDEN_FIELDS = [
-  'managedFields',           // 托管字段（已废弃）
-  'resourceVersion',         // 资源版本（内部使用，频繁变化）
-  'uid',                     // 唯一标识符（内部使用）
-  'selfLink',                // 自链接（已废弃）
-  'clusterName',             // 集群名称（通常为空）
-  'generation',              // 代次（内部使用）
+  'managedFields', // 托管字段（已废弃）
+  'resourceVersion', // 资源版本（内部使用，频繁变化）
+  'uid', // 唯一标识符（内部使用）
+  'selfLink', // 自链接（已废弃）
+  'clusterName', // 集群名称（通常为空）
+  'generation', // 代次（内部使用）
 ];
 
 /**
  * 默认隐藏但可切换显示的字段（只读/高级功能）
  */
 const DEFAULT_HIDDEN_FIELDS = [
-  'status',                  // 状态信息（只读）
+  'status', // 状态信息（只读）
 ];
 
 /**
@@ -42,15 +42,15 @@ interface YamlDisplayOptions {
 const filterHiddenFields = (obj: any, options: YamlDisplayOptions): any => {
   if (typeof obj !== 'object' || obj === null) return obj;
   if (Array.isArray(obj)) return obj.map(item => filterHiddenFields(item, options));
-  
+
   const filtered: any = {};
   for (const [key, value] of Object.entries(obj)) {
     // 始终隐藏的字段
     if (ALWAYS_HIDDEN_FIELDS.includes(key)) continue;
-    
+
     // 根据选项隐藏字段
     if (!options.showStatus && key === 'status') continue;
-    
+
     filtered[key] = filterHiddenFields(value, options);
   }
   return filtered;
@@ -75,12 +75,12 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
   const [error, setError] = useState<string | null>(null);
   const [showDiff, setShowDiff] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  
+
   // YAML 显示选项
   const [displayOptions, setDisplayOptions] = useState<YamlDisplayOptions>({
     showStatus: false,
   });
-  
+
   const editorRef = useRef<HTMLPreElement>(null);
 
   // 加载 YAML
@@ -93,9 +93,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        const yaml = typeof result.data === 'string'
-          ? result.data
-          : jsyaml.dump(result.data);
+        const yaml = typeof result.data === 'string' ? result.data : jsyaml.dump(result.data);
 
         setYamlContent(yaml);
         setOriginalYaml(yaml);
@@ -114,7 +112,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
     if (pod) {
       // 过滤掉不需要的字段
       const filteredPod = filterHiddenFields(pod, displayOptions);
-      
+
       // 确保包含完整的 TypeMeta 字段
       const podWithMeta = {
         apiVersion: 'v1',
@@ -124,7 +122,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
       const yaml = jsyaml.dump(podWithMeta, {
         indent: 2,
         lineWidth: -1, // 不限制行宽
-        noRefs: true,  // 不使用引用
+        noRefs: true, // 不使用引用
         quotingType: '"',
         forceQuotes: false,
       });
@@ -252,7 +250,9 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
               <span className="toggle-text">Status</span>
               <button
                 className={`toggle-switch ${displayOptions.showStatus ? 'active' : ''}`}
-                onClick={() => setDisplayOptions(prev => ({ ...prev, showStatus: !prev.showStatus }))}
+                onClick={() =>
+                  setDisplayOptions(prev => ({ ...prev, showStatus: !prev.showStatus }))
+                }
                 title="Toggle Status field"
               >
                 <span className="toggle-slider"></span>
@@ -281,7 +281,11 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
               <button className="toolbar-btn" onClick={handleSave} title="Save changes">
                 <FaSave />
               </button>
-              <button className="toolbar-btn primary" onClick={handleApply} title="Apply to cluster">
+              <button
+                className="toolbar-btn primary"
+                onClick={handleApply}
+                title="Apply to cluster"
+              >
                 <FaRocket />
               </button>
               <button className="toolbar-btn danger" onClick={handleCancel} title="Cancel editing">
@@ -325,7 +329,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
           <textarea
             className="yaml-editor-textarea"
             value={yamlContent}
-            onChange={(e) => setYamlContent(e.target.value)}
+            onChange={e => setYamlContent(e.target.value)}
             spellCheck={false}
             autoCapitalize="off"
             autoComplete="off"

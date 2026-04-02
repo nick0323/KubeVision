@@ -17,9 +17,7 @@ export interface MenuGroup {
 export const MENU_LIST: MenuGroup[] = [
   {
     group: '',
-    items: [
-      { key: 'overview', label: 'Overview', icon: 'FaChartPie' },
-    ],
+    items: [{ key: 'overview', label: 'Overview', icon: 'FaChartPie' }],
   },
   {
     group: 'Workloads',
@@ -67,4 +65,3 @@ export const MENU_LIST: MenuGroup[] = [
 // Pagination Configuration
 export const DEFAULT_PAGE_SIZE = 10;
 export const PAGE_SIZE_OPTIONS = [10, 15, 20, 50];
-

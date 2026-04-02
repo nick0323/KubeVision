@@ -40,7 +40,7 @@ export const DEPLOYMENTS_CONFIG = {
       dataIndex: 'readyReplicas',
       width: '10%',
       sortable: false,
-      render: (value: any, record: any) => `${value}/${record.desiredReplicas || 0}`
+      render: (value: any, record: any) => `${value}/${record.desiredReplicas || 0}`,
     },
     { title: 'Up To Date', dataIndex: 'updatedReplicas', width: '10%', sortable: false },
     { title: 'Available', dataIndex: 'availableReplicas', width: '10%', sortable: false },
@@ -64,7 +64,7 @@ export const STATEFULSETS_CONFIG = {
       dataIndex: 'readyReplicas',
       width: '12%',
       sortable: false,
-      render: (value: any, record: any) => `${value}/${record.desiredReplicas || 0}`
+      render: (value: any, record: any) => `${value}/${record.desiredReplicas || 0}`,
     },
     { title: 'Restarts', dataIndex: 'restarts', width: '12%', sortable: true },
     { title: 'Age', dataIndex: 'age', width: '12%', sortable: false },
@@ -106,7 +106,7 @@ export const JOBS_CONFIG = {
       render: (value: any, record: any) => {
         const completions = record.completions || 1;
         return `${value || 0}/${completions}`;
-      }
+      },
     },
     { title: 'Restarts', dataIndex: 'restarts', width: '12%', sortable: true },
     { title: 'Duration', dataIndex: 'duration', width: '12%', sortable: false },
@@ -122,7 +122,7 @@ export const CRONJOBS_CONFIG = {
   resourceType: 'cronjobs',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false},
+    { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
     { title: 'Status', dataIndex: 'status', width: '12%', sortable: true },
     { title: 'Suspend', dataIndex: 'suspend', width: '10%', sortable: false },
     { title: 'Schedule', dataIndex: 'schedule', width: '15%', sortable: false },
@@ -161,10 +161,10 @@ export const INGRESS_CONFIG = {
     { title: 'Namespace', dataIndex: 'namespace', width: '10%', sortable: false },
     { title: 'Class', dataIndex: 'class', width: '10%', sortable: false },
     { title: 'Hosts', dataIndex: 'hosts', width: '15%', sortable: false },
-    { 
-      title: 'Target Service', 
-      dataIndex: 'targetService', 
-      width: '15%', 
+    {
+      title: 'Target Service',
+      dataIndex: 'targetService',
+      width: '15%',
       sortable: false,
       render: (value: any) => {
         // 去重展示
@@ -174,7 +174,7 @@ export const INGRESS_CONFIG = {
           return unique.join(', ');
         }
         return value;
-      }
+      },
     },
     { title: 'Path', dataIndex: 'path', width: '25%', sortable: false },
     { title: 'Age', dataIndex: 'age', width: '5%', sortable: false },

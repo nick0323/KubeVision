@@ -45,12 +45,12 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   text = 'Loading...',
   size = 'md',
   className = '',
-  overlay = false
+  overlay = false,
 }) => {
   const sizeClasses = {
     sm: 'loading-sm',
     md: 'loading-md',
-    lg: 'loading-lg'
+    lg: 'loading-lg',
   };
 
   const renderLoadingContent = () => {
@@ -124,7 +124,11 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rows = 3, classN
  * 表格骨架屏组件
  * 保持与原始组件完全一致的功能
  */
-export const TableSkeleton: React.FC<TableSkeletonProps> = ({ rows = 5, columns = 4, className = '' }) => {
+export const TableSkeleton: React.FC<TableSkeletonProps> = ({
+  rows = 5,
+  columns = 4,
+  className = '',
+}) => {
   return (
     <div className={`table-skeleton ${className}`}>
       {/* 表头骨架 */}

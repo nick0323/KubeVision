@@ -46,7 +46,7 @@ const STATUS_COLUMN_KEYS = ['status', 'Status', 'state', 'Phase'] as const;
 
 /**
  * 通用资源列表页面组件（增强版）
- * 
+ *
  * 特性：
  * - SWR 缓存模式，避免重复请求
  * - 搜索防抖（300ms）
@@ -64,7 +64,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
   actions = [],
 }) => {
   const navigate = useNavigate();
-  
+
   // 使用增强版 hook 管理所有列表逻辑
   const {
     // 数据状态
@@ -105,22 +105,25 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
     namespaceFilter: config.namespaceFilter,
     defaultSort: config.defaultSort,
     initialPageSize: 20,
-    staleTime: 30000,        // 30 秒缓存
-    debounceMs: 300,         // 300ms 防抖
+    staleTime: 30000, // 30 秒缓存
+    debounceMs: 300, // 300ms 防抖
   });
 
   /**
    * 点击资源名称跳转详情页
    */
-  const handleNameClick = useCallback((record: any) => {
-    const resourceType = config.resourceType;
-    const ns = record.namespace || namespace || 'default';
-    const name = record.name;
-    
-    if (resourceType && name) {
-      navigate(`/${resourceType}/${ns}/${name}`);
-    }
-  }, [config.resourceType, namespace, navigate]);
+  const handleNameClick = useCallback(
+    (record: any) => {
+      const resourceType = config.resourceType;
+      const ns = record.namespace || namespace || 'default';
+      const name = record.name;
+
+      if (resourceType && name) {
+        navigate(`/${resourceType}/${ns}/${name}`);
+      }
+    },
+    [config.resourceType, namespace, navigate]
+  );
 
   // 确认对话框
   const { confirm, confirming, config: confirmConfig, onConfirm, onCancel } = useConfirm();
@@ -135,8 +138,8 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
    * 检测状态列
    */
   const statusColumnIndex = useMemo(() => {
-    return config.columns.find(
-      (col) => STATUS_COLUMN_KEYS.includes(col.dataIndex as typeof STATUS_COLUMN_KEYS[number])
+    return config.columns.find(col =>
+      STATUS_COLUMN_KEYS.includes(col.dataIndex as (typeof STATUS_COLUMN_KEYS)[number])
     )?.dataIndex;
   }, [config.columns]);
 
@@ -167,29 +170,34 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
    */
   const columns = useMemo<TableColumn[]>(
     () =>
-      config.columns.map((col) => {
+      config.columns.map(col => {
         const isNameColumn = col.dataIndex === 'name' || col.dataIndex === 'Name';
-        const isTimeColumn = col.dataIndex === 'lastSeen' || col.dataIndex === 'firstSeen' || col.dataIndex === 'LastSeen' || col.dataIndex === 'FirstSeen';
+        const isTimeColumn =
+          col.dataIndex === 'lastSeen' ||
+          col.dataIndex === 'firstSeen' ||
+          col.dataIndex === 'LastSeen' ||
+          col.dataIndex === 'FirstSeen';
 
         return {
           ...col,
           sortable: col.sortable ?? true,
-          render: col.render || (isNameColumn
-            ? (value: any, record: any) => (
-                <span
-                  className="resource-name-link"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNameClick(record);
-                  }}
-                >
-                  {value}
-                </span>
-              )
-            : isTimeColumn
-            ? (value: any) => formatTime(value)
-            : undefined
-          ),
+          render:
+            col.render ||
+            (isNameColumn
+              ? (value: any, record: any) => (
+                  <span
+                    className="resource-name-link"
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleNameClick(record);
+                    }}
+                  >
+                    {value}
+                  </span>
+                )
+              : isTimeColumn
+                ? (value: any) => formatTime(value)
+                : undefined),
         };
       }),
     [config.columns, handleNameClick]
@@ -200,7 +208,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
    */
   const actionColumn = useMemo<TableColumn | null>(() => {
     if (actions.length === 0) return null;
-    
+
     return {
       title: '操作',
       dataIndex: '__actions__',
@@ -210,12 +218,12 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
         <div className="table-actions">
           {actions.map((action, index) => {
             const disabled = action.disabled?.(record) ?? false;
-            
+
             return (
               <button
                 key={index}
                 className={`action-btn ${action.danger ? 'danger' : ''}`}
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   handleActionClick(action, record);
                 }}
@@ -241,27 +249,27 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
   /**
    * 处理操作点击
    */
-  const handleActionClick = useCallback(async (
-    action: NonNullable<ResourceListPageProps['actions']>[0],
-    record: any
-  ) => {
-    if (action.confirm) {
-      const result = await confirm({
-        message: action.confirmMessage || `确定要执行此操作吗？`,
-        danger: action.danger,
-      });
-      
-      if (!result.confirmed) return;
-    }
-    
-    try {
-      await action.onClick(record);
-      // 操作成功后刷新数据
-      await refresh();
-    } catch (err) {
-      console.error('操作失败:', err);
-    }
-  }, [confirm, refresh]);
+  const handleActionClick = useCallback(
+    async (action: NonNullable<ResourceListPageProps['actions']>[0], record: any) => {
+      if (action.confirm) {
+        const result = await confirm({
+          message: action.confirmMessage || `确定要执行此操作吗？`,
+          danger: action.danger,
+        });
+
+        if (!result.confirmed) return;
+      }
+
+      try {
+        await action.onClick(record);
+        // 操作成功后刷新数据
+        await refresh();
+      } catch (err) {
+        console.error('操作失败:', err);
+      }
+    },
+    [confirm, refresh]
+  );
 
   // 事件处理器
   const handleNamespaceChange = useCallback(
@@ -294,9 +302,12 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
     [setPageSize, setPage]
   );
 
-  const handleRowClick = useCallback((record: any) => {
-    onRowClick?.(record);
-  }, [onRowClick]);
+  const handleRowClick = useCallback(
+    (record: any) => {
+      onRowClick?.(record);
+    },
+    [onRowClick]
+  );
 
   // 渲染加载状态（骨架屏）
   if (loading && data.length === 0) {
@@ -394,11 +405,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
   return (
     <div className="resource-list-page">
       {/* 页面头部 */}
-      <PageHeader
-        title={config.title}
-        collapsed={collapsed}
-        onToggleCollapsed={onToggleCollapsed}
-      >
+      <PageHeader title={config.title} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed}>
         {/* 命名空间选择 */}
         {config.namespaceFilter && (
           <NamespaceSelect
@@ -422,9 +429,9 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
         />
 
         {/* 刷新按钮 */}
-        <RefreshButton 
-          onClick={refresh} 
-          loading={isValidating} 
+        <RefreshButton
+          onClick={refresh}
+          loading={isValidating}
           showLastUpdated={!loading && data.length > 0}
         />
       </PageHeader>
@@ -451,11 +458,13 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
                 message="暂无数据"
                 description={search ? '尝试调整搜索条件' : undefined}
                 colSpan={allColumns.length}
-                action={search && (
-                  <button onClick={clearSearch} className="clear-search-btn">
-                    清空搜索
-                  </button>
-                )}
+                action={
+                  search && (
+                    <button onClick={clearSearch} className="clear-search-btn">
+                      清空搜索
+                    </button>
+                  )
+                }
               />
             ) : (
               <>
@@ -473,9 +482,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
                   />
                 ))}
                 {/* 刷新时的骨架屏行 */}
-                {isValidating && (
-                  <TableSkeleton columns={allColumns.length} rows={2} />
-                )}
+                {isValidating && <TableSkeleton columns={allColumns.length} rows={2} />}
               </>
             )}
           </tbody>
@@ -500,22 +507,15 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
         <div className="confirm-modal-overlay">
           <div className={`confirm-modal ${confirmConfig.danger ? 'danger' : ''}`}>
             <div className="confirm-modal-header">
-              <span className="confirm-icon">
-                {confirmConfig.danger ? '⚠️' : 'ℹ️'}
-              </span>
+              <span className="confirm-icon">{confirmConfig.danger ? '⚠️' : 'ℹ️'}</span>
               <h4>{confirmConfig.title || '确认操作'}</h4>
             </div>
-            <div className="confirm-modal-body">
-              {confirmConfig.message}
-            </div>
+            <div className="confirm-modal-body">{confirmConfig.message}</div>
             <div className="confirm-modal-footer">
-              <button 
-                className="confirm-btn cancel" 
-                onClick={onCancel}
-              >
+              <button className="confirm-btn cancel" onClick={onCancel}>
                 {confirmConfig.cancelText || '取消'}
               </button>
-              <button 
+              <button
                 className={`confirm-btn confirm ${confirmConfig.danger ? 'danger' : ''}`}
                 onClick={onConfirm}
               >

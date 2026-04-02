@@ -29,11 +29,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         <span className="collapsible-title">{title}</span>
         <span className="collapsible-icon">{collapsed ? '▶' : '▼'}</span>
       </div>
-      {!collapsed && (
-        <div className="collapsible-content">
-          {children}
-        </div>
-      )}
+      {!collapsed && <div className="collapsible-content">{children}</div>}
     </div>
   );
 };

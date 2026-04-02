@@ -17,20 +17,26 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   showSearchButton = false,
   showClearButton = true,
 }) => {
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (onSubmit) {
-      onSubmit(e);
-    }
-  }, [onSubmit]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    // 只在按 Enter 键时触发搜索
-    if (e.key === 'Enter' && onSubmit) {
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
       e.preventDefault();
-      onSubmit(e as any);
-    }
-  }, [onSubmit]);
+      if (onSubmit) {
+        onSubmit(e);
+      }
+    },
+    [onSubmit]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // 只在按 Enter 键时触发搜索
+      if (e.key === 'Enter' && onSubmit) {
+        e.preventDefault();
+        onSubmit(e as any);
+      }
+    },
+    [onSubmit]
+  );
 
   return (
     <div className="search-input-wrapper">
@@ -59,9 +65,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           <div className="loading-dot" />
         </div>
       )}
-      {hasSearchResults && !isSearching && (
-        <div className="search-results-indicator" />
-      )}
+      {hasSearchResults && !isSearching && <div className="search-results-indicator" />}
     </div>
   );
 };

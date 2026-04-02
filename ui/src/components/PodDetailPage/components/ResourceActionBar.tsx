@@ -45,18 +45,10 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
             >
               <FaSync />
             </button>
-            <button
-              className="action-btn"
-              onClick={onDescribe}
-              title="查看详情"
-            >
+            <button className="action-btn" onClick={onDescribe} title="查看详情">
               <FaClipboardList />
             </button>
-            <button
-              className="action-btn danger"
-              onClick={onDelete}
-              title="删除"
-            >
+            <button className="action-btn danger" onClick={onDelete} title="删除">
               <FaTrash />
             </button>
           </div>

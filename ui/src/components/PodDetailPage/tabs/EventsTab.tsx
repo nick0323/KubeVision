@@ -87,15 +87,22 @@ export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName }) => {
             </thead>
             <tbody>
               {events.map((event: any, index: number) => (
-                <tr key={index} className={`table-row ${event.type === 'Warning' ? 'warning' : 'normal'}`}>
+                <tr
+                  key={index}
+                  className={`table-row ${event.type === 'Warning' ? 'warning' : 'normal'}`}
+                >
                   <td>
-                    <span className={`event-type ${event.type === 'Warning' ? 'warning' : 'normal'}`}>
+                    <span
+                      className={`event-type ${event.type === 'Warning' ? 'warning' : 'normal'}`}
+                    >
                       {event.type === 'Warning' ? '⚠️' : '✓'} {event.type}
                     </span>
                   </td>
                   <td className="event-reason">{event.reason || '-'}</td>
                   <td className="event-message">{event.message || '-'}</td>
-                  <td className="event-time">{formatTime(event.lastSeen || event.lastTimestamp || event.eventTime)}</td>
+                  <td className="event-time">
+                    {formatTime(event.lastSeen || event.lastTimestamp || event.eventTime)}
+                  </td>
                 </tr>
               ))}
             </tbody>

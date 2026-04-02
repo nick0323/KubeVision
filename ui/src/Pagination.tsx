@@ -15,7 +15,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageSizeChange,
   pageSizeOptions = PAGE_SIZE_OPTIONS,
   fixed = false,
-  fixedBottom = false
+  fixedBottom = false,
 }) => {
   if (total <= pageSize) return null;
   const totalPages = Math.ceil(total / pageSize);
@@ -60,7 +60,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           <span>Show </span>
           <select
             value={pageSize}
-            onChange={(e) => {
+            onChange={e => {
               const newPageSize = Number(e.target.value);
               if (onPageSizeChange) {
                 onPageSizeChange(newPageSize);
@@ -69,7 +69,9 @@ export const Pagination: React.FC<PaginationProps> = ({
             className="page-size-select"
           >
             {pageSizeOptions.map(size => (
-              <option key={size} value={size}>{size}</option>
+              <option key={size} value={size}>
+                {size}
+              </option>
             ))}
           </select>
           <span> per page</span>

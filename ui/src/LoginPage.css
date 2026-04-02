@@ -11,7 +11,7 @@
 .login-form-card {
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 40px 0 rgba(60,80,180,0.15);
+  box-shadow: 0 8px 40px 0 rgba(60, 80, 180, 0.15);
   padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg) var(--spacing-xl);
   min-width: 340px;
   display: flex;
@@ -21,7 +21,7 @@
 }
 
 .login-form-card:hover {
-  box-shadow: 0 12px 48px 0 rgba(60,80,180,0.22);
+  box-shadow: 0 12px 48px 0 rgba(60, 80, 180, 0.22);
 }
 
 .login-form-card h2 {
@@ -44,14 +44,16 @@
   font-size: var(--font-size-lg);
   outline: none;
   background: #f6f8ff;
-  transition: border 0.2s, box-shadow 0.2s;
-  box-shadow: 0 1px 4px 0 rgba(60,80,180,0.04);
+  transition:
+    border 0.2s,
+    box-shadow 0.2s;
+  box-shadow: 0 1px 4px 0 rgba(60, 80, 180, 0.04);
 }
 
 .login-input:focus {
   border-color: #6366f1;
   background: var(--bg-secondary);
-  box-shadow: 0 2px 8px 0 rgba(60,80,180,0.10);
+  box-shadow: 0 2px 8px 0 rgba(60, 80, 180, 0.1);
 }
 
 .login-btn {
@@ -65,13 +67,15 @@
   font-weight: 700;
   cursor: pointer;
   margin-bottom: var(--spacing-sm);
-  box-shadow: 0 2px 12px 0 rgba(60,80,180,0.10);
-  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 12px 0 rgba(60, 80, 180, 0.1);
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
 }
 
 .login-btn:hover {
   background: linear-gradient(90deg, #3182f6 0%, #6366f1 100%);
-  box-shadow: 0 4px 18px 0 rgba(60,80,180,0.18);
+  box-shadow: 0 4px 18px 0 rgba(60, 80, 180, 0.18);
 }
 
 .login-error-tip {
@@ -100,4 +104,4 @@
   font-size: var(--font-size-lg);
   color: var(--text-tertiary);
   user-select: none;
-} 
+}

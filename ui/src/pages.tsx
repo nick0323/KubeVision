@@ -34,11 +34,7 @@ interface PageComponentProps {
  */
 const createResourcePage = (config: any) => {
   return ({ collapsed, onToggleCollapsed }: PageComponentProps) => (
-    <ResourceListPage
-      config={config}
-      collapsed={collapsed}
-      onToggleCollapsed={onToggleCollapsed}
-    />
+    <ResourceListPage config={config} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
   );
 };
 

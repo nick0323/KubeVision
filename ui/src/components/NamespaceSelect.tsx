@@ -53,7 +53,11 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
   const selectedLabel = value || placeholder;
 
   return (
-    <div className={`namespace-select-custom ${className || ''}`} ref={containerRef} style={width ? { width, minWidth: width } : {}}>
+    <div
+      className={`namespace-select-custom ${className || ''}`}
+      ref={containerRef}
+      style={width ? { width, minWidth: width } : {}}
+    >
       {/* 选择框主体 */}
       <div
         className={`namespace-select-value ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
@@ -80,11 +84,9 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
 
           {/* 命名空间列表 */}
           {options.length === 0 ? (
-            <div className="namespace-select-option disabled">
-              暂无数据
-            </div>
+            <div className="namespace-select-option disabled">暂无数据</div>
           ) : (
-            options.map((ns) => (
+            options.map(ns => (
               <div
                 key={ns}
                 className={`namespace-select-option ${value === ns ? 'selected' : ''}`}

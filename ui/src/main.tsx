@@ -10,6 +10,4 @@ if (!rootElement) {
 
 // StrictMode 会导致组件挂载两次，与 WebSocket 重连逻辑冲突
 // 开发环境可以启用，但需要改进重连逻辑
-createRoot(rootElement).render(
-  <App />
-);
+createRoot(rootElement).render(<App />);

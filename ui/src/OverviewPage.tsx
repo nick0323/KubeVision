@@ -61,73 +61,85 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
   };
 
   if (loading) {
-    return <div style={{textAlign:'center',color:'#888',padding:'32px 0'}}>加载中...</div>;
+    return <div style={{ textAlign: 'center', color: '#888', padding: '32px 0' }}>加载中...</div>;
   }
 
   if (error) {
-    return <div style={{textAlign:'center',color:'red',padding:'32px 0'}}>错误：{error}</div>;
+    return (
+      <div style={{ textAlign: 'center', color: 'red', padding: '32px 0' }}>错误：{error}</div>
+    );
   }
 
   return (
     <div>
-      <PageHeader
-        title="Overview"
-        collapsed={collapsed}
-        onToggleCollapsed={onToggleCollapsed}
-      />
+      <PageHeader title="Overview" collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
 
       <div className="overview-grid">
         <InfoCard
           icon={<FaServer />}
           title="Nodes"
           value={safeData.nodeCount || 0}
-          status={safeData.nodeCount === 0 ? (
-            <div className="center-empty">
-              <span style={{color:'#c0c4cc',fontSize:'var(--font-size-sm)'}}>暂无数据</span>
-            </div>
-          ) : (
-            <span className={safeData.nodeReady === safeData.nodeCount ? 'status-ready' : 'status-failed'}>
-              {safeData.nodeReady === safeData.nodeCount ? 'All Ready' : `${safeData.nodeCount - safeData.nodeReady} Not Ready`}
-            </span>
-          )}
+          status={
+            safeData.nodeCount === 0 ? (
+              <div className="center-empty">
+                <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
+              </div>
+            ) : (
+              <span
+                className={
+                  safeData.nodeReady === safeData.nodeCount ? 'status-ready' : 'status-failed'
+                }
+              >
+                {safeData.nodeReady === safeData.nodeCount
+                  ? 'All Ready'
+                  : `${safeData.nodeCount - safeData.nodeReady} Not Ready`}
+              </span>
+            )
+          }
         />
         <InfoCard
           icon={<FaCube />}
           title="Pods"
           value={safeData.podCount || 0}
-          status={safeData.podCount === 0 ? (
-            <div className="center-empty">
-              <span style={{color:'#c0c4cc',fontSize:'var(--font-size-sm)'}}>暂无数据</span>
-            </div>
-          ) : (
-            <span className={safeData.podNotReady === 0 ? 'status-ready' : 'status-failed'}>
-              {safeData.podNotReady === 0 ? 'All Ready' : `${safeData.podNotReady} Not Ready`}
-            </span>
-          )}
+          status={
+            safeData.podCount === 0 ? (
+              <div className="center-empty">
+                <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
+              </div>
+            ) : (
+              <span className={safeData.podNotReady === 0 ? 'status-ready' : 'status-failed'}>
+                {safeData.podNotReady === 0 ? 'All Ready' : `${safeData.podNotReady} Not Ready`}
+              </span>
+            )
+          }
         />
         <InfoCard
           icon={<FaThLarge />}
           title="Namespaces"
           value={safeData.namespaceCount || 0}
-          status={safeData.namespaceCount === 0 ? (
-            <div className="center-empty">
-              <span style={{color:'#c0c4cc',fontSize:'var(--font-size-sm)'}}>暂无数据</span>
-            </div>
-          ) : (
-            <span className="status-ready">All Ready</span>
-          )}
+          status={
+            safeData.namespaceCount === 0 ? (
+              <div className="center-empty">
+                <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
+              </div>
+            ) : (
+              <span className="status-ready">All Ready</span>
+            )
+          }
         />
         <InfoCard
           icon={<FaNetworkWired />}
           title="Services"
           value={safeData.serviceCount || 0}
-          status={safeData.serviceCount === 0 ? (
-            <div className="center-empty">
-              <span style={{color:'#c0c4cc',fontSize:'var(--font-size-sm)'}}>暂无数据</span>
-            </div>
-          ) : (
-            <span className="status-ready">All Ready</span>
-          )}
+          status={
+            safeData.serviceCount === 0 ? (
+              <div className="center-empty">
+                <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
+              </div>
+            ) : (
+              <span className="status-ready">All Ready</span>
+            )
+          }
         />
       </div>
 
@@ -146,9 +158,13 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
           <ResourceSummary
             title="Memory"
             requestsValue={safeData.memoryRequests?.toFixed(1) || 0}
-            requestsPercent={((safeData.memoryRequests / safeData.memoryCapacity) * 100 || 0).toFixed(1)}
+            requestsPercent={(
+              (safeData.memoryRequests / safeData.memoryCapacity) * 100 || 0
+            ).toFixed(1)}
             limitsValue={safeData.memoryLimits?.toFixed(1) || 0}
-            limitsPercent={((safeData.memoryLimits / safeData.memoryCapacity) * 100 || 0).toFixed(1)}
+            limitsPercent={((safeData.memoryLimits / safeData.memoryCapacity) * 100 || 0).toFixed(
+              1
+            )}
             totalValue={safeData.memoryCapacity?.toFixed(1) || 0}
             availableValue={(safeData.memoryCapacity - safeData.memoryRequests)?.toFixed(1) || 0}
             unit="GiB"
@@ -161,52 +177,95 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
             {safeData.events && safeData.events.length > 0 ? (
               safeData.events
                 .slice()
-                .sort((a: K8sEvent, b: K8sEvent) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime())
+                .sort(
+                  (a: K8sEvent, b: K8sEvent) =>
+                    new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime()
+                )
                 .slice(0, 5)
                 .map((e: K8sEvent, i: number) => (
-                  <div key={i} style={{
-                    display:'flex',
-                    alignItems:'flex-start',
-                    paddingBottom:'18px',
-                    borderBottom: i !== 4 ? '1px solid #f0f0f0' : 'none',
-                    marginBottom: i !== 4 ? 12 : 0
-                  }}>
-                    <div style={{width:28,display:'flex',justifyContent:'center',alignItems:'flex-start',marginTop:2}}>
-                      <span style={{
-                        display:'inline-block',
-                        width:16,
-                        height:16,
-                        borderRadius:'50%',
-                        border:'2px solid #a5b4fc',
-                        background:'#fff',
-                        marginTop:2
-                      }}></span>
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      paddingBottom: '18px',
+                      borderBottom: i !== 4 ? '1px solid #f0f0f0' : 'none',
+                      marginBottom: i !== 4 ? 12 : 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 28,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'flex-start',
+                        marginTop: 2,
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
+                          border: '2px solid #a5b4fc',
+                          background: '#fff',
+                          marginTop: 2,
+                        }}
+                      ></span>
                     </div>
-                    <div style={{flex:1}}>
-                      <div style={{display:'flex',alignItems:'center',marginBottom:2}}>
-                        <span className={e.type === 'Warning' ? 'event-type-warning' : 'event-type-normal'} 
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
+                        <span
+                          className={
+                            e.type === 'Warning' ? 'event-type-warning' : 'event-type-normal'
+                          }
                           style={{
-                            background: e.type === 'Warning' ? '#ffeaea' : '#e6f7ff', 
+                            background: e.type === 'Warning' ? '#ffeaea' : '#e6f7ff',
                             color: e.type === 'Warning' ? '#ff4d4f' : '#1890ff',
-                            borderRadius:'10px',
-                            padding:'2px 10px',
-                            fontSize:'var(--font-size-sm)',
-                            fontWeight:600,
-                            marginRight:8
-                          }}>
+                            borderRadius: '10px',
+                            padding: '2px 10px',
+                            fontSize: 'var(--font-size-sm)',
+                            fontWeight: 600,
+                            marginRight: 8,
+                          }}
+                        >
                           {e.type}
                         </span>
-                        <span style={{fontWeight:600,fontSize:'var(--font-size-sm)',color:'#222',marginRight:8}}>
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 'var(--font-size-sm)',
+                            color: '#222',
+                            marginRight: 8,
+                          }}
+                        >
                           {e.reason}
                         </span>
-                        <span style={{marginLeft:'auto',fontSize:'var(--font-size-sm)',color:'#888',fontWeight:400}}>
+                        <span
+                          style={{
+                            marginLeft: 'auto',
+                            fontSize: 'var(--font-size-sm)',
+                            color: '#888',
+                            fontWeight: 400,
+                          }}
+                        >
                           {formatRelativeTime(e.lastSeen)}
                         </span>
                       </div>
-                      <div style={{fontSize:'var(--font-size-sm)',color:'#444',marginBottom:2,wordBreak:'break-all'}}>
+                      <div
+                        style={{
+                          fontSize: 'var(--font-size-sm)',
+                          color: '#444',
+                          marginBottom: 2,
+                          wordBreak: 'break-all',
+                        }}
+                      >
                         {e.message}
                       </div>
-                      <div style={{fontSize:'var(--font-size-sm)',color:'#888',fontWeight:400}}>
+                      <div
+                        style={{ fontSize: 'var(--font-size-sm)', color: '#888', fontWeight: 400 }}
+                      >
                         {e.pod ? `Pod: ${e.pod}` : ''}
                         {e.cloneset ? `CloneSet: ${e.cloneset}` : ''}
                         {e.namespace && e.name ? `Pod: ${e.namespace}/${e.name}` : ''}
@@ -216,7 +275,14 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
                   </div>
                 ))
             ) : (
-              <div style={{color:'#888',fontSize:'var(--font-size-sm)',padding:'24px 0',textAlign:'center'}}>
+              <div
+                style={{
+                  color: '#888',
+                  fontSize: 'var(--font-size-sm)',
+                  padding: '24px 0',
+                  textAlign: 'center',
+                }}
+              >
                 暂无数据
               </div>
             )}

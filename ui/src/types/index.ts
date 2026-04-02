@@ -11,18 +11,18 @@ export type {
   K8sResource,
   K8sMetadata,
   K8sResourceList,
-  
+
   // API 响应类型
   APIResponse,
   APIErrorResponse,
   PageMeta,
   PaginatedResponse,
   ListQueryParams,
-  
+
   // 表格列类型
   ColumnDef,
   StatusColumnDef,
-  
+
   // 资源类型
   Pod,
   Deployment,
@@ -30,7 +30,7 @@ export type {
   DaemonSet,
   Service,
   Node,
-  
+
   // 列表项类型
   PodListItem,
   DeploymentListItem,
@@ -39,7 +39,7 @@ export type {
   ServiceListItem,
   NodeListItem,
   GenericResourceItem,
-  
+
   // 类型映射
   ResourceListItemMap,
   ResourceMap,

@@ -75,12 +75,12 @@ export interface PageMeta {
  * 统一 API 响应结构
  */
 export interface APIResponse<T = any> {
-  code: number;           // 0 表示成功，非 0 表示失败
-  message: string;        // 响应消息
-  data: T;                // 数据（数组或对象）
-  traceId?: string;       // 追踪 ID
-  timestamp?: number;     // 时间戳
-  page?: PageMeta;        // 分页信息（列表查询时）
+  code: number; // 0 表示成功，非 0 表示失败
+  message: string; // 响应消息
+  data: T; // 数据（数组或对象）
+  traceId?: string; // 追踪 ID
+  timestamp?: number; // 时间戳
+  page?: PageMeta; // 分页信息（列表查询时）
 }
 
 /**
@@ -147,10 +147,13 @@ export interface ColumnDef<T> {
  */
 export interface StatusColumnDef<T> extends ColumnDef<T> {
   dataIndex: 'status' | 'phase' | 'state' | string;
-  statusMap?: Record<string, {
-    color: 'success' | 'error' | 'warning' | 'default' | 'processing';
-    text?: string;
-  }>;
+  statusMap?: Record<
+    string,
+    {
+      color: 'success' | 'error' | 'warning' | 'default' | 'processing';
+      text?: string;
+    }
+  >;
 }
 
 // ==================== Pod 相关类型 ====================
@@ -246,7 +249,7 @@ export interface PodListItem {
   name: string;
   namespace: string;
   status: PodPhase;
-  ready: string;           // e.g., "1/3"
+  ready: string; // e.g., "1/3"
   restarts: number;
   ip: string;
   node: string;
@@ -326,8 +329,8 @@ export interface Deployment extends K8sResource {
 export interface DeploymentListItem {
   name: string;
   namespace: string;
-  status: string;          // Healthy, Partial, Unavailable
-  readyReplicas: string;   // e.g., "3/5"
+  status: string; // Healthy, Partial, Unavailable
+  readyReplicas: string; // e.g., "3/5"
   updatedReplicas: number;
   availableReplicas: number;
   age: string;
@@ -555,7 +558,7 @@ export interface Node extends K8sResource {
  */
 export interface NodeListItem {
   name: string;
-  status: string;          // Ready, NotReady, Unknown
+  status: string; // Ready, NotReady, Unknown
   roles: string;
   age: string;
   version: string;
