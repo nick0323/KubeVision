@@ -19,12 +19,15 @@ const (
 
 // 业务状态（前端展示用）
 const (
-	WorkloadHealthy      = "Healthy"
+	WorkloadAvailable    = "Available"
 	WorkloadPartial      = "Partial"
 	WorkloadUnavailable  = "Unavailable"
 	WorkloadScaledToZero = "ScaledToZero"
 
-	StatusActive = "Active"
+	// Node 状态常量
+	NodeReady    = "Ready"
+	NodeNotReady = "NotReady"
+	NodeUnknown  = "Unknown"
 )
 
 // Kubernetes 注解和标签常量

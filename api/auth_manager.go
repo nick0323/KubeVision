@@ -12,9 +12,9 @@ import (
 
 // 认证配置常量
 const (
-	AuthShardCount      = 32               // 分片数量
+	AuthShardCount      = 32               // 分片数量（2 的幂次，便于哈希分布）
 	AuthCleanupInterval = 10 * time.Minute // 清理间隔
-	AuthExpiryDuration  = time.Hour        // 过期时间
+	AuthExpiryDuration  = 30 * time.Minute // 过期时间（锁定解除后保留时间）
 )
 
 type LoginAttempt struct {
@@ -73,8 +73,8 @@ func (am *AuthManager) IsLocked(username, ip string) bool {
 		return false
 	}
 
+	// 检查是否已过期（由 cleanup 定期清理，这里只检查状态）
 	if time.Now().After(attempt.LockUntil) {
-		go am.clearAttempt(username, ip)
 		return false
 	}
 
@@ -222,6 +222,7 @@ func (am *AuthManager) cleanup() {
 		now := time.Now()
 
 		for key, attempt := range shard.attempts {
+			// 清理条件：锁定已解除 且 超过过期时间
 			if now.After(attempt.LockUntil) && now.Sub(attempt.LastFail) > AuthExpiryDuration {
 				delete(shard.attempts, key)
 				cleaned++

@@ -108,7 +108,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
   });
 
   /**
-   * 点击资源名称跳转详情页
+   * 点击资源名称跳转详情页（使用单数形式）
    */
   const handleNameClick = useCallback(
     (record: any) => {
@@ -117,7 +117,9 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
       const name = record.name;
 
       if (resourceType && name) {
-        navigate(`/${resourceType}/${ns}/${name}`);
+        // 将复数形式转为单数（后端只支持单数）
+        const singularType = toSingularResourceType(resourceType);
+        navigate(`/${singularType}/${ns}/${name}`);
       }
     },
     [config.resourceType, namespace, navigate]
@@ -125,6 +127,22 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
 
   // 确认对话框
   const { confirm, confirming, config: confirmConfig, onConfirm, onCancel } = useConfirm();
+
+  /**
+   * 将资源类型转为单数形式（后端只支持单数）
+   */
+  const toSingularResourceType = (resourceType: string): string => {
+    const type = resourceType.toLowerCase();
+    // 特殊复数形式处理
+    if (type === 'ingresses') return 'ingress';
+    if (type === 'services') return 'service';
+    if (type === 'configmaps') return 'configmap';
+    if (type === 'secrets') return 'secret';
+    if (type === 'endpoints') return 'endpoints'; // 单复数同形
+    // 一般情况：去掉末尾的 's'
+    if (type.endsWith('s')) return type.slice(0, -1);
+    return type;
+  };
 
   /**
    * 检测状态列

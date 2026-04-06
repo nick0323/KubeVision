@@ -3,10 +3,15 @@ package api
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -25,37 +30,96 @@ import (
 // Exec 配置常量
 const (
 	ExecDefaultCommand = "/bin/sh"
+	WebSocketTimeout   = 5 * time.Second
+	ExecSessionTimeout = 30 * time.Minute // 会话超时
+	MaxExecConnections = 100              // 最大并发连接数
 )
 
-// WebSocket upgrader
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+// 全局连接计数
+var activeExecConnections atomic.Int32
+
+// dnsLabelRegex 验证 namespace 名称 (DNS label 规范)
+var dnsLabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+
+// ExecSessionManager 管理活跃的 exec 会话
+type ExecSessionManager struct {
+	sessions sync.Map // map[string]*ExecSession
 }
 
-// ExecRequest WebSocket 请求参数
-type ExecRequest struct {
-	Namespace string   `json:"namespace"`
-	Pod       string   `json:"pod"`
-	Container string   `json:"container,omitempty"`
-	Command   []string `json:"command"`
+// ExecSession 代表一个活跃的 exec 会话
+type ExecSession struct {
+	Namespace  string
+	Pod        string
+	Container  string
+	StartTime  time.Time
+	CancelFunc context.CancelFunc
+}
+
+// wsInput 实现 io.Reader 接口，从 WebSocket 读取输入
+type wsInput struct {
+	conn *websocket.Conn
+	mu   sync.Mutex
+	buf  []byte // 缓冲区，防止数据截断
+}
+
+func (w *wsInput) Read(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	// 如果缓冲区有数据，先返回
+	if len(w.buf) > 0 {
+		n := copy(p, w.buf)
+		w.buf = w.buf[n:]
+		return n, nil
+	}
+
+	// 读取新消息
+	_, message, err := w.conn.ReadMessage()
+	if err != nil {
+		return 0, err
+	}
+
+	// 如果消息大于缓冲区，保存剩余部分
+	if len(message) > len(p) {
+		w.buf = append([]byte(nil), message[len(p):]...)
+	}
+
+	n := copy(p, message)
+	return n, nil
+}
+
+// wsOutput 实现 io.Writer 接口，向 WebSocket 写入输出
+type wsOutput struct {
+	conn *websocket.Conn
+	mu   sync.Mutex
+}
+
+func (w *wsOutput) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	// 使用 BinaryMessage 支持所有字符
+	if err := w.conn.WriteMessage(websocket.BinaryMessage, p); err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 func RegisterExecWS(
 	r *gin.RouterGroup,
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
+	configProvider middleware.ConfigProvider,
 ) {
-	// 这个函数不再使用，WebSocket 路由直接在 main.go 中注册
+	// 注册 Exec WebSocket 路由
+	r.GET("/ws/exec", HandleExecWS(logger, getK8sClient, configProvider))
 }
 
 // HandleExecWS 处理 WebSocket exec 请求（带 JWT 认证）
 func HandleExecWS(
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
+	configProvider middleware.ConfigProvider,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从 WebSocket 请求中获取 token
@@ -74,12 +138,22 @@ func HandleExecWS(
 			return
 		}
 
-		// 验证 token（简单验证，实际应该使用 JWT 库）
-		// 这里只是示例，实际应该验证 token 有效性
-		_ = tokenStr
+		// 验证 token 并获取用户名
+		claims, err := middleware.VerifyToken(tokenStr, configProvider.GetJWTSecret())
+		if err != nil {
+			logger.Warn("WebSocket exec token 验证失败", zap.Error(err))
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		username, _ := claims["username"].(string)
 
 		// 调用实际的 WebSocket 处理函数
-		handleExecWSImpl(c, logger, getK8sClient)
+		// 注意：handleExecWSImpl 会处理 WebSocket 升级，不需要 c.Next()
+		handleExecWSImpl(c, logger, getK8sClient, username)
+
+		// 停止 Gin 继续执行中间件
+		c.Abort()
 	}
 }
 
@@ -87,6 +161,7 @@ func handleExecWSImpl(
 	c *gin.Context,
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
+	username string,
 ) {
 	// 获取参数
 	namespace := c.Query("namespace")
@@ -94,8 +169,24 @@ func handleExecWSImpl(
 	container := c.Query("container")
 	commandStr := c.Query("command")
 
-	if namespace == "" || podName == "" {
-		middleware.ResponseError(c, logger, fmt.Errorf("missing namespace or pod"), http.StatusBadRequest)
+	// 验证 namespace 格式
+	if !isValidNamespace(namespace) {
+		middleware.ResponseError(c, logger, fmt.Errorf("invalid namespace format"), http.StatusBadRequest)
+		return
+	}
+
+	if podName == "" {
+		middleware.ResponseError(c, logger, fmt.Errorf("missing pod name"), http.StatusBadRequest)
+		return
+	}
+
+	// 检查并发连接数
+	if activeExecConnections.Load() >= MaxExecConnections {
+		logger.Warn("exec 连接数已达上限",
+			zap.Int32("active", activeExecConnections.Load()),
+			zap.String("user", username),
+		)
+		middleware.ResponseError(c, logger, fmt.Errorf("服务繁忙，请稍后重试"), http.StatusServiceUnavailable)
 		return
 	}
 
@@ -113,11 +204,21 @@ func handleExecWSImpl(
 		return
 	}
 
-	// 检查 Pod 是否存在（在 WebSocket 升级前）
-	_, err = clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
+	// 检查 Pod 是否存在并获取容器列表（在 WebSocket 升级前）
+	pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
 	if err != nil {
 		logger.Error("Pod 不存在", zap.Error(err))
 		middleware.ResponseError(c, logger, err, http.StatusNotFound)
+		return
+	}
+
+	// 验证 container 是否属于该 pod
+	if container != "" && !hasContainer(pod, container) {
+		logger.Error("container 不存在于 pod 中",
+			zap.String("pod", podName),
+			zap.String("container", container),
+		)
+		middleware.ResponseError(c, logger, fmt.Errorf("container '%s' not found in pod '%s'", container, podName), http.StatusBadRequest)
 		return
 	}
 
@@ -129,20 +230,28 @@ func handleExecWSImpl(
 	}
 	defer ws.Close()
 
+	// 增加连接计数
+	activeExecConnections.Add(1)
+	defer activeExecConnections.Add(-1)
+
 	logger.Info("Terminal WebSocket 升级成功",
 		zap.String("namespace", namespace),
 		zap.String("pod", podName),
 		zap.String("container", container),
+		zap.String("user", username),
 	)
 
 	// 先发送连接成功消息
-	ws.WriteJSON(gin.H{
+	if err := ws.WriteJSON(gin.H{
 		"status":    "connected",
 		"namespace": namespace,
 		"pod":       podName,
 		"container": container,
 		"message":   fmt.Sprintf("Connected to %s/%s (%s)", namespace, podName, container),
-	})
+	}); err != nil {
+		logger.Error("发送连接消息失败", zap.Error(err))
+		return
+	}
 
 	logger.Info("已发送连接消息")
 
@@ -172,45 +281,63 @@ func handleExecWSImpl(
 
 	logger.Info("Executor 创建成功，开始 stream")
 
+	// 创建带超时的上下文
+	ctx, cancel := context.WithTimeout(context.Background(), ExecSessionTimeout)
+	defer cancel()
+
+	// 创建带锁的输入输出
+	input := &wsInput{conn: ws}
+	output := &wsOutput{conn: ws}
+
 	// 执行命令
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdin:  wsInput{ws},
-		Stdout: wsOutput{ws},
-		Stderr: wsOutput{ws},
+	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdin:  input,
+		Stdout: output,
+		Stderr: output,
 		Tty:    true,
 	})
 
 	if err != nil {
-		logger.Error("exec stream 失败", zap.Error(err))
-		ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Exec failed: %v", err)})
+		if err == io.EOF {
+			logger.Info("exec stream 正常结束",
+				zap.String("user", username),
+				zap.String("namespace", namespace),
+				zap.String("pod", podName),
+			)
+		} else {
+			logger.Error("exec stream 失败", zap.Error(err))
+			ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Exec failed: %v", err)})
+		}
 	}
 }
 
-// wsInput 实现 io.Reader 接口，从 WebSocket 读取输入
-type wsInput struct {
-	conn *websocket.Conn
-}
-
-func (w wsInput) Read(p []byte) (int, error) {
-	_, message, err := w.conn.ReadMessage()
-	if err != nil {
-		return 0, err
+// isValidNamespace 验证 namespace 名称是否符合 DNS label 规范
+func isValidNamespace(namespace string) bool {
+	if namespace == "" {
+		return false
 	}
-	copy(p, message)
-	return len(message), nil
-}
-
-// wsOutput 实现 io.Writer 接口，向 WebSocket 写入输出
-type wsOutput struct {
-	conn *websocket.Conn
-}
-
-func (w wsOutput) Write(p []byte) (int, error) {
-	err := w.conn.WriteMessage(websocket.TextMessage, p)
-	if err != nil {
-		return 0, err
+	if len(namespace) > 63 {
+		return false
 	}
-	return len(p), nil
+	return dnsLabelRegex.MatchString(namespace)
+}
+
+// hasContainer 检查 pod 是否包含指定容器
+func hasContainer(pod *v1.Pod, containerName string) bool {
+	if containerName == "" {
+		return true
+	}
+	for _, c := range pod.Spec.Containers {
+		if c.Name == containerName {
+			return true
+		}
+	}
+	for _, c := range pod.Spec.InitContainers {
+		if c.Name == containerName {
+			return true
+		}
+	}
+	return false
 }
 
 // getK8sClientWithConfig 获取 K8s 客户端和配置

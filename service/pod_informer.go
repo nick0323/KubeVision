@@ -203,3 +203,24 @@ func (pi *PodInformer) GetRestartCache() map[string]int32 {
 	}
 	return cacheCopy
 }
+
+// 全局 PodInformer 实例
+var podInformerInstance *PodInformer
+
+// SetPodInformer 设置全局 PodInformer 实例
+func SetPodInformer(pi *PodInformer) {
+	podInformerInstance = pi
+}
+
+// GetPodInformer 获取全局 PodInformer 实例
+func GetPodInformer() *PodInformer {
+	return podInformerInstance
+}
+
+// GetRestartsByOwnerReference 根据 OwnerReference 获取重启次数（全局函数）
+func GetRestartsByOwnerReference(ownerRef metav1.OwnerReference) int32 {
+	if podInformerInstance == nil {
+		return 0
+	}
+	return podInformerInstance.GetRestartsByOwnerReference(ownerRef)
+}

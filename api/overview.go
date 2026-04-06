@@ -10,22 +10,18 @@ import (
 	"go.uber.org/zap"
 )
 
+// RegisterOverview 注册概览接口
 func RegisterOverview(
 	r *gin.RouterGroup,
 	logger *zap.Logger,
-	overviewFunc func(limit, offset int) (*model.OverviewStatus, string, error),
+	getOverview func() (*model.OverviewStatus, error),
 ) {
 	r.GET("/overview", func(c *gin.Context) {
-		params := ParsePaginationParams(c)
-		overview, msg, err := overviewFunc(params.Limit, params.Offset)
+		overview, err := getOverview()
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		middleware.ResponseSuccess(c, overview, msg, &model.PageMeta{
-			Total:  1,
-			Limit:  params.Limit,
-			Offset: params.Offset,
-		})
+		middleware.ResponseSuccess(c, overview, "获取概览成功", nil)
 	})
 }

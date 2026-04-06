@@ -1,4 +1,3 @@
-// Package main KubeVision - Kubernetes 集群可视化管理平台
 package main
 
 import (
@@ -6,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/nick0323/K8sVision/api"
@@ -24,37 +25,35 @@ import (
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
-// 监控配置常量
+// 常量定义
 const (
-	MonitorInterval = 5 * time.Minute // 监控数据采集间隔
-)
+	// 版本信息
+	Version = "2.0.0-optimized"
 
-// 路由常量
-const (
+	// 监控配置
+	MonitorInterval = 5 * time.Minute // 监控数据采集间隔
+
+	// 路由路径
 	HealthCheckPath = "/health"
 	CacheStatsPath  = "/cache/stats"
 	APIPrefix       = "/api"
 	LoginPath       = "/api/login"
 
-	// K8s 配置
-	DefaultConfigMapNamespace = "k8svision-system"
+	// 缓存配置
+	cacheSyncTimeout = 2 * time.Minute // 缓存同步超时时间
 )
 
 // Application 应用结构
 type Application struct {
 	configFile   string
-	configMapNS  string
 	logger       *zap.Logger
 	configMgr    *config.Manager
-	cacheMgr     *cache.CacheManager // K8s Informer 缓存管理器
-	lruCacheMgr  *cache.Manager      // LRU 缓存管理器
+	lruCacheMgr  *cache.MemoryCache[interface{}] // LRU 缓存管理器（用于统计）
 	monitorMgr   *monitor.Monitor
 	k8sClientMgr *service.ClientManager
-	configStore  *service.ConfigMapStore
 }
 
 var configFile = flag.String("config", "", "配置文件路径")
-var configMapNS = flag.String("configmap-ns", DefaultConfigMapNamespace, "ConfigMap 命名空间")
 
 // initLogger 初始化日志
 func initLogger(cfg *model.Config) (*zap.Logger, error) {
@@ -67,18 +66,18 @@ func initLogger(cfg *model.Config) (*zap.Logger, error) {
 	}
 
 	// 设置日志级别
+	logLevel := zap.InfoLevel
 	switch cfg.Log.Level {
 	case "debug":
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		logLevel = zap.DebugLevel
 	case "info":
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+		logLevel = zap.InfoLevel
 	case "warn":
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
+		logLevel = zap.WarnLevel
 	case "error":
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
-	default:
-		zapConfig.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+		logLevel = zap.ErrorLevel
 	}
+	zapConfig.Level = zap.NewAtomicLevelAt(logLevel)
 
 	// 设置日志格式
 	if cfg.Log.Format == "console" {
@@ -87,7 +86,7 @@ func initLogger(cfg *model.Config) (*zap.Logger, error) {
 		zapConfig.Encoding = "json"
 	}
 
-	// 配置时间戳格式为可读格式
+	// 配置时间戳格式
 	zapConfig.EncoderConfig.TimeKey = "timestamp"
 	zapConfig.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05.000")
 
@@ -95,141 +94,169 @@ func initLogger(cfg *model.Config) (*zap.Logger, error) {
 }
 
 // NewApplication 创建应用实例
-func NewApplication(configFile string, configMapNS string) *Application {
+func NewApplication(configFile string) *Application {
 	return &Application{
-		configFile:  configFile,
-		configMapNS: configMapNS,
+		configFile: configFile,
 	}
 }
 
-// Initialize 初始化应用
+// Initialize 初始化应用（分三个阶段）
 func (app *Application) Initialize() error {
+	// ========== 阶段 1：基础组件初始化 ==========
+	if err := app.initBaseComponents(); err != nil {
+		return err
+	}
+
+	// ========== 阶段 2：K8s 组件初始化 ==========
+	if err := app.initK8sComponents(); err != nil {
+		return err
+	}
+
+	// ========== 阶段 3：业务组件初始化 ==========
+	app.initBusinessComponents()
+
+	app.logger.Info("应用初始化完成",
+		zap.String("version", Version),
+		zap.Bool("k8sEnabled", app.k8sClientMgr != nil),
+	)
+
+	return nil
+}
+
+// initBaseComponents 阶段 1：初始化基础组件（配置、日志、缓存）
+func (app *Application) initBaseComponents() error {
+	// 1.1 初始化配置管理器（使用临时 logger）
+	tempLogger, _ := zap.NewProduction()
+	app.configMgr = config.NewManager(tempLogger)
+
+	if err := app.configMgr.Load(app.configFile); err != nil {
+		tempLogger.Fatal("加载配置失败", zap.Error(err))
+	}
+
+	// 1.2 初始化正式 logger
+	cfg := app.configMgr.GetConfig()
 	var err error
-	app.logger, err = zap.NewProduction()
+	app.logger, err = initLogger(cfg)
 	if err != nil {
 		return fmt.Errorf("初始化日志失败：%w", err)
 	}
-
-	app.configMgr = config.NewManager(app.logger)
-
-	if err := app.configMgr.Load(app.configFile); err != nil {
-		app.logger.Fatal("加载配置失败", zap.Error(err))
-	}
-
-	cfg := app.configMgr.GetConfig()
-
-	app.logger, err = initLogger(cfg)
-	if err != nil {
-		app.logger.Fatal("初始化日志失败", zap.Error(err))
-	}
-
 	app.configMgr.UpdateLogger(app.logger)
+	tempLogger.Sync()
 
-	// 初始化 LRU 缓存管理器
-	app.lruCacheMgr = cache.NewManager(&cfg.Cache, app.logger)
+	// 1.3 初始化 LRU 缓存
+	app.initLRUCache(cfg)
 
-	// 初始化监控器
+	// 1.4 初始化监控器
+	app.initMonitor()
+
+	return nil
+}
+
+// initK8sComponents 阶段 2：初始化 K8s 组件（客户端、缓存）
+func (app *Application) initK8sComponents() error {
+	// 2.1 初始化 K8s 客户端
+	if err := app.initK8sClient(); err != nil {
+		return err
+	}
+
+	// 2.2 初始化 K8s 缓存（Informer 机制）
+	app.initK8sCache()
+
+	return nil
+}
+
+// initBusinessComponents 阶段 3：初始化业务组件（服务、API、监控）
+func (app *Application) initBusinessComponents() {
+	// 3.1 初始化服务层
+	app.initServices()
+
+	// 3.2 初始化 API 层
+	app.initAPI()
+
+	// 3.3 初始化监控系统
+	app.initMonitoring()
+
+	// 3.4 启动配置监听（可选）
+	if err := app.configMgr.Watch(); err != nil {
+		app.logger.Warn("启动配置监听失败", zap.Error(err))
+	}
+}
+
+// initLRUCache 初始化 LRU 缓存（用于统计）
+func (app *Application) initLRUCache(cfg *model.Config) {
+	app.lruCacheMgr = cache.NewMemoryCache(&cfg.Cache, app.logger)
+}
+
+// initMonitor 初始化监控器
+func (app *Application) initMonitor() {
 	app.monitorMgr = monitor.NewMonitor(app.logger)
+}
 
-	// 【优化】初始化 K8s 客户端管理器
+// initK8sClient 初始化 K8s 客户端
+func (app *Application) initK8sClient() error {
+	var err error
 	app.k8sClientMgr, err = service.NewClientManager(app.configMgr, app.logger)
 	if err != nil {
-		app.logger.Fatal("初始化 K8s 客户端失败", zap.Error(err))
+		return fmt.Errorf("初始化 K8s 客户端失败：%w", err)
 	}
+	return nil
+}
 
-	// 【优化】初始化 ConfigMap 配置存储
+// initK8sCache 初始化 K8s 缓存（Informer 机制）
+// 注：已移除未使用的缓存管理器，只保留 PodInformer
+func (app *Application) initK8sCache() {
 	clientset, _, err := app.k8sClientMgr.GetDefaultClient()
-	if err != nil {
-		app.logger.Warn("获取 K8s 客户端失败，ConfigMap 存储将不可用", zap.Error(err))
-	} else {
-		app.configStore = service.NewConfigMapStore(clientset, app.logger, app.configMapNS)
-		if err := app.configStore.Start(); err != nil {
-			app.logger.Warn("启动 ConfigMap 存储失败", zap.Error(err))
-		}
+	if err != nil || clientset == nil {
+		app.logger.Warn("K8s 客户端不可用，跳过缓存初始化")
+		return
 	}
 
-	// 【优化】初始化 K8s 缓存管理器（Informer 机制）
-	if clientset != nil {
-		cacheMgr := cache.NewCacheManager(app.logger)
+	// 初始化 PodInformer 用于计算 Restarts
+	podInformer := service.NewPodInformer(clientset, "")
+	service.SetPodInformer(podInformer)
+	go podInformer.Start(context.Background())
+	app.logger.Info("Pod Informer 已启动")
+}
 
-		// 注册 Pods 缓存
-		podCache, err := cache.NewInformerCache(context.Background(), clientset, cache.ResourcePods, "", app.logger)
-		if err != nil {
-			app.logger.Warn("创建 Pods 缓存失败", zap.Error(err))
-		} else {
-			cacheMgr.RegisterCache(cache.ResourcePods, podCache)
-		}
-
-		// 注册 Nodes 缓存
-		nodeCache, err := cache.NewInformerCache(context.Background(), clientset, cache.ResourceNodes, "", app.logger)
-		if err != nil {
-			app.logger.Warn("创建 Nodes 缓存失败", zap.Error(err))
-		} else {
-			cacheMgr.RegisterCache(cache.ResourceNodes, nodeCache)
-		}
-
-		// 启动所有缓存
-		cacheMgr.StartAll()
-
-		// 等待缓存同步（最多 2 分钟）
-		if !cacheMgr.WaitForCacheSync(2 * time.Minute) {
-			app.logger.Warn("缓存同步超时")
-		} else {
-			app.logger.Info("K8s 缓存已同步", zap.Any("stats", cacheMgr.GetCacheStats()))
-		}
-
-		// 保存到 Application
-		app.cacheMgr = cacheMgr
-
-		// 设置全局缓存管理器
-		service.SetCacheManager(cacheMgr)
-
-		// 【优化】初始化缓存排序服务
-		sortService := service.NewCachedSortService(cacheMgr, app.logger)
-		service.SetCachedSortService(sortService)
-		app.logger.Info("缓存排序服务已启用")
+// initServices 初始化服务层
+func (app *Application) initServices() {
+	clientset, _, _ := app.k8sClientMgr.GetDefaultClient()
+	if clientset == nil {
+		return
 	}
 
-	// 设置全局配置管理器到 API 层
+	// PodInformer 已在 initK8sCache 中初始化
+}
+
+// initAPI 初始化 API 层
+func (app *Application) initAPI() {
+	cfg := app.configMgr.GetConfig()
+
+	// 设置配置管理器
 	api.SetConfigManager(app.configMgr)
-
-	// 【优化】使用 ConfigMap 存储（如果可用）
-	if app.configStore != nil {
-		api.SetConfigStore(app.configStore)
-		app.logger.Info("ConfigMap 配置存储已启用", zap.String("namespace", app.configMapNS))
-	}
 
 	// 初始化认证管理器
 	api.InitAuthManager(app.logger)
 
-	// 初始化监控和追踪
+	// 设置全局 JWT secret（用于 WebSocket token 验证）
+	middleware.SetJWTSecret([]byte(cfg.JWT.Secret))
+
+	// 初始化 WebSocket upgrader（配置允许的源）
+	api.InitWebSocketUpgrader(cfg.Server.AllowedOrigin)
+}
+
+// initMonitoring 初始化监控系统
+func (app *Application) initMonitoring() {
+	clientset, metricsClient, err := app.k8sClientMgr.GetDefaultClient()
+	if err != nil || clientset == nil {
+		return
+	}
+
 	monitor.InitTracing(app.logger)
 	monitor.InitBusinessMetrics(app.logger)
 
-	// 【优化】设置 K8s 客户端到监控器
-	if clientset != nil {
-		_, metricsClient, _ := app.k8sClientMgr.GetDefaultClient()
-		app.monitorMgr.SetK8sClients(clientset, metricsClient)
-		app.logger.Info("K8s 监控已启用")
-
-		// 【新增】初始化 PodInformer 用于计算 Restarts
-		podInformer := service.NewPodInformer(clientset, "")
-		service.SetPodInformer(podInformer)
-		go podInformer.Start(context.Background())
-		app.logger.Info("Pod Informer 已启动")
-	}
-
-	if err := app.configMgr.Watch(); err != nil {
-		app.logger.Warn("启动配置监听失败", zap.Error(err))
-	}
-
-	app.logger.Info("应用初始化完成",
-		zap.String("version", "2.0.0-optimized"),
-		zap.Bool("configStoreEnabled", app.configStore != nil),
-		zap.Bool("k8sMonitoringEnabled", clientset != nil),
-	)
-
-	return nil
+	app.monitorMgr.SetK8sClients(clientset, metricsClient)
+	app.logger.Info("K8s 监控已启用")
 }
 
 // SetupRouter 设置路由
@@ -257,11 +284,11 @@ func (app *Application) registerMiddlewares(r *gin.Engine, cfg *model.Config) {
 
 	// 开发环境启用 CORS
 	if cfg.IsDevelopment() {
-		r.Use(middleware.CORSMiddleware())
+		r.Use(middleware.CORSMiddleware(nil)) // 使用默认配置
 	}
 
 	if cfg.Auth.EnableRateLimit {
-		r.Use(middleware.ConcurrencyMiddleware(cfg.Auth.RateLimit))
+		r.Use(middleware.ConcurrencyMiddleware(app.logger, cfg.Auth.RateLimit))
 	}
 }
 
@@ -275,58 +302,39 @@ func (app *Application) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	apiGroup := r.Group(APIPrefix)
 	apiGroup.Use(middleware.JWTAuthMiddleware(app.logger, app.configMgr))
 
-	if cfg.Cache.Enabled {
-		apiGroup.Use(middleware.CacheMiddleware(app.cacheMgr, cfg.Cache.TTL))
-	}
-
-	// WebSocket 路由需要绕过认证（在 WebSocket 内部处理认证）
-	r.GET(APIPrefix+"/ws/exec", api.HandleExecWS(app.logger, app.getK8sClient))
-	r.GET(APIPrefix+"/pods/:namespace/:name/logs/stream", api.StreamPodLogs(app.logger, app.getK8sClient))
-
 	app.registerAPIRoutes(apiGroup)
 }
 
 // registerAPIRoutes 注册 API 路由
 func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	// 注册概览
-	api.RegisterOverview(apiGroup, app.logger, app.getOverviewHandler())
+	clientset, _, _ := app.getK8sClient()
+	overviewService := service.NewOverviewService(clientset)
+	api.RegisterOverview(apiGroup, app.logger, func() (*model.OverviewStatus, error) {
+		return overviewService.GetOverview(context.Background())
+	})
 
-	// 注册资源类型 - 【优化】使用新的 K8s 客户端管理器
-	api.RegisterPod(apiGroup, app.logger, app.getK8sClient, service.ListPodsWithRaw)
-	api.RegisterPodDetail(apiGroup, app.logger, app.getK8sClient)
-	api.RegisterDeployment(apiGroup, app.logger, app.getK8sClient, service.ListDeployments)
-	api.RegisterService(apiGroup, app.logger, app.getK8sClient, service.ListServices)
-	api.RegisterNode(apiGroup, app.logger, app.getK8sClient, service.ListPodsWithRaw, service.ListNodes)
-	api.RegisterNamespace(apiGroup, app.logger, app.getK8sClient, service.ListNamespaces)
-	api.RegisterEvent(apiGroup, app.logger, app.getK8sClient, service.ListEvents)
-
-	// 注册 Endpoints（用于 Service 详情）
-	api.RegisterEndpoints(apiGroup, app.logger, app.getK8sClient)
+	// 注册资源操作接口（YAML、关联资源等）
+	api.RegisterOperations(apiGroup, app.logger, app.getK8sClient)
 
 	// 注册 Exec WebSocket
-	api.RegisterExecWS(apiGroup, app.logger, app.getK8sClient)
+	api.RegisterExecWS(apiGroup, app.logger, app.getK8sClient, app.configMgr)
 
-	// 注册资源引用查找
-	api.RegisterReferenceFinder(apiGroup, app.logger, app.getK8sClient)
+	// 注册日志流 WebSocket
+	api.RegisterLogStream(apiGroup, app.logger, app.getK8sClient)
 
-	// 注册其他资源类型
-	api.RegisterStatefulSet(apiGroup, app.logger, app.getK8sClient, service.ListStatefulSets)
-	api.RegisterDaemonSet(apiGroup, app.logger, app.getK8sClient, service.ListDaemonSets)
-	api.RegisterIngress(apiGroup, app.logger, app.getK8sClient, service.ListIngresses)
-	api.RegisterCronJob(apiGroup, app.logger, app.getK8sClient, service.ListCronJobs)
-	api.RegisterJob(apiGroup, app.logger, app.getK8sClient, service.ListJobs)
-	api.RegisterPVC(apiGroup, app.logger, app.getK8sClient, service.ListPVCs)
-	api.RegisterPV(apiGroup, app.logger, app.getK8sClient, service.ListPVs)
-	api.RegisterStorageClass(apiGroup, app.logger, app.getK8sClient, service.ListStorageClasses)
-	api.RegisterConfigMap(apiGroup, app.logger, app.getK8sClient, service.ListConfigMaps)
-	api.RegisterSecret(apiGroup, app.logger, app.getK8sClient, service.ListSecrets)
+	// 注册通用资源接口（动态路由 /api/:resourceType）
+	// 支持所有 Kubernetes 资源：
+	// - 工作负载：pods, deployments, statefulsets, daemonsets, jobs, cronjobs
+	// - 服务网络：services, ingresses, endpoints
+	// - 配置：configmaps, secrets
+	// - 存储：pvcs, pvs, storageclasses
+	// - 集群：namespaces, nodes, events
+	api.RegisterRoutes(apiGroup, app.logger, app.getK8sClient)
 
 	// 注册管理 API
 	api.RegisterPasswordAdmin(apiGroup, app.logger)
 	api.RegisterMetrics(apiGroup, app.logger)
-
-	// 注册统一的 describe 接口
-	api.RegisterDescribe(apiGroup, app.logger, app.getK8sClient)
 }
 
 // getK8sClient 【优化】获取 K8s 客户端（使用客户端管理器）
@@ -337,24 +345,9 @@ func (app *Application) getK8sClient() (*kubernetes.Clientset, *versioned.Client
 	return app.k8sClientMgr.GetDefaultClient()
 }
 
-// getOverviewHandler 获取概览处理器
-func (app *Application) getOverviewHandler() func(limit, offset int) (*model.OverviewStatus, string, error) {
-	return func(limit, offset int) (*model.OverviewStatus, string, error) {
-		clientset, _, err := app.getK8sClient()
-		if err != nil {
-			return nil, "k8s client error", err
-		}
-		overview, err := service.GetOverviewStatus(clientset)
-		if err != nil {
-			return nil, "overview error", err
-		}
-		return overview, "", nil
-	}
-}
-
 // handleCacheStats 处理缓存统计
 func (app *Application) handleCacheStats(c *gin.Context) {
-	stats := app.lruCacheMgr.GetAllStats()
+	stats := app.lruCacheMgr.GetStats()
 	c.JSON(200, stats)
 }
 
@@ -380,7 +373,7 @@ func (app *Application) handleHealthCheck(c *gin.Context) {
 	c.JSON(200, health)
 }
 
-// Run 运行应用
+// Run 运行应用（带优雅关闭）
 func (app *Application) Run() error {
 	cfg := app.configMgr.GetConfig()
 	serverAddr := cfg.GetServerAddress()
@@ -389,37 +382,48 @@ func (app *Application) Run() error {
 		zap.String("address", serverAddr),
 		zap.Bool("cacheEnabled", cfg.Cache.Enabled),
 		zap.Bool("rateLimitEnabled", cfg.Auth.EnableRateLimit),
-		zap.Bool("configStoreEnabled", app.configStore != nil),
 	)
 
-	// 启动定期监控（包含 K8s 集群指标）
+	// 启动定期监控
 	app.monitorMgr.StartPeriodicLogging(MonitorInterval)
 
 	router := app.SetupRouter()
-	return router.Run(serverAddr)
+
+	// 启动服务器（在 goroutine 中）
+	go func() {
+		if err := router.Run(serverAddr); err != nil {
+			app.logger.Error("服务器运行失败", zap.Error(err))
+		}
+	}()
+
+	// 等待退出信号
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	app.logger.Info("收到退出信号，正在关闭服务器...")
+	return nil
 }
 
 // Close 关闭应用
 func (app *Application) Close() {
 	app.logger.Info("正在关闭应用...")
 
-	if app.logger != nil {
-		app.logger.Sync()
-	}
-	if app.cacheMgr != nil {
-		app.cacheMgr.Close()
-	}
+	// 按顺序关闭各个组件
 	if app.monitorMgr != nil {
 		app.monitorMgr.Close()
 	}
-	if app.configStore != nil {
-		app.configStore.Stop()
+	if app.lruCacheMgr != nil {
+		app.lruCacheMgr.Close()
 	}
 	if app.k8sClientMgr != nil {
 		app.k8sClientMgr.Close()
 	}
 	if app.configMgr != nil {
 		app.configMgr.Close()
+	}
+	if app.logger != nil {
+		app.logger.Sync()
 	}
 
 	app.logger.Info("应用已关闭")
@@ -428,21 +432,25 @@ func (app *Application) Close() {
 func main() {
 	flag.Parse()
 
-	app := NewApplication(*configFile, *configMapNS)
+	app := NewApplication(*configFile)
 
+	// 初始化应用
 	if err := app.Initialize(); err != nil {
-		// 初始化失败时 logger 可能未完全初始化
 		if app.logger != nil {
 			app.logger.Fatal("应用初始化失败", zap.Error(err))
 		}
-		// 如果 logger 未初始化，使用简单错误输出
 		fmt.Fprintf(os.Stderr, "应用初始化失败：%v\n", err)
 		os.Exit(1)
 	}
 
+	// 确保资源清理
 	defer app.Close()
 
+	// 运行应用
 	if err := app.Run(); err != nil {
 		app.logger.Fatal("应用运行失败", zap.Error(err))
 	}
+
+	// 优雅关闭
+	time.Sleep(500 * time.Millisecond) // 等待服务器完全关闭
 }

@@ -61,7 +61,8 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
   const handleDelete = useCallback(async () => {
     if (window.confirm(`确定要删除 Pod "${podName}" 吗？此操作不可恢复。`)) {
       try {
-        const response = await authFetch(`/api/pods/${namespace}/${podName}`, {
+        // 后端只支持单数形式：/api/pod/ns/name
+      const response = await authFetch(`/api/pod/${namespace}/${podName}`, {
           method: 'DELETE',
         });
         const result = await response.json();

@@ -267,11 +267,17 @@ export const NODES_CONFIG = {
     { title: 'Role', dataIndex: 'role', width: '20%', sortable: true },
     { title: 'CPU', dataIndex: 'cpuUsage', width: '10%' },
     { title: 'Memory', dataIndex: 'memoryUsage', width: '10%' },
-    { title: 'Pods', dataIndex: 'podsUsed', width: '10%' },
+    {
+      title: 'Pods',
+      dataIndex: 'podsUsed',
+      width: '10%',
+      render: (value: any, record: any) => `${value}/${record.podsCapacity || 0}`,
+    },
     { title: 'Status', dataIndex: 'status', width: '10%', sortable: true },
     { title: 'Age', dataIndex: 'age', width: '10%' },
   ] as ExtendedColumn[],
   namespaceFilter: false,
+  defaultSort: { field: 'age', order: 'asc' as const },
 };
 
 export const EVENTS_CONFIG = {

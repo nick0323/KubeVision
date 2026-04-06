@@ -4,8 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nick0323/K8sVision/api/middleware"
@@ -14,48 +17,66 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// bcrypt cost 配置
+const (
+	BcryptCost          = 12 // 推荐值 10-14，越高越安全但越慢
+	PasswordHistorySize = 5  // 密码历史记录数量
+)
+
+// PasswordChangeRequest 密码修改请求
 type PasswordChangeRequest struct {
 	OldPassword string `json:"oldPassword" binding:"required"`
 	NewPassword string `json:"newPassword" binding:"required"`
 }
 
+// PasswordGenerateRequest 密码生成请求
 type PasswordGenerateRequest struct {
 	Length int `json:"length,omitempty"`
 }
 
+// PasswordHashRequest 密码哈希请求
 type PasswordHashRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// PasswordValidateRequest 密码验证请求
 type PasswordValidateRequest struct {
 	Password       string `json:"password" binding:"required"`
 	HashedPassword string `json:"hashedPassword" binding:"required"`
 }
 
-type PasswordManager struct{}
+// PasswordManager 密码管理器
+type PasswordManager struct {
+	mu              sync.RWMutex
+	passwordHistory []string // 密码历史记录（哈希值）
+}
 
+// NewPasswordManager 创建密码管理器
 func NewPasswordManager() *PasswordManager {
-	return &PasswordManager{}
+	return &PasswordManager{
+		passwordHistory: make([]string, 0, PasswordHistorySize),
+	}
 }
 
+// HashPassword 密码哈希（使用标准 bcrypt，内置盐）
 func (pm *PasswordManager) HashPassword(password string) (string, error) {
-	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
-		return "", fmt.Errorf("生成盐失败: %w", err)
-	}
-
-	passwordWithSalt := password + base64.URLEncoding.EncodeToString(salt)
-
-	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(passwordWithSalt), bcrypt.DefaultCost)
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), BcryptCost)
 	if err != nil {
-		return "", fmt.Errorf("密码哈希失败: %w", err)
+		return "", fmt.Errorf("密码哈希失败：%w", err)
 	}
-
-	return base64.URLEncoding.EncodeToString(salt) + ":" + string(hashedBytes), nil
+	return string(hashedBytes), nil
 }
 
+// VerifyPassword 验证密码（兼容旧格式和新格式）
 func (pm *PasswordManager) VerifyPassword(password, hashedPassword string) bool {
-	parts := strings.Split(hashedPassword, ":")
+	// 尝试新格式（标准 bcrypt）
+	if !strings.Contains(hashedPassword, ":") {
+		err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+		return err == nil
+	}
+
+	// 旧格式：base64(salt):bcrypt_hash
+	parts := strings.SplitN(hashedPassword, ":", 2)
 	if len(parts) != 2 {
 		return false
 	}
@@ -65,40 +86,42 @@ func (pm *PasswordManager) VerifyPassword(password, hashedPassword string) bool 
 		return false
 	}
 
+	hashPart := parts[1]
 	passwordWithSalt := password + base64.URLEncoding.EncodeToString(salt)
 
-	err = bcrypt.CompareHashAndPassword([]byte(parts[1]), []byte(passwordWithSalt))
+	err = bcrypt.CompareHashAndPassword([]byte(hashPart), []byte(passwordWithSalt))
 	return err == nil
 }
 
+// GeneratePassword 生成随机密码（使用加密安全的随机数）
 func (pm *PasswordManager) GeneratePassword(length int) (string, error) {
 	if length <= 0 {
 		length = model.DefaultPasswordLen
 	}
-
 	if length > model.MaxPasswordLen {
 		length = model.MaxPasswordLen
 	}
 
-	b := make([]byte, length)
 	charsetBytes := []byte(model.PasswordCharset)
+	charsetLen := big.NewInt(int64(len(charsetBytes)))
 
+	b := make([]byte, length)
 	for i := range b {
-		randomIndex := make([]byte, 1)
-		if _, err := rand.Read(randomIndex); err != nil {
-			return "", fmt.Errorf("生成随机字符失败: %w", err)
+		randomIndex, err := rand.Int(rand.Reader, charsetLen)
+		if err != nil {
+			return "", fmt.Errorf("生成随机字符失败：%w", err)
 		}
-		b[i] = charsetBytes[randomIndex[0]%byte(len(charsetBytes))]
+		b[i] = charsetBytes[randomIndex.Int64()]
 	}
 
 	return string(b), nil
 }
 
+// ValidatePasswordStrength 验证密码强度
 func (pm *PasswordManager) ValidatePasswordStrength(password string) (bool, string) {
 	if len(password) < model.MinPasswordLen {
 		return false, fmt.Sprintf("密码长度至少%d位", model.MinPasswordLen)
 	}
-
 	if len(password) > model.MaxPasswordLen {
 		return false, fmt.Sprintf("密码长度不能超过%d位", model.MaxPasswordLen)
 	}
@@ -108,6 +131,7 @@ func (pm *PasswordManager) ValidatePasswordStrength(password string) (bool, stri
 		return false, "密码过于简单，请使用更复杂的密码"
 	}
 
+	// 检查密码复杂度
 	hasUpper := false
 	hasLower := false
 	hasDigit := false
@@ -126,20 +150,67 @@ func (pm *PasswordManager) ValidatePasswordStrength(password string) (bool, stri
 		}
 	}
 
-	if !hasUpper {
-		return false, "密码必须包含大写字母"
+	// 至少满足 3 种字符类型
+	charTypes := 0
+	if hasUpper {
+		charTypes++
 	}
-	if !hasLower {
-		return false, "密码必须包含小写字母"
+	if hasLower {
+		charTypes++
 	}
-	if !hasDigit {
-		return false, "密码必须包含数字"
+	if hasDigit {
+		charTypes++
 	}
-	if !hasSpecial {
-		return false, "密码必须包含特殊字符"
+	if hasSpecial {
+		charTypes++
+	}
+
+	if charTypes < 3 {
+		return false, "密码必须包含至少 3 种字符类型（大写字母、小写字母、数字、特殊字符）"
 	}
 
 	return true, "密码强度符合要求"
+}
+
+// IsPasswordInHistory 检查密码是否在历史记录中
+func (pm *PasswordManager) IsPasswordInHistory(password, hashedPassword string) bool {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+
+	// 检查明文
+	for _, hist := range pm.passwordHistory {
+		if pm.VerifyPassword(password, hist) {
+			return true
+		}
+	}
+
+	// 检查哈希值
+	for _, hist := range pm.passwordHistory {
+		if hist == hashedPassword {
+			return true
+		}
+	}
+
+	return false
+}
+
+// AddToPasswordHistory 添加密码到历史记录
+func (pm *PasswordManager) AddToPasswordHistory(hashedPassword string) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	// 避免重复
+	for _, hist := range pm.passwordHistory {
+		if hist == hashedPassword {
+			return
+		}
+	}
+
+	// 添加到历史记录
+	if len(pm.passwordHistory) >= PasswordHistorySize {
+		pm.passwordHistory = pm.passwordHistory[1:]
+	}
+	pm.passwordHistory = append(pm.passwordHistory, hashedPassword)
 }
 
 // isWeakPassword 检查是否为弱密码
@@ -147,11 +218,8 @@ func (pm *PasswordManager) isWeakPassword(password string) bool {
 	weakPasswords := []string{
 		"123456", "password", "admin", "root", "user", "test",
 		"12345678", "qwerty", "abc123", "password123", "admin123",
-		"123456789", "1234567890", "letmein", "welcome", "monkey",
-		"dragon", "master", "hello", "login", "pass",
-		"1234", "12345", "1234567", "123456789", "1234567890",
-		"qwertyuiop", "asdfghjkl", "zxcvbnm", "password1",
-		"admin1234", "root123", "user123", "test123",
+		"letmein", "welcome", "monkey", "dragon", "master",
+		"hello", "login", "pass", "1234", "12345",
 	}
 
 	passwordLower := strings.ToLower(password)
@@ -208,6 +276,7 @@ func (pm *PasswordManager) hasRepeatedCharacters(password string) bool {
 
 var passwordManager = NewPasswordManager()
 
+// RegisterPasswordAdmin 注册密码管理路由
 func RegisterPasswordAdmin(r *gin.RouterGroup, logger *zap.Logger) {
 	r.POST("/admin/password/change", changePassword(logger))
 	r.POST("/admin/password/generate", generatePassword(logger))
@@ -250,10 +319,10 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 
 		if !oldPasswordMatch {
 			middleware.ResponseError(c, logger, &model.APIError{
-				Code:    http.StatusUnauthorized,
+				Code:    model.CodeUnauthorized,
 				Message: "旧密码错误",
 				Details: "请提供正确的旧密码",
-			}, http.StatusBadRequest)
+			}, http.StatusUnauthorized)
 			return
 		}
 
@@ -267,7 +336,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 生成新密码的哈希值
+		// 检查新密码是否在历史记录中
 		newHashedPassword, err := passwordManager.HashPassword(req.NewPassword)
 		if err != nil {
 			logger.Error("密码哈希失败", zap.Error(err))
@@ -279,50 +348,41 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 获取当前用户
-		username := GetUsernameFromContext(c)
-		if username == "" {
-			username = "admin"
-		}
-
-		// 持久化更新配置中的密码
-		if configStore != nil {
-			// 使用 ConfigMap 存储
-			if err := configStore.UpdatePassword(newHashedPassword, username); err != nil {
-				logger.Error("写入 ConfigMap 失败", zap.Error(err))
-				middleware.ResponseError(c, logger, &model.APIError{
-					Code:    model.CodeInternalServerError,
-					Message: "配置持久化失败",
-					Details: err.Error(),
-				}, http.StatusInternalServerError)
-				return
-			}
-			logger.Info("密码已更新到 ConfigMap", zap.String("username", username))
-		} else if configManager != nil {
-			// 降级使用本地配置文件
-			configManager.Set("auth.password", newHashedPassword)
-			if err := configManager.WriteConfig(); err != nil {
-				logger.Error("写入配置文件失败", zap.Error(err))
-				middleware.ResponseError(c, logger, &model.APIError{
-					Code:    model.CodeInternalServerError,
-					Message: "配置持久化失败",
-				}, http.StatusInternalServerError)
-				return
-			}
-		} else {
+		if passwordManager.IsPasswordInHistory(req.NewPassword, newHashedPassword) {
 			middleware.ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeInternalServerError,
-				Message: "系统配置未初始化",
-			}, http.StatusInternalServerError)
+				Code:    model.CodeValidationFailed,
+				Message: "不能使用最近使用过的密码",
+				Details: "请使用新的密码",
+			}, http.StatusBadRequest)
 			return
 		}
 
-		// 记录审计日志（不暴露敏感信息）
+		// 获取当前用户
 		currentUser := GetUsernameFromContext(c)
 		if currentUser == "" {
 			currentUser = "admin"
 		}
-		logger.Info("密码修改成功", zap.String("username", currentUser))
+
+		// 持久化更新配置中的密码
+		configManager.Set("auth.password", newHashedPassword)
+		if err := configManager.WriteConfig(); err != nil {
+			logger.Error("写入配置文件失败", zap.Error(err))
+			middleware.ResponseError(c, logger, &model.APIError{
+				Code:    model.CodeInternalServerError,
+				Message: "配置持久化失败",
+			}, http.StatusInternalServerError)
+			return
+		}
+
+		// 添加到密码历史记录
+		passwordManager.AddToPasswordHistory(newHashedPassword)
+
+		// 记录审计日志（不暴露敏感信息）
+		logger.Info("密码修改成功",
+			zap.String("username", currentUser),
+			zap.String("clientIP", c.ClientIP()),
+			zap.Time("timestamp", time.Now()),
+		)
 
 		middleware.ResponseSuccess(c, gin.H{
 			"message": "密码修改成功",
@@ -336,7 +396,7 @@ func generatePassword(logger *zap.Logger) gin.HandlerFunc {
 		var req PasswordGenerateRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			// 使用默认长度
-			req.Length = 12
+			req.Length = model.DefaultPasswordLen
 		}
 
 		password, err := passwordManager.GeneratePassword(req.Length)
@@ -352,10 +412,12 @@ func generatePassword(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 默认不返回明文密码，仅返回长度与哈希；如需明文可通过前端受控开关另行支持
+		// 返回明文密码和哈希值（生成场景特殊处理）
 		middleware.ResponseSuccess(c, gin.H{
+			"password":       password,
 			"hashedPassword": hashedPassword,
 			"length":         len(password),
+			"warning":        "请安全保存明文密码，系统将不会再次显示",
 		}, "密码生成成功", nil)
 	}
 }
@@ -381,6 +443,7 @@ func hashPassword(logger *zap.Logger) gin.HandlerFunc {
 
 		middleware.ResponseSuccess(c, gin.H{
 			"hashedPassword": hashedPassword,
+			"cost":           BcryptCost,
 		}, "密码哈希成功", nil)
 	}
 }
@@ -400,14 +463,14 @@ func validatePassword(logger *zap.Logger) gin.HandlerFunc {
 
 		isValid := passwordManager.VerifyPassword(req.Password, req.HashedPassword)
 
+		message := "密码验证失败"
+		if isValid {
+			message = "密码验证通过"
+		}
+
 		middleware.ResponseSuccess(c, gin.H{
-			"valid": isValid,
-			"message": func() string {
-				if isValid {
-					return "密码验证通过"
-				}
-				return "密码验证失败"
-			}(),
+			"valid":   isValid,
+			"message": message,
 		}, "验证完成", nil)
 	}
 }

@@ -46,7 +46,8 @@ export function usePodDetail(options: UsePodDetailOptions): UsePodDetailReturn {
     setError(null);
 
     try {
-      const response = await authFetch(`/api/pods/${namespace}/${name}`, {
+      // 后端只支持单数形式：/api/pod/ns/name
+      const response = await authFetch(`/api/pod/${namespace}/${name}`, {
         signal: controller.signal,
       });
       const result = await response.json();

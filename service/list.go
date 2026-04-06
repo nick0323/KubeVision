@@ -2,23 +2,70 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/nick0323/K8sVision/model"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
+// ListOptions K8s 列表选项
+type ListOptions struct {
+	Namespace     string
+	LabelSelector string
+	FieldSelector string
+	Limit         int64
+}
+
+// Apply 应用列表选项到 metav1.ListOptions
+func (o *ListOptions) Apply() metav1.ListOptions {
+	opts := metav1.ListOptions{}
+	if o.LabelSelector != "" {
+		opts.LabelSelector = o.LabelSelector
+	}
+	if o.FieldSelector != "" {
+		opts.FieldSelector = o.FieldSelector
+	}
+	if o.Limit > 0 {
+		opts.Limit = o.Limit
+	}
+	return opts
+}
+
+// DefaultListOptions 默认列表选项
+func DefaultListOptions() *ListOptions {
+	return &ListOptions{
+		Limit: 1000, // 默认分页大小
+	}
+}
+
 // ==================== Pod 列表 ====================
 
+// ListPods 获取 Pod 列表
+func ListPods(ctx context.Context, clientset *kubernetes.Clientset, podMetricsMap map[string]model.PodMetrics, namespace string) ([]model.Pod, error) {
+	pods, _, err := ListPodsWithRaw(ctx, clientset, podMetricsMap, namespace)
+	return pods, err
+}
+
 // ListPodsWithRaw 获取 Pod 列表（包含原始 Pod 列表和指标数据）
-func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, podMetricsMap model.PodMetricsMap, namespace string) ([]model.PodStatus, *v1.PodList, error) {
+// noLimit: 如果为 true，则不限制返回数量（用于集群概览等需要完整统计的场景）
+func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, podMetricsMap map[string]model.PodMetrics, namespace string, noLimit ...bool) ([]model.Pod, *v1.PodList, error) {
+	opts := DefaultListOptions()
+	opts.Namespace = namespace
+
+	// 如果指定了 noLimit 参数且为 true，则移除数量限制
+	if len(noLimit) > 0 && noLimit[0] {
+		opts.Limit = 0
+	}
+
 	pods, err := ListResourcesWithNamespace(ctx, namespace,
 		func() (*v1.PodList, error) {
-			return clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+			return clientset.CoreV1().Pods("").List(ctx, opts.Apply())
 		},
 		func(ns string) (*v1.PodList, error) {
-			return clientset.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
+			return clientset.CoreV1().Pods(ns).List(ctx, opts.Apply())
 		},
 	)
 	if err != nil {
@@ -33,8 +80,9 @@ func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, podMe
 // ==================== 工作负载列表 ====================
 
 // ListDeployments 获取 Deployment 列表
-func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.DeploymentStatus, error) {
-	depList, err := clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.Deployment, error) {
+	opts := DefaultListOptions()
+	depList, err := clientset.AppsV1().Deployments(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +93,9 @@ func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, names
 }
 
 // ListStatefulSets 获取 StatefulSet 列表
-func ListStatefulSets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.StatefulSetStatus, error) {
-	stsList, err := clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
+func ListStatefulSets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.StatefulSet, error) {
+	opts := DefaultListOptions()
+	stsList, err := clientset.AppsV1().StatefulSets(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +106,9 @@ func ListStatefulSets(ctx context.Context, clientset *kubernetes.Clientset, name
 }
 
 // ListDaemonSets 获取 DaemonSet 列表
-func ListDaemonSets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.DaemonSetStatus, error) {
-	dsList, err := clientset.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
+func ListDaemonSets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.DaemonSet, error) {
+	opts := DefaultListOptions()
+	dsList, err := clientset.AppsV1().DaemonSets(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +119,7 @@ func ListDaemonSets(ctx context.Context, clientset *kubernetes.Clientset, namesp
 }
 
 // ListJobs 获取 Job 列表
-func ListJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.JobStatus, error) {
+func ListJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.Job, error) {
 	jobs, err := clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -81,7 +131,7 @@ func ListJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace st
 }
 
 // ListCronJobs 获取 CronJob 列表
-func ListCronJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.CronJobStatus, error) {
+func ListCronJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.CronJob, error) {
 	cronjobs, err := clientset.BatchV1().CronJobs(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -95,8 +145,9 @@ func ListCronJobs(ctx context.Context, clientset *kubernetes.Clientset, namespac
 // ==================== 服务和网络列表 ====================
 
 // ListServices 获取 Service 列表
-func ListServices(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.ServiceStatus, error) {
-	svcs, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+func ListServices(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.Service, error) {
+	opts := DefaultListOptions()
+	svcs, err := clientset.CoreV1().Services(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
@@ -107,8 +158,9 @@ func ListServices(ctx context.Context, clientset *kubernetes.Clientset, namespac
 }
 
 // ListIngresses 获取 Ingress 列表
-func ListIngresses(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.IngressStatus, error) {
-	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
+func ListIngresses(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.Ingress, error) {
+	opts := DefaultListOptions()
+	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
@@ -121,13 +173,14 @@ func ListIngresses(ctx context.Context, clientset *kubernetes.Clientset, namespa
 // ==================== 存储列表 ====================
 
 // ListPVCs 获取 PVC 列表
-func ListPVCs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.PVCStatus, error) {
+func ListPVCs(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.PVC, error) {
+	opts := DefaultListOptions()
 	pvcList, err := ListResourcesWithNamespace(ctx, namespace,
 		func() (*v1.PersistentVolumeClaimList, error) {
-			return clientset.CoreV1().PersistentVolumeClaims("").List(ctx, metav1.ListOptions{})
+			return clientset.CoreV1().PersistentVolumeClaims("").List(ctx, opts.Apply())
 		},
 		func(ns string) (*v1.PersistentVolumeClaimList, error) {
-			return clientset.CoreV1().PersistentVolumeClaims(ns).List(ctx, metav1.ListOptions{})
+			return clientset.CoreV1().PersistentVolumeClaims(ns).List(ctx, opts.Apply())
 		},
 	)
 	if err != nil {
@@ -140,8 +193,9 @@ func ListPVCs(ctx context.Context, clientset *kubernetes.Clientset, namespace st
 }
 
 // ListPVs 获取 PV 列表
-func ListPVs(ctx context.Context, clientset *kubernetes.Clientset) ([]model.PVStatus, error) {
-	pvList, err := clientset.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
+func ListPVs(ctx context.Context, clientset *kubernetes.Clientset) ([]model.PV, error) {
+	opts := DefaultListOptions()
+	pvList, err := clientset.CoreV1().PersistentVolumes().List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +206,9 @@ func ListPVs(ctx context.Context, clientset *kubernetes.Clientset) ([]model.PVSt
 }
 
 // ListStorageClasses 获取 StorageClass 列表
-func ListStorageClasses(ctx context.Context, clientset *kubernetes.Clientset) ([]model.StorageClassStatus, error) {
-	scList, err := clientset.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
+func ListStorageClasses(ctx context.Context, clientset *kubernetes.Clientset) ([]model.StorageClass, error) {
+	opts := DefaultListOptions()
+	scList, err := clientset.StorageV1().StorageClasses().List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
@@ -166,13 +221,14 @@ func ListStorageClasses(ctx context.Context, clientset *kubernetes.Clientset) ([
 // ==================== 配置列表 ====================
 
 // ListConfigMaps 获取 ConfigMap 列表
-func ListConfigMaps(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.ConfigMapStatus, error) {
+func ListConfigMaps(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.ConfigMap, error) {
+	opts := DefaultListOptions()
 	cmList, err := ListResourcesWithNamespace(ctx, namespace,
 		func() (*v1.ConfigMapList, error) {
-			return clientset.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{})
+			return clientset.CoreV1().ConfigMaps("").List(ctx, opts.Apply())
 		},
 		func(ns string) (*v1.ConfigMapList, error) {
-			return clientset.CoreV1().ConfigMaps(ns).List(ctx, metav1.ListOptions{})
+			return clientset.CoreV1().ConfigMaps(ns).List(ctx, opts.Apply())
 		},
 	)
 	if err != nil {
@@ -185,17 +241,17 @@ func ListConfigMaps(ctx context.Context, clientset *kubernetes.Clientset, namesp
 }
 
 // ListSecrets 获取 Secret 列表
-func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.SecretStatus, error) {
+func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.Secret, error) {
+	opts := DefaultListOptions()
+	// 优化：指定命名空间时只获取该命名空间的 Secrets
 	var secretList *v1.SecretList
 	var err error
 
-	// 优化：指定命名空间时只获取该命名空间的 Secrets
-	// 避免全量获取导致性能问题
 	if namespace != "" {
-		secretList, err = clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+		secretList, err = clientset.CoreV1().Secrets(namespace).List(ctx, opts.Apply())
 	} else {
 		// 全量获取（所有命名空间）- 性能开销较大
-		secretList, err = clientset.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
+		secretList, err = clientset.CoreV1().Secrets("").List(ctx, opts.Apply())
 	}
 
 	if err != nil {
@@ -210,10 +266,20 @@ func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace
 // ==================== 集群资源列表 ====================
 
 // ListNodes 获取 Node 列表
-func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.PodList, nodeMetricsMap model.NodeMetricsMap) ([]model.NodeStatus, error) {
-	nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.PodList, nodeMetricsMap map[string]model.NodeMetrics) ([]model.Node, error) {
+	opts := DefaultListOptions()
+	nodes, err := clientset.CoreV1().Nodes().List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
+	}
+
+	// 如果未提供 Pods 列表，尝试获取（用于计算 PodsUsed）
+	if pods == nil {
+		pods, err = clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+		if err != nil {
+			// 获取失败不影响节点列表返回
+			pods = nil
+		}
 	}
 
 	// 使用通用映射函数
@@ -222,8 +288,9 @@ func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.Po
 }
 
 // ListNamespaces 获取 Namespace 列表
-func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]model.NamespaceDetail, error) {
-	nsList, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]model.Namespace, error) {
+	opts := DefaultListOptions()
+	nsList, err := clientset.CoreV1().Namespaces().List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
@@ -234,13 +301,43 @@ func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]mod
 }
 
 // ListEvents 获取 Event 列表
-func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.EventStatus, error) {
-	events, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.Event, error) {
+	opts := DefaultListOptions()
+	// 注意：Kubernetes fieldSelector 不支持 metadata.creationTimestamp 范围查询
+	// 所以先获取所有事件，然后在内存中过滤最近 1 小时的事件
+	events, err := clientset.CoreV1().Events(namespace).List(ctx, opts.Apply())
+	if err != nil {
+		return nil, err
+	}
+
+	// 在内存中过滤最近 1 小时的事件
+	now := time.Now()
+	oneHourAgo := now.Add(-1 * time.Hour)
+	filteredEvents := make([]corev1.Event, 0, len(events.Items))
+	for _, event := range events.Items {
+		eventTime := event.LastTimestamp.Time
+		if eventTime.IsZero() {
+			eventTime = event.EventTime.Time
+		}
+		if !eventTime.IsZero() && eventTime.After(oneHourAgo) {
+			filteredEvents = append(filteredEvents, event)
+		}
+	}
+
+	// 使用通用映射函数
+	result := MapEvents(filteredEvents)
+	return result, nil
+}
+
+// ListEndpoints 获取 Endpoints 列表
+func ListEndpoints(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.Endpoints, error) {
+	opts := DefaultListOptions()
+	endpoints, err := clientset.CoreV1().Endpoints(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
 
 	// 使用通用映射函数
-	result := MapEvents(events.Items)
+	result := MapEndpoints(endpoints.Items)
 	return result, nil
 }

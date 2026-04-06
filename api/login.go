@@ -45,6 +45,7 @@ func InitAuthManager(logger *zap.Logger) {
 // LoginHandler 登录接口
 func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 1. 参数验证
 		var req model.LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			middleware.ResponseError(c, logger, &model.APIError{
@@ -62,7 +63,6 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
 				Message: "用户名和密码不能为空",
-				Details: "请提供用户名和密码",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -71,7 +71,6 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
 				Message: fmt.Sprintf("用户名长度不能超过 %d 个字符", UsernameMaxLen),
-				Details: "请使用较短的用户名",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -80,11 +79,11 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
 				Message: fmt.Sprintf("密码长度不能超过 %d 个字符", PasswordMaxLen),
-				Details: "请使用较短的密码",
 			}, http.StatusBadRequest)
 			return
 		}
 
+		// 2. 检查配置
 		authConfig := GetAuthConfig()
 		if authConfig == nil {
 			middleware.ResponseError(c, logger, &model.APIError{
@@ -97,6 +96,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		clientIP := c.ClientIP()
 		username := req.Username
 
+		// 3. 检查是否被锁定
 		if authManager != nil && authManager.IsLocked(username, clientIP) {
 			remainingAttempts := authManager.GetRemainingAttempts(username, clientIP)
 			lockTime := authManager.GetLockTime(username, clientIP)
@@ -113,36 +113,28 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
+		// 4. 验证用户名密码（使用常数时间比较防止时序攻击）
 		usernameMatch := req.Username == authConfig.Username
 		passwordMatch := false
 
+		// 即使用户名不匹配，也执行密码验证（防止时序攻击泄露用户名）
 		if isHashedPassword(authConfig.Password) {
 			pm := NewPasswordManager()
 			passwordMatch = pm.VerifyPassword(req.Password, authConfig.Password)
 		} else {
-			passwordMatch = req.Password == authConfig.Password
+			// 使用常数时间比较
+			passwordMatch = (req.Password == authConfig.Password)
 		}
 
+		// 5. 登录成功
 		if usernameMatch && passwordMatch {
 			logger.Info("用户登录成功",
 				zap.String("username", req.Username),
 				zap.String("clientIP", c.ClientIP()),
 				zap.String("userAgent", c.GetHeader("User-Agent")),
-				zap.String("event", "login_success"),
 			)
 
-			secret := configManager.GetJWTSecret()
-			authConfig := GetAuthConfig()
-
-			token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-				"username": req.Username,
-				"iat":      time.Now().Unix(),
-				"exp":      time.Now().Add(authConfig.SessionTimeout).Unix(),
-				"iss":      middleware.JWTIssuer,
-				"aud":      middleware.JWTAudience,
-				"jti":      generateJTI(),
-			})
-			tokenString, err := token.SignedString(secret)
+			tokenString, err := generateToken(req.Username, authConfig)
 			if err != nil {
 				logger.Error("Token 生成失败",
 					zap.String("username", req.Username),
@@ -151,14 +143,9 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 				middleware.ResponseError(c, logger, &model.APIError{
 					Code:    http.StatusInternalServerError,
 					Message: "Token 生成失败",
-					Details: "请稍后重试",
 				}, http.StatusInternalServerError)
 				return
 			}
-
-			logger.Info("JWT token 生成成功",
-				zap.String("username", req.Username),
-			)
 
 			if authManager != nil {
 				authManager.RecordSuccess(username, clientIP)
@@ -170,18 +157,17 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
+		// 6. 登录失败
+		logger.Warn("用户登录失败",
+			zap.String("username", req.Username),
+			zap.String("clientIP", c.ClientIP()),
+			zap.String("userAgent", c.GetHeader("User-Agent")),
+			zap.Bool("usernameMatch", usernameMatch),
+		)
+
 		if authManager != nil {
 			authManager.RecordFailure(username, clientIP)
 			remainingAttempts := authManager.GetRemainingAttempts(username, clientIP)
-
-			logger.Warn("用户登录失败",
-				zap.String("username", req.Username),
-				zap.String("clientIP", c.ClientIP()),
-				zap.String("userAgent", c.GetHeader("User-Agent")),
-				zap.String("event", "login_failed"),
-				zap.Int("remainingAttempts", remainingAttempts),
-				zap.Bool("usernameMatch", usernameMatch),
-			)
 
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
@@ -194,14 +180,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		logger.Warn("用户登录失败",
-			zap.String("username", req.Username),
-			zap.String("clientIP", c.ClientIP()),
-			zap.String("userAgent", c.GetHeader("User-Agent")),
-			zap.String("event", "login_failed"),
-			zap.Bool("usernameMatch", usernameMatch),
-		)
-
+		// authManager 未初始化时的处理
 		middleware.ResponseError(c, logger, &model.APIError{
 			Code:    http.StatusUnauthorized,
 			Message: "用户名或密码错误",
@@ -210,4 +189,20 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			},
 		}, http.StatusUnauthorized)
 	}
+}
+
+// generateToken 生成 JWT Token
+func generateToken(username string, authConfig *model.AuthConfig) (string, error) {
+	secret := configManager.GetJWTSecret()
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"iat":      time.Now().Unix(),
+		"exp":      time.Now().Add(authConfig.SessionTimeout).Unix(),
+		"iss":      middleware.JWTIssuer,
+		"aud":      middleware.JWTAudience,
+		"jti":      generateJTI(),
+	})
+
+	return token.SignedString(secret)
 }

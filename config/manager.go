@@ -1,9 +1,9 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Manager 配置管理器
 type Manager struct {
 	config     *model.Config
 	viper      *viper.Viper
@@ -22,16 +23,52 @@ type Manager struct {
 	mutex      sync.RWMutex
 	watcher    *fsnotify.Watcher
 	configFile string
+	ctx        context.Context
+	cancel     context.CancelFunc
+	onChangeCb []func(*model.Config)
+	onChangeMu sync.RWMutex
 }
 
+// OnChangeCallback 配置变更回调函数类型
+type OnChangeCallback func(*model.Config)
+
+// ManagerConfig 配置管理器配置
+type ManagerConfig struct {
+	ConfigFile string
+	Logger     *zap.Logger
+	OnChange   OnChangeCallback // 可选：配置变更回调
+}
+
+// NewManager 创建配置管理器
 func NewManager(logger *zap.Logger) *Manager {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Manager{
 		config: model.DefaultConfig(),
 		viper:  viper.New(),
 		logger: logger,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
+// NewManagerWithConfig 使用配置创建配置管理器
+func NewManagerWithConfig(cfg ManagerConfig) *Manager {
+	ctx, cancel := context.WithCancel(context.Background())
+	m := &Manager{
+		config:     model.DefaultConfig(),
+		viper:      viper.New(),
+		logger:     cfg.Logger,
+		configFile: cfg.ConfigFile,
+		ctx:        ctx,
+		cancel:     cancel,
+	}
+	if cfg.OnChange != nil {
+		m.onChangeCb = append(m.onChangeCb, cfg.OnChange)
+	}
+	return m
+}
+
+// Load 加载配置文件
 func (m *Manager) Load(configFile string) error {
 	m.configFile = configFile
 
@@ -55,15 +92,15 @@ func (m *Manager) Load(configFile string) error {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			m.logger.Warn("配置文件未找到，使用默认配置", zap.String("configFile", configFile))
 		} else {
-			return fmt.Errorf("读取配置文件失败: %w", err)
+			return fmt.Errorf("读取配置文件失败：%w", err)
 		}
 	} else {
 		m.logger.Info("配置文件加载成功", zap.String("configFile", m.viper.ConfigFileUsed()))
 	}
 
-	// 解析配置
+	// 解析配置（使用自定义解码钩子）
 	if err := m.viper.Unmarshal(m.config); err != nil {
-		return fmt.Errorf("解析配置失败: %w", err)
+		return fmt.Errorf("解析配置失败：%w", err)
 	}
 
 	// 应用环境变量覆盖
@@ -71,7 +108,7 @@ func (m *Manager) Load(configFile string) error {
 
 	// 验证配置
 	if err := m.config.Validate(); err != nil {
-		return fmt.Errorf("配置验证失败: %w", err)
+		return fmt.Errorf("配置验证失败：%w", err)
 	}
 
 	m.logger.Info("配置加载完成",
@@ -82,75 +119,59 @@ func (m *Manager) Load(configFile string) error {
 	return nil
 }
 
-// Watch 监听配置文件变化
+// Watch 监听配置文件变化（使用 viper 内置功能）
 func (m *Manager) Watch() error {
 	if m.configFile == "" {
 		return nil
 	}
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return fmt.Errorf("创建文件监听器失败: %w", err)
-	}
-	m.watcher = watcher
-
-	// 监听配置文件目录
-	configDir := filepath.Dir(m.configFile)
-	if err := watcher.Add(configDir); err != nil {
-		return fmt.Errorf("监听配置目录失败: %w", err)
-	}
-
-	go func() {
-		// 简单去抖，避免同一次保存触发多次重载
-		var lastReload time.Time
-		const debounce = 500 * time.Millisecond
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					if filepath.Base(event.Name) == filepath.Base(m.configFile) {
-						if time.Since(lastReload) < debounce {
-							// 忽略短时间内的重复事件
-							continue
-						}
-						lastReload = time.Now()
-						m.logger.Info("检测到配置文件变化，重新加载配置", zap.String("file", event.Name))
-						if err := m.reload(); err != nil {
-							m.logger.Error("重新加载配置失败", zap.Error(err))
-						}
-					}
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				m.logger.Error("配置文件监听错误", zap.Error(err))
-			}
+	// 使用 viper 内置的配置监听
+	m.viper.WatchConfig()
+	m.viper.OnConfigChange(func(e fsnotify.Event) {
+		m.logger.Info("检测到配置文件变化，重新加载配置", zap.String("file", e.Name))
+		if err := m.reload(); err != nil {
+			m.logger.Error("重新加载配置失败", zap.Error(err))
+		} else {
+			m.notifyOnChange()
 		}
-	}()
+	})
 
 	m.logger.Info("配置文件监听已启动", zap.String("configFile", m.configFile))
 	return nil
 }
 
+// notifyOnChange 通知配置变更回调
+func (m *Manager) notifyOnChange() {
+	m.onChangeMu.RLock()
+	defer m.onChangeMu.RUnlock()
+
+	config := m.GetConfig()
+	for _, cb := range m.onChangeCb {
+		go cb(config)
+	}
+}
+
+// RegisterOnChange 注册配置变更回调
+func (m *Manager) RegisterOnChange(cb OnChangeCallback) {
+	m.onChangeMu.Lock()
+	defer m.onChangeMu.Unlock()
+	m.onChangeCb = append(m.onChangeCb, cb)
+}
+
 // Close 关闭配置管理器
 func (m *Manager) Close() error {
+	m.cancel()
 	if m.watcher != nil {
 		return m.watcher.Close()
 	}
 	return nil
 }
 
-// GetConfig 获取配置
+// GetConfig 获取配置（深拷贝）
 func (m *Manager) GetConfig() *model.Config {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	// 返回副本以防止外部修改
-	configCopy := *m.config
-	return &configCopy
+	return m.config.DeepCopy()
 }
 
 // reload 重新加载配置
@@ -160,12 +181,12 @@ func (m *Manager) reload() error {
 
 	// 重新读取配置文件
 	if err := m.viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("重新读取配置文件失败: %w", err)
+		return fmt.Errorf("重新读取配置文件失败：%w", err)
 	}
 
 	// 解析配置
 	if err := m.viper.Unmarshal(m.config); err != nil {
-		return fmt.Errorf("重新解析配置失败: %w", err)
+		return fmt.Errorf("重新解析配置失败：%w", err)
 	}
 
 	// 应用环境变量覆盖
@@ -173,7 +194,7 @@ func (m *Manager) reload() error {
 
 	// 验证配置
 	if err := m.config.Validate(); err != nil {
-		return fmt.Errorf("重新验证配置失败: %w", err)
+		return fmt.Errorf("重新验证配置失败：%w", err)
 	}
 
 	m.logger.Info("配置重新加载完成")
@@ -190,7 +211,7 @@ func (m *Manager) applyEnvironmentOverrides() {
 		m.config.Server.Host = host
 	}
 
-	// Kubernetes配置
+	// Kubernetes 配置
 	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
 		m.config.Kubernetes.Kubeconfig = kubeconfig
 	}
@@ -201,7 +222,7 @@ func (m *Manager) applyEnvironmentOverrides() {
 		m.config.Kubernetes.Token = token
 	}
 
-	// JWT配置
+	// JWT 配置
 	if secret := os.Getenv("K8SVISION_JWT_SECRET"); secret != "" {
 		m.config.JWT.Secret = secret
 	}
@@ -230,7 +251,7 @@ func (m *Manager) applyEnvironmentOverrides() {
 	}
 }
 
-// parseInt 解析整数 - 使用标准库strconv.Atoi提供更好的性能和错误处理
+// parseInt 解析整数
 func parseInt(s string) (int, error) {
 	return strconv.Atoi(s)
 }
@@ -311,9 +332,10 @@ func (m *Manager) createBackup(path string) error {
 // SetAndWrite 原子更新：先设置键值，再写入配置（带备份）
 func (m *Manager) SetAndWrite(key string, value interface{}) error {
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	m.viper.Set(key, value)
-	m.mutex.Unlock()
-	return m.WriteConfigWithBackup()
+	return m.viper.WriteConfig()
 }
 
 // GetConfigFile 返回当前配置文件路径
@@ -326,7 +348,7 @@ func (m *Manager) GetConfigFile() string {
 	return m.viper.ConfigFileUsed()
 }
 
-// GetJWTSecret 获取JWT密钥
+// GetJWTSecret 获取 JWT 密钥
 func (m *Manager) GetJWTSecret() []byte {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
@@ -340,7 +362,7 @@ func (m *Manager) GetAuthConfig() *model.AuthConfig {
 	return &m.config.Auth
 }
 
-// UpdateLogger 更新logger实例（避免重复创建配置管理器）
+// UpdateLogger 更新 logger 实例
 func (m *Manager) UpdateLogger(newLogger *zap.Logger) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()

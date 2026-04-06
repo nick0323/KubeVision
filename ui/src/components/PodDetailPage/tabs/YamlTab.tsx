@@ -82,7 +82,8 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
     setError(null);
 
     try {
-      const response = await authFetch(`/api/pods/${namespace}/${name}/yaml`);
+      // 后端只支持单数形式：/api/pod/ns/name/yaml
+      const response = await authFetch(`/api/pod/${namespace}/${name}/yaml`);
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
@@ -162,11 +163,20 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
     setLoading(true);
     try {
       const parsed = jsyaml.load(yamlContent);
-      const response = await authFetch(`/api/pods/${namespace}/${name}/yaml`, {
+      // 后端只支持单数形式：/api/pod/ns/name/yaml
+      const response = await authFetch(`/api/pod/${namespace}/${name}/yaml`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ yaml: parsed }),
       });
+      
+      // 检查响应是否为 JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`服务器返回了非 JSON 响应：${text.substring(0, 100)}`);
+      }
+      
       const result = await response.json();
 
       if (result.code === 0) {
@@ -190,7 +200,8 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod }) => {
     setLoading(true);
     try {
       const parsed = jsyaml.load(yamlContent);
-      const response = await authFetch(`/api/pods/${namespace}/${name}`, {
+      // 后端只支持单数形式：/api/pod/ns/name
+      const response = await authFetch(`/api/pod/${namespace}/${name}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsed),

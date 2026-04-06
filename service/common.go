@@ -113,14 +113,14 @@ func FormatResourceUsage(cpu, mem int64) (cpuStr, memStr string) {
 	return cpuStr, memStr
 }
 
-func FormatPodResourceUsage(podMetricsMap model.PodMetricsMap, namespace, name string) (cpuStr, memStr string) {
+func FormatPodResourceUsage(podMetricsMap map[string]model.PodMetrics, namespace, name string) (cpuStr, memStr string) {
 	cpuStr, memStr = "-", "-"
 	if m, ok := podMetricsMap[namespace+"/"+name]; ok {
 		if m.CPU != "" {
 			cpuStr = m.CPU
 		}
-		if m.Mem != "" {
-			memStr = m.Mem
+		if m.Memory != "" {
+			memStr = m.Memory
 		}
 	}
 	return cpuStr, memStr
@@ -128,7 +128,7 @@ func FormatPodResourceUsage(podMetricsMap model.PodMetricsMap, namespace, name s
 
 func GetResourceStatus(ready, desired int32) string {
 	if ready == desired && desired > 0 {
-		return model.WorkloadHealthy
+		return model.WorkloadAvailable
 	} else if ready > 0 {
 		return model.WorkloadPartial
 	} else if desired == 0 {
@@ -139,7 +139,7 @@ func GetResourceStatus(ready, desired int32) string {
 
 func GetWorkloadStatus(ready, desired int32) string {
 	if ready == desired && desired > 0 {
-		return model.WorkloadHealthy
+		return model.WorkloadAvailable
 	} else if ready > 0 {
 		return model.WorkloadPartial
 	}

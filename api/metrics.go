@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,12 +12,72 @@ import (
 	"go.uber.org/zap"
 )
 
+// ==================== 响应结构体 ====================
+
 // MetricsResponse 指标响应
 type MetricsResponse struct {
 	Timestamp time.Time              `json:"timestamp"`
-	Metrics   map[string]interface{} `json:"metrics"`
-	Summary   map[string]interface{} `json:"summary"`
+	System    SystemMetrics          `json:"system"`
+	Business  map[string]interface{} `json:"business"`
+	Summary   MetricsSummary         `json:"summary"`
 }
+
+// SystemMetrics 系统指标
+type SystemMetrics struct {
+	CPU         CPUUsage        `json:"cpu"`
+	Memory      MemoryUsage     `json:"memory"`
+	Network     NetworkIO       `json:"network"`
+	Connections ConnectionStats `json:"connections"`
+	CollectedAt time.Time       `json:"collected_at"`
+}
+
+// CPUUsage CPU 使用率
+type CPUUsage struct {
+	UsagePercent float64 `json:"usage_percent"`
+	Cores        int     `json:"cores"`
+}
+
+// MemoryUsage 内存使用
+type MemoryUsage struct {
+	UsedMB       float64 `json:"used_mb"`
+	TotalMB      float64 `json:"total_mb"`
+	UsagePercent float64 `json:"usage_percent"`
+}
+
+// NetworkIO 网络 IO
+type NetworkIO struct {
+	BytesIn  int64 `json:"bytes_in"`
+	BytesOut int64 `json:"bytes_out"`
+}
+
+// ConnectionStats 连接统计
+type ConnectionStats struct {
+	Active int `json:"active"`
+	Idle   int `json:"idle"`
+}
+
+// MetricsSummary 指标摘要
+type MetricsSummary struct {
+	TotalCount    int `json:"total_count"`
+	SystemCount   int `json:"system_count"`
+	BusinessCount int `json:"business_count"`
+}
+
+// HealthResponse 健康检查响应
+type HealthResponse struct {
+	Status    HealthStatus `json:"status"`
+	Score     float64      `json:"score"`
+	Timestamp time.Time    `json:"timestamp"`
+}
+
+// HealthStatus 健康状态
+type HealthStatus string
+
+const (
+	HealthStatusHealthy   HealthStatus = "healthy"
+	HealthStatusDegraded  HealthStatus = "degraded"
+	HealthStatusUnhealthy HealthStatus = "unhealthy"
+)
 
 // RegisterMetrics 注册指标相关路由
 func RegisterMetrics(r *gin.RouterGroup, logger *zap.Logger) {
@@ -29,24 +90,36 @@ func RegisterMetrics(r *gin.RouterGroup, logger *zap.Logger) {
 // getMetrics 获取所有指标
 func getMetrics(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		metricsManager := monitor.GetMetricsManager()
+		if metricsManager == nil {
+			logger.Warn("metrics manager is nil")
+			middleware.ResponseError(c, logger, nil, http.StatusInternalServerError)
+			return
+		}
+
 		// 获取系统指标
-		systemMetrics := monitor.GetMetricsManager().GetAllMetrics()
+		rawMetrics := metricsManager.GetAllMetrics()
+		systemMetrics := parseSystemMetrics(rawMetrics, logger)
 
 		// 获取业务指标
 		businessCollector := monitor.GetBusinessMetricsCollector()
-		businessMetrics := businessCollector.CollectMetrics()
+		if businessCollector == nil {
+			logger.Warn("business metrics collector is nil")
+			middleware.ResponseError(c, logger, nil, http.StatusInternalServerError)
+			return
+		}
+
+		businessMetrics := businessCollector.GetMetricsJSON()
 
 		// 构建响应
 		response := MetricsResponse{
 			Timestamp: time.Now(),
-			Metrics: map[string]interface{}{
-				"system":   systemMetrics,
-				"business": businessMetrics,
-			},
-			Summary: map[string]interface{}{
-				"total_metrics":  len(systemMetrics) + len(businessMetrics),
-				"system_count":   len(systemMetrics),
-				"business_count": len(businessMetrics),
+			System:    systemMetrics,
+			Business:  businessMetrics,
+			Summary: MetricsSummary{
+				TotalCount:    1,
+				SystemCount:   1,
+				BusinessCount: len(businessMetrics),
 			},
 		}
 
@@ -58,15 +131,14 @@ func getMetrics(logger *zap.Logger) gin.HandlerFunc {
 func getBusinessMetrics(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		collector := monitor.GetBusinessMetricsCollector()
-		metrics := collector.CollectMetrics()
-
-		// 按类型分组指标
-		groupedMetrics := make(map[string][]monitor.BusinessMetric)
-		for _, metric := range metrics {
-			groupedMetrics[metric.MetricType] = append(groupedMetrics[metric.MetricType], metric)
+		if collector == nil {
+			logger.Warn("business metrics collector is nil")
+			middleware.ResponseError(c, logger, nil, http.StatusInternalServerError)
+			return
 		}
 
-		middleware.ResponseSuccess(c, groupedMetrics, "业务指标获取成功", nil)
+		businessMetrics := collector.GetMetricsJSON()
+		middleware.ResponseSuccess(c, businessMetrics, "业务指标获取成功", nil)
 	}
 }
 
@@ -74,14 +146,17 @@ func getBusinessMetrics(logger *zap.Logger) gin.HandlerFunc {
 func getSystemMetrics(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		metricsManager := monitor.GetMetricsManager()
-		systemMetrics := metricsManager.GetAllMetrics()
+		if metricsManager == nil {
+			logger.Warn("metrics manager is nil")
+			middleware.ResponseError(c, logger, nil, http.StatusInternalServerError)
+			return
+		}
 
-		// 计算系统健康状态
-		healthStatus := calculateSystemHealth(systemMetrics)
+		rawMetrics := metricsManager.GetAllMetrics()
+		systemMetrics := parseSystemMetrics(rawMetrics, logger)
 
 		response := map[string]interface{}{
 			"metrics": systemMetrics,
-			"health":  healthStatus,
 		}
 
 		middleware.ResponseSuccess(c, response, "系统指标获取成功", nil)
@@ -91,29 +166,19 @@ func getSystemMetrics(logger *zap.Logger) gin.HandlerFunc {
 // getHealthMetrics 获取健康指标
 func getHealthMetrics(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		metricsManager := monitor.GetMetricsManager()
-		systemMetrics := metricsManager.GetAllMetrics()
+		// 检查各组件状态
+		status, score := calculateHealth(logger)
 
-		// 计算健康状态
-		healthStatus := calculateSystemHealth(systemMetrics)
-
-		// 获取关键指标
-		keyMetrics := extractKeyMetrics(systemMetrics)
-
-		response := map[string]interface{}{
-			"status":      healthStatus["status"],
-			"score":       healthStatus["score"],
-			"key_metrics": keyMetrics,
-			"timestamp":   time.Now(),
+		response := HealthResponse{
+			Status:    status,
+			Score:     score,
+			Timestamp: time.Now(),
 		}
 
-		// 根据健康状态设置HTTP状态码
-		status := healthStatus["status"].(string)
+		// 根据健康状态设置 HTTP 状态码
 		httpStatus := http.StatusOK
-		if status == "unhealthy" {
+		if status == HealthStatusUnhealthy {
 			httpStatus = http.StatusServiceUnavailable
-		} else if status == "degraded" {
-			httpStatus = http.StatusOK
 		}
 
 		c.JSON(httpStatus, gin.H{
@@ -124,104 +189,73 @@ func getHealthMetrics(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-// calculateSystemHealth 计算系统健康状态
-func calculateSystemHealth(metrics map[string]interface{}) map[string]interface{} {
-	healthScore := 100.0
-	checks := make(map[string]interface{})
+// calculateHealth 计算健康状态
+func calculateHealth(logger *zap.Logger) (HealthStatus, float64) {
+	score := 100.0
 
-	// 检查系统指标是否可用
-	if len(metrics) == 0 {
-		healthScore -= 30
-		checks["metrics"] = "unavailable"
-	} else {
-		checks["metrics"] = "ok"
-	}
-
-	// 检查监控系统
-	if monitor.GetMetricsManager() != nil {
-		checks["monitoring"] = "ok"
-	} else {
-		healthScore -= 20
-		checks["monitoring"] = "degraded"
+	// 检查系统指标
+	metricsManager := monitor.GetMetricsManager()
+	if metricsManager == nil || len(metricsManager.GetAllMetrics()) == 0 {
+		score -= 30
+		logger.Warn("health check: metrics unavailable")
 	}
 
 	// 检查业务指标收集器
-	if monitor.GetBusinessMetricsCollector() != nil {
-		checks["business_metrics"] = "ok"
-	} else {
-		healthScore -= 15
-		checks["business_metrics"] = "degraded"
+	businessCollector := monitor.GetBusinessMetricsCollector()
+	if businessCollector == nil {
+		score -= 20
+		logger.Warn("health check: business metrics degraded")
 	}
 
-	// 确定整体状态
-	var status string
-	if healthScore >= 90 {
-		status = "healthy"
-	} else if healthScore >= 70 {
-		status = "degraded"
+	// 确定状态
+	var status HealthStatus
+	if score >= 90 {
+		status = HealthStatusHealthy
+	} else if score >= 70 {
+		status = HealthStatusDegraded
 	} else {
-		status = "unhealthy"
+		status = HealthStatusUnhealthy
 	}
 
-	return map[string]interface{}{
-		"status": status,
-		"score":  healthScore,
-		"checks": checks,
-	}
+	logger.Info("health check completed",
+		zap.String("status", string(status)),
+		zap.Float64("score", score),
+	)
+
+	return status, score
 }
 
-// extractKeyMetrics 提取关键指标
-func extractKeyMetrics(metrics map[string]interface{}) map[string]interface{} {
-	keyMetrics := make(map[string]interface{})
+// parseSystemMetrics 解析系统指标
+func parseSystemMetrics(rawMetrics map[string]interface{}, logger *zap.Logger) SystemMetrics {
+	systemMetrics := SystemMetrics{
+		CollectedAt: time.Now(),
+	}
 
-	// 从实际指标中提取关键信息
-	if len(metrics) > 0 {
-		// 尝试提取CPU相关指标
-		if cpu, exists := metrics["cpu"]; exists {
-			keyMetrics["cpu_usage"] = cpu
-		} else {
-			keyMetrics["cpu_usage"] = "N/A"
-		}
+	// 从 runtime 获取系统信息
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
 
-		// 尝试提取内存相关指标
-		if memory, exists := metrics["memory"]; exists {
-			keyMetrics["memory_usage"] = memory
-		} else {
-			keyMetrics["memory_usage"] = "N/A"
-		}
+	// 设置内存指标
+	systemMetrics.Memory.UsedMB = float64(memStats.Alloc) / 1024 / 1024
+	systemMetrics.Memory.TotalMB = float64(memStats.Sys) / 1024 / 1024
+	if memStats.Sys > 0 {
+		systemMetrics.Memory.UsagePercent = float64(memStats.Alloc) / float64(memStats.Sys) * 100
+	}
 
-		// 尝试提取网络相关指标
-		if network, exists := metrics["network"]; exists {
-			keyMetrics["network_io"] = network
-		} else {
-			keyMetrics["network_io"] = map[string]string{
-				"in":  "N/A",
-				"out": "N/A",
-			}
-		}
+	// 设置 CPU 核心数
+	systemMetrics.CPU.Cores = runtime.NumCPU()
 
-		// 尝试提取连接数指标
-		if connections, exists := metrics["connections"]; exists {
-			keyMetrics["active_connections"] = connections
-		} else {
-			keyMetrics["active_connections"] = "N/A"
-		}
-
-		// 添加指标收集时间
-		keyMetrics["collected_at"] = time.Now().Unix()
-		keyMetrics["metrics_count"] = len(metrics)
-	} else {
-		// 没有指标数据时的默认值
-		keyMetrics = map[string]interface{}{
-			"cpu_usage":          "N/A",
-			"memory_usage":       "N/A",
-			"network_io":         map[string]string{"in": "N/A", "out": "N/A"},
-			"active_connections": "N/A",
-			"collected_at":       time.Now().Unix(),
-			"metrics_count":      0,
-			"status":             "no_data",
+	// 从 rawMetrics 中提取其他指标
+	if connections, exists := rawMetrics["currentConnections"]; exists {
+		if active, ok := connections.(float64); ok {
+			systemMetrics.Connections.Active = int(active)
 		}
 	}
 
-	return keyMetrics
+	logger.Debug("system metrics parsed",
+		zap.Float64("memory_used_mb", systemMetrics.Memory.UsedMB),
+		zap.Int("cpu_cores", systemMetrics.CPU.Cores),
+	)
+
+	return systemMetrics
 }

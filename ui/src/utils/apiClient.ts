@@ -119,12 +119,43 @@ export const apiClient = {
   },
 
   /**
-   * 获取资源详情
+   * 获取资源详情（使用单数形式）
+   * 后端只支持单数形式：/api/pod/ns/name, /api/deployment/ns/name
    */
   async getDetail(resourceType: string, namespace: string, name: string): Promise<any> {
-    const endpoint = `/api/${resourceType}/${namespace}/${name}`;
+    // 将复数形式转为单数
+    const singularType = this.toSingular(resourceType);
+    const endpoint = `/api/${singularType}/${namespace}/${name}`;
     const result = await this.request<any>(endpoint);
     return result.data;
+  },
+
+  /**
+   * 删除资源（使用单数形式）
+   * 后端只支持单数形式：/api/pod/ns/name, /api/deployment/ns/name
+   */
+  async deleteResource(resourceType: string, namespace: string, name: string): Promise<any> {
+    // 将复数形式转为单数
+    const singularType = this.toSingular(resourceType);
+    const endpoint = `/api/${singularType}/${namespace}/${name}`;
+    const result = await this.request<any>(endpoint, { method: 'DELETE' });
+    return result.data;
+  },
+
+  /**
+   * 将资源类型转为单数形式
+   */
+  toSingular(resourceType: string): string {
+    const type = resourceType.toLowerCase();
+    // 特殊复数形式处理
+    if (type === 'ingresses') return 'ingress';
+    if (type === 'services') return 'service';
+    if (type === 'configmaps') return 'configmap';
+    if (type === 'secrets') return 'secret';
+    if (type === 'endpoints') return 'endpoints'; // 单复数同形
+    // 一般情况：去掉末尾的 's'
+    if (type.endsWith('s')) return type.slice(0, -1);
+    return type;
   },
 };
 

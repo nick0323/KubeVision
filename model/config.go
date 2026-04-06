@@ -17,8 +17,9 @@ type Config struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port string `mapstructure:"port" json:"port"`
-	Host string `mapstructure:"host" json:"host"`
+	Port          string   `mapstructure:"port" json:"port"`
+	Host          string   `mapstructure:"host" json:"host"`
+	AllowedOrigin []string `mapstructure:"allowedOrigin" json:"allowedOrigin"`
 }
 
 // KubernetesConfig Kubernetes 配置
@@ -31,13 +32,13 @@ type KubernetesConfig struct {
 	CAFile     string        `mapstructure:"caFile" json:"caFile"`
 	CertFile   string        `mapstructure:"certFile" json:"certFile"`
 	KeyFile    string        `mapstructure:"keyFile" json:"keyFile"`
-	Token      string        `mapstructure:"token" json:"token"`
+	Token      string        `mapstructure:"token" json:"-"` // 不输出到 JSON
 	APIServer  string        `mapstructure:"apiServer" json:"apiServer"`
 }
 
 // JWTConfig JWT 配置
 type JWTConfig struct {
-	Secret     string        `mapstructure:"secret" json:"secret"`
+	Secret     string        `mapstructure:"secret" json:"-"` // 不输出到 JSON
 	Expiration time.Duration `mapstructure:"expiration" json:"expiration"`
 }
 
@@ -50,12 +51,12 @@ type LogConfig struct {
 // AuthConfig 认证配置
 type AuthConfig struct {
 	Username        string        `mapstructure:"username" json:"username"`
-	Password        string        `mapstructure:"password" json:"password"`
-	MaxLoginFail    int           `mapstructure:"maxLoginFail" json:"maxLoginFail"`
-	LockDuration    time.Duration `mapstructure:"lockDuration" json:"lockDuration"`
-	SessionTimeout  time.Duration `mapstructure:"sessionTimeout" json:"sessionTimeout"`
-	EnableRateLimit bool          `mapstructure:"enableRateLimit" json:"enableRateLimit"`
-	RateLimit       int           `mapstructure:"rateLimit" json:"rateLimit"`
+	Password        string        `mapstructure:"password" json:"-"` // 不输出到 JSON
+	MaxLoginFail    int           `mapstructure:"maxLoginFail" json:"max_login_fail"`
+	LockDuration    time.Duration `mapstructure:"lockDuration" json:"lock_duration"`
+	SessionTimeout  time.Duration `mapstructure:"sessionTimeout" json:"session_timeout"`
+	EnableRateLimit bool          `mapstructure:"enableRateLimit" json:"enable_rate_limit"`
+	RateLimit       int           `mapstructure:"rateLimit" json:"rate_limit"`
 }
 
 // CacheConfig 缓存配置
@@ -63,16 +64,17 @@ type CacheConfig struct {
 	Enabled         bool          `mapstructure:"enabled" json:"enabled"`
 	Type            string        `mapstructure:"type" json:"type"`
 	TTL             time.Duration `mapstructure:"ttl" json:"ttl"`
-	MaxSize         int           `mapstructure:"maxSize" json:"maxSize"`
-	CleanupInterval time.Duration `mapstructure:"cleanupInterval" json:"cleanupInterval"`
+	MaxSize         int           `mapstructure:"maxSize" json:"max_size"`
+	CleanupInterval time.Duration `mapstructure:"cleanupInterval" json:"cleanup_interval"`
 }
 
 // DefaultConfig 返回默认配置
 func DefaultConfig() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port: "8080",
-			Host: "0.0.0.0",
+			Port:          "8080",
+			Host:          "0.0.0.0",
+			AllowedOrigin: []string{"http://localhost:3000", "http://localhost:8080"},
 		},
 		Kubernetes: KubernetesConfig{
 			Timeout:  30 * time.Second,
@@ -90,7 +92,7 @@ func DefaultConfig() *Config {
 		},
 		Auth: AuthConfig{
 			Username:        "admin",
-			Password:        "admin123!",
+			Password:        "", // 首次启动时应生成或要求设置
 			MaxLoginFail:    5,
 			LockDuration:    10 * time.Minute,
 			SessionTimeout:  24 * time.Hour,
@@ -98,82 +100,143 @@ func DefaultConfig() *Config {
 			RateLimit:       100,
 		},
 		Cache: CacheConfig{
-			Enabled: true,
-			TTL:     5 * time.Minute,
-			MaxSize: 1000,
+			Enabled:         true,
+			Type:            "memory",
+			TTL:             5 * time.Minute,
+			MaxSize:         1000,
+			CleanupInterval: 10 * time.Minute,
 		},
 	}
 }
 
 // Validate 验证配置
 func (c *Config) Validate() error {
+	var errs []error
+
 	// 验证服务器配置
-	if c.Server.Port == "" {
-		return fmt.Errorf("服务器端口不能为空")
-	}
-	if c.Server.Host == "" {
-		return fmt.Errorf("服务器主机不能为空")
+	if err := c.Server.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	// 验证 JWT 配置
-	if c.JWT.Secret == "" {
-		return fmt.Errorf("JWT 密钥不能为空，请设置环境变量 K8SVISION_JWT_SECRET")
-	}
-	if len(c.JWT.Secret) < 16 {
-		return fmt.Errorf("JWT 密钥长度至少 16 位字符，当前长度：%d", len(c.JWT.Secret))
-	}
-	if c.JWT.Expiration <= 0 {
-		return fmt.Errorf("JWT 过期时间必须大于 0")
+	if err := c.JWT.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	// 验证认证配置
-	if c.Auth.Username == "" {
-		return fmt.Errorf("认证用户名不能为空，请设置环境变量 K8SVISION_AUTH_USERNAME")
-	}
-	if c.Auth.Password == "" {
-		return fmt.Errorf("认证密码不能为空，请设置环境变量 K8SVISION_AUTH_PASSWORD")
-	}
-	if c.Auth.MaxLoginFail <= 0 {
-		return fmt.Errorf("最大登录失败次数必须大于 0")
-	}
-	if c.Auth.LockDuration <= 0 {
-		return fmt.Errorf("锁定时间必须大于 0")
+	if err := c.Auth.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	// 验证日志配置
-	switch c.Log.Level {
-	case "debug", "info", "warn", "error":
-	default:
-		return fmt.Errorf("无效的日志级别：%s", c.Log.Level)
-	}
-
-	switch c.Log.Format {
-	case "json", "console":
-	default:
-		return fmt.Errorf("无效的日志格式：%s", c.Log.Format)
+	if err := c.Log.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	// 验证缓存配置
-	if c.Cache.Enabled {
-		if c.Cache.TTL <= 0 {
-			return fmt.Errorf("缓存 TTL 必须大于 0")
-		}
-		if c.Cache.MaxSize <= 0 {
-			return fmt.Errorf("缓存最大大小必须大于 0")
-		}
+	if err := c.Cache.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
 	// 验证 Kubernetes 配置
-	if c.Kubernetes.QPS <= 0 {
-		return fmt.Errorf("Kubernetes QPS 必须大于 0")
-	}
-	if c.Kubernetes.Burst <= 0 {
-		return fmt.Errorf("Kubernetes Burst 必须大于 0")
-	}
-	if c.Kubernetes.Timeout <= 0 {
-		return fmt.Errorf("Kubernetes 超时时间必须大于 0")
+	if err := c.Kubernetes.Validate(); err != nil {
+		errs = append(errs, err)
 	}
 
+	if len(errs) > 0 {
+		return fmt.Errorf("配置验证失败：%d 个错误", len(errs))
+	}
+	return nil
+}
+
+// Validate 验证服务器配置
+func (c *ServerConfig) Validate() error {
+	if c.Port == "" {
+		return fmt.Errorf("服务器端口不能为空")
+	}
+	if c.Host == "" {
+		return fmt.Errorf("服务器主机不能为空")
+	}
+	return nil
+}
+
+// Validate 验证 JWT 配置
+func (c *JWTConfig) Validate() error {
+	if c.Secret == "" {
+		return fmt.Errorf("JWT 密钥不能为空，请设置环境变量 K8SVISION_JWT_SECRET")
+	}
+	if len(c.Secret) < 16 {
+		return fmt.Errorf("JWT 密钥长度至少 16 位字符，当前长度：%d", len(c.Secret))
+	}
+	if c.Expiration <= 0 {
+		return fmt.Errorf("JWT 过期时间必须大于 0")
+	}
+	return nil
+}
+
+// Validate 验证认证配置
+func (c *AuthConfig) Validate() error {
+	if c.Username == "" {
+		return fmt.Errorf("认证用户名不能为空，请设置环境变量 K8SVISION_AUTH_USERNAME")
+	}
+	if c.Password == "" {
+		return fmt.Errorf("认证密码不能为空，请设置环境变量 K8SVISION_AUTH_PASSWORD")
+	}
+	if c.MaxLoginFail <= 0 {
+		return fmt.Errorf("最大登录失败次数必须大于 0")
+	}
+	if c.LockDuration <= 0 {
+		return fmt.Errorf("锁定时间必须大于 0")
+	}
+	return nil
+}
+
+// Validate 验证日志配置
+func (c *LogConfig) Validate() error {
+	validLevels := map[string]bool{
+		"debug": true,
+		"info":  true,
+		"warn":  true,
+		"error": true,
+	}
+	if !validLevels[c.Level] {
+		return fmt.Errorf("无效的日志级别：%s", c.Level)
+	}
+
+	validFormats := map[string]bool{
+		"json":    true,
+		"console": true,
+	}
+	if !validFormats[c.Format] {
+		return fmt.Errorf("无效的日志格式：%s", c.Format)
+	}
+	return nil
+}
+
+// Validate 验证缓存配置
+func (c *CacheConfig) Validate() error {
+	if c.Enabled {
+		if c.TTL <= 0 {
+			return fmt.Errorf("缓存 TTL 必须大于 0")
+		}
+		if c.MaxSize <= 0 {
+			return fmt.Errorf("缓存最大大小必须大于 0")
+		}
+	}
+	return nil
+}
+
+// Validate 验证 Kubernetes 配置
+func (c *KubernetesConfig) Validate() error {
+	if c.QPS <= 0 {
+		return fmt.Errorf("Kubernetes QPS 必须大于 0")
+	}
+	if c.Burst <= 0 {
+		return fmt.Errorf("Kubernetes Burst 必须大于 0")
+	}
+	if c.Timeout <= 0 {
+		return fmt.Errorf("Kubernetes 超时时间必须大于 0")
+	}
 	return nil
 }
 
@@ -185,4 +248,72 @@ func (c *Config) GetServerAddress() string {
 // IsDevelopment 判断是否为开发环境
 func (c *Config) IsDevelopment() bool {
 	return c.Log.Level == "debug"
+}
+
+// DeepCopy 创建配置的深拷贝
+func (c *Config) DeepCopy() *Config {
+	if c == nil {
+		return nil
+	}
+	return &Config{
+		Server:     c.Server.DeepCopy(),
+		Kubernetes: c.Kubernetes.DeepCopy(),
+		JWT:        c.JWT.DeepCopy(),
+		Log:        c.Log,
+		Auth:       c.Auth.DeepCopy(),
+		Cache:      c.Cache.DeepCopy(),
+	}
+}
+
+// DeepCopy 创建服务器配置的深拷贝
+func (c *ServerConfig) DeepCopy() ServerConfig {
+	if c.AllowedOrigin == nil {
+		return *c
+	}
+	allowedOriginCopy := make([]string, len(c.AllowedOrigin))
+	copy(allowedOriginCopy, c.AllowedOrigin)
+	return ServerConfig{
+		Port:          c.Port,
+		Host:          c.Host,
+		AllowedOrigin: allowedOriginCopy,
+	}
+}
+
+// DeepCopy 创建 Kubernetes 配置的深拷贝
+func (c *KubernetesConfig) DeepCopy() KubernetesConfig {
+	return *c
+}
+
+// DeepCopy 创建 JWT 配置的深拷贝
+func (c *JWTConfig) DeepCopy() JWTConfig {
+	return *c
+}
+
+// DeepCopy 创建认证配置的深拷贝
+func (c *AuthConfig) DeepCopy() AuthConfig {
+	return *c
+}
+
+// DeepCopy 创建缓存配置的深拷贝
+func (c *CacheConfig) DeepCopy() CacheConfig {
+	return *c
+}
+
+// SafeString 返回配置的安全字符串表示（不暴露敏感信息）
+func (c *Config) SafeString() string {
+	return fmt.Sprintf("Config{Server:%s Auth:%s Log:%s}",
+		c.GetServerAddress(),
+		c.Auth.Username,
+		c.Log.Level)
+}
+
+// MaskPassword 返回掩码后的密码（用于日志）
+func (c *AuthConfig) MaskPassword() string {
+	if c.Password == "" {
+		return "(empty)"
+	}
+	if len(c.Password) <= 4 {
+		return "****"
+	}
+	return c.Password[:2] + "****" + c.Password[len(c.Password)-2:]
 }

@@ -74,6 +74,9 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
+    // Focus terminal
+    term.focus();
+
     // Handle terminal input
     term.onData(data => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -125,10 +128,12 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     // Clear terminal
     xtermRef.current?.clear();
 
-    // Connect directly to backend WebSocket (port 8080)
+    // Connect to backend WebSocket (port 8080)
+    // WebSocket 连接 - 直接连接后端 8080 端口
     const token = localStorage.getItem('token');
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/ws/exec?namespace=${namespace}&pod=${name}&container=${containerToUse}&command=${shell}&token=${token}`;
+    // 直接连接后端 8080 端口（不使用代理）
+    const wsUrl = `${wsProtocol}//localhost:8080/api/ws/exec?namespace=${namespace}&pod=${name}&container=${containerToUse}&command=${shell}&token=${token}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -137,31 +142,60 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
       setConnected(true);
       setSessionStart(new Date());
       xtermRef.current?.writeln('\r\n\x1b[32mConnected!\x1b[0m\r\n');
+      // Focus terminal after connection
+      xtermRef.current?.focus();
     };
 
     ws.onmessage = event => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.status === 'connected') {
-          xtermRef.current?.writeln(`\x1b[32m${data.message}\x1b[0m`);
-          xtermRef.current?.writeln('');
-        } else if (data.content) {
-          xtermRef.current?.write(data.content);
-        } else if (data.message) {
-          xtermRef.current?.writeln(data.message);
+      // 处理 Blob 数据（后端发送的是 BinaryMessage）
+      if (event.data instanceof Blob) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const text = reader.result;
+          if (typeof text === 'string') {
+            try {
+              const data = JSON.parse(text);
+              if (data.status === 'connected') {
+                xtermRef.current?.writeln(`\x1b[32m${data.message}\x1b[0m`);
+                xtermRef.current?.writeln('');
+              } else if (data.content) {
+                xtermRef.current?.write(data.content);
+              } else if (data.message) {
+                xtermRef.current?.writeln(data.message);
+              }
+            } catch {
+              // Plain text
+              xtermRef.current?.write(text);
+            }
+          }
+        };
+        reader.readAsText(event.data);
+      } else {
+        // 普通文本消息
+        try {
+          const data = JSON.parse(event.data);
+          if (data.status === 'connected') {
+            xtermRef.current?.writeln(`\x1b[32m${data.message}\x1b[0m`);
+            xtermRef.current?.writeln('');
+          } else if (data.content) {
+            xtermRef.current?.write(data.content);
+          } else if (data.message) {
+            xtermRef.current?.writeln(data.message);
+          }
+        } catch {
+          xtermRef.current?.write(event.data);
         }
-      } catch {
-        // Plain text
-        xtermRef.current?.write(event.data);
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = error => {
+      console.error('[Terminal] WebSocket error:', error);
       setConnected(false);
-      xtermRef.current?.writeln('\r\n\x1b[31mConnection failed\x1b[0m\r\n');
+      xtermRef.current?.writeln('\r\n\x1b[31mConnection error\x1b[0m\r\n');
     };
 
-    ws.onclose = () => {
+    ws.onclose = event => {
+      console.log('[Terminal] WebSocket closed:', event.code, event.reason);
       setConnected(false);
       setSessionStart(null);
       xtermRef.current?.writeln('\r\n\x1b[33mDisconnected\x1b[0m\r\n');

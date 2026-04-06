@@ -398,8 +398,15 @@ export default function App() {
         {/* 列表页面 */}
         <Route path="/" element={<ListPage />} />
 
+        {/* 资源详情页（单数形式） */}
         {/* Pod 详情页 */}
-        <Route path="/pods/:namespace/:name" element={<PodDetailWrapper />} />
+        <Route path="/pod/:namespace/:name" element={<PodDetailWrapper />} />
+        {/* 兼容复数形式路由（重定向到单数） */}
+        <Route path="/pods/:namespace/:name" element={<Navigate to="/pod/:namespace/:name" replace />} />
+
+        {/* 其他资源详情页（待实现） */}
+        {/* <Route path="/deployment/:namespace/:name" element={<DeploymentDetailWrapper />} /> */}
+        {/* <Route path="/service/:namespace/:name" element={<ServiceDetailWrapper />} /> */}
 
         {/* 重定向 */}
         <Route path="*" element={<Navigate to="/" replace />} />

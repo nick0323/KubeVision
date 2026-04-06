@@ -114,10 +114,13 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     setError(null);
     setLogs([]);
 
-    // Connect directly to backend WebSocket
+    // Connect to backend WebSocket
+    // 后端日志接口：/api/ws/stream?namespace=xxx&pod=xxx&container=xxx&previous=xxx
+    // 直接连接后端 8080 端口
     const token = localStorage.getItem('token');
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/api/pods/${namespace}/${name}/logs/stream?container=${containerToUse}&tailLines=${tailLines}&timestamps=${timestamps}&token=${token}`;
+    // 直接连接后端 8080 端口（不使用代理）
+    const wsUrl = `${wsProtocol}//localhost:8080/api/ws/stream?namespace=${namespace}&pod=${name}&container=${containerToUse}&tailLines=${tailLines}&timestamps=${timestamps}&previous=${previous}&token=${token}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -159,13 +162,24 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       }
     };
 
-    ws.onerror = () => {
-      // WebSocket error handler
+    ws.onerror = error => {
+      console.error('WebSocket error:', error);
+      setError('WebSocket 连接失败，请检查 Pod 是否存在');
+      setLoading(false);
+      // 停止重连
+      isReconnectingRef.current = true;
     };
 
     ws.onclose = () => {
       setConnected(false);
       setLoading(false);
+
+      // Pod 不存在时停止重连
+      if (error?.includes('not found') || error?.includes('不存在')) {
+        setError('Pod 不存在或已被删除');
+        isReconnectingRef.current = true;
+        return;
+      }
 
       // 防止 StrictMode 下重复重连
       if (isReconnectingRef.current) {
@@ -174,6 +188,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
       // 检查重连次数
       if (reconnectCountRef.current >= MAX_RECONNECT_COUNT) {
+        setError('连接失败：已达到最大重连次数');
         return;
       }
 

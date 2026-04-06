@@ -1,4 +1,4 @@
-// Package api 提供Kubernetes资源管理的HTTP API接口
+// Package api 提供 Kubernetes 资源管理的 HTTP API 接口
 package api
 
 import (
@@ -11,14 +11,42 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nick0323/K8sVision/api/middleware"
+	"github.com/gorilla/websocket"
 	"github.com/nick0323/K8sVision/model"
-	"github.com/nick0323/K8sVision/service"
-	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
+// WebSocket upgrader 统一配置
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true // 允许所有源（生产环境应配置允许的源）
+	},
+}
+
+// InitWebSocketUpgrader 初始化 WebSocket upgrader
+func InitWebSocketUpgrader(allowedOrigins []string) {
+	if len(allowedOrigins) == 0 {
+		return
+	}
+
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		for _, allowed := range allowedOrigins {
+			if allowed == "*" || allowed == origin {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+// PaginationParams 分页参数
 type PaginationParams struct {
 	Limit     int
 	Offset    int
@@ -28,23 +56,19 @@ type PaginationParams struct {
 	SortOrder string
 }
 
-// 成功消息常量
-const (
-	SuccessMessage       = "操作成功"
-	ListSuccessMessage   = "获取列表成功"
-	DetailSuccessMessage = "获取详情成功"
-	CreateSuccessMessage = "创建成功"
-	UpdateSuccessMessage = "更新成功"
-	DeleteSuccessMessage = "删除成功"
-	LoginSuccessMessage  = "登录成功"
-	LogoutSuccessMessage = "登出成功"
-)
+// K8sClientProvider K8s 客户端提供者函数类型
+type K8sClientProvider func() (*kubernetes.Clientset, *versioned.Clientset, error)
 
+// SearchableItem 可搜索接口
+type SearchableItem interface {
+	GetSearchableFields() map[string]string
+}
+
+// ParsePaginationParams 解析分页参数
 func ParsePaginationParams(c *gin.Context) PaginationParams {
 	limitStr := c.DefaultQuery("limit", strconv.Itoa(model.DefaultPageSize))
 	offsetStr := c.DefaultQuery("offset", strconv.Itoa(model.DefaultPageOffset))
 
-	// 解析分页参数
 	limit := model.DefaultPageSize
 	if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
 		limit = parsedLimit
@@ -55,7 +79,6 @@ func ParsePaginationParams(c *gin.Context) PaginationParams {
 		offset = parsedOffset
 	}
 
-	// 限制最大分页大小
 	if limit > model.MaxPageSize {
 		limit = model.MaxPageSize
 	}
@@ -70,143 +93,7 @@ func ParsePaginationParams(c *gin.Context) PaginationParams {
 	}
 }
 
-func HandleWithErrorWrapper[T any](
-	c *gin.Context,
-	logger *zap.Logger,
-	operation func() (T, error),
-	successMessage string,
-) {
-	result, err := operation()
-	if err != nil {
-		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-		return
-	}
-	middleware.ResponseSuccess(c, result, successMessage, nil)
-}
-
-func HandleListWithPagination[T SearchableItem](
-	c *gin.Context,
-	logger *zap.Logger,
-	operation func(ctx context.Context, params PaginationParams) ([]T, error),
-	successMessage string,
-) {
-	ctx := GetRequestContext(c)
-	params := ParsePaginationParams(c)
-
-	// 尝试使用缓存排序服务
-	sortService := service.GetCachedSortService()
-	if sortService != nil {
-		// 从缓存排序服务获取数据
-		// 注意：这里需要泛型转换，暂时使用原有逻辑
-		items, err := operation(ctx, params)
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-
-		// 搜索过滤
-		filteredItems := GenericSearchFilter(items, params.Search)
-
-		// 排序（在分页前）
-		if params.SortBy != "" && params.SortOrder != "" {
-			filteredItems = SortItems(filteredItems, params.SortBy, params.SortOrder)
-		}
-
-		// 分页
-		paged := Paginate(filteredItems, params.Offset, params.Limit)
-		middleware.ResponseSuccess(c, paged, successMessage, &model.PageMeta{
-			Total:  len(filteredItems),
-			Limit:  params.Limit,
-			Offset: params.Offset,
-		})
-		return
-	}
-
-	// 降级到原有逻辑
-	items, err := operation(ctx, params)
-	if err != nil {
-		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-		return
-	}
-
-	// 搜索过滤
-	filteredItems := GenericSearchFilter(items, params.Search)
-
-	// 排序（在分页前）
-	if params.SortBy != "" && params.SortOrder != "" {
-		filteredItems = SortItems(filteredItems, params.SortBy, params.SortOrder)
-	}
-
-	// 分页
-	paged := Paginate(filteredItems, params.Offset, params.Limit)
-	middleware.ResponseSuccess(c, paged, successMessage, &model.PageMeta{
-		Total:  len(filteredItems),
-		Limit:  params.Limit,
-		Offset: params.Offset,
-	})
-}
-
-type K8sClientProvider func() (*kubernetes.Clientset, *versioned.Clientset, error)
-
-// HandleDetailWithK8s 处理K8s资源详情请求
-func HandleDetailWithK8s[T any](
-	c *gin.Context,
-	logger *zap.Logger,
-	getK8sClient K8sClientProvider,
-	operation func(ctx context.Context, clientset *kubernetes.Clientset, namespace, name string) (T, error),
-	successMessage string,
-) {
-	clientset, _, err := getK8sClient()
-	if err != nil {
-		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-		return
-	}
-
-	ctx := GetRequestContext(c)
-	namespace := c.Param("namespace")
-	name := c.Param("name")
-
-	result, err := operation(ctx, clientset, namespace, name)
-	if err != nil {
-		middleware.ResponseError(c, logger, err, http.StatusNotFound)
-		return
-	}
-
-	middleware.ResponseSuccess(c, result, successMessage, nil)
-}
-
-// HandleListWithK8s 处理K8s资源列表请求
-func HandleListWithK8s[T SearchableItem](
-	c *gin.Context,
-	logger *zap.Logger,
-	getK8sClient K8sClientProvider,
-	operation func(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]T, error),
-	successMessage string,
-) {
-	ctx := GetRequestContext(c)
-	params := ParsePaginationParams(c)
-
-	clientset, _, err := getK8sClient()
-	if err != nil {
-		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-		return
-	}
-
-	items, err := operation(ctx, clientset, params.Namespace)
-	if err != nil {
-		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-		return
-	}
-
-	filteredItems := GenericSearchFilter(items, params.Search)
-	paged := Paginate(filteredItems, params.Offset, params.Limit)
-	middleware.ResponseSuccess(c, paged, successMessage, &model.PageMeta{
-		Total:  len(filteredItems),
-		Limit:  params.Limit,
-		Offset: params.Offset,
-	})
-}
-
+// GetRequestContext 获取请求上下文
 func GetRequestContext(c *gin.Context) context.Context {
 	if ctx := c.Request.Context(); ctx != nil {
 		return ctx
@@ -214,22 +101,18 @@ func GetRequestContext(c *gin.Context) context.Context {
 	return context.Background()
 }
 
+// GetTraceID 获取追踪 ID
 func GetTraceID(c *gin.Context) string {
 	tid := c.GetHeader("X-Trace-ID")
 	if tid == "" {
 		tid = c.GetString("traceId")
-		if tid == "" {
-			return ""
-		}
 	}
 	return tid
 }
 
+// Paginate 分页
 func Paginate[T any](list []T, offset, limit int) []T {
-	if offset >= len(list) || offset < 0 {
-		return []T{}
-	}
-	if limit <= 0 {
+	if offset < 0 || limit <= 0 || offset >= len(list) {
 		return []T{}
 	}
 
@@ -238,18 +121,11 @@ func Paginate[T any](list []T, offset, limit int) []T {
 		end = len(list)
 	}
 
-	if offset >= end {
-		return []T{}
-	}
-
 	return list[offset:end]
 }
 
-type SearchableItem interface {
-	GetSearchableFields() map[string]string
-}
-
-func GenericSearchFilter[T any](items []T, search string) []T {
+// GenericSearchFilter 通用搜索过滤
+func GenericSearchFilter[T SearchableItem](items []T, search string) []T {
 	if search == "" {
 		return items
 	}
@@ -258,7 +134,7 @@ func GenericSearchFilter[T any](items []T, search string) []T {
 	var filtered []T
 
 	for _, item := range items {
-		if matchesSearchOptimized(item, searchLower) {
+		if matchesSearch(item, searchLower) {
 			filtered = append(filtered, item)
 		}
 	}
@@ -266,38 +142,28 @@ func GenericSearchFilter[T any](items []T, search string) []T {
 	return filtered
 }
 
-func matchesSearchOptimized[T any](item T, searchLower string) bool {
-	if searchable, ok := any(item).(SearchableItem); ok {
-		fields := searchable.GetSearchableFields()
-		for _, value := range fields {
-			if strings.Contains(strings.ToLower(value), searchLower) {
-				return true
-			}
+func matchesSearch(item SearchableItem, searchLower string) bool {
+	fields := item.GetSearchableFields()
+	for _, value := range fields {
+		if strings.Contains(strings.ToLower(value), searchLower) {
+			return true
 		}
 	}
 	return false
 }
 
-// SortItems 对 items 进行排序
+// SortItems 排序
 func SortItems[T any](items []T, sortBy string, sortOrder string) []T {
-	// 创建副本，避免修改原数组
 	sorted := make([]T, len(items))
 	copy(sorted, items)
 
-	// 使用 Go 标准库排序（快速排序）
 	sort.Slice(sorted, func(i, j int) bool {
-		// 获取字段的字符串值进行比较
 		valI := getFieldValue(sorted[i], sortBy)
 		valJ := getFieldValue(sorted[j], sortBy)
-
-		// 使用 compareValues 比较（支持 Age 字段特殊处理）
 		compare := compareValues(valI, valJ, sortBy)
-
-		// 如果是降序，反转比较结果
 		if sortOrder == "desc" {
 			compare = -compare
 		}
-
 		return compare < 0
 	})
 
@@ -310,35 +176,31 @@ func getFieldValue(item interface{}, fieldName string) string {
 		return ""
 	}
 
-	// 尝试作为 map 处理（如果 API 返回的是 map）
+	// 处理 map 类型
 	if m, ok := item.(map[string]interface{}); ok {
 		if val, exists := m[fieldName]; exists {
 			return fmt.Sprintf("%v", val)
 		}
 	}
 
-	// 使用反射获取结构体字段值
+	// 处理结构体类型（使用反射）
 	v := reflect.ValueOf(item)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
-	if v.Kind() == reflect.Struct {
-		// 1. 尝试原始字段名（如 "Name"）
-		field := v.FieldByName(fieldName)
-		if field.IsValid() && field.CanInterface() {
-			return fmt.Sprintf("%v", field.Interface())
-		}
-		
-		// 2. 尝试首字母大写（如 "name" → "Name"）
-		fieldNameCap := strings.ToUpper(fieldName[:1]) + fieldName[1:]
-		field = v.FieldByName(fieldNameCap)
-		if field.IsValid() && field.CanInterface() {
-			return fmt.Sprintf("%v", field.Interface())
-		}
-		
-		// 3. 尝试首字母小写（如 "Name" → "name"）
-		fieldNameLower := strings.ToLower(fieldName[:1]) + fieldName[1:]
-		field = v.FieldByName(fieldNameLower)
+	if v.Kind() != reflect.Struct {
+		return ""
+	}
+
+	// 尝试多种字段名变体（兼容不同命名风格）
+	fieldNames := []string{
+		fieldName, // 原始名称
+		strings.ToUpper(fieldName[:1]) + fieldName[1:], // 首字母大写
+		strings.ToLower(fieldName[:1]) + fieldName[1:], // 首字母小写
+	}
+
+	for _, name := range fieldNames {
+		field := v.FieldByName(name)
 		if field.IsValid() && field.CanInterface() {
 			return fmt.Sprintf("%v", field.Interface())
 		}
@@ -349,7 +211,6 @@ func getFieldValue(item interface{}, fieldName string) string {
 
 // compareValues 比较两个字段的值
 func compareValues(valA, valB, sortBy string) int {
-	// 特殊处理 Age 字段（时间格式：15s, 2m, 3h, 4d）
 	if sortBy == "age" || sortBy == "Age" {
 		timeA := parseAgeToSeconds(valA)
 		timeB := parseAgeToSeconds(valB)
@@ -360,36 +221,28 @@ func compareValues(valA, valB, sortBy string) int {
 		}
 		return 0
 	}
-	
-	// 默认字符串比较
+
 	return strings.Compare(valA, valB)
 }
 
 // parseAgeToSeconds 将年龄字符串转换为秒数
-// 支持格式：15s, 2m, 3h, 4d
 func parseAgeToSeconds(ageStr string) int64 {
 	if ageStr == "" || ageStr == "-" {
 		return 0
 	}
-	
-	// 提取数字和单位
-	var num int64
-	var unit string
-	
-	// 解析数字部分
+
 	i := 0
 	for i < len(ageStr) && (ageStr[i] >= '0' && ageStr[i] <= '9') {
 		i++
 	}
-	
+
 	if i == 0 {
 		return 0
 	}
-	
-	num, _ = strconv.ParseInt(ageStr[:i], 10, 64)
-	unit = ageStr[i:]
-	
-	// 根据单位转换为秒
+
+	num, _ := strconv.ParseInt(ageStr[:i], 10, 64)
+	unit := ageStr[i:]
+
 	switch unit {
 	case "s":
 		return num
@@ -400,6 +253,6 @@ func parseAgeToSeconds(ageStr string) int64 {
 	case "d":
 		return num * 86400
 	default:
-		return num // 默认为秒
+		return num
 	}
 }

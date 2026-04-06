@@ -22,7 +22,8 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
       setError(null);
 
       try {
-        const response = await authFetch(`/api/pods/${namespace}/${name}/related`);
+        // 后端只支持单数形式：/api/pod/ns/name/related
+        const response = await authFetch(`/api/pod/${namespace}/${name}/related`);
         const result = await response.json();
 
         if (result.code === 0 && result.data) {
