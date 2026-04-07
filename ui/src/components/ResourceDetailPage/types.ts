@@ -1,0 +1,142 @@
+/**
+ * 通用资源详情页类型定义
+ */
+
+import { K8sResource } from '../../types/k8s-resources';
+
+/**
+ * 资源类型配置
+ */
+export interface ResourceConfig {
+  title: string;
+  tabs: string[];
+  hasLogs?: boolean;
+  hasTerminal?: boolean;
+  hasReplicaSets?: boolean;
+  hasPods?: boolean;
+  hasEndpoints?: boolean;
+}
+
+/**
+ * 通用资源详情 Props
+ */
+export interface ResourceDetailPageProps {
+  resourceType: string;
+  namespace: string;
+  name: string;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}
+
+/**
+ * Overview Tab Props
+ */
+export interface OverviewTabProps<T = any> {
+  data: T | null;
+  loading: boolean;
+  onRefresh?: () => void;
+  resourceType?: string;
+}
+
+/**
+ * YAML Tab Props
+ */
+export interface YamlTabProps {
+  namespace: string;
+  name: string;
+  resourceType: string;
+  data?: any | null;
+}
+
+/**
+ * Events Tab Props
+ */
+export interface EventsTabProps {
+  namespace: string;
+  name: string;
+  resourceKind: string;
+}
+
+/**
+ * Related Tab Props
+ */
+export interface RelatedTabProps {
+  namespace: string;
+  name: string;
+  ownerReferences?: any[];
+}
+
+/**
+ * 资源配置映射
+ */
+export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
+  pod: {
+    title: 'Pod',
+    tabs: ['overview', 'yaml', 'logs', 'terminal', 'related', 'events'],
+    hasLogs: true,
+    hasTerminal: true,
+  },
+  deployment: {
+    title: 'Deployment',
+    tabs: ['overview', 'yaml', 'replicasets', 'pods', 'related', 'events'],
+    hasReplicaSets: true,
+    hasPods: true,
+  },
+  statefulset: {
+    title: 'StatefulSet',
+    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
+    hasPods: true,
+  },
+  daemonset: {
+    title: 'DaemonSet',
+    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
+    hasPods: true,
+  },
+  service: {
+    title: 'Service',
+    tabs: ['overview', 'yaml', 'endpoints', 'related', 'events'],
+    hasEndpoints: true,
+  },
+  configmap: {
+    title: 'ConfigMap',
+    tabs: ['overview', 'yaml', 'related', 'events'],
+  },
+  secret: {
+    title: 'Secret',
+    tabs: ['overview', 'yaml', 'related', 'events'],
+  },
+  ingress: {
+    title: 'Ingress',
+    tabs: ['overview', 'yaml', 'related', 'events'],
+  },
+  job: {
+    title: 'Job',
+    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
+    hasPods: true,
+  },
+  cronjob: {
+    title: 'CronJob',
+    tabs: ['overview', 'yaml', 'related', 'events'],
+  },
+  pvc: {
+    title: 'PersistentVolumeClaim',
+    tabs: ['overview', 'yaml', 'related', 'events'],
+  },
+  pv: {
+    title: 'PersistentVolume',
+    tabs: ['overview', 'yaml', 'related', 'events'],
+  },
+  storageclass: {
+    title: 'StorageClass',
+    tabs: ['overview', 'yaml', 'related', 'events'],
+  },
+  namespace: {
+    title: 'Namespace',
+    tabs: ['overview', 'yaml', 'related', 'events'],
+  },
+  node: {
+    title: 'Node',
+    tabs: ['overview', 'yaml', 'pods', 'events'],
+    hasPods: true,
+  },
+};

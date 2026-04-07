@@ -144,17 +144,18 @@ export const apiClient = {
 
   /**
    * 将资源类型转为单数形式
+   * 规则：以 'ss' 结尾的资源已经是单数，其他直接去掉末尾的 's'
    */
   toSingular(resourceType: string): string {
     const type = resourceType.toLowerCase();
-    // 特殊复数形式处理
-    if (type === 'ingresses') return 'ingress';
-    if (type === 'services') return 'service';
-    if (type === 'configmaps') return 'configmap';
-    if (type === 'secrets') return 'secret';
-    if (type === 'endpoints') return 'endpoints'; // 单复数同形
-    // 一般情况：去掉末尾的 's'
-    if (type.endsWith('s')) return type.slice(0, -1);
+    // 以 'ss' 结尾的资源已经是单数（如 ingress, stress）
+    if (type.endsWith('ss')) {
+      return type;
+    }
+    // 直接去掉末尾的 's'（如果存在）
+    if (type.endsWith('s')) {
+      return type.slice(0, -1);
+    }
     return type;
   },
 };

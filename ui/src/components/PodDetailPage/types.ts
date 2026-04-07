@@ -19,6 +19,7 @@ export interface OverviewTabProps {
   pod: Pod | null;
   loading: boolean;
   onRefresh: () => void;
+  resourceType?: string;
 }
 
 /**
@@ -27,7 +28,9 @@ export interface OverviewTabProps {
 export interface YamlTabProps {
   namespace: string;
   name: string;
-  pod: Pod | null;
+  resourceType?: string;
+  data?: any | null;
+  pod?: any | null;
 }
 
 /**

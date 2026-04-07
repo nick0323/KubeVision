@@ -92,16 +92,16 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
         window.dispatchEvent(new CustomEvent('tab-change', { detail: path }));
 
         // 跳转到列表页
-        navigate('/');
+        navigate(path);
       }
     },
     [navigate]
   );
 
-  // 面包屑导航
+  // 面包屑配置 - 资源类型 > namespace(不可点击) > name
   const breadcrumbs = useMemo(
     () => [
-      { label: 'Pods', path: 'pods' },
+      { label: 'Pods', path: '/pods' },
       { label: namespace, path: '' }, // namespace 不可点击
       { label: podName, path: '' },
     ],
@@ -157,8 +157,8 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
       <TabNavigation tabs={TAB_CONFIG} activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Tab 内容 */}
-      {activeTab === 'overview' && <OverviewTab pod={pod} loading={loading} onRefresh={refresh} />}
-      {activeTab === 'yaml' && <YamlTab namespace={namespace} name={podName} pod={pod} />}
+      {activeTab === 'overview' && <OverviewTab pod={pod} loading={loading} onRefresh={refresh} resourceType="pod" />}
+      {activeTab === 'yaml' && <YamlTab namespace={namespace} name={podName} resourceType="pod" data={pod} />}
       {activeTab === 'logs' && (
         <LogsTab namespace={namespace} name={podName} containers={pod?.spec?.containers || []} />
       )}

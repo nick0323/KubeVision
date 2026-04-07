@@ -3,7 +3,7 @@ import { YamlTabProps } from '../types';
 import { LoadingSpinner } from '../../LoadingSpinner';
 import { ErrorDisplay } from '../../ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
-import { FaCopy, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
+import { FaCopy, FaEdit, FaSave, FaTimes, FaExchangeAlt, FaRocket } from 'react-icons/fa';
 import jsyaml from 'js-yaml';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-yaml';
@@ -14,9 +14,9 @@ import './YamlTab.css';
  * 始终隐藏的字段（内部使用/已废弃）
  */
 const ALWAYS_HIDDEN_FIELDS = [
-  'managedFields', // 托管字段（已废弃）
-  'resourceVersion', // 资源版本（内部使用，频繁变化）
-  'uid', // 唯一标识符（内部使用）
+  'managedFields',
+  'resourceVersion',
+  'uid',
   'selfLink',
   'clusterName',
   'generation',
@@ -38,32 +38,46 @@ const filterHiddenFields = (obj: any, options: YamlDisplayOptions): any => {
 
   const filtered: any = {};
   for (const [key, value] of Object.entries(obj)) {
-    // 始终隐藏的字段
-    if (ALWAYS_HIDDEN_FIELDS.includes(key)) {
-      console.log(`Filtering out hidden field: ${key}`);
-      continue;
-    }
-
-    // 根据选项隐藏字段
+    if (ALWAYS_HIDDEN_FIELDS.includes(key)) continue;
     if (!options.showStatus && key === 'status') continue;
-
     filtered[key] = filterHiddenFields(value, options);
   }
   return filtered;
 };
 
 /**
- * YAML Tab - 查看/编辑 Pod YAML
+ * 资源类型映射
+ */
+const RESOURCE_TYPE_MAP: Record<string, { apiVersion: string; kind: string; title: string }> = {
+  pod: { apiVersion: 'v1', kind: 'Pod', title: 'Pod' },
+  deployment: { apiVersion: 'apps/v1', kind: 'Deployment', title: 'Deployment' },
+  statefulset: { apiVersion: 'apps/v1', kind: 'StatefulSet', title: 'StatefulSet' },
+  daemonset: { apiVersion: 'apps/v1', kind: 'DaemonSet', title: 'DaemonSet' },
+  service: { apiVersion: 'v1', kind: 'Service', title: 'Service' },
+  configmap: { apiVersion: 'v1', kind: 'ConfigMap', title: 'ConfigMap' },
+  secret: { apiVersion: 'v1', kind: 'Secret', title: 'Secret' },
+  ingress: { apiVersion: 'networking.k8s.io/v1', kind: 'Ingress', title: 'Ingress' },
+  job: { apiVersion: 'batch/v1', kind: 'Job', title: 'Job' },
+  cronjob: { apiVersion: 'batch/v1', kind: 'CronJob', title: 'CronJob' },
+  pvc: { apiVersion: 'v1', kind: 'PersistentVolumeClaim', title: 'PersistentVolumeClaim' },
+  pv: { apiVersion: 'v1', kind: 'PersistentVolume', title: 'PersistentVolume' },
+  storageclass: { apiVersion: 'storage.k8s.io/v1', kind: 'StorageClass', title: 'StorageClass' },
+  namespace: { apiVersion: 'v1', kind: 'Namespace', title: 'Namespace' },
+  node: { apiVersion: 'v1', kind: 'Node', title: 'Node' },
+};
+
+/**
+ * 通用 YAML Tab - 查看/编辑资源 YAML
  * 功能：
  * - 语法高亮显示
- * - 行号显示
  * - 复制功能
  * - 编辑模式
  * - Diff 对比
  * - 保存/应用
  * - 自动过滤无用字段
+ * - Status 字段切换
  */
-export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) => {
+export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, resourceType, data }) => {
   const [yamlContent, setYamlContent] = useState<string>('');
   const [originalYaml, setOriginalYaml] = useState<string>('');
   const [editing, setEditing] = useState(false);
@@ -79,14 +93,20 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
 
   const editorRef = useRef<HTMLPreElement>(null);
 
+  // 获取资源类型信息
+  const resourceInfo = RESOURCE_TYPE_MAP[resourceType] || {
+    apiVersion: 'v1',
+    kind: resourceType,
+    title: resourceType,
+  };
+
   // 加载 YAML
   const loadYaml = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // 后端只支持单数形式：/api/pod/ns/name/yaml
-      const response = await authFetch(`/api/pod/${namespace}/${name}/yaml`);
+      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}/yaml`);
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
@@ -96,20 +116,20 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
           : filterHiddenFields(result.data, displayOptions);
         
         // 确保包含完整的 TypeMeta 字段
-        const podWithMeta = {
-          apiVersion: 'v1',
-          kind: 'Pod',
+        const dataWithMeta = {
+          apiVersion: resourceInfo.apiVersion,
+          kind: resourceInfo.kind,
           ...filteredData,
         };
         
-        const yaml = jsyaml.dump(podWithMeta, {
+        const yaml = jsyaml.dump(dataWithMeta, {
           indent: 2,
           lineWidth: -1,
           noRefs: true,
           quotingType: '"',
           forceQuotes: false,
         });
-
+        
         setYamlContent(yaml);
         setOriginalYaml(yaml);
       } else {
@@ -120,38 +140,42 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
     } finally {
       setLoading(false);
     }
-  }, [namespace, name, displayOptions]);
+  }, [namespace, name, resourceType, displayOptions, resourceInfo]);
 
   // 初始加载
   useEffect(() => {
-    // 优先使用 data prop（从 PodDetailPage 传递），否则使用 pod prop
-    const podData = data || pod;
-    
-    if (podData) {
+    if (data) {
       // 过滤掉不需要的字段
-      const filteredPod = filterHiddenFields(podData, displayOptions);
+      const filteredData = filterHiddenFields(data, displayOptions);
 
       // 确保包含完整的 TypeMeta 字段
-      const podWithMeta = {
-        apiVersion: 'v1',
-        kind: 'Pod',
-        ...filteredPod,
+      const dataWithMeta = {
+        apiVersion: resourceInfo.apiVersion,
+        kind: resourceInfo.kind,
+        ...filteredData,
       };
-      const yaml = jsyaml.dump(podWithMeta, {
+
+      const yaml = jsyaml.dump(dataWithMeta, {
         indent: 2,
-        lineWidth: -1, // 不限制行宽
-        noRefs: true, // 不使用引用
+        lineWidth: -1,
+        noRefs: true,
         quotingType: '"',
         forceQuotes: false,
       });
+
       setYamlContent(yaml);
       setOriginalYaml(yaml);
-    }
-    // 如果没有 pod 数据，从 API 加载
-    if (!podData) {
+
+      // 语法高亮
+      setTimeout(() => {
+        if (editorRef.current) {
+          Prism.highlightAllUnder(editorRef.current);
+        }
+      }, 0);
+    } else {
       loadYaml();
     }
-  }, [data, pod, displayOptions]);
+  }, [data, resourceType, displayOptions, loadYaml, resourceInfo]);
 
   // 语法高亮
   useEffect(() => {
@@ -167,11 +191,11 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch {
-      alert('复制失败');
+      setCopySuccess(false);
     }
   }, [yamlContent]);
 
-  // 进入编辑模式
+  // 编辑
   const handleEdit = useCallback(() => {
     setEditing(true);
     setShowDiff(false);
@@ -189,24 +213,22 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
     setLoading(true);
     try {
       const parsed = jsyaml.load(yamlContent);
-      // 后端只支持单数形式：/api/pod/ns/name/yaml
-      const response = await authFetch(`/api/pod/${namespace}/${name}/yaml`, {
+      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}/yaml`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ yaml: parsed }),
       });
-      
-      // 检查响应是否为 JSON
+
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
         throw new Error(`服务器返回了非 JSON 响应：${text.substring(0, 100)}`);
       }
-      
+
       const result = await response.json();
 
       if (result.code === 0) {
-        alert('YAML 已保存');
+        alert(`${resourceInfo.title} YAML 已保存`);
         setEditing(false);
         setOriginalYaml(yamlContent);
       } else {
@@ -217,17 +239,16 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
     } finally {
       setLoading(false);
     }
-  }, [namespace, name, yamlContent]);
+  }, [namespace, name, resourceType, yamlContent, resourceInfo]);
 
   // 应用更改
   const handleApply = useCallback(async () => {
-    if (!window.confirm('确定要应用此 YAML 配置到集群吗？')) return;
+    if (!window.confirm(`确定要应用此 YAML 配置到集群吗？`)) return;
 
     setLoading(true);
     try {
       const parsed = jsyaml.load(yamlContent);
-      // 后端只支持单数形式：/api/pod/ns/name
-      const response = await authFetch(`/api/pod/${namespace}/${name}`, {
+      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsed),
@@ -246,7 +267,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
     } finally {
       setLoading(false);
     }
-  }, [namespace, name, yamlContent]);
+  }, [namespace, name, resourceType, yamlContent]);
 
   // 切换 Diff 视图
   const toggleDiff = useCallback(() => {
@@ -254,7 +275,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
   }, []);
 
   if (loading && !yamlContent) {
-    return <LoadingSpinner text="加载 YAML..." size="lg" />;
+    return <LoadingSpinner text={`加载 ${resourceInfo.title} YAML...`} size="lg" />;
   }
 
   if (error && !yamlContent) {
@@ -266,7 +287,7 @@ export const YamlTab: React.FC<YamlTabProps> = ({ namespace, name, pod, data }) 
       {/* 工具栏 */}
       <div className="yaml-toolbar">
         <div className="yaml-toolbar-left">
-          <span className="yaml-title">Pod YAML</span>
+          <span className="yaml-title">{resourceInfo.title} YAML</span>
           <span className="yaml-title-separator">|</span>
           <span className="yaml-status-inline">
             Lines: {yamlContent.split('\n').length} | Chars: {yamlContent.length}

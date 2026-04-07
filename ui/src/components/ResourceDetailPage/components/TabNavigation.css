@@ -1,0 +1,60 @@
+/* Tab 导航样式 */
+.tab-navigation {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #bae7ff;
+  margin-bottom: 16px;
+  align-items: center;
+  height: 50px;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 20px;
+  height: 50px;
+  border: 1px solid transparent !important;
+  background: #fff;
+  color: #595959;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 6px;
+  outline: none !important;
+}
+
+.tab-item:first-child {
+  padding-left: 20px;
+}
+
+.tab-item:last-child {
+  padding-right: 20px;
+}
+
+.tab-item:hover {
+  color: #1890ff;
+  background: #e6f7ff;
+  border-color: #91d5ff !important;
+}
+
+.tab-item.active,
+.tab-item.active:hover,
+.tab-item.active:focus,
+.tab-item.active:focus-visible {
+  color: #1890ff;
+  background: #e6f7ff;
+  border-color: #d3adf7 !important;
+}
+
+.tab-icon {
+  font-size: 14px;
+}
+
+.tab-label {
+  white-space: nowrap;
+}

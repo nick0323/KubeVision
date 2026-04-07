@@ -13,7 +13,7 @@ interface ExtendedColumn extends ColumnDef<any> {
 export const PODS_CONFIG = {
   title: 'Pods',
   apiEndpoint: '/api/pods',
-  resourceType: 'pods',
+  resourceType: 'pod',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
@@ -31,7 +31,7 @@ export const PODS_CONFIG = {
 export const DEPLOYMENTS_CONFIG = {
   title: 'Deployments',
   apiEndpoint: '/api/deployments',
-  resourceType: 'deployments',
+  resourceType: 'deployment',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
@@ -42,7 +42,7 @@ export const DEPLOYMENTS_CONFIG = {
       width: '10%',
       render: (v: any, r: any) => `${v}/${r.desiredReplicas || 0}`,
     },
-    { title: 'Up To Date', dataIndex: 'updatedReplicas', width: '10%' },
+    { title: 'UpToDate', dataIndex: 'updatedReplicas', width: '10%' },
     { title: 'Available', dataIndex: 'availableReplicas', width: '10%' },
     { title: 'Restarts', dataIndex: 'restarts', width: '5%', sortable: true },
     { title: 'Age', dataIndex: 'age', width: '10%' },
@@ -53,7 +53,7 @@ export const DEPLOYMENTS_CONFIG = {
 export const STATEFULSETS_CONFIG = {
   title: 'StatefulSets',
   apiEndpoint: '/api/statefulsets',
-  resourceType: 'statefulsets',
+  resourceType: 'statefulset',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
@@ -73,7 +73,7 @@ export const STATEFULSETS_CONFIG = {
 export const DAEMONSETS_CONFIG = {
   title: 'DaemonSets',
   apiEndpoint: '/api/daemonsets',
-  resourceType: 'daemonsets',
+  resourceType: 'daemonset',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
@@ -89,7 +89,7 @@ export const DAEMONSETS_CONFIG = {
 export const JOBS_CONFIG = {
   title: 'Jobs',
   apiEndpoint: '/api/jobs',
-  resourceType: 'jobs',
+  resourceType: 'job',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
@@ -110,7 +110,7 @@ export const JOBS_CONFIG = {
 export const CRONJOBS_CONFIG = {
   title: 'CronJobs',
   apiEndpoint: '/api/cronjobs',
-  resourceType: 'cronjobs',
+  resourceType: 'cronjob',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
@@ -129,7 +129,7 @@ export const CRONJOBS_CONFIG = {
 export const SERVICES_CONFIG = {
   title: 'Services',
   apiEndpoint: '/api/services',
-  resourceType: 'services',
+  resourceType: 'service',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '18%' },
@@ -167,15 +167,15 @@ export const INGRESS_CONFIG = {
 export const PVCS_CONFIG = {
   title: 'PersistentVolumeClaims',
   apiEndpoint: '/api/pvcs',
-  resourceType: 'pvcs',
+  resourceType: 'pvc',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '20%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
     { title: 'Status', dataIndex: 'status', width: '10%', sortable: true },
-    { title: 'Access Mode', dataIndex: 'accessMode', width: '15%' },
+    { title: 'AccessMode', dataIndex: 'accessMode', width: '15%' },
     { title: 'Volume', dataIndex: 'volumeName', width: '10%' },
     { title: 'Capacity', dataIndex: 'capacity', width: '10%' },
-    { title: 'Storage Class', dataIndex: 'storageClass', width: '12%' },
+    { title: 'StorageClass', dataIndex: 'storageClass', width: '12%' },
     { title: 'Age', dataIndex: 'age', width: '8%' },
   ] as ExtendedColumn[],
   namespaceFilter: true,
@@ -184,15 +184,15 @@ export const PVCS_CONFIG = {
 export const PVS_CONFIG = {
   title: 'PersistentVolumes',
   apiEndpoint: '/api/pvs',
-  resourceType: 'pvs',
+  resourceType: 'pv',
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
+    { title: 'Name', dataIndex: 'name', width: '20%', sortable: true },
     { title: 'Status', dataIndex: 'status', width: '10%', sortable: true },
     { title: 'Capacity', dataIndex: 'capacity', width: '10%' },
-    { title: 'Access Mode', dataIndex: 'accessMode', width: '15%' },
-    { title: 'Storage Class', dataIndex: 'storageClass', width: '10%' },
+    { title: 'AccessMode', dataIndex: 'accessMode', width: '15%' },
+    { title: 'StorageClass', dataIndex: 'storageClass', width: '10%' },
     { title: 'Claim', dataIndex: 'claimRef', width: '15%' },
-    { title: 'Reclaim Policy', dataIndex: 'reclaimPolicy', width: '10%' },
+    { title: 'ReclaimPolicy', dataIndex: 'reclaimPolicy', width: '15%' },
     { title: 'Age', dataIndex: 'age', width: '5%' },
   ] as ExtendedColumn[],
   namespaceFilter: false,
@@ -201,12 +201,12 @@ export const PVS_CONFIG = {
 export const STORAGECLASSES_CONFIG = {
   title: 'StorageClasses',
   apiEndpoint: '/api/storageclasses',
-  resourceType: 'storageclasses',
+  resourceType: 'storageclass',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '22%', sortable: true },
     { title: 'Provisioner', dataIndex: 'provisioner', width: '25%' },
-    { title: 'Reclaim Policy', dataIndex: 'reclaimPolicy', width: '15%' },
-    { title: 'Binding Mode', dataIndex: 'volumeBindingMode', width: '15%' },
+    { title: 'ReclaimPolicy', dataIndex: 'reclaimPolicy', width: '15%' },
+    { title: 'BindingMode', dataIndex: 'volumeBindingMode', width: '15%' },
     { title: 'Default', dataIndex: 'isDefault', width: '8%' },
     { title: 'Age', dataIndex: 'age', width: '15%' },
   ] as ExtendedColumn[],
@@ -218,7 +218,7 @@ export const STORAGECLASSES_CONFIG = {
 export const CONFIGMAPS_CONFIG = {
   title: 'ConfigMaps',
   apiEndpoint: '/api/configmaps',
-  resourceType: 'configmaps',
+  resourceType: 'configmap',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '30%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '20%' },
@@ -232,7 +232,7 @@ export const CONFIGMAPS_CONFIG = {
 export const SECRETS_CONFIG = {
   title: 'Secrets',
   apiEndpoint: '/api/secrets',
-  resourceType: 'secrets',
+  resourceType: 'secret',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
     { title: 'Namespace', dataIndex: 'namespace', width: '20%' },
@@ -248,7 +248,7 @@ export const SECRETS_CONFIG = {
 export const NAMESPACES_CONFIG = {
   title: 'Namespaces',
   apiEndpoint: '/api/namespaces',
-  resourceType: 'namespaces',
+  resourceType: 'namespace',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '60%', sortable: true },
     { title: 'Status', dataIndex: 'status', width: '25%', sortable: true },
@@ -260,7 +260,7 @@ export const NAMESPACES_CONFIG = {
 export const NODES_CONFIG = {
   title: 'Nodes',
   apiEndpoint: '/api/nodes',
-  resourceType: 'nodes',
+  resourceType: 'node',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '15%', sortable: true },
     { title: 'IP', dataIndex: 'ip', width: '15%' },
@@ -283,7 +283,7 @@ export const NODES_CONFIG = {
 export const EVENTS_CONFIG = {
   title: 'Events',
   apiEndpoint: '/api/events',
-  resourceType: 'events',
+  resourceType: 'event',
   columns: [
     { title: 'Type', dataIndex: 'type', width: '8%', sortable: true },
     { title: 'Reason', dataIndex: 'reason', width: '12%' },

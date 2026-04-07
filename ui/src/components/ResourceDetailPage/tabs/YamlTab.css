@@ -1,4 +1,4 @@
-/* YAML Tab 样式 */
+/* YAML Tab 样式 - 完全复用 Pod 详情页样式 */
 .yaml-tab {
   display: flex;
   flex-direction: column;
@@ -131,7 +131,7 @@
 }
 
 /* ========== 工具栏按钮 ========== */
-.toolbar-btn {
+.action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,84 +147,76 @@
   flex-shrink: 0;
 }
 
-.toolbar-btn svg {
+.action-btn svg {
   font-size: 14px;
 }
 
-.toolbar-btn:hover {
+.action-btn:hover {
   border-color: #1890ff;
   color: #1890ff;
   background: #e6f7ff;
 }
 
-.toolbar-btn:active {
+.action-btn:active {
   transform: translateY(1px);
 }
 
-.toolbar-btn.success {
+.action-btn.success {
   border-color: #52c41a;
   color: #52c41a;
   background: #f6ffed;
 }
 
-.toolbar-btn.primary {
+.action-btn.primary {
   background: #1890ff;
   border-color: #1890ff;
   color: #fff;
 }
 
-.toolbar-btn.primary:hover {
+.action-btn.primary:hover {
   background: #40a9ff;
   border-color: #40a9ff;
   color: #fff;
 }
 
-.toolbar-btn.danger {
+.action-btn.danger {
   color: #ff4d4f;
   border-color: #ffccc7;
 }
 
-.toolbar-btn.danger:hover {
+.action-btn.danger:hover {
   border-color: #ff4d4f;
   background: #fff1f0;
   color: #ff4d4f;
 }
 
-.toolbar-btn.toggle-btn {
+.action-btn.toggle-btn {
   background: #fafafa;
   border-color: #d9d9d9;
 }
 
-.toolbar-btn.toggle-btn.active {
+.action-btn.toggle-btn.active {
   background: #e6f7ff;
   border-color: #1890ff;
   color: #1890ff;
 }
 
-.toolbar-btn.toggle-btn:hover {
+.action-btn.toggle-btn:hover {
   background: #e6f7ff;
   border-color: #1890ff;
   color: #1890ff;
 }
 
 /* ========== 编辑器容器 ========== */
-.yaml-editor-container {
+.yaml-content {
   background: #fff;
   border-radius: 8px;
   border: 1px solid #bae7ff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-/* 只读模式 - 语法高亮 */
-.yaml-editor-pre {
-  width: 100%;
-  max-height: 700px;
-  overflow: auto;
   padding: 16px;
   margin: 0;
-  background: #fff;
-  border: none;
+  max-height: 700px;
+  overflow: auto;
   font-family: var(--font-main) !important;
   font-size: 13px !important;
   line-height: 1.6 !important;
@@ -236,8 +228,8 @@
   tab-size: 2;
 }
 
-.yaml-editor-pre code {
-  display: block;
+.yaml-content code {
+  display: block !important;
   white-space: pre-wrap !important;
   word-wrap: break-word !important;
   word-break: break-word !important;
@@ -250,39 +242,54 @@
   padding: 0;
 }
 
+/* 覆盖 Prism.js 的默认样式 */
+.yaml-content pre[class*="language-"] {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.yaml-content code[class*="language-"] {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
 /* Prism.js 语法高亮样式 - 柔和配色 */
-.yaml-editor-pre .token.key {
+.yaml-content .token.key {
   color: #096dd9;
   font-weight: 600;
 }
 
-.yaml-editor-pre .token.string {
+.yaml-content .token.string {
   color: #52c41a;
 }
 
-.yaml-editor-pre .token.number {
+.yaml-content .token.number {
   color: #fa8c16;
 }
 
-.yaml-editor-pre .token.boolean {
+.yaml-content .token.boolean {
   color: #722ed1;
 }
 
-.yaml-editor-pre .token.null {
+.yaml-content .token.null {
   color: #8c8c8c;
 }
 
-.yaml-editor-pre .token.comment {
+.yaml-content .token.comment {
   color: #8c8c8c;
   font-style: italic;
 }
 
-.yaml-editor-pre .token.punctuation {
+.yaml-content .token.punctuation {
   color: #595959;
 }
 
 /* 编辑模式 - textarea */
-.yaml-editor-textarea {
+.yaml-editor {
   width: 100%;
   min-height: 600px;
   max-height: 700px;
@@ -290,7 +297,8 @@
   padding: 16px;
   margin: 0;
   background: #fff;
-  border: none;
+  border: 1px solid #bae7ff;
+  border-radius: 8px;
   font-family: var(--font-main);
   font-size: 13px;
   line-height: 1.6;
@@ -301,8 +309,9 @@
   tab-size: 2;
 }
 
-.yaml-editor-textarea:focus {
+.yaml-editor:focus {
   background: #fff;
+  border-color: #1890ff;
 }
 
 /* ========== Diff 视图 ========== */
@@ -369,7 +378,7 @@
     width: 100%;
   }
 
-  .toolbar-btn {
+  .action-btn {
     flex: 1;
     min-width: 80px;
     justify-content: center;
