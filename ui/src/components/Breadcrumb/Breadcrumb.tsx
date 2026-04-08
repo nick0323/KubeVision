@@ -1,7 +1,3 @@
-/**
- * 面包屑导航组件
- * 格式：Cluster > Namespace > Resource Type > Resource Name
- */
 import React from 'react';
 import { FaChevronRight } from 'react-icons/fa';
 import './Breadcrumb.css';

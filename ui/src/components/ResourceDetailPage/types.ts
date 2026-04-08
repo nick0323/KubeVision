@@ -1,141 +1,20 @@
 /**
- * 通用资源详情页类型定义
+ * 通用资源详情页类型定义 - 兼容旧代码
+ * 所有类型已迁移到 ../ResourceDetail/types.ts
  */
 
-import { K8sResource } from '../../types/k8s-resources';
+// 重新导出通用类型，保持向后兼容
+export type {
+  ResourceConfig,
+  ResourceDetailPageProps,
+  OverviewTabProps,
+  YamlTabProps,
+  EventsTabProps,
+  RelatedTabProps,
+} from '../ResourceDetail/types';
 
-/**
- * 资源类型配置
- */
-export interface ResourceConfig {
-  title: string;
-  tabs: string[];
-  hasLogs?: boolean;
-  hasTerminal?: boolean;
-  hasReplicaSets?: boolean;
-  hasPods?: boolean;
-  hasEndpoints?: boolean;
-}
+// 重新导出常量（不是类型）
+export { RESOURCE_CONFIGS } from '../ResourceDetail/types';
 
-/**
- * 通用资源详情 Props
- */
-export interface ResourceDetailPageProps {
-  resourceType: string;
-  namespace: string;
-  name: string;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
-}
-
-/**
- * Overview Tab Props
- */
-export interface OverviewTabProps<T = any> {
-  data: T | null;
-  loading: boolean;
-  onRefresh?: () => void;
-  resourceType?: string;
-}
-
-/**
- * YAML Tab Props
- */
-export interface YamlTabProps {
-  namespace: string;
-  name: string;
-  resourceType: string;
-  data?: any | null;
-}
-
-/**
- * Events Tab Props
- */
-export interface EventsTabProps {
-  namespace: string;
-  name: string;
-  resourceKind: string;
-}
-
-/**
- * Related Tab Props
- */
-export interface RelatedTabProps {
-  namespace: string;
-  name: string;
-  ownerReferences?: any[];
-}
-
-/**
- * 资源配置映射
- */
-export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
-  pod: {
-    title: 'Pod',
-    tabs: ['overview', 'yaml', 'logs', 'terminal', 'related', 'events'],
-    hasLogs: true,
-    hasTerminal: true,
-  },
-  deployment: {
-    title: 'Deployment',
-    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
-    hasPods: true,
-  },
-  statefulset: {
-    title: 'StatefulSet',
-    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
-    hasPods: true,
-  },
-  daemonset: {
-    title: 'DaemonSet',
-    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
-    hasPods: true,
-  },
-  service: {
-    title: 'Service',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-    hasEndpoints: true,
-  },
-  configmap: {
-    title: 'ConfigMap',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-  },
-  secret: {
-    title: 'Secret',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-  },
-  ingress: {
-    title: 'Ingress',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-  },
-  job: {
-    title: 'Job',
-    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
-    hasPods: true,
-  },
-  cronjob: {
-    title: 'CronJob',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-  },
-  pvc: {
-    title: 'PersistentVolumeClaim',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-  },
-  pv: {
-    title: 'PersistentVolume',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-  },
-  storageclass: {
-    title: 'StorageClass',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-  },
-  namespace: {
-    title: 'Namespace',
-    tabs: ['overview', 'yaml', 'related', 'events'],
-  },
-  node: {
-    title: 'Node',
-    tabs: ['overview', 'yaml', 'pods', 'events'],
-    hasPods: true,
-  },
-};
+// 重新导出 K8s 类型
+export type { K8sResource } from '../../types/k8s-resources';

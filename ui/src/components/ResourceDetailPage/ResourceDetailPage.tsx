@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../PageHeader';
-import { ResourceActionBar } from './components/ResourceActionBar';
-import { TabNavigation, TabItem } from './components/TabNavigation';
+import { ResourceActionBar } from '../common/ResourceActionBar';
+import { TabNavigation, TabItem } from '../common/TabNavigation';
 import { OverviewTab } from './tabs/OverviewTab';
-import { YamlTab } from './tabs/YamlTab';
+import { YamlTab } from '../ResourceDetail/tabs/YamlTab';
 import { EventsTab } from './tabs/EventsTab';
 import { RelatedTab } from './tabs/RelatedTab';
 import { useResourceDetail } from './hooks/useResourceDetail';
@@ -12,7 +12,7 @@ import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './types';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { ErrorDisplay } from '../ErrorDisplay';
 import { authFetch } from '../../utils/auth';
-import './ResourceDetailPage.css';
+import '../../styles/detail-page.css';
 
 // 导入资源特定 Tabs
 import { ReplicaSetsTab } from './tabs/ReplicaSetsTab';
@@ -163,7 +163,13 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
         return <ReplicaSetsTab namespace={namespace} name={resourceName} deployment={data} />;
 
       case 'pods':
-        return <PodsTab namespace={namespace} resourceName={resourceName} resourceKind={config.title} ownerReferences={(data as any)?.metadata?.uid ? [{ uid: (data as any).metadata.uid, kind: config.title, name: resourceName }] : []} />;
+        return <PodsTab 
+          namespace={namespace} 
+          resourceName={resourceName} 
+          resourceKind={config.title} 
+          resourceLabels={(data as any)?.spec?.selector?.matchLabels || (data as any)?.metadata?.labels || {}}
+          ownerReferences={(data as any)?.metadata?.uid ? [{ uid: (data as any).metadata.uid, kind: config.title, name: resourceName }] : []} 
+        />;
 
       case 'endpoints':
         return <EndpointsTab namespace={namespace} serviceName={resourceName} />;

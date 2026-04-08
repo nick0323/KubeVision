@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { RelatedTabProps, RelatedResource } from '../types';
+import { RelatedTabProps } from '../types';
+import { RelatedResource } from '../../ResourceDetail/types';
 import { LoadingSpinner } from '../../LoadingSpinner';
 import { ErrorDisplay } from '../../ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
 import { useNavigate } from 'react-router-dom';
-import './RelatedTab.css';
 
 /**
  * Related Tab - 关联资源
@@ -30,7 +30,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
           setRelatedResources(result.data || []);
         } else {
           // 如果没有关联资源 API，使用 ownerReferences
-          const owners: RelatedResource[] = ownerReferences.map(ref => ({
+          const owners: RelatedResource[] = (ownerReferences || []).map(ref => ({
             kind: ref.kind,
             name: ref.name,
             apiVersion: ref.apiVersion,
@@ -39,7 +39,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
         }
       } catch {
         // 降级处理：只显示 ownerReferences
-        const owners: RelatedResource[] = ownerReferences.map(ref => ({
+        const owners: RelatedResource[] = (ownerReferences || []).map(ref => ({
           kind: ref.kind,
           name: ref.name,
           apiVersion: ref.apiVersion,

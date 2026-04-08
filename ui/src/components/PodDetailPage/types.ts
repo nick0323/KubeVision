@@ -1,152 +1,24 @@
 /**
- * Pod 详情页类型定义
+ * Pod 详情页类型定义 - 兼容旧代码
+ * 所有类型已迁移到 ../ResourceDetail/types.ts
  */
 
-import { Pod, K8sOwnerReference } from '../../types/k8s-resources';
+// 重新导出通用类型，保持向后兼容
+export type {
+  OverviewTabProps,
+  YamlTabProps,
+  LogsTabProps,
+  TerminalTabProps,
+  RelatedTabProps,
+  EventsTabProps,
+  ContainerState,
+  ContainerStatusSummary,
+  PodCondition,
+  LogOptions,
+  TerminalOptions,
+  EventStats,
+  PodDetailPageProps,
+} from '../ResourceDetail/types';
 
-/**
- * Pod 详情页 Props
- */
-export interface PodDetailPageProps {
-  namespace: string;
-  name: string;
-}
-
-/**
- * Overview Tab Props
- */
-export interface OverviewTabProps {
-  pod: Pod | null;
-  loading: boolean;
-  onRefresh: () => void;
-  resourceType?: string;
-}
-
-/**
- * YAML Tab Props
- */
-export interface YamlTabProps {
-  namespace: string;
-  name: string;
-  resourceType?: string;
-  data?: any | null;
-  pod?: any | null;
-}
-
-/**
- * Logs Tab Props
- */
-export interface LogsTabProps {
-  namespace: string;
-  name: string;
-  containers: Pod['spec']['containers'];
-}
-
-/**
- * Terminal Tab Props
- */
-export interface TerminalTabProps {
-  namespace: string;
-  name: string;
-  containers: Pod['spec']['containers'];
-}
-
-/**
- * Related Tab Props
- */
-export interface RelatedTabProps {
-  namespace: string;
-  name: string;
-  ownerReferences: K8sOwnerReference[];
-}
-
-/**
- * Events Tab Props
- */
-export interface EventsTabProps {
-  namespace: string;
-  podName?: string;
-  name?: string;
-  resourceKind?: string;
-  onRefresh?: () => void;
-}
-
-/**
- * 容器状态
- */
-export interface ContainerState {
-  name: string;
-  waiting?: { reason?: string };
-  running?: { startedAt?: string };
-  terminated?: { reason?: string; exitCode?: number };
-}
-
-/**
- * 容器状态摘要
- */
-export interface ContainerStatusSummary {
-  name: string;
-  ready: boolean;
-  restartCount: number;
-  state: {
-    waiting?: { reason?: string; message?: string };
-    running?: { startedAt?: string };
-    terminated?: {
-      exitCode?: number;
-      reason?: string;
-      message?: string;
-      startedAt?: string;
-      finishedAt?: string;
-    };
-  };
-  image: string;
-}
-
-/**
- * Pod 条件
- */
-export interface PodCondition {
-  type: string;
-  status: 'True' | 'False' | 'Unknown';
-  lastTransitionTime?: string;
-  reason?: string;
-  message?: string;
-}
-
-/**
- * 关联资源
- */
-export interface RelatedResource {
-  kind: string;
-  name: string;
-  namespace?: string;
-  apiVersion?: string;
-}
-
-/**
- * 日志选项
- */
-export interface LogOptions {
-  container?: string;
-  since?: string;
-  previous?: boolean;
-  timestamps?: boolean;
-  tailLines?: number;
-}
-
-/**
- * 终端选项
- */
-export interface TerminalOptions {
-  container?: string;
-  shell: string;
-}
-
-/**
- * 事件统计
- */
-export interface EventStats {
-  total: number;
-  normal: number;
-  warning: number;
-}
+// 重新导出 K8s 类型
+export type { Pod, K8sOwnerReference } from '../../types/k8s-resources';

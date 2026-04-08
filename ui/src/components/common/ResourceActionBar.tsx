@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaSync, FaTrash } from 'react-icons/fa';
+import { FaSync, FaClipboardList, FaTrash } from 'react-icons/fa';
 import './ResourceActionBar.css';
 
 export interface ResourceActionBarProps {
@@ -7,16 +7,18 @@ export interface ResourceActionBarProps {
   namespace: string;
   onRefresh: () => void;
   onDelete: () => void;
+  onDescribe?: () => void;  // 可选，Pod 详情页需要
 }
 
 /**
- * 资源操作栏
+ * 资源操作栏 - 通用组件
  */
 export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
   name,
   namespace,
   onRefresh,
   onDelete,
+  onDescribe,
 }) => {
   const [refreshing, setRefreshing] = useState(false);
 
@@ -43,6 +45,11 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
             >
               <FaSync />
             </button>
+            {onDescribe && (
+              <button className="action-btn" onClick={onDescribe} title="查看详情">
+                <FaClipboardList />
+              </button>
+            )}
             <button className="action-btn danger" onClick={onDelete} title="删除">
               <FaTrash />
             </button>

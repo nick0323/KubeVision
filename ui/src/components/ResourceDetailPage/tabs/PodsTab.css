@@ -1,3 +1,47 @@
+/* Pods Tab 样式 */
 .pods-tab {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 10px;
+}
+
+/* 表格样式 */
+.pods-tab .detail-table {
+  width: 100%;
+}
+
+.pods-tab .detail-table th {
+  padding: 12px 16px;
+  font-size: 13px;
+}
+
+.pods-tab .detail-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+}
+
+/* 资源名称链接样式 */
+.pods-tab .resource-name-link {
+  color: #1890ff;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  word-break: break-all;
+}
+
+.pods-tab .resource-name-link:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+/* 空状态 */
+.pods-tab .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #8c8c8c;
+}
+
+.pods-tab .empty-state-text {
+  font-size: 14px;
 }
