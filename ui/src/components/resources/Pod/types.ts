@@ -18,7 +18,7 @@ export type {
   TerminalOptions,
   EventStats,
   PodDetailPageProps,
-} from '../ResourceDetail/types';
+} from '../../ResourceDetail/types';
 
 // 重新导出 K8s 类型
 export type { Pod, K8sOwnerReference } from '../../types/k8s-resources';

@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { LoadingSpinner } from '../../ui/LoadingSpinner';
-import { ErrorDisplay } from '../../ui/ErrorDisplay';
-import { StatusBadge } from '../../ui/StatusBadge';
-import { authFetch } from '../../../utils/auth';
+import { LoadingSpinner } from '../../../ui/LoadingSpinner';
+import { ErrorDisplay } from '../../../ui/ErrorDisplay';
+import { StatusBadge } from '../../../ui/StatusBadge';
+import { authFetch } from '../../../../utils/auth';
 import './PodsTab.css';
 
 interface Pod {

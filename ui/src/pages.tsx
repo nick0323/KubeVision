@@ -1,10 +1,10 @@
 import React from 'react';
 
 // 懒加载概览页
-const LazyOverview = React.lazy(() => import('./pages/OverviewPage'));
+const LazyOverview = React.lazy(() => import('./pages/OverviewPage.tsx'));
 
 // 导入 ResourceListPage（不懒加载，因为需要传递 props）
-import { ResourceListPage } from './pages/ResourceListPage';
+import { ResourceListPage } from './pages/ResourceListPage.tsx';
 import {
   PODS_CONFIG,
   DEPLOYMENTS_CONFIG,

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { LoadingSpinner } from '../../ui/LoadingSpinner';
-import { ErrorDisplay } from '../../ui/ErrorDisplay';
-import { authFetch } from '../../../utils/auth';
+import { LoadingSpinner } from '../../../ui/LoadingSpinner';
+import { ErrorDisplay } from '../../../ui/ErrorDisplay';
+import { authFetch } from '../../../../utils/auth';
 import './EndpointsTab.css';
 
 interface EndpointSubset {

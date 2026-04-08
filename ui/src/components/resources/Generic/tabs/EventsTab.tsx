@@ -1,0 +1,1 @@
+export { EventsTab } from '../../Pod/tabs/EventsTab';

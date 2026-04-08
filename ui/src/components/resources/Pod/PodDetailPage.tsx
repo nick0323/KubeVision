@@ -1,20 +1,20 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Pod } from '../../types/k8s-resources';
-import PageHeader from '../common/PageHeader.tsx';
-import { ResourceActionBar } from '../common/ResourceActionBar';
-import { TabNavigation, TabItem } from '../common/TabNavigation';
+import { Pod } from '../../../types/k8s-resources';
+import PageHeader from '../../common/PageHeader.tsx';
+import { ResourceActionBar } from '../../common/ResourceActionBar';
+import { TabNavigation, TabItem } from '../../common/TabNavigation';
 import { OverviewTab } from './tabs/OverviewTab';
-import { YamlTab } from '../ResourceDetail/tabs/YamlTab';
+import { YamlTab } from '../../ResourceDetail/tabs/YamlTab';
 import { LogsTab } from './tabs/LogsTab';
 import { TerminalTab } from './tabs/TerminalTab';
 import { RelatedTab } from './tabs/RelatedTab';
 import { EventsTab } from './tabs/EventsTab';
-import { useResourceDetail } from '../ResourceDetailPage/hooks/useResourceDetail';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { ErrorDisplay } from '../ui/ErrorDisplay';
-import { authFetch } from '../../utils/auth';
-import '../../styles/detail-page.css';
+import { useResourceDetail } from '../Generic/hooks/useResourceDetail';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
+import { ErrorDisplay } from '../../ui/ErrorDisplay';
+import { authFetch } from '../../../utils/auth';
+import '../../../styles/detail-page.css';
 
 /**
  * Tab 配置

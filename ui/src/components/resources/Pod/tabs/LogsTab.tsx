@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { LogsTabProps } from '../types';
-import { LoadingSpinner } from '../../ui/LoadingSpinner';
-import { ErrorDisplay } from '../../ui/ErrorDisplay';
+import { LoadingSpinner } from '../../../ui/LoadingSpinner';
+import { ErrorDisplay } from '../../../ui/ErrorDisplay';
 import { FaCog, FaDownload, FaChevronDown, FaEraser } from 'react-icons/fa';
-import NamespaceSelect from '../../common/NamespaceSelect';
+import NamespaceSelect from '../../../common/NamespaceSelect';
 import './LogsTab.css';
 
 const LINES_OPTIONS = [

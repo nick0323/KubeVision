@@ -1,1 +1,0 @@
-export { RelatedTab } from '../../PodDetailPage/tabs/RelatedTab';

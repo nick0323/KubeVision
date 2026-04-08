@@ -11,10 +11,10 @@ export type {
   YamlTabProps,
   EventsTabProps,
   RelatedTabProps,
-} from '../ResourceDetail/types';
+} from '../../ResourceDetail/types';
 
 // 重新导出常量（不是类型）
-export { RESOURCE_CONFIGS } from '../ResourceDetail/types';
+export { RESOURCE_CONFIGS } from '../../ResourceDetail/types';
 
 // 重新导出 K8s 类型
 export type { K8sResource } from '../../types/k8s-resources';

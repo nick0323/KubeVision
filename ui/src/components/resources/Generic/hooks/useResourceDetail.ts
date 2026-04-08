@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { authFetch } from '../../../utils/auth';
+import { authFetch } from '../../../../utils/auth';
 
 export interface UseResourceDetailOptions {
   resourceType: string;

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { TerminalTabProps } from '../types';
 import { FaPlug, FaTimes, FaEraser, FaChevronDown } from 'react-icons/fa';
-import NamespaceSelect from '../../common/NamespaceSelect';
+import NamespaceSelect from '../../../common/NamespaceSelect';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';

@@ -1,26 +1,26 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import PageHeader from '../common/PageHeader.tsx';
-import { ResourceActionBar } from '../common/ResourceActionBar';
-import { TabNavigation, TabItem } from '../common/TabNavigation';
+import PageHeader from '../../common/PageHeader.tsx';
+import { ResourceActionBar } from '../../common/ResourceActionBar';
+import { TabNavigation, TabItem } from '../../common/TabNavigation';
 import { OverviewTab } from './tabs/OverviewTab';
-import { YamlTab } from '../ResourceDetail/tabs/YamlTab';
+import { YamlTab } from '../../ResourceDetail/tabs/YamlTab';
 import { EventsTab } from './tabs/EventsTab';
 import { RelatedTab } from './tabs/RelatedTab';
 import { useResourceDetail } from './hooks/useResourceDetail';
 import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './types';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
-import { ErrorDisplay } from '../ui/ErrorDisplay';
-import { authFetch } from '../../utils/auth';
-import '../../styles/detail-page.css';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
+import { ErrorDisplay } from '../../ui/ErrorDisplay';
+import { authFetch } from '../../../utils/auth';
+import '../../../styles/detail-page.css';
 
 // 导入资源特定 Tabs
 import { PodsTab } from './tabs/PodsTab';
 import { EndpointsTab } from './tabs/EndpointsTab';
 
 // Pod 特有 Tabs（复用现有组件）
-import { LogsTab } from '../PodDetailPage/tabs/LogsTab';
-import { TerminalTab } from '../PodDetailPage/tabs/TerminalTab';
+import { LogsTab } from '../Pod/tabs/LogsTab';
+import { TerminalTab } from '../Pod/tabs/TerminalTab';
 
 /**
  * 通用资源详情页组件

@@ -30,8 +30,8 @@ import { MENU_LIST } from './constants';
 import LoginPage from './pages/LoginPage.tsx';
 import { authUtils } from './utils/auth.ts';
 import { PAGE_COMPONENTS } from './pages.tsx';
-import { PodDetailPage } from './components/PodDetailPage';
-import { ResourceDetailPage } from './components/ResourceDetailPage';
+import { PodDetailPage } from './components/resources/Pod/index';
+import { ResourceDetailPage } from './components/resources/Generic/index';
 
 // 图标映射
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -154,7 +154,11 @@ const ListPage: React.FC = () => {
               <li
                 key={item.key}
                 className={tab === item.key ? 'active' : ''}
-                onClick={() => setTab(item.key)}
+                onClick={() => {
+                  setTab(item.key);
+                  localStorage.setItem('current_tab', item.key);
+                  window.dispatchEvent(new CustomEvent('tab-change', { detail: item.key }));
+                }}
                 data-tip={item.label}
               >
                 <span className="icon">{ICON_MAP[item.icon]}</span>
@@ -193,7 +197,11 @@ const ListPage: React.FC = () => {
                     <li
                       key={item.key}
                       className={tab === item.key ? 'active' : ''}
-                      onClick={() => setTab(item.key)}
+                      onClick={() => {
+                        setTab(item.key);
+                        localStorage.setItem('current_tab', item.key);
+                        window.dispatchEvent(new CustomEvent('tab-change', { detail: item.key }));
+                      }}
                       data-tip={item.label}
                     >
                       <span className="icon">{ICON_MAP[item.icon]}</span>
