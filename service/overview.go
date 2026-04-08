@@ -146,7 +146,7 @@ func (s *OverviewService) fetchAllResources(ctx context.Context) *overviewData {
 	// 并行获取 Pods（同时返回简化数据和原始数据）
 	// 传入 true 表示不限制数量，获取完整的 Pod 列表用于统计
 	go func() {
-		pods, podsRaw, err := ListPodsWithRaw(ctx, s.clientset, nil, "", true)
+		pods, podsRaw, err := ListPodsWithRaw(ctx, s.clientset, nil, "", "", "", true)
 		podChan <- podResult{pods: pods, podsRaw: podsRaw, err: err}
 	}()
 
@@ -163,13 +163,13 @@ func (s *OverviewService) fetchAllResources(ctx context.Context) *overviewData {
 
 	// 并行获取 Namespaces
 	go func() {
-		nsList, err := ListNamespaces(ctx, s.clientset)
+		nsList, err := ListNamespaces(ctx, s.clientset, "", "")
 		nsChan <- nsResult{nsList: nsList, err: err}
 	}()
 
 	// 并行获取 Services
 	go func() {
-		services, err := ListServices(ctx, s.clientset, "")
+		services, err := ListServices(ctx, s.clientset, "", "", "")
 		svcChan <- svcResult{services: services, err: err}
 	}()
 

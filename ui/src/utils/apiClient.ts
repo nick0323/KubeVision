@@ -12,14 +12,7 @@ export interface ApiError extends Error {
   details?: any;
 }
 
-/**
- * API 客户端 - 修复版
- * 改进：
- * 1. 使用 authFetch 代替原生 fetch
- * 2. 添加请求超时
- * 3. 统一错误处理
- * 4. 添加请求重试
- */
+
 export const apiClient = {
   /**
    * 通用请求方法
@@ -118,45 +111,16 @@ export const apiClient = {
     return this.request<T>(endpoint, { method: 'DELETE' });
   },
 
-  /**
-   * 获取资源详情（使用单数形式）
-   * 后端只支持单数形式：/api/pod/ns/name, /api/deployment/ns/name
-   */
   async getDetail(resourceType: string, namespace: string, name: string): Promise<any> {
-    // 将复数形式转为单数
-    const singularType = this.toSingular(resourceType);
-    const endpoint = `/api/${singularType}/${namespace}/${name}`;
+    const endpoint = `/api/${resourceType}/${namespace}/${name}`;
     const result = await this.request<any>(endpoint);
     return result.data;
   },
 
-  /**
-   * 删除资源（使用单数形式）
-   * 后端只支持单数形式：/api/pod/ns/name, /api/deployment/ns/name
-   */
   async deleteResource(resourceType: string, namespace: string, name: string): Promise<any> {
-    // 将复数形式转为单数
-    const singularType = this.toSingular(resourceType);
-    const endpoint = `/api/${singularType}/${namespace}/${name}`;
+    const endpoint = `/api/${resourceType}/${namespace}/${name}`;
     const result = await this.request<any>(endpoint, { method: 'DELETE' });
     return result.data;
-  },
-
-  /**
-   * 将资源类型转为单数形式
-   * 规则：以 'ss' 结尾的资源已经是单数，其他直接去掉末尾的 's'
-   */
-  toSingular(resourceType: string): string {
-    const type = resourceType.toLowerCase();
-    // 以 'ss' 结尾的资源已经是单数（如 ingress, stress）
-    if (type.endsWith('ss')) {
-      return type;
-    }
-    // 直接去掉末尾的 's'（如果存在）
-    if (type.endsWith('s')) {
-      return type.slice(0, -1);
-    }
-    return type;
   },
 };
 

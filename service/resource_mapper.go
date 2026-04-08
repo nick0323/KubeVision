@@ -396,12 +396,26 @@ func MapEvents(events []corev1.Event) []model.Event {
 			Count:     e.Count,
 			Object:    e.InvolvedObject.Kind + "/" + e.InvolvedObject.Name,
 			Source:    e.Source.Component,
-			LastSeen:  model.FormatTime(&e.LastTimestamp),
+			LastSeen:  formatEventLastSeen(e),
 			Duration:  calculateEventDuration(e),
 			Age:       CalculateAge(e.CreationTimestamp),
 		}
 	}
 	return result
+}
+
+// formatEventLastSeen 格式化事件最后可见时间（优先 EventTime，其次 LastTimestamp）
+func formatEventLastSeen(e corev1.Event) string {
+	// 优先使用 EventTime（新 API，microTime 精度）
+	if !e.EventTime.IsZero() {
+		return model.FormatTime((*metav1.Time)(&e.EventTime))
+	}
+	// 回退到 LastTimestamp（旧 API）
+	if !e.LastTimestamp.IsZero() {
+		return model.FormatTime(&e.LastTimestamp)
+	}
+	// 最后回退到 CreationTimestamp
+	return model.FormatTime(&e.CreationTimestamp)
 }
 
 // 辅助函数

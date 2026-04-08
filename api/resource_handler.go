@@ -48,11 +48,16 @@ func getResourceList(
 
 		ctx := GetRequestContext(c)
 		namespace := c.Query("namespace")
+		labelSelector := c.Query("labelSelector") // 支持 label selector 查询
+		if labelSelector == "" {
+			labelSelector = c.Query("selector") // 兼容 selector 别名
+		}
+		fieldSelector := c.Query("fieldSelector")   // 支持 field selector 查询
 		involvedObject := c.Query("involvedObject") // Events 专用参数
 		since := c.Query("since")                   // Events 专用参数
 
 		// 调用 service 层获取数据
-		result, err := getResourceListByType(ctx, clientset, resourceType, namespace, involvedObject, since)
+		result, err := getResourceListByType(ctx, clientset, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -207,35 +212,35 @@ func deleteResourceByType(ctx context.Context, clientset *kubernetes.Clientset, 
 	resourceType = strings.ToLower(resourceType)
 
 	switch resourceType {
-	case "pod", "pods":
+	case "pod":
 		return clientset.CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "deployment", "deployments":
+	case "deployment":
 		return clientset.AppsV1().Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "statefulset", "statefulsets":
+	case "statefulset":
 		return clientset.AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "daemonset", "daemonsets":
+	case "daemonset":
 		return clientset.AppsV1().DaemonSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "service", "services":
+	case "service":
 		return clientset.CoreV1().Services(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "configmap", "configmaps":
+	case "configmap":
 		return clientset.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "secret", "secrets":
+	case "secret":
 		return clientset.CoreV1().Secrets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "ingress", "ingresses":
+	case "ingress":
 		return clientset.NetworkingV1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "job", "jobs":
+	case "job":
 		return clientset.BatchV1().Jobs(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "cronjob", "cronjobs":
+	case "cronjob":
 		return clientset.BatchV1().CronJobs(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "persistentvolumeclaim", "persistentvolumeclaims", "pvc", "pvcs":
+	case "persistentvolumeclaim", "pvc":
 		return clientset.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "persistentvolume", "persistentvolumes", "pv", "pvs":
+	case "persistentvolume", "pv":
 		return clientset.CoreV1().PersistentVolumes().Delete(ctx, name, metav1.DeleteOptions{})
-	case "storageclass", "storageclasses":
+	case "storageclass":
 		return clientset.StorageV1().StorageClasses().Delete(ctx, name, metav1.DeleteOptions{})
-	case "namespace", "namespaces":
+	case "namespace":
 		return clientset.CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
-	case "node", "nodes":
+	case "node":
 		return clientset.CoreV1().Nodes().Delete(ctx, name, metav1.DeleteOptions{})
 	default:
 		return fmt.Errorf("不支持的资源类型：%s", resourceType)
@@ -243,12 +248,12 @@ func deleteResourceByType(ctx context.Context, clientset *kubernetes.Clientset, 
 }
 
 // getResourceListByType 根据资源类型获取列表
-func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset, resourceType, namespace string, involvedObject string, since string) ([]model.SearchableItem, error) {
+func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since string) ([]model.SearchableItem, error) {
 	resourceType = normalizeResourceType(resourceType)
 
 	switch resourceType {
-	case "pod", "pods":
-		pods, err := service.ListPods(ctx, clientset, nil, namespace)
+	case "pod":
+		pods, err := service.ListPods(ctx, clientset, nil, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -258,8 +263,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "deployment", "deployments":
-		deployments, err := service.ListDeployments(ctx, clientset, namespace)
+	case "deployment":
+		deployments, err := service.ListDeployments(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -269,8 +274,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "statefulset", "statefulsets":
-		statefulSets, err := service.ListStatefulSets(ctx, clientset, namespace)
+	case "statefulset":
+		statefulSets, err := service.ListStatefulSets(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -280,8 +285,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "daemonset", "daemonsets":
-		daemonSets, err := service.ListDaemonSets(ctx, clientset, namespace)
+	case "daemonset":
+		daemonSets, err := service.ListDaemonSets(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -291,8 +296,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "service", "services":
-		services, err := service.ListServices(ctx, clientset, namespace)
+	case "service":
+		services, err := service.ListServices(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -302,8 +307,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "configmap", "configmaps":
-		configMaps, err := service.ListConfigMaps(ctx, clientset, namespace)
+	case "configmap":
+		configMaps, err := service.ListConfigMaps(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -313,8 +318,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "secret", "secrets":
-		secrets, err := service.ListSecrets(ctx, clientset, namespace)
+	case "secret":
+		secrets, err := service.ListSecrets(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -324,8 +329,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "ingress", "ingresses":
-		ingresses, err := service.ListIngresses(ctx, clientset, namespace)
+	case "ingress":
+		ingresses, err := service.ListIngresses(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -335,8 +340,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "job", "jobs":
-		jobs, err := service.ListJobs(ctx, clientset, namespace)
+	case "job":
+		jobs, err := service.ListJobs(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -346,8 +351,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "cronjob", "cronjobs":
-		cronJobs, err := service.ListCronJobs(ctx, clientset, namespace)
+	case "cronjob":
+		cronJobs, err := service.ListCronJobs(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -357,8 +362,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "persistentvolumeclaim", "persistentvolumeclaims", "pvc", "pvcs":
-		pvcs, err := service.ListPVCs(ctx, clientset, namespace)
+	case "persistentvolumeclaim", "pvc":
+		pvcs, err := service.ListPVCs(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -368,8 +373,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "persistentvolume", "persistentvolumes", "pv", "pvs":
-		pvs, err := service.ListPVs(ctx, clientset)
+	case "persistentvolume", "pv":
+		pvs, err := service.ListPVs(ctx, clientset, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -379,8 +384,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "storageclass", "storageclasses", "sc":
-		storageClasses, err := service.ListStorageClasses(ctx, clientset)
+	case "storageclass":
+		storageClasses, err := service.ListStorageClasses(ctx, clientset, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -390,8 +395,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "namespace", "namespaces":
-		namespaces, err := service.ListNamespaces(ctx, clientset)
+	case "namespace":
+		namespaces, err := service.ListNamespaces(ctx, clientset, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -401,8 +406,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "node", "nodes":
-		nodes, err := service.ListNodes(ctx, clientset, nil, nil)
+	case "node":
+		nodes, err := service.ListNodes(ctx, clientset, nil, nil, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -412,8 +417,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "endpoints", "endpoint":
-		endpoints, err := service.ListEndpoints(ctx, clientset, namespace)
+	case "endpoint":
+		endpoints, err := service.ListEndpoints(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -423,8 +428,8 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		}
 		return result, nil
 
-	case "event", "events":
-		events, err := service.ListEvents(ctx, clientset, namespace, involvedObject, since)
+	case "event":
+		events, err := service.ListEvents(ctx, clientset, namespace, involvedObject, since, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -476,7 +481,7 @@ func getResourceByName(ctx context.Context, clientset *kubernetes.Clientset, res
 		return clientset.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
 	case "node":
 		return clientset.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
-	case "endpoints":
+	case "endpoint":
 		return clientset.CoreV1().Endpoints(namespace).Get(ctx, name, metav1.GetOptions{})
 	default:
 		return nil, fmt.Errorf("不支持的资源类型：%s", resourceType)

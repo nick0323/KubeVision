@@ -36,7 +36,7 @@ export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceNa
     setError(null);
 
     try {
-      const response = await authFetch(`/api/endpoints/${namespace}/${serviceName}`);
+      const response = await authFetch(`/api/endpoint/${namespace}/${serviceName}`);
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
