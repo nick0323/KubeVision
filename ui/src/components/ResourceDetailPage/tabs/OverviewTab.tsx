@@ -291,13 +291,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
 
   // 判断是否需要显示 Status Overview
   const hasStatusOverview = useMemo(() => {
-    // Pod 和 Workload 资源显示状态
-    if (resourceType === 'pod') return true;
-    if (['deployment', 'statefulset', 'daemonset', 'job'].includes(resourceType)) return true;
-    // 其他资源如果有 status.phase 或 status.replicas 也显示
-    if (status.phase || status.replicas !== undefined) return true;
-    return false;
-  }, [resourceType, status]);
+    // 只有 Pod、Deployment、StatefulSet 显示状态概览
+    return ['pod', 'deployment', 'statefulset'].includes(resourceType);
+  }, [resourceType]);
 
   if (loading || !data) {
     return <div className="overview-tab-loading">加载中...</div>;

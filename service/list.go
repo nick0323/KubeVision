@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/nick0323/K8sVision/model"
@@ -301,28 +303,64 @@ func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]mod
 }
 
 // ListEvents 获取 Event 列表
-func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace string) ([]model.Event, error) {
+// 参数：
+//   - namespace: 命名空间
+//   - involvedObject: 关联对象（格式：Kind/Name，如：Deployment/my-app）
+//   - since: 时间范围（如：1h, 30m, 1d），默认 1 小时
+func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace string, involvedObject string, since string) ([]model.Event, error) {
 	opts := DefaultListOptions()
-	// 注意：Kubernetes fieldSelector 不支持 metadata.creationTimestamp 范围查询
-	// 所以先获取所有事件，然后在内存中过滤最近 1 小时的事件
+
+	// 从 K8s API 获取事件
 	events, err := clientset.CoreV1().Events(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
 
-	// 在内存中过滤最近 1 小时的事件
-	now := time.Now()
-	oneHourAgo := now.Add(-1 * time.Hour)
+	// 解析时间范围
+	duration, err := time.ParseDuration(since)
+	if err != nil {
+		// 默认 1 小时
+		duration = 1 * time.Hour
+	}
+
+	// 在内存中过滤指定时间范围内的事件
+	cutoffTime := time.Now().Add(-duration)
 	filteredEvents := make([]corev1.Event, 0, len(events.Items))
 	for _, event := range events.Items {
 		eventTime := event.LastTimestamp.Time
 		if eventTime.IsZero() {
 			eventTime = event.EventTime.Time
 		}
-		if !eventTime.IsZero() && eventTime.After(oneHourAgo) {
+		if !eventTime.IsZero() && eventTime.After(cutoffTime) {
+			// 如果指定了 involvedObject，进一步过滤
+			if involvedObject != "" {
+				// 解析 involvedObject（格式：Kind/Name）
+				parts := strings.SplitN(involvedObject, "/", 2)
+				if len(parts) == 2 {
+					kind := parts[0]
+					name := parts[1]
+					// 检查事件的 involvedObject 是否匹配
+					if event.InvolvedObject.Kind != kind || event.InvolvedObject.Name != name {
+						continue
+					}
+				}
+			}
 			filteredEvents = append(filteredEvents, event)
 		}
 	}
+
+	// 按 lastTimestamp 倒序排序（最新的事件在前）
+	sort.Slice(filteredEvents, func(i, j int) bool {
+		iTime := filteredEvents[i].LastTimestamp.Time
+		if iTime.IsZero() {
+			iTime = filteredEvents[i].EventTime.Time
+		}
+		jTime := filteredEvents[j].LastTimestamp.Time
+		if jTime.IsZero() {
+			jTime = filteredEvents[j].EventTime.Time
+		}
+		return iTime.After(jTime)
+	})
 
 	// 使用通用映射函数
 	result := MapEvents(filteredEvents)

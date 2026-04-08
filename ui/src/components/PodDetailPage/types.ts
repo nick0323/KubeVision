@@ -65,7 +65,10 @@ export interface RelatedTabProps {
  */
 export interface EventsTabProps {
   namespace: string;
-  podName: string;
+  podName?: string;
+  name?: string;
+  resourceKind?: string;
+  onRefresh?: () => void;
 }
 
 /**

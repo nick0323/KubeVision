@@ -8,7 +8,7 @@ import './EventsTab.css';
 /**
  * Events Tab - 事件列表
  */
-export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName }) => {
+export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName, name, resourceKind, onRefresh }) => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,12 +19,18 @@ export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName }) => {
     setError(null);
 
     try {
+      // 优先使用 resourceKind 和 name，兼容旧的 podName
+      const resourceName = name || podName;
+      const kind = resourceKind || 'Pod';
+
+      // 传递 involvedObject 参数给后端，让后端在内存中过滤
       const response = await authFetch(
-        `/api/events?namespace=${namespace}&involvedObject=Pod/${podName}`
+        `/api/events?namespace=${namespace}&involvedObject=${kind}/${resourceName}`
       );
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
+        // 后端已经过滤，直接使用返回的数据
         setEvents(Array.isArray(result.data) ? result.data : []);
       } else {
         setError(result.message || '加载事件失败');
@@ -34,11 +40,11 @@ export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName }) => {
     } finally {
       setLoading(false);
     }
-  }, [namespace, podName]);
+  }, [namespace, name, podName, resourceKind]);
 
   useEffect(() => {
     loadEvents();
-  }, [loadEvents]);
+  }, [loadEvents, name, resourceKind]);
 
   // 格式化时间
   const formatTime = (timestamp?: string) => {

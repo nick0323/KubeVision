@@ -176,7 +176,15 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
           ownerReferences={pod?.metadata?.ownerReferences || []}
         />
       )}
-      {activeTab === 'events' && <EventsTab namespace={namespace} podName={podName} />}
+      {activeTab === 'events' && (
+        <EventsTab
+          namespace={namespace}
+          podName={podName}
+          name={podName}
+          resourceKind="Pod"
+          onRefresh={refresh}
+        />
+      )}
     </div>
   );
 };

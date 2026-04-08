@@ -48,9 +48,11 @@ func getResourceList(
 
 		ctx := GetRequestContext(c)
 		namespace := c.Query("namespace")
+		involvedObject := c.Query("involvedObject") // Events 专用参数
+		since := c.Query("since")                   // Events 专用参数
 
 		// 调用 service 层获取数据
-		result, err := getResourceListByType(ctx, clientset, resourceType, namespace)
+		result, err := getResourceListByType(ctx, clientset, resourceType, namespace, involvedObject, since)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -241,7 +243,7 @@ func deleteResourceByType(ctx context.Context, clientset *kubernetes.Clientset, 
 }
 
 // getResourceListByType 根据资源类型获取列表
-func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset, resourceType, namespace string) ([]model.SearchableItem, error) {
+func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset, resourceType, namespace string, involvedObject string, since string) ([]model.SearchableItem, error) {
 	resourceType = normalizeResourceType(resourceType)
 
 	switch resourceType {
@@ -422,7 +424,7 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		return result, nil
 
 	case "event", "events":
-		events, err := service.ListEvents(ctx, clientset, namespace)
+		events, err := service.ListEvents(ctx, clientset, namespace, involvedObject, since)
 		if err != nil {
 			return nil, err
 		}

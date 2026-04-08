@@ -118,6 +118,15 @@
 .labels-item,
 .annotations-item {
   grid-column: span 1;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-secondary);
+}
+
+/* 标签和注解在 info-grid 中平分宽度 */
+.info-grid .labels-item,
+.info-grid .annotations-item {
+  grid-column: span 1;
 }
 
 /* 标签列表 */

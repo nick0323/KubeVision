@@ -78,8 +78,7 @@ export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
   },
   deployment: {
     title: 'Deployment',
-    tabs: ['overview', 'yaml', 'replicasets', 'pods', 'related', 'events'],
-    hasReplicaSets: true,
+    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
     hasPods: true,
   },
   statefulset: {
@@ -94,7 +93,7 @@ export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
   },
   service: {
     title: 'Service',
-    tabs: ['overview', 'yaml', 'endpoints', 'related', 'events'],
+    tabs: ['overview', 'yaml', 'related', 'events'],
     hasEndpoints: true,
   },
   configmap: {
