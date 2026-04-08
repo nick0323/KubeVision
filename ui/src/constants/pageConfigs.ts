@@ -1,7 +1,3 @@
-/**
- * 页面配置 - 精简版
- */
-
 import { ColumnDef } from '../types';
 
 interface ExtendedColumn extends ColumnDef<any> {
@@ -12,7 +8,7 @@ interface ExtendedColumn extends ColumnDef<any> {
 
 export const PODS_CONFIG = {
   title: 'Pods',
-  apiEndpoint: '/api/pods',
+  apiEndpoint: '/api/pod',
   resourceType: 'pod',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
@@ -25,12 +21,12 @@ export const PODS_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '8%', sortable: true },
   ] as ExtendedColumn[],
   namespaceFilter: true,
-  defaultSort: { field: 'age', order: 'desc' as const },
+  defaultSort: { field: 'name', order: 'asc' as const },
 };
 
 export const DEPLOYMENTS_CONFIG = {
   title: 'Deployments',
-  apiEndpoint: '/api/deployments',
+  apiEndpoint: '/api/deployment',
   resourceType: 'deployment',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
@@ -52,7 +48,7 @@ export const DEPLOYMENTS_CONFIG = {
 
 export const STATEFULSETS_CONFIG = {
   title: 'StatefulSets',
-  apiEndpoint: '/api/statefulsets',
+  apiEndpoint: '/api/statefulset',
   resourceType: 'statefulset',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
@@ -72,7 +68,7 @@ export const STATEFULSETS_CONFIG = {
 
 export const DAEMONSETS_CONFIG = {
   title: 'DaemonSets',
-  apiEndpoint: '/api/daemonsets',
+  apiEndpoint: '/api/daemonset',
   resourceType: 'daemonset',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
@@ -88,7 +84,7 @@ export const DAEMONSETS_CONFIG = {
 
 export const JOBS_CONFIG = {
   title: 'Jobs',
-  apiEndpoint: '/api/jobs',
+  apiEndpoint: '/api/job',
   resourceType: 'job',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
@@ -109,7 +105,7 @@ export const JOBS_CONFIG = {
 
 export const CRONJOBS_CONFIG = {
   title: 'CronJobs',
-  apiEndpoint: '/api/cronjobs',
+  apiEndpoint: '/api/cronjob',
   resourceType: 'cronjob',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
@@ -128,7 +124,7 @@ export const CRONJOBS_CONFIG = {
 
 export const SERVICES_CONFIG = {
   title: 'Services',
-  apiEndpoint: '/api/services',
+  apiEndpoint: '/api/service',
   resourceType: 'service',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
@@ -165,7 +161,7 @@ export const INGRESS_CONFIG = {
 // ==================== Storage ====================
 
 export const PVCS_CONFIG = {
-  title: 'PersistentVolumeClaims',
+  title: 'PersistentVolumeClaim',
   apiEndpoint: '/api/pvcs',
   resourceType: 'pvc',
   columns: [
@@ -182,7 +178,7 @@ export const PVCS_CONFIG = {
 };
 
 export const PVS_CONFIG = {
-  title: 'PersistentVolumes',
+  title: 'PersistentVolume',
   apiEndpoint: '/api/pvs',
   resourceType: 'pv',
   columns: [
@@ -200,7 +196,7 @@ export const PVS_CONFIG = {
 
 export const STORAGECLASSES_CONFIG = {
   title: 'StorageClasses',
-  apiEndpoint: '/api/storageclasses',
+  apiEndpoint: '/api/storageclass',
   resourceType: 'storageclass',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '22%', sortable: true },
@@ -217,7 +213,7 @@ export const STORAGECLASSES_CONFIG = {
 
 export const CONFIGMAPS_CONFIG = {
   title: 'ConfigMaps',
-  apiEndpoint: '/api/configmaps',
+  apiEndpoint: '/api/configmap',
   resourceType: 'configmap',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '30%', sortable: true },
@@ -231,7 +227,7 @@ export const CONFIGMAPS_CONFIG = {
 
 export const SECRETS_CONFIG = {
   title: 'Secrets',
-  apiEndpoint: '/api/secrets',
+  apiEndpoint: '/api/secret',
   resourceType: 'secret',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
@@ -247,7 +243,7 @@ export const SECRETS_CONFIG = {
 
 export const NAMESPACES_CONFIG = {
   title: 'Namespaces',
-  apiEndpoint: '/api/namespaces',
+  apiEndpoint: '/api/namespace',
   resourceType: 'namespace',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '60%', sortable: true },
@@ -259,7 +255,7 @@ export const NAMESPACES_CONFIG = {
 
 export const NODES_CONFIG = {
   title: 'Nodes',
-  apiEndpoint: '/api/nodes',
+  apiEndpoint: '/api/node',
   resourceType: 'node',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '15%', sortable: true },
@@ -277,12 +273,12 @@ export const NODES_CONFIG = {
     { title: 'Age', dataIndex: 'age', width: '10%' },
   ] as ExtendedColumn[],
   namespaceFilter: false,
-  defaultSort: { field: 'age', order: 'asc' as const },
+  defaultSort: { field: 'name', order: 'asc' as const },
 };
 
 export const EVENTS_CONFIG = {
   title: 'Events',
-  apiEndpoint: '/api/events',
+  apiEndpoint: '/api/event',
   resourceType: 'event',
   columns: [
     { title: 'Type', dataIndex: 'type', width: '8%', sortable: true },
@@ -294,7 +290,7 @@ export const EVENTS_CONFIG = {
     { title: 'Count', dataIndex: 'count', width: '5%' },
   ] as ExtendedColumn[],
   namespaceFilter: true,
-  defaultSort: { field: 'lastSeen', order: 'desc' as const },
+  defaultSort: { field: 'lastSeen', order: 'asc' as const },
 };
 
 // ==================== 导出所有配置 ====================
