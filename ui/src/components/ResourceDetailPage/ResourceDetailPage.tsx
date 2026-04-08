@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import PageHeader from '../PageHeader';
+import PageHeader from '../common/PageHeader.tsx';
 import { ResourceActionBar } from '../common/ResourceActionBar';
 import { TabNavigation, TabItem } from '../common/TabNavigation';
 import { OverviewTab } from './tabs/OverviewTab';
@@ -9,13 +9,12 @@ import { EventsTab } from './tabs/EventsTab';
 import { RelatedTab } from './tabs/RelatedTab';
 import { useResourceDetail } from './hooks/useResourceDetail';
 import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './types';
-import { LoadingSpinner } from '../LoadingSpinner';
-import { ErrorDisplay } from '../ErrorDisplay';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { ErrorDisplay } from '../ui/ErrorDisplay';
 import { authFetch } from '../../utils/auth';
 import '../../styles/detail-page.css';
 
 // 导入资源特定 Tabs
-import { ReplicaSetsTab } from './tabs/ReplicaSetsTab';
 import { PodsTab } from './tabs/PodsTab';
 import { EndpointsTab } from './tabs/EndpointsTab';
 
@@ -159,16 +158,13 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
       case 'terminal':
         return <TerminalTab namespace={namespace} name={resourceName} containers={(data as any)?.spec?.containers || []} />;
 
-      case 'replicasets':
-        return <ReplicaSetsTab namespace={namespace} name={resourceName} deployment={data} />;
-
       case 'pods':
-        return <PodsTab 
-          namespace={namespace} 
-          resourceName={resourceName} 
-          resourceKind={config.title} 
+        return <PodsTab
+          namespace={namespace}
+          resourceName={resourceName}
+          resourceKind={config.title}
           resourceLabels={(data as any)?.spec?.selector?.matchLabels || (data as any)?.metadata?.labels || {}}
-          ownerReferences={(data as any)?.metadata?.uid ? [{ uid: (data as any).metadata.uid, kind: config.title, name: resourceName }] : []} 
+          ownerReferences={(data as any)?.metadata?.uid ? [{ uid: (data as any).metadata.uid, kind: config.title, name: resourceName }] : []}
         />;
 
       case 'endpoints':

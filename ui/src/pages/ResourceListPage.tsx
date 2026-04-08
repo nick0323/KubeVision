@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageConfig } from '../types';
-import { StatusBadge } from './StatusBadge';
+import { StatusBadge } from '../components/ui/StatusBadge';
 import {
   TableHeaderCell,
   TableRow,
@@ -9,12 +9,12 @@ import {
   TableSkeleton,
   EmptyState,
   ErrorState,
-} from './Table/index.tsx';
-import Pagination from '../Pagination';
-import PageHeader from './PageHeader';
-import SearchInput from './SearchInput';
-import NamespaceSelect from './NamespaceSelect';
-import RefreshButton from './RefreshButton';
+} from '../components/ui/Table/index.tsx';
+import PageHeader from '../components/common/PageHeader.tsx';
+import SearchInput from '../components/common/SearchInput.tsx';
+import NamespaceSelect from '../components/common/NamespaceSelect.tsx';
+import RefreshButton from '../components/common/RefreshButton.tsx';
+import Pagination from '../components/common/Pagination.tsx';
 import { useResourceList } from '../hooks/useResourceList';
 import { useConfirm } from '../hooks/useConfirm';
 import './ResourceListPage.css';

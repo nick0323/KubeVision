@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { YamlTabProps } from '../types';
-import { LoadingSpinner } from '../../LoadingSpinner';
-import { ErrorDisplay } from '../../ErrorDisplay';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
+import { ErrorDisplay } from '../../ui/ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
 import { FaCopy, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
 import jsyaml from 'js-yaml';

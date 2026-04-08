@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import InfoCard from './InfoCard.tsx';
 import ResourceSummary from './ResourceSummary.tsx';
-import PageHeader from './components/PageHeader.tsx';
+import PageHeader from '../components/common/PageHeader.tsx';
+import { OverviewPageProps, OverviewData, K8sEventSimple } from '../types';
+import { apiClient } from '../utils/apiClient';
 import { FaServer, FaCube, FaNetworkWired } from 'react-icons/fa';
 import { FaThLarge } from 'react-icons/fa';
-import { OverviewPageProps, OverviewData, K8sEventSimple } from './types';
-import { apiClient } from './utils/apiClient';
 
 /**
  * 简化的 useFetch Hook
@@ -33,13 +33,6 @@ function useFetch<T>(url: string) {
   return { data, loading, error };
 }
 
-/**
- * 概览页面组件 - 修复版
- * 改进：
- * 1. 简化高度计算逻辑
- * 2. 移除直接 DOM 操作
- * 3. 使用 CSS Grid 自动布局
- */
 export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleCollapsed }) => {
   const { data, loading, error } = useFetch<OverviewData>('/api/overview');
   const safeData: Partial<OverviewData> = data || {};

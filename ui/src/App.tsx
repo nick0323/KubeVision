@@ -1,7 +1,7 @@
 import React, { useState, Suspense, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import './App.css';
-import LoadingSpinner from './components/LoadingSpinner.tsx';
+import LoadingSpinner from './components/ui/LoadingSpinner.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
 import {
@@ -25,9 +25,9 @@ import {
   FaChevronDown,
   FaChevronRight,
 } from 'react-icons/fa';
-import { MENU_LIST } from './constants';
-import LoginPage from './LoginPage.tsx';
 import { FiLogOut } from 'react-icons/fi';
+import { MENU_LIST } from './constants';
+import LoginPage from './pages/LoginPage.tsx';
 import { authUtils } from './utils/auth.ts';
 import { PAGE_COMPONENTS } from './pages.tsx';
 import { PodDetailPage } from './components/PodDetailPage';

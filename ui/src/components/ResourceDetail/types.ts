@@ -159,7 +159,6 @@ export interface ResourceConfig {
   tabs: string[];
   hasLogs?: boolean;
   hasTerminal?: boolean;
-  hasReplicaSets?: boolean;
   hasPods?: boolean;
   hasEndpoints?: boolean;
 }
@@ -205,9 +204,8 @@ export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
   },
   deployment: {
     title: 'Deployment',
-    tabs: ['overview', 'yaml', 'pods', 'replicasets', 'related', 'events'],
+    tabs: ['overview', 'yaml', 'pods', 'related', 'events'],
     hasPods: true,
-    hasReplicaSets: true,
   },
   statefulset: {
     title: 'StatefulSet',

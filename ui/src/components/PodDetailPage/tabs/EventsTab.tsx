@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { EventsTabProps } from '../types';
-import { LoadingSpinner } from '../../LoadingSpinner';
-import { ErrorDisplay } from '../../ErrorDisplay';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
+import { ErrorDisplay } from '../../ui/ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
 import './EventsTab.css';
 

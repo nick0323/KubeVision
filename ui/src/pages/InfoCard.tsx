@@ -1,6 +1,6 @@
 import React from 'react';
-import { InfoCardProps } from './types';
-import './App.css';
+import { InfoCardProps } from '../types';
+import './InfoCard.css';
 
 /**
  * 信息卡片组件

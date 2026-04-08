@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { PaginationProps } from './types';
-import { PAGE_SIZE_OPTIONS } from './constants';
+import { PaginationProps } from '../../types';
+import { PAGE_SIZE_OPTIONS } from '../../constants';
 import './Pagination.css';
 
 /**

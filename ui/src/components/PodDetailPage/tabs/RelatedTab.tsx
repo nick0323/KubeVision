@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { RelatedTabProps } from '../types';
 import { RelatedResource } from '../../ResourceDetail/types';
-import { LoadingSpinner } from '../../LoadingSpinner';
-import { ErrorDisplay } from '../../ErrorDisplay';
+import { LoadingSpinner } from '../../ui/LoadingSpinner';
+import { ErrorDisplay } from '../../ui/ErrorDisplay';
 import { authFetch } from '../../../utils/auth';
 import { useNavigate } from 'react-router-dom';
 
