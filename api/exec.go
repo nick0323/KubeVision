@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -57,9 +58,33 @@ type ExecSession struct {
 
 // wsInput 实现 io.Reader 接口，从 WebSocket 读取输入
 type wsInput struct {
-	conn *websocket.Conn
-	mu   sync.Mutex
-	buf  []byte // 缓冲区，防止数据截断
+	conn     *websocket.Conn
+	sizeChan chan *remotecommand.TerminalSize // resize 消息通道
+	mu       sync.Mutex
+	buf      []byte
+}
+
+// termSizeQueue 实现 TerminalSizeQueue 接口，支持 resize 消息
+type termSizeQueue struct {
+	sizeChan <-chan *remotecommand.TerminalSize
+	size     *remotecommand.TerminalSize
+}
+
+// Next 阻塞直到收到新的尺寸或错误
+func (t *termSizeQueue) Next() *remotecommand.TerminalSize {
+	// 初始尺寸
+	if t.size != nil {
+		size := t.size
+		t.size = nil
+		return size
+	}
+
+	// 阻塞等待 resize 消息
+	size, ok := <-t.sizeChan
+	if !ok {
+		return nil
+	}
+	return size
 }
 
 func (w *wsInput) Read(p []byte) (int, error) {
@@ -74,18 +99,35 @@ func (w *wsInput) Read(p []byte) (int, error) {
 	}
 
 	// 读取新消息
-	_, message, err := w.conn.ReadMessage()
-	if err != nil {
-		return 0, err
-	}
+	for {
+		_, message, err := w.conn.ReadMessage()
+		if err != nil {
+			return 0, err
+		}
 
-	// 如果消息大于缓冲区，保存剩余部分
-	if len(message) > len(p) {
-		w.buf = append([]byte(nil), message[len(p):]...)
-	}
+		// 检查是否是 resize 消息
+		var msg struct {
+			Type string `json:"type"`
+			Cols uint16 `json:"cols"`
+			Rows uint16 `json:"rows"`
+		}
+		if err := json.Unmarshal(message, &msg); err == nil && msg.Type == "resize" {
+			// 发送 resize 到通道
+			w.sizeChan <- &remotecommand.TerminalSize{
+				Width:  msg.Cols,
+				Height: msg.Rows,
+			}
+			continue // 不返回给 stdin，继续读取下一条
+		}
 
-	n := copy(p, message)
-	return n, nil
+		// 普通输入数据
+		if len(message) > len(p) {
+			w.buf = append([]byte(nil), message[len(p):]...)
+		}
+
+		n := copy(p, message)
+		return n, nil
+	}
 }
 
 // wsOutput 实现 io.Writer 接口，向 WebSocket 写入输出
@@ -285,16 +327,26 @@ func handleExecWSImpl(
 	ctx, cancel := context.WithTimeout(context.Background(), ExecSessionTimeout)
 	defer cancel()
 
+	// 创建 resize 通道
+	sizeChan := make(chan *remotecommand.TerminalSize, 1)
+
 	// 创建带锁的输入输出
-	input := &wsInput{conn: ws}
+	input := &wsInput{
+		conn:     ws,
+		sizeChan: sizeChan,
+	}
 	output := &wsOutput{conn: ws}
+
+	// 创建 TerminalSizeQueue 支持 resize
+	sizeQueue := &termSizeQueue{sizeChan: sizeChan}
 
 	// 执行命令
 	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-		Stdin:  input,
-		Stdout: output,
-		Stderr: output,
-		Tty:    true,
+		Stdin:             input,
+		Stdout:            output,
+		Stderr:            output,
+		Tty:               true,
+		TerminalSizeQueue: sizeQueue,
 	})
 
 	if err != nil {

@@ -1,4 +1,4 @@
-import { ColumnDef } from '../types';
+﻿import { ColumnDef } from '../types';
 
 interface ExtendedColumn extends ColumnDef<any> {
   sortable?: boolean;

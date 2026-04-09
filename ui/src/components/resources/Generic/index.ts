@@ -1,4 +1,4 @@
-export { ResourceDetailPage } from './ResourceDetailPage';
+﻿export { ResourceDetailPage } from './ResourceDetailPage';
 export { useResourceDetail } from './hooks/useResourceDetail';
 export { RESOURCE_CONFIGS } from './types';
 export type {

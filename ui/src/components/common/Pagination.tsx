@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { PaginationProps } from '../../types';
 import { PAGE_SIZE_OPTIONS } from '../../constants';
 import './Pagination.css';

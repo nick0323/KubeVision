@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import { RelatedTabProps } from '../types';
 import { RelatedResource } from '../../../ResourceDetail/types';
 import { LoadingSpinner } from '../../../ui/LoadingSpinner';

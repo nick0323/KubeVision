@@ -4,6 +4,9 @@
   flex-direction: column;
   gap: 16px;
   padding-bottom: 10px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 /* ========== 工具栏 ========== */
@@ -283,13 +286,60 @@
 /* ========== 终端容器 ========== */
 .xterm-wrapper {
   flex: 1;
-  min-height: 500px;
+  width: 100%;
+  height: calc(100vh - 280px);
+  min-height: 600px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #bae7ff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   background: #fafafa;
   position: relative;
+  box-sizing: border-box;
+}
+
+/* xterm 挂载的容器 */
+.xterm-wrapper .terminal-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* 关键：确保容器在 display: block 后有明确尺寸 */
+  min-width: 100%;
+  min-height: 100%;
+}
+
+/* 确保 xterm 终端占满容器 */
+.xterm-wrapper .xterm {
+  padding: 5px !important;
+  margin: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.xterm-wrapper .xterm-viewport {
+  height: 100% !important;
+  width: 100% !important;
+  overflow: auto !important;
+  background-color: #fafafa !important;
+}
+
+.xterm-wrapper .xterm-screen {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.xterm-wrapper .xterm-rows {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* 强制 xterm 在 fit 后正确更新 DOM */
+.xterm-wrapper .xterm .xterm-grid {
+  width: 100% !important;
 }
 
 /* 终端操作指引 */

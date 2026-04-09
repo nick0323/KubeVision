@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+﻿import React, { useCallback } from 'react';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import { SearchInputProps } from '../types';
 import './SearchInput.css';

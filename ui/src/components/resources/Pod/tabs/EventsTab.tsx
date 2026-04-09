@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import { EventsTabProps } from '../types';
 import { LoadingSpinner } from '../../../ui/LoadingSpinner';
 import { ErrorDisplay } from '../../../ui/ErrorDisplay';

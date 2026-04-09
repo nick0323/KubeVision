@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+﻿import { useState, useCallback, useEffect, useRef } from 'react';
 import { authFetch } from '../../../../utils/auth';
 
 export interface UseResourceDetailOptions {

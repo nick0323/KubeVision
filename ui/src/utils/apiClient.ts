@@ -1,4 +1,4 @@
-import { authFetch } from './auth';
+﻿import { authFetch } from './auth';
 import { APIResponse, PageMeta } from '../types';
 
 export interface ApiOptions extends RequestInit {

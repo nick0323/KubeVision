@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 资源详情页通用类型定义
  * 合并 PodDetailPage 和 ResourceDetailPage 的类型
  */

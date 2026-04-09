@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { InfoCardProps } from '../types';
 import './InfoCard.css';
 

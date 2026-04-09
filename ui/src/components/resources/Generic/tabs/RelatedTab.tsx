@@ -1,1 +1,1 @@
-export { RelatedTab } from '../../Pod/tabs/RelatedTab';
+﻿export { RelatedTab } from '../../Pod/tabs/RelatedTab';

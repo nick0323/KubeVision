@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { FaSync, FaClipboardList, FaTrash } from 'react-icons/fa';
 import './ResourceActionBar.css';
 
