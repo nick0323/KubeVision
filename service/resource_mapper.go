@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,10 @@ import (
 	"github.com/nick0323/K8sVision/model"
 )
 
+// ============================================================================
+// 主映射函数（严格匹配 model 包字段定义）
+// ============================================================================
+
 // MapPods 映射 Pods
 func MapPods(pods []corev1.Pod, podMetricsMap map[string]model.PodMetrics) []model.Pod {
 	result := make([]model.Pod, len(pods))
@@ -23,7 +28,7 @@ func MapPods(pods []corev1.Pod, podMetricsMap map[string]model.PodMetrics) []mod
 		result[i] = model.Pod{
 			Namespace: pod.Namespace,
 			Name:      pod.Name,
-			Status:    string(pod.Status.Phase),
+			Status:    getPodPhaseDisplay(pod.Status.Phase),
 			Ready:     CalculatePodReady(pod),
 			Restarts:  CalculatePodRestarts(pod),
 			Age:       CalculateAge(pod.CreationTimestamp),
@@ -38,8 +43,8 @@ func MapPods(pods []corev1.Pod, podMetricsMap map[string]model.PodMetrics) []mod
 func MapDeployments(deployments []appsv1.Deployment) []model.Deployment {
 	result := make([]model.Deployment, len(deployments))
 	for i, d := range deployments {
+		// GetWorkloadStatus 已在 common.go 定义，直接调用
 		status := GetWorkloadStatus(d.Status.ReadyReplicas, d.Status.Replicas)
-		restarts := CalculateDeploymentRestarts(d)
 		result[i] = model.Deployment{
 			Namespace:       d.Namespace,
 			Name:            d.Name,
@@ -47,7 +52,6 @@ func MapDeployments(deployments []appsv1.Deployment) []model.Deployment {
 			UpdatedReplicas: d.Status.UpdatedReplicas,
 			Available:       d.Status.AvailableReplicas,
 			Desired:         d.Status.Replicas,
-			Restarts:        restarts,
 			Status:          status,
 			Age:             CalculateAge(d.CreationTimestamp),
 		}
@@ -60,7 +64,6 @@ func MapStatefulSets(sts []appsv1.StatefulSet) []model.StatefulSet {
 	result := make([]model.StatefulSet, len(sts))
 	for i, s := range sts {
 		status := GetWorkloadStatus(s.Status.ReadyReplicas, s.Status.Replicas)
-		restarts := CalculateStatefulSetRestarts(s)
 		result[i] = model.StatefulSet{
 			Namespace:       s.Namespace,
 			Name:            s.Name,
@@ -68,7 +71,6 @@ func MapStatefulSets(sts []appsv1.StatefulSet) []model.StatefulSet {
 			UpdatedReplicas: s.Status.UpdatedReplicas,
 			Available:       s.Status.AvailableReplicas,
 			Desired:         s.Status.Replicas,
-			Restarts:        restarts,
 			Status:          status,
 			Age:             CalculateAge(s.CreationTimestamp),
 		}
@@ -81,7 +83,6 @@ func MapDaemonSets(ds []appsv1.DaemonSet) []model.DaemonSet {
 	result := make([]model.DaemonSet, len(ds))
 	for i, d := range ds {
 		status := GetWorkloadStatus(d.Status.NumberReady, d.Status.DesiredNumberScheduled)
-		restarts := CalculateDaemonSetRestarts(d)
 		result[i] = model.DaemonSet{
 			Namespace:       d.Namespace,
 			Name:            d.Name,
@@ -89,7 +90,6 @@ func MapDaemonSets(ds []appsv1.DaemonSet) []model.DaemonSet {
 			UpdatedReplicas: d.Status.UpdatedNumberScheduled,
 			Available:       d.Status.NumberAvailable,
 			Desired:         d.Status.DesiredNumberScheduled,
-			Restarts:        restarts,
 			Status:          status,
 			Age:             CalculateAge(d.CreationTimestamp),
 		}
@@ -97,7 +97,7 @@ func MapDaemonSets(ds []appsv1.DaemonSet) []model.DaemonSet {
 	return result
 }
 
-// MapServices 映射 Services
+// MapServices 映射 Services（仅使用 model.Service 实际存在的字段）
 func MapServices(services []corev1.Service) []model.Service {
 	result := make([]model.Service, len(services))
 	for i, s := range services {
@@ -117,8 +117,11 @@ func MapServices(services []corev1.Service) []model.Service {
 func MapConfigMaps(cms []corev1.ConfigMap) []model.ConfigMap {
 	result := make([]model.ConfigMap, len(cms))
 	for i, c := range cms {
-		keys := make([]string, 0, len(c.Data))
+		keys := make([]string, 0, len(c.Data)+len(c.BinaryData))
 		for k := range c.Data {
+			keys = append(keys, k)
+		}
+		for k := range c.BinaryData {
 			keys = append(keys, k)
 		}
 		result[i] = model.ConfigMap{
@@ -152,20 +155,18 @@ func MapSecrets(secrets []corev1.Secret) []model.Secret {
 	return result
 }
 
-// MapIngresses 映射 Ingresses
 func MapIngresses(ingresses []networkingv1.Ingress) []model.Ingress {
 	result := make([]model.Ingress, len(ingresses))
 	for i, ing := range ingresses {
-		hosts := getIngressHosts(ing)
 		result[i] = model.Ingress{
 			Namespace:     ing.Namespace,
 			Name:          ing.Name,
 			Class:         getIngressClass(ing),
-			Hosts:         hosts,
+			Hosts:         getIngressHosts(ing),
 			Ports:         getIngressPorts(ing),
 			Status:        getIngressStatus(ing),
-			Path:          getIngressPaths(ing),
-			TargetService: getIngressServices(ing),
+			Path:          getIngressPaths(ing),    // ✅ 恢复返回 []string
+			TargetService: getIngressServices(ing), // ✅ 恢复返回 []string
 			Age:           CalculateAge(ing.CreationTimestamp),
 		}
 	}
@@ -176,13 +177,16 @@ func MapIngresses(ingresses []networkingv1.Ingress) []model.Ingress {
 func MapJobs(jobs []batchv1.Job) []model.Job {
 	result := make([]model.Job, len(jobs))
 	for i, j := range jobs {
+		completions := int32(1)
+		if j.Spec.Completions != nil {
+			completions = *j.Spec.Completions
+		}
 		result[i] = model.Job{
 			Namespace:      j.Namespace,
 			Name:           j.Name,
-			Completions:    *j.Spec.Completions,
+			Completions:    completions,
 			Succeeded:      j.Status.Succeeded,
 			Failed:         j.Status.Failed,
-			Restarts:       calculateJobRestarts(j),
 			StartTime:      model.FormatTime(j.Status.StartTime),
 			CompletionTime: model.FormatTime(j.Status.CompletionTime),
 			Duration:       calculateJobDuration(j),
@@ -197,30 +201,22 @@ func MapJobs(jobs []batchv1.Job) []model.Job {
 func MapCronJobs(cronJobs []batchv1.CronJob) []model.CronJob {
 	result := make([]model.CronJob, len(cronJobs))
 	for i, cj := range cronJobs {
+		suspend := false
+		if cj.Spec.Suspend != nil {
+			suspend = *cj.Spec.Suspend
+		}
 		result[i] = model.CronJob{
 			Namespace:        cj.Namespace,
 			Name:             cj.Name,
 			Schedule:         cj.Spec.Schedule,
-			Suspend:          *cj.Spec.Suspend,
+			Suspend:          suspend,
 			Active:           len(cj.Status.Active),
 			LastScheduleTime: model.FormatTime(cj.Status.LastScheduleTime),
-			Restarts:         calculateCronJobRestarts(cj),
 			Status:           getCronJobStatus(cj),
 			Age:              CalculateAge(cj.CreationTimestamp),
 		}
 	}
 	return result
-}
-
-// calculateCronJobRestarts 计算 CronJob 关联 Job 的总重启次数
-func calculateCronJobRestarts(cj batchv1.CronJob) int32 {
-	// CronJob 本身没有重启次数，需要统计其创建的 Job 的重启次数
-	// 这里简化处理，返回 0 或根据 Active Job 计算
-	var totalRestarts int32
-	// 如果有活跃的 Job，可以查询其重启次数（需要额外的 API 调用）
-	// 为简化，这里返回 0
-	_ = totalRestarts
-	return 0
 }
 
 // MapPVCs 映射 PVCs
@@ -260,7 +256,7 @@ func MapPVs(pvs []corev1.PersistentVolume) []model.PV {
 			AccessMode:    getPVAccessMode(p),
 			StorageClass:  p.Spec.StorageClassName,
 			ClaimRef:      getClaimRef(p),
-			ReclaimPolicy: string(p.Spec.PersistentVolumeReclaimPolicy),
+			ReclaimPolicy: getReclaimPolicyStr(p),
 			Age:           CalculateAge(p.CreationTimestamp),
 		}
 	}
@@ -275,7 +271,7 @@ func MapStorageClasses(scs []storagev1.StorageClass) []model.StorageClass {
 			Name:              s.Name,
 			Provisioner:       s.Provisioner,
 			ReclaimPolicy:     getReclaimPolicy(s),
-			VolumeBindingMode: string(*s.VolumeBindingMode),
+			VolumeBindingMode: getVolumeBindingMode(s),
 			IsDefault:         isDefaultStorageClass(s),
 			Age:               CalculateAge(s.CreationTimestamp),
 		}
@@ -298,24 +294,18 @@ func MapNamespaces(namespaces []corev1.Namespace) []model.Namespace {
 
 // MapNodes 映射 Nodes
 func MapNodes(nodes []corev1.Node, pods *corev1.PodList, metrics map[string]model.NodeMetrics) []model.Node {
+	// 预构建 nodeName → podCount 映射，优化性能
+	podCountMap := buildNodePodCountMap(pods)
+
 	result := make([]model.Node, len(nodes))
 	for i, n := range nodes {
 		cpuUsage := 0.0
 		memUsage := 0.0
 
-		// 如果有 metrics 数据，计算使用率
 		if metrics != nil {
 			if m, ok := metrics[n.Name]; ok {
-				// 计算 CPU 使用率
-				cpuCapacity := n.Status.Capacity.Cpu()
-				if !cpuCapacity.IsZero() && m.CPU != "" {
-					cpuUsage = calculateCPUUsage(cpuCapacity, m.CPU)
-				}
-				// 计算内存使用率
-				memCapacity := n.Status.Capacity.Memory()
-				if !memCapacity.IsZero() && m.Memory != "" {
-					memUsage = calculateMemoryUsage(memCapacity, m.Memory)
-				}
+				cpuUsage = calculateCPUUsage(n.Status.Capacity.Cpu(), m.CPU)
+				memUsage = calculateMemoryUsage(n.Status.Capacity.Memory(), m.Memory)
 			}
 		}
 
@@ -326,46 +316,12 @@ func MapNodes(nodes []corev1.Node, pods *corev1.PodList, metrics map[string]mode
 			CPUUsage:     cpuUsage,
 			MemoryUsage:  memUsage,
 			Role:         getNodeRoles(n),
-			PodsUsed:     countPodsOnNode(pods, n.Name),
+			PodsUsed:     podCountMap[n.Name],
 			PodsCapacity: int(n.Status.Capacity.Pods().Value()),
 			Age:          CalculateAge(n.CreationTimestamp),
 		}
 	}
 	return result
-}
-
-// calculateCPUUsage 计算 CPU 使用率
-func calculateCPUUsage(capacity *resource.Quantity, usageStr string) float64 {
-	usage, err := resource.ParseQuantity(usageStr)
-	if err != nil {
-		return 0
-	}
-
-	capMilli := float64(capacity.MilliValue())
-	usageMilli := float64(usage.MilliValue())
-
-	if capMilli <= 0 {
-		return 0
-	}
-
-	return (usageMilli / capMilli) * 100
-}
-
-// calculateMemoryUsage 计算内存使用率
-func calculateMemoryUsage(capacity *resource.Quantity, usageStr string) float64 {
-	usage, err := resource.ParseQuantity(usageStr)
-	if err != nil {
-		return 0
-	}
-
-	capBytes := capacity.Value()
-	usageBytes := usage.Value()
-
-	if capBytes <= 0 {
-		return 0
-	}
-
-	return (float64(usageBytes) / float64(capBytes)) * 100
 }
 
 // MapEndpoints 映射 Endpoints
@@ -394,7 +350,7 @@ func MapEvents(events []corev1.Event) []model.Event {
 			Message:   e.Message,
 			Type:      e.Type,
 			Count:     e.Count,
-			Object:    e.InvolvedObject.Kind + "/" + e.InvolvedObject.Name,
+			Object:    formatEventObject(e.InvolvedObject),
 			Source:    e.Source.Component,
 			LastSeen:  formatEventLastSeen(e),
 			Duration:  calculateEventDuration(e),
@@ -404,39 +360,39 @@ func MapEvents(events []corev1.Event) []model.Event {
 	return result
 }
 
-// formatEventLastSeen 格式化事件最后可见时间（优先 EventTime，其次 LastTimestamp）
-func formatEventLastSeen(e corev1.Event) string {
-	// 优先使用 EventTime（新 API，microTime 精度）
-	if !e.EventTime.IsZero() {
-		return model.FormatTime((*metav1.Time)(&e.EventTime))
-	}
-	// 回退到 LastTimestamp（旧 API）
-	if !e.LastTimestamp.IsZero() {
-		return model.FormatTime(&e.LastTimestamp)
-	}
-	// 最后回退到 CreationTimestamp
-	return model.FormatTime(&e.CreationTimestamp)
-}
-
-// 辅助函数
+// ============================================================================
+// 辅助函数 - 计算类
+// ============================================================================
 
 // CalculateAge 计算资源存在时间
 func CalculateAge(t metav1.Time) string {
 	return model.FormatAge(t.Time)
 }
 
-// CalculatePodReady 计算 Pod Ready 状态
+// CalculatePodReady 计算 Pod Ready 状态（优化显示）
 func CalculatePodReady(pod corev1.Pod) string {
-	readyContainers := 0
-	totalContainers := len(pod.Status.ContainerStatuses)
-
-	for _, cs := range pod.Status.ContainerStatuses {
-		if cs.Ready {
-			readyContainers++
+	total := len(pod.Status.ContainerStatuses)
+	if total == 0 {
+		// 根据 Phase 显示更友好的状态
+		switch pod.Status.Phase {
+		case corev1.PodPending:
+			return "Pending"
+		case corev1.PodFailed:
+			return "Failed"
+		case corev1.PodSucceeded:
+			return "Succeeded"
+		default:
+			return "N/A"
 		}
 	}
 
-	return fmt.Sprintf("%d/%d", readyContainers, totalContainers)
+	ready := 0
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Ready {
+			ready++
+		}
+	}
+	return fmt.Sprintf("%d/%d", ready, total)
 }
 
 // CalculatePodRestarts 计算 Pod 重启次数
@@ -448,143 +404,47 @@ func CalculatePodRestarts(pod corev1.Pod) int32 {
 	return restarts
 }
 
-// CalculateDeploymentRestarts 计算 Deployment 重启次数
-func CalculateDeploymentRestarts(d appsv1.Deployment) int32 {
-	// 使用 PodInformer 获取精确的重启次数
-	if len(d.OwnerReferences) > 0 {
-		return GetRestartsByOwnerReference(d.OwnerReferences[0])
+// calculateCPUUsage 计算 CPU 使用率
+func calculateCPUUsage(capacity *resource.Quantity, usageStr string) float64 {
+	if capacity == nil || capacity.IsZero() || usageStr == "" {
+		return 0
 	}
-	return 0
+
+	usage, err := resource.ParseQuantity(usageStr)
+	if err != nil {
+		return -1 // 返回哨兵值，前端显示 "N/A"
+	}
+
+	capMilli := float64(capacity.MilliValue())
+	usageMilli := float64(usage.MilliValue())
+
+	if capMilli <= 0 {
+		return 0
+	}
+	return (usageMilli / capMilli) * 100
 }
 
-// CalculateStatefulSetRestarts 计算 StatefulSet 重启次数
-func CalculateStatefulSetRestarts(s appsv1.StatefulSet) int32 {
-	// 使用 PodInformer 获取精确的重启次数
-	if len(s.OwnerReferences) > 0 {
-		return GetRestartsByOwnerReference(s.OwnerReferences[0])
+// calculateMemoryUsage 计算内存使用率
+func calculateMemoryUsage(capacity *resource.Quantity, usageStr string) float64 {
+	if capacity == nil || capacity.IsZero() || usageStr == "" {
+		return 0
 	}
-	return 0
+
+	usage, err := resource.ParseQuantity(usageStr)
+	if err != nil {
+		return -1
+	}
+
+	capBytes := capacity.Value()
+	usageBytes := usage.Value()
+
+	if capBytes <= 0 {
+		return 0
+	}
+	return (float64(usageBytes) / float64(capBytes)) * 100
 }
 
-// CalculateDaemonSetRestarts 计算 DaemonSet 重启次数
-func CalculateDaemonSetRestarts(d appsv1.DaemonSet) int32 {
-	// 使用 PodInformer 获取精确的重启次数
-	if len(d.OwnerReferences) > 0 {
-		return GetRestartsByOwnerReference(d.OwnerReferences[0])
-	}
-	return 0
-}
-
-func getExternalIP(svc corev1.Service) string {
-	if len(svc.Status.LoadBalancer.Ingress) > 0 {
-		if ip := svc.Status.LoadBalancer.Ingress[0].IP; ip != "" {
-			return ip
-		}
-		if hostname := svc.Status.LoadBalancer.Ingress[0].Hostname; hostname != "" {
-			return hostname
-		}
-	}
-	if len(svc.Spec.ExternalIPs) > 0 {
-		return svc.Spec.ExternalIPs[0]
-	}
-	return "-"
-}
-
-func getServicePorts(svc corev1.Service) []string {
-	ports := make([]string, 0, len(svc.Spec.Ports))
-	for _, p := range svc.Spec.Ports {
-		ports = append(ports, fmt.Sprintf("%d", p.Port))
-	}
-	return ports
-}
-
-func getIngressHosts(ing networkingv1.Ingress) []string {
-	hosts := make([]string, 0)
-	for _, r := range ing.Spec.Rules {
-		hosts = append(hosts, r.Host)
-	}
-	if len(hosts) == 0 {
-		hosts = append(hosts, "*")
-	}
-	return hosts
-}
-
-func getIngressClass(ing networkingv1.Ingress) string {
-	if ing.Spec.IngressClassName != nil {
-		return *ing.Spec.IngressClassName
-	}
-	return "-"
-}
-
-func getIngressPorts(ing networkingv1.Ingress) []string {
-	ports := make([]string, 0)
-	for _, rule := range ing.Spec.Rules {
-		if rule.HTTP != nil {
-			for _, path := range rule.HTTP.Paths {
-				if path.Backend.Service != nil && path.Backend.Service.Port.Number > 0 {
-					ports = append(ports, fmt.Sprintf("%d", path.Backend.Service.Port.Number))
-				}
-			}
-		}
-	}
-	if len(ports) == 0 {
-		// 尝试从 TLS 配置获取
-		if len(ing.Spec.TLS) > 0 {
-			ports = append(ports, "443")
-		}
-	}
-	if len(ports) == 0 {
-		ports = append(ports, "80")
-	}
-	return ports
-}
-
-func getIngressAddress(ing networkingv1.Ingress) string {
-	if len(ing.Status.LoadBalancer.Ingress) > 0 {
-		if ip := ing.Status.LoadBalancer.Ingress[0].IP; ip != "" {
-			return ip
-		}
-	}
-	return "-"
-}
-
-func getIngressStatus(ing networkingv1.Ingress) string {
-	if len(ing.Status.LoadBalancer.Ingress) > 0 {
-		return "Ready"
-	}
-	return "Pending"
-}
-
-func getIngressPaths(ing networkingv1.Ingress) []string {
-	paths := make([]string, 0)
-	for _, r := range ing.Spec.Rules {
-		if r.HTTP != nil {
-			for _, p := range r.HTTP.Paths {
-				paths = append(paths, p.Path)
-			}
-		}
-	}
-	return paths
-}
-
-func getIngressServices(ing networkingv1.Ingress) []string {
-	services := make([]string, 0)
-	for _, r := range ing.Spec.Rules {
-		if r.HTTP != nil {
-			for _, p := range r.HTTP.Paths {
-				if p.Backend.Service != nil {
-					services = append(services, p.Backend.Service.Name)
-				}
-			}
-		}
-	}
-	return services
-}
-
-func calculateJobRestarts(j batchv1.Job) int32 {
-	return j.Status.Failed
-}
-
+// calculateJobDuration 计算 Job 执行时长
 func calculateJobDuration(j batchv1.Job) string {
 	if j.Status.StartTime == nil {
 		return "-"
@@ -596,11 +456,55 @@ func calculateJobDuration(j batchv1.Job) string {
 	return endTime.Sub(j.Status.StartTime.Time).Round(time.Second).String()
 }
 
+// calculateEventDuration 计算事件持续时间
+func calculateEventDuration(e corev1.Event) string {
+	if e.FirstTimestamp.IsZero() {
+		return "-"
+	}
+	endTime := e.LastTimestamp.Time
+	if e.LastTimestamp.IsZero() {
+		endTime = e.EventTime.Time
+	}
+	if endTime.IsZero() {
+		return "-"
+	}
+	return endTime.Sub(e.FirstTimestamp.Time).Round(time.Second).String()
+}
+
+// ============================================================================
+// 辅助函数 - 状态判断类
+// ============================================================================
+
+// getPodPhaseDisplay 返回更友好的 Pod 状态显示
+func getPodPhaseDisplay(phase corev1.PodPhase) string {
+	switch phase {
+	case corev1.PodRunning:
+		return "Running"
+	case corev1.PodPending:
+		return "Pending"
+	case corev1.PodSucceeded:
+		return "Succeeded"
+	case corev1.PodFailed:
+		return "Failed"
+	case corev1.PodUnknown:
+		return "Unknown"
+	default:
+		return string(phase)
+	}
+}
+
+// getJobStatus 获取 Job 状态（✅ 修复指针解引用）
 func getJobStatus(j batchv1.Job) string {
+	// Completions 默认值为 1
+	completions := int32(1)
+	if j.Spec.Completions != nil {
+		completions = *j.Spec.Completions
+	}
+
 	if j.Status.Failed > 0 {
 		return "Failed"
 	}
-	if j.Status.Succeeded >= *j.Spec.Completions {
+	if j.Status.Succeeded >= completions {
 		return "Completed"
 	}
 	if j.Status.StartTime != nil {
@@ -609,61 +513,16 @@ func getJobStatus(j batchv1.Job) string {
 	return "Pending"
 }
 
+// getCronJobStatus 获取 CronJob 状态（✅ 修复指针解引用）
 func getCronJobStatus(cj batchv1.CronJob) string {
-	if *cj.Spec.Suspend {
+	// Suspend 默认值为 false
+	if cj.Spec.Suspend != nil && *cj.Spec.Suspend {
 		return "Suspended"
 	}
 	return "Active"
 }
 
-func getAccessMode(pvc corev1.PersistentVolumeClaim) string {
-	if len(pvc.Spec.AccessModes) > 0 {
-		return string(pvc.Spec.AccessModes[0])
-	}
-	return "-"
-}
-
-func getStorageClassName(pvc corev1.PersistentVolumeClaim) string {
-	if pvc.Spec.StorageClassName != nil {
-		return *pvc.Spec.StorageClassName
-	}
-	return "-"
-}
-
-func getPVAccessMode(pv corev1.PersistentVolume) string {
-	if len(pv.Spec.AccessModes) > 0 {
-		return string(pv.Spec.AccessModes[0])
-	}
-	return "-"
-}
-
-func getClaimRef(pv corev1.PersistentVolume) string {
-	if pv.Spec.ClaimRef != nil {
-		return pv.Spec.ClaimRef.Namespace + "/" + pv.Spec.ClaimRef.Name
-	}
-	return "-"
-}
-
-func getReclaimPolicy(sc storagev1.StorageClass) string {
-	if sc.ReclaimPolicy != nil {
-		return string(*sc.ReclaimPolicy)
-	}
-	return "Delete"
-}
-
-func isDefaultStorageClass(sc storagev1.StorageClass) bool {
-	return sc.Annotations["storageclass.kubernetes.io/is-default-class"] == "true"
-}
-
-func getInternalIP(node corev1.Node) string {
-	for _, addr := range node.Status.Addresses {
-		if addr.Type == corev1.NodeInternalIP {
-			return addr.Address
-		}
-	}
-	return "-"
-}
-
+// getNodeStatus 获取 Node 状态
 func getNodeStatus(node corev1.Node) string {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == corev1.NodeReady {
@@ -676,86 +535,300 @@ func getNodeStatus(node corev1.Node) string {
 	return "Unknown"
 }
 
+// getIngressStatus 获取 Ingress 状态
+func getIngressStatus(ing networkingv1.Ingress) string {
+	if len(ing.Status.LoadBalancer.Ingress) > 0 {
+		return "Ready"
+	}
+	return "Pending"
+}
+
+// ============================================================================
+// 辅助函数 - 字段提取类
+// ============================================================================
+
+// getServicePorts 提取 Service 端口
+func getServicePorts(svc corev1.Service) []string {
+	if len(svc.Spec.Ports) == 0 {
+		return []string{"-"}
+	}
+	ports := make([]string, 0, len(svc.Spec.Ports))
+	for _, p := range svc.Spec.Ports {
+		ports = append(ports, fmt.Sprintf("%d", p.Port))
+	}
+	return ports
+}
+
+// getIngressHosts 提取 Ingress 主机名
+func getIngressHosts(ing networkingv1.Ingress) []string {
+	if len(ing.Spec.Rules) == 0 {
+		return []string{"*"}
+	}
+	hosts := make([]string, 0, len(ing.Spec.Rules))
+	for _, r := range ing.Spec.Rules {
+		if r.Host != "" {
+			hosts = append(hosts, r.Host)
+		}
+	}
+	if len(hosts) == 0 {
+		return []string{"*"}
+	}
+	return hosts
+}
+
+// getIngressClass 提取 Ingress 类
+func getIngressClass(ing networkingv1.Ingress) string {
+	if ing.Spec.IngressClassName != nil {
+		return *ing.Spec.IngressClassName
+	}
+	// 兼容旧版 annotation
+	if class, ok := ing.Annotations["kubernetes.io/ingress.class"]; ok {
+		return class
+	}
+	return "-"
+}
+
+// getIngressPorts 提取 Ingress 端口（保持原函数名，返回后端服务端口）
+func getIngressPorts(ing networkingv1.Ingress) []string {
+	ports := make([]string, 0)
+	for _, rule := range ing.Spec.Rules {
+		if rule.HTTP != nil {
+			for _, path := range rule.HTTP.Paths {
+				if path.Backend.Service != nil {
+					if path.Backend.Service.Port.Number > 0 {
+						ports = append(ports, fmt.Sprintf("%d", path.Backend.Service.Port.Number))
+					} else if path.Backend.Service.Port.Name != "" {
+						ports = append(ports, path.Backend.Service.Port.Name)
+					}
+				}
+			}
+		}
+	}
+	if len(ports) == 0 {
+		// 尝试从 TLS 配置推断
+		if len(ing.Spec.TLS) > 0 {
+			return []string{"443"}
+		}
+		return []string{"80"}
+	}
+	return ports
+}
+
+func getIngressPaths(ing networkingv1.Ingress) []string {
+	paths := make([]string, 0)
+	for _, r := range ing.Spec.Rules {
+		if r.HTTP != nil {
+			for _, p := range r.HTTP.Paths {
+				if p.Path != "" {
+					paths = append(paths, p.Path)
+				}
+			}
+		}
+	}
+	if len(paths) == 0 {
+		return []string{"/"}
+	}
+	return paths
+}
+
+func getIngressServices(ing networkingv1.Ingress) []string {
+	services := make([]string, 0)
+	for _, r := range ing.Spec.Rules {
+		if r.HTTP != nil {
+			for _, p := range r.HTTP.Paths {
+				if p.Backend.Service != nil && p.Backend.Service.Name != "" {
+					services = append(services, p.Backend.Service.Name)
+				}
+			}
+		}
+	}
+	if len(services) == 0 {
+		return []string{"-"}
+	}
+	return services
+}
+
+// getAccessMode 提取 PVC 访问模式
+func getAccessMode(pvc corev1.PersistentVolumeClaim) string {
+	if len(pvc.Spec.AccessModes) > 0 {
+		return string(pvc.Spec.AccessModes[0])
+	}
+	return "-"
+}
+
+// getStorageClassName 提取 PVC 存储类
+func getStorageClassName(pvc corev1.PersistentVolumeClaim) string {
+	if pvc.Spec.StorageClassName != nil {
+		return *pvc.Spec.StorageClassName
+	}
+	// 兼容旧版 annotation
+	if class, ok := pvc.Annotations["volume.beta.kubernetes.io/storage-class"]; ok {
+		return class
+	}
+	return "-"
+}
+
+// getPVAccessMode 提取 PV 访问模式
+func getPVAccessMode(pv corev1.PersistentVolume) string {
+	if len(pv.Spec.AccessModes) > 0 {
+		return string(pv.Spec.AccessModes[0])
+	}
+	return "-"
+}
+
+// getClaimRef 提取 PV 绑定引用
+func getClaimRef(pv corev1.PersistentVolume) string {
+	if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Name != "" {
+		ns := pv.Spec.ClaimRef.Namespace
+		if ns == "" {
+			ns = "default"
+		}
+		return fmt.Sprintf("%s/%s", ns, pv.Spec.ClaimRef.Name)
+	}
+	return "-"
+}
+
+// getReclaimPolicy 提取 StorageClass 回收策略
+func getReclaimPolicy(sc storagev1.StorageClass) string {
+	if sc.ReclaimPolicy != nil {
+		return string(*sc.ReclaimPolicy)
+	}
+	return "Delete"
+}
+
+// getReclaimPolicyStr 提取 PV 回收策略
+func getReclaimPolicyStr(pv corev1.PersistentVolume) string {
+	if pv.Spec.PersistentVolumeReclaimPolicy != "" {
+		return string(pv.Spec.PersistentVolumeReclaimPolicy)
+	}
+	return "Delete"
+}
+
+// getVolumeBindingMode 提取 StorageClass 绑定模式
+func getVolumeBindingMode(sc storagev1.StorageClass) string {
+	if sc.VolumeBindingMode != nil {
+		return string(*sc.VolumeBindingMode)
+	}
+	return "Immediate"
+}
+
+// isDefaultStorageClass 判断是否为默认存储类
+func isDefaultStorageClass(sc storagev1.StorageClass) bool {
+	return sc.Annotations["storageclass.kubernetes.io/is-default-class"] == "true"
+}
+
+// getInternalIP 获取 Node 内网 IP
+func getInternalIP(node corev1.Node) string {
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP && addr.Address != "" {
+			return addr.Address
+		}
+	}
+	return "-"
+}
+
+// getNodeRoles 获取 Node 角色（✅ 兼容新旧标签）
 func getNodeRoles(node corev1.Node) []string {
 	roles := make([]string, 0)
 	hasControlPlane := false
-	hasEtcd := false
 	hasWorker := false
 
-	// 遍历所有 node-role.kubernetes.io/ 开头的 labels
 	for k := range node.Labels {
 		if strings.HasPrefix(k, "node-role.kubernetes.io/") {
 			role := strings.TrimPrefix(k, "node-role.kubernetes.io/")
-			switch role {
-			case "controlplane":
+			// 兼容新旧控制面标签
+			if role == "control-plane" || role == "master" || role == "" {
 				hasControlPlane = true
-			case "etcd":
-				hasEtcd = true
-			case "worker":
+			} else if role == "worker" {
 				hasWorker = true
-			default:
+			} else if role != "" {
 				roles = append(roles, role)
 			}
 		}
 	}
 
-	// 按优先级添加角色：control-plane > etcd > worker
 	if hasControlPlane {
-		roles = append(roles, "control-plane")
+		roles = append([]string{"control-plane"}, roles...)
 	}
-	if hasEtcd {
-		roles = append(roles, "etcd")
-	}
-	if hasWorker {
+	if hasWorker && !hasControlPlane {
 		roles = append(roles, "worker")
 	}
-
-	// 如果没有设置任何角色标签，默认为 worker
 	if len(roles) == 0 {
 		roles = append(roles, "worker")
 	}
-
 	return roles
 }
 
-func countPodsOnNode(pods *corev1.PodList, nodeName string) int {
-	if pods == nil {
-		return 0
+// getEndpointPorts 提取 Endpoint 端口（✅ 修复类型转换错误）
+func getEndpointPorts(ep corev1.Endpoints) []string {
+	if len(ep.Subsets) == 0 {
+		return []string{"-"}
 	}
-	count := 0
-	for _, p := range pods.Items {
-		if p.Spec.NodeName == nodeName {
-			count++
+	ports := make([]string, 0)
+	for _, subset := range ep.Subsets {
+		for _, p := range subset.Ports {
+			// ✅ 修复：使用格式化而非直接类型转换
+			ports = append(ports, strconv.Itoa(int(p.Port)))
 		}
 	}
-	return count
+	if len(ports) == 0 {
+		return []string{"-"}
+	}
+	return ports
 }
 
+// formatEventLastSeen 格式化事件最后可见时间（✅ 修复类型转换错误）
+func formatEventLastSeen(e corev1.Event) string {
+	// 优先使用 EventTime（新 API）
+	if !e.EventTime.IsZero() {
+		// ✅ 修复：正确转换 MicroTime → Time
+		return model.FormatTime(&metav1.Time{Time: e.EventTime.Time})
+	}
+	// 回退到 LastTimestamp
+	if !e.LastTimestamp.IsZero() {
+		return model.FormatTime(&e.LastTimestamp)
+	}
+	// 最后回退到 CreationTimestamp
+	return model.FormatTime(&e.CreationTimestamp)
+}
+
+// formatEventObject 格式化事件关联对象
+func formatEventObject(obj corev1.ObjectReference) string {
+	if obj.Kind == "" && obj.Name == "" {
+		return "-"
+	}
+	if obj.Kind == "" {
+		return obj.Name
+	}
+	if obj.Name == "" {
+		return obj.Kind
+	}
+	return fmt.Sprintf("%s/%s", obj.Kind, obj.Name)
+}
+
+// ============================================================================
+// 辅助函数 - 性能优化类
+// ============================================================================
+
+// buildNodePodCountMap 预构建 nodeName → podCount 映射
+func buildNodePodCountMap(pods *corev1.PodList) map[string]int {
+	result := make(map[string]int)
+	if pods == nil {
+		return result
+	}
+	for _, p := range pods.Items {
+		if p.Spec.NodeName != "" {
+			result[p.Spec.NodeName]++
+		}
+	}
+	return result
+}
+
+// countEndpointAddresses 统计 Endpoint 地址数
 func countEndpointAddresses(ep corev1.Endpoints) int {
 	count := 0
 	for _, subset := range ep.Subsets {
 		count += len(subset.Addresses)
 	}
 	return count
-}
-
-func getEndpointPorts(ep corev1.Endpoints) []string {
-	ports := make([]string, 0)
-	for _, subset := range ep.Subsets {
-		for _, p := range subset.Ports {
-			ports = append(ports, string(p.Port))
-		}
-	}
-	return ports
-}
-
-func calculateEventDuration(e corev1.Event) string {
-	if e.FirstTimestamp.IsZero() {
-		return "-"
-	}
-	endTime := e.LastTimestamp.Time
-	if e.LastTimestamp.IsZero() {
-		endTime = e.EventTime.Time
-	}
-	return endTime.Sub(e.FirstTimestamp.Time).Round(time.Second).String()
 }
