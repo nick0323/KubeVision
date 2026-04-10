@@ -311,7 +311,6 @@ type Ingress struct {
 	Name          string   `json:"name"`
 	Class         string   `json:"class"`
 	Hosts         []string `json:"hosts"`
-	Ports         []string `json:"ports"`
 	Path          []string `json:"path"`
 	TargetService []string `json:"targetService"`
 	Age           string   `json:"age"`

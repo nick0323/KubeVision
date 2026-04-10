@@ -163,7 +163,6 @@ func MapIngresses(ingresses []networkingv1.Ingress) []model.Ingress {
 			Name:          ing.Name,
 			Class:         getIngressClass(ing),
 			Hosts:         getIngressHosts(ing),
-			Ports:         getIngressPorts(ing),
 			Path:          getIngressPaths(ing),    // ✅ 恢复返回 []string
 			TargetService: getIngressServices(ing), // ✅ 恢复返回 []string
 			Age:           CalculateAge(ing.CreationTimestamp),
@@ -534,14 +533,6 @@ func getNodeStatus(node corev1.Node) string {
 	return "Unknown"
 }
 
-// getIngressStatus 获取 Ingress 状态
-func getIngressStatus(ing networkingv1.Ingress) string {
-	if len(ing.Status.LoadBalancer.Ingress) > 0 {
-		return "Ready"
-	}
-	return "Pending"
-}
-
 // ============================================================================
 // 辅助函数 - 字段提取类
 // ============================================================================
@@ -585,32 +576,6 @@ func getIngressClass(ing networkingv1.Ingress) string {
 		return class
 	}
 	return "-"
-}
-
-// getIngressPorts 提取 Ingress 端口（保持原函数名，返回后端服务端口）
-func getIngressPorts(ing networkingv1.Ingress) []string {
-	ports := make([]string, 0)
-	for _, rule := range ing.Spec.Rules {
-		if rule.HTTP != nil {
-			for _, path := range rule.HTTP.Paths {
-				if path.Backend.Service != nil {
-					if path.Backend.Service.Port.Number > 0 {
-						ports = append(ports, fmt.Sprintf("%d", path.Backend.Service.Port.Number))
-					} else if path.Backend.Service.Port.Name != "" {
-						ports = append(ports, path.Backend.Service.Port.Name)
-					}
-				}
-			}
-		}
-	}
-	if len(ports) == 0 {
-		// 尝试从 TLS 配置推断
-		if len(ing.Spec.TLS) > 0 {
-			return []string{"443"}
-		}
-		return []string{"80"}
-	}
-	return ports
 }
 
 func getIngressPaths(ing networkingv1.Ingress) []string {
