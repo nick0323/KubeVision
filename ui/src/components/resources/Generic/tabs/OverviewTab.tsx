@@ -1,4 +1,7 @@
 ﻿import React, { useState, useMemo } from 'react';
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css';
+import 'tippy.js/themes/light.css';
 import { OverviewTabProps } from '../types';
 import { StatusBadge } from '../../../ui/StatusBadge';
 import './OverviewTab.css';
@@ -16,12 +19,336 @@ const RESOURCE_CONFIG: Record<string, { title: string; hasContainers?: boolean; 
   secret: { title: 'Secret' },
   ingress: { title: 'Ingress' },
   job: { title: 'Job', hasContainers: true },
-  cronjob: { title: 'CronJob' }, // CronJob 不显示 Containers
+  cronjob: { title: 'CronJob' },
   pvc: { title: 'PersistentVolumeClaim' },
   pv: { title: 'PersistentVolume' },
   storageclass: { title: 'StorageClass' },
   namespace: { title: 'Namespace' },
   node: { title: 'Node' },
+};
+
+/**
+ * 各资源类型特有字段配置
+ */
+const RESOURCE_FIELDS: Record<string, Array<{
+  key: string;
+  label: string;
+  getValue: (data: any) => any;
+  condition?: (data: any) => boolean;
+  render?: (value: any, data: any) => React.ReactNode;
+}>> = {
+  // Deployment
+  deployment: [
+    {
+      key: 'strategy',
+      label: 'Strategy',
+      getValue: (data) => data.spec?.strategy?.type,
+    },
+    {
+      key: 'selector',
+      label: 'Selector',
+      getValue: (data) => data.spec?.selector?.matchLabels,
+      render: (value: any) => renderLabelsInline(value),
+    },
+  ],
+  
+  // StatefulSet
+  statefulset: [
+    {
+      key: 'serviceName',
+      label: 'Service Name',
+      getValue: (data) => data.spec?.serviceName,
+    },
+    {
+      key: 'selector',
+      label: 'Selector',
+      getValue: (data) => data.spec?.selector?.matchLabels,
+      render: (value: any) => renderLabelsInline(value),
+    },
+  ],
+  
+  // DaemonSet
+  daemonset: [
+    {
+      key: 'selector',
+      label: 'Selector',
+      getValue: (data) => data.spec?.selector?.matchLabels,
+      render: (value: any) => renderLabelsInline(value),
+    },
+  ],
+  
+  // Job
+  job: [
+    {
+      key: 'completions',
+      label: 'Completions',
+      getValue: (data) => data.spec?.completions || 1,
+    },
+    {
+      key: 'parallelism',
+      label: 'Parallelism',
+      getValue: (data) => data.spec?.parallelism || 1,
+    },
+  ],
+  
+  // CronJob
+  cronjob: [
+    {
+      key: 'schedule',
+      label: 'Schedule',
+      getValue: (data) => data.spec?.schedule,
+    },
+    {
+      key: 'suspend',
+      label: 'Suspend',
+      getValue: (data) => data.spec?.suspend,
+      render: (value: boolean) => value ? 'Yes' : 'No',
+    },
+  ],
+  
+  // Service
+  service: [
+    {
+      key: 'type',
+      label: 'Type',
+      getValue: (data) => data.spec?.type,
+    },
+    {
+      key: 'clusterIP',
+      label: 'Cluster IP',
+      getValue: (data) => data.spec?.clusterIP,
+    },
+    {
+      key: 'selector',
+      label: 'Selector',
+      getValue: (data) => data.spec?.selector,
+      condition: (data) => data.spec?.selector && Object.keys(data.spec.selector).length > 0,
+      render: (value: any) => renderLabelsInline(value),
+    },
+  ],
+  
+  // Ingress
+  ingress: [
+    {
+      key: 'ingressClassName',
+      label: 'Class',
+      getValue: (data) => data.spec?.ingressClassName,
+    },
+    {
+      key: 'rules',
+      label: 'Rules',
+      getValue: (data) => data.spec?.rules?.length || 0,
+      render: (value: number) => `${value} rule${value !== 1 ? 's' : ''}`,
+    },
+  ],
+  
+  // ConfigMap
+  configmap: [
+    {
+      key: 'dataCount',
+      label: 'Data Count',
+      getValue: (data) => data.data ? Object.keys(data.data).length : 0,
+    },
+  ],
+  
+  // Secret
+  secret: [
+    {
+      key: 'type',
+      label: 'Type',
+      getValue: (data) => data.type,
+    },
+    {
+      key: 'dataCount',
+      label: 'Data Count',
+      getValue: (data) => data.data ? Object.keys(data.data).length : 0,
+    },
+  ],
+  
+  // PVC
+  pvc: [
+    {
+      key: 'accessModes',
+      label: 'Access Modes',
+      getValue: (data) => data.spec?.accessModes?.[0],
+    },
+    {
+      key: 'storageClass',
+      label: 'Storage Class',
+      getValue: (data) => data.spec?.storageClassName,
+    },
+    {
+      key: 'volume',
+      label: 'Volume',
+      getValue: (data) => data.spec?.volumeName,
+      condition: (data) => !!data.spec?.volumeName,
+    },
+  ],
+  
+  // PV
+  pv: [
+    {
+      key: 'accessModes',
+      label: 'Access Modes',
+      getValue: (data) => data.spec?.accessModes?.[0],
+    },
+    {
+      key: 'storageClass',
+      label: 'Storage Class',
+      getValue: (data) => data.spec?.storageClassName,
+    },
+    {
+      key: 'claim',
+      label: 'Claim',
+      getValue: (data) => {
+        const claimRef = data.spec?.claimRef;
+        if (claimRef?.namespace && claimRef?.name) {
+          return `${claimRef.namespace}/${claimRef.name}`;
+        }
+        return claimRef?.name;
+      },
+      condition: (data) => !!data.spec?.claimRef?.name,
+    },
+  ],
+  
+  // StorageClass
+  storageclass: [
+    {
+      key: 'provisioner',
+      label: 'Provisioner',
+      getValue: (data) => data.provisioner,
+    },
+    {
+      key: 'bindingMode',
+      label: 'Binding Mode',
+      getValue: (data) => data.volumeBindingMode,
+    },
+    {
+      key: 'isDefault',
+      label: 'Default',
+      getValue: (data) => data.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] === 'true',
+      render: (value: boolean) => value ? 'Yes' : 'No',
+      condition: (data) => data.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] !== undefined,
+    },
+  ],
+  
+  // Namespace
+  namespace: [
+    {
+      key: 'phase',
+      label: 'Phase',
+      getValue: (data) => data.status?.phase,
+    },
+  ],
+  
+  // Node
+  node: [
+    {
+      key: 'kubeletVersion',
+      label: 'Kubelet Version',
+      getValue: (data) => data.status?.nodeInfo?.kubeletVersion,
+    },
+    {
+      key: 'os',
+      label: 'OS',
+      getValue: (data) => data.status?.nodeInfo?.osImage,
+    },
+    {
+      key: 'roles',
+      label: 'Roles',
+      getValue: (data) => getNodeRoles(data.metadata?.labels),
+      condition: (data) => {
+        const roles = getNodeRoles(data.metadata?.labels);
+        return roles && roles.length > 0;
+      },
+      render: (value: string[]) => value.join(', '),
+    },
+  ],
+};
+
+/**
+ * 获取节点角色
+ * K8s 节点角色标签格式：node-role.kubernetes.io/<role>: "" (空字符串)
+ */
+function getNodeRoles(labels?: Record<string, string>): string[] {
+  if (!labels) return [];
+
+  const roles: string[] = [];
+
+  // 提取所有 node-role.kubernetes.io/ 开头的标签
+  Object.keys(labels).forEach(key => {
+    if (key.startsWith('node-role.kubernetes.io/')) {
+      const role = key.replace('node-role.kubernetes.io/', '');
+      if (role) {
+        roles.push(role);
+      }
+    }
+  });
+
+  // 兼容旧版本标签（空值标签）
+  if (labels['node-role.kubernetes.io/control-plane']) roles.push('control-plane');
+  if (labels['node-role.kubernetes.io/master']) roles.push('master');
+  if (labels['node-role.kubernetes.io/worker']) roles.push('worker');
+  if (labels['node-role.kubernetes.io/infra']) roles.push('infra');
+
+  // 去重
+  const uniqueRoles = [...new Set(roles)];
+  
+  return uniqueRoles.length > 0 ? uniqueRoles : [];
+}
+
+/**
+ * 渲染内联标签（用于 Selector 展示，格式：key: value）
+ */
+function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
+  if (!labels || Object.keys(labels).length === 0) return null;
+
+  return (
+    <div className="label-list">
+      {Object.entries(labels).map(([key, value]) => {
+        const fullText = `${key}: ${value}`;
+        const displayKey = truncateText(key as string, 20);
+        const displayValue = truncateText(value as string, 20);
+        
+        // 只有当文本被截断时才显示 tooltip
+        const isTruncated = displayKey !== key || displayValue !== value;
+        
+        const labelElement = (
+          <span className="label-tag">
+            <span className="label-key">{displayKey}</span>
+            <span className="label-separator">: </span>
+            <span className="label-value">{displayValue}</span>
+          </span>
+        );
+        
+        if (isTruncated) {
+          return (
+            <Tippy
+              key={key}
+              content={fullText}
+              theme="light"
+              placement="top"
+              arrow={true}
+              duration={200}
+            >
+              {labelElement}
+            </Tippy>
+          );
+        }
+        
+        return <span key={key}>{labelElement}</span>;
+      })}
+    </div>
+  );
+}
+
+/**
+ * 截断文本
+ */
+const truncateText = (text: string, maxLength: number) => {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
 };
 
 /**
@@ -106,71 +433,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
   const conditions = useMemo(() => {
     return status?.conditions || [];
   }, [status]);
-
-  // 渲染标签列表（限制显示数量和长度）
-  const renderLabels = (labels: Record<string, string>, maxItems = 5) => {
-    if (!labels || Object.keys(labels).length === 0) return null;
-    
-    const entries = Object.entries(labels);
-    const visibleEntries = entries.slice(0, maxItems);
-    const hiddenCount = entries.length - maxItems;
-    
-    return (
-      <div className="info-item labels-item">
-        <span className="info-label">Labels</span>
-        <div className="label-list">
-          {visibleEntries.map(([key, value]) => (
-            <span key={key} className="label-tag" title={`${key}: ${value}`}>
-              <span className="label-key">{truncateText(key, 30)}</span>
-              <span className="label-separator">: </span>
-              <span className="label-value">{truncateText(value, 30)}</span>
-            </span>
-          ))}
-          {hiddenCount > 0 && (
-            <span className="label-tag label-more">
-              +{hiddenCount}
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // 渲染注解列表（限制显示数量和长度，使用标签样式）
-  const renderAnnotations = (annotations: Record<string, string>, maxItems = 5) => {
-    if (!annotations || Object.keys(annotations).length === 0) return null;
-    
-    const entries = Object.entries(annotations);
-    const visibleEntries = entries.slice(0, maxItems);
-    const hiddenCount = entries.length - maxItems;
-    
-    return (
-      <div className="info-item annotations-item">
-        <span className="info-label">Annotations</span>
-        <div className="annotation-list">
-          {visibleEntries.map(([key, value]) => (
-            <span key={key} className="annotation-tag" title={`${key}: ${value}`}>
-              <span className="annotation-key">{truncateText(key, 30)}</span>
-              <span className="annotation-separator">: </span>
-              <span className="annotation-value">{truncateText(value, 30)}</span>
-            </span>
-          ))}
-          {hiddenCount > 0 && (
-            <span className="annotation-tag label-more">
-              +{hiddenCount}
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // 截断文本
-  const truncateText = (text: string, maxLength: number) => {
-    if (!text) return '';
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
 
   // 渲染容器详情
   const renderContainerDetails = (container: any) => {
@@ -386,6 +648,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
       <div className="detail-card">
         <h3 className="detail-card-title">{resourceInfo.title} Information</h3>
         <div className="detail-card-body">
+          {/* 通用字段 */}
           <div className="info-grid">
             <div className="info-item">
               <span className="info-label">Created</span>
@@ -419,9 +682,118 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
               </div>
             )}
 
-            {renderLabels(metadata.labels)}
-            {renderAnnotations(metadata.annotations)}
+            {/* 资源特有字段 */}
+            {RESOURCE_FIELDS[resourceType]?.map(field => {
+              // 检查条件
+              if (field.condition && !field.condition(data)) return null;
+              
+              // 获取值
+              const value = field.getValue(data);
+              if (value === null || value === undefined || value === '') return null;
+              
+              // 渲染
+              return (
+                <div key={field.key} className="info-item">
+                  <span className="info-label">{field.label}</span>
+                  <span className="info-value">
+                    {field.render ? field.render(value, data) : value}
+                  </span>
+                </div>
+              );
+            })}
           </div>
+
+          {/* Labels 和 Annotations - 同一行平分宽度 */}
+          {(metadata.labels && Object.keys(metadata.labels).length > 0) ||
+           (metadata.annotations && Object.keys(metadata.annotations).length > 0) ? (
+            <div className="info-section">
+              <div className="info-grid info-grid-2col">
+                {/* Labels */}
+                {metadata.labels && Object.keys(metadata.labels).length > 0 && (
+                  <div className="info-item">
+                    <span className="info-label">Labels</span>
+                    <div className="label-list">
+                      {Object.entries(metadata.labels).map(([key, value]) => {
+                        const fullText = `${key}: ${value}`;
+                        const displayKey = truncateText(key as string, 30);
+                        const displayValue = truncateText(value as string, 30);
+                        
+                        // 只有当文本被截断时才显示 tooltip
+                        const isTruncated = displayKey !== key || displayValue !== value;
+                        
+                        const labelElement = (
+                          <span className="label-tag">
+                            <span className="label-key">{displayKey}</span>
+                            <span className="label-separator">: </span>
+                            <span className="label-value">{displayValue}</span>
+                          </span>
+                        );
+                        
+                        if (isTruncated) {
+                          return (
+                            <Tippy
+                              key={key}
+                              content={fullText}
+                              theme="light"
+                              placement="top"
+                              arrow={true}
+                              duration={200}
+                            >
+                              {labelElement}
+                            </Tippy>
+                          );
+                        }
+                        
+                        return <span key={key}>{labelElement}</span>;
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Annotations */}
+                {metadata.annotations && Object.keys(metadata.annotations).length > 0 && (
+                  <div className="info-item">
+                    <span className="info-label">Annotations</span>
+                    <div className="annotation-list">
+                      {Object.entries(metadata.annotations).map(([key, value]) => {
+                        const fullText = `${key}: ${value}`;
+                        const displayKey = truncateText(key as string, 30);
+                        const displayValue = truncateText(value as string, 30);
+                        
+                        // 只有当文本被截断时才显示 tooltip
+                        const isTruncated = displayKey !== key || displayValue !== value;
+                        
+                        const labelElement = (
+                          <span className="annotation-tag">
+                            <span className="annotation-key">{displayKey}</span>
+                            <span className="annotation-separator">: </span>
+                            <span className="annotation-value">{displayValue}</span>
+                          </span>
+                        );
+                        
+                        if (isTruncated) {
+                          return (
+                            <Tippy
+                              key={key}
+                              content={fullText}
+                              theme="light"
+                              placement="top"
+                              arrow={true}
+                              duration={200}
+                            >
+                              {labelElement}
+                            </Tippy>
+                          );
+                        }
+                        
+                        return <span key={key}>{labelElement}</span>;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 

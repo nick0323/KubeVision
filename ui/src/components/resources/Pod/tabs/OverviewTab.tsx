@@ -124,6 +124,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading }) => {
       <div className="detail-card">
         <h3 className="detail-card-title">Pod Information</h3>
         <div className="detail-card-body">
+          {/* 基本信息 - 不强制补位 */}
           <div className="info-grid">
             <div className="info-item">
               <span className="info-label">Created</span>
@@ -149,6 +150,25 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading }) => {
               <span className="info-label">Host IP</span>
               <span className="info-value">{pod.status?.hostIP || '-'}</span>
             </div>
+            {pod.status?.qosClass && (
+              <div className="info-item">
+                <span className="info-label">QoS Class</span>
+                <span className="info-value">
+                  <span className={`status-badge ${
+                    pod.status.qosClass === 'Guaranteed' ? 'status-success' :
+                    pod.status.qosClass === 'Burstable' ? 'status-warning' : 'status-error'
+                  }`}>
+                    {pod.status.qosClass}
+                  </span>
+                </span>
+              </div>
+            )}
+            {pod.spec?.restartPolicy && (
+              <div className="info-item">
+                <span className="info-label">Restart Policy</span>
+                <span className="info-value">{pod.spec.restartPolicy}</span>
+              </div>
+            )}
             {pod.metadata?.ownerReferences && pod.metadata.ownerReferences.length > 0 && (
               <div className="info-item">
                 <span className="info-label">Owner</span>
@@ -167,35 +187,47 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading }) => {
                 </span>
               </div>
             )}
-            {pod.metadata?.labels && Object.keys(pod.metadata.labels).length > 0 && (
-              <div className="info-item">
-                <span className="info-label">Labels</span>
-                <div className="label-list">
-                  {Object.entries(pod.metadata.labels).map(([key, value]) => (
-                    <span key={key} className="label-item">
-                      <span className="label-key">{key}</span>
-                      <span className="label-separator">: </span>
-                      <span className="label-value">{value}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {pod.metadata?.annotations && Object.keys(pod.metadata.annotations).length > 0 && (
-              <div className="info-item">
-                <span className="info-label">Annotations</span>
-                <div className="label-list">
-                  {Object.entries(pod.metadata.annotations).map(([key, value]) => (
-                    <span key={key} className="label-item">
-                      <span className="label-key">{key}</span>
-                      <span className="label-separator">: </span>
-                      <span className="label-value">{value}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Labels 和 Annotations - 同一行平分宽度 */}
+          {(pod.metadata?.labels && Object.keys(pod.metadata.labels).length > 0) || 
+           (pod.metadata?.annotations && Object.keys(pod.metadata.annotations).length > 0) ? (
+            <div className="info-section">
+              <div className="info-grid info-grid-2col">
+                {/* Labels */}
+                {pod.metadata?.labels && Object.keys(pod.metadata.labels).length > 0 && (
+                  <div className="info-item">
+                    <span className="info-label">Labels</span>
+                    <div className="label-list">
+                      {Object.entries(pod.metadata.labels).map(([key, value]) => (
+                        <span key={key} className="label-item">
+                          <span className="label-key">{key}</span>
+                          <span className="label-separator">: </span>
+                          <span className="label-value">{value}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Annotations */}
+                {pod.metadata?.annotations && Object.keys(pod.metadata.annotations).length > 0 && (
+                  <div className="info-item">
+                    <span className="info-label">Annotations</span>
+                    <div className="label-list">
+                      {Object.entries(pod.metadata.annotations).map(([key, value]) => (
+                        <span key={key} className="label-item">
+                          <span className="label-key">{key}</span>
+                          <span className="label-separator">: </span>
+                          <span className="label-value">{value}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 

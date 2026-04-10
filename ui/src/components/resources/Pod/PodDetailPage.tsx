@@ -155,7 +155,6 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
         namespace={namespace}
         onRefresh={refresh}
         onDelete={handleDelete}
-        onDescribe={() => {}}
       />
 
       {/* Tab 导航 */}

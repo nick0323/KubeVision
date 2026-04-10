@@ -16,7 +16,6 @@ import '../../../styles/detail-page.css';
 
 // 导入资源特定 Tabs
 import { PodsTab } from './tabs/PodsTab';
-import { EndpointsTab } from './tabs/EndpointsTab';
 
 // Pod 特有 Tabs（复用现有组件）
 import { LogsTab } from '../Pod/tabs/LogsTab';
@@ -166,9 +165,6 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
           resourceLabels={(data as any)?.spec?.selector?.matchLabels || (data as any)?.metadata?.labels || {}}
           ownerReferences={(data as any)?.metadata?.uid ? [{ uid: (data as any).metadata.uid, kind: config.title, name: resourceName }] : []}
         />;
-
-      case 'endpoints':
-        return <EndpointsTab namespace={namespace} serviceName={resourceName} />;
 
       default:
         return <div>Tab 内容不存在</div>;

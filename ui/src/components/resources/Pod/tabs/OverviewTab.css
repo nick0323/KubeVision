@@ -62,3 +62,21 @@
   min-width: 80px;
   justify-content: center;
 }
+
+/* Labels 和 Annotations 单独成行 */
+.info-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 2 列布局 - Labels 和 Annotations 平分宽度 */
+.info-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.info-grid-2col .info-item {
+  grid-column: span 1;
+}

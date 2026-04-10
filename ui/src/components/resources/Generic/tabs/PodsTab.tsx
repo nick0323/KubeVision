@@ -62,14 +62,17 @@ export const PodsTab: React.FC<PodsTabProps> = ({
     try {
       // 优先使用 Label Selector 查询
       const labelSelector = buildLabelSelector();
-      
-      // 构建 URL - namespace 作为 query 参数传递
-      let url = `/api/pod?namespace=${namespace}`;
 
-      if (labelSelector) {
+      // 构建 URL - namespace 作为 query 参数传递
+      let url = `/api/pod`;
+
+      // Node 页面：使用 fieldSelector=spec.nodeName=node1
+      if (resourceKind === 'Node' || resourceKind === 'node') {
+        url += `?fieldSelector=spec.nodeName=${encodeURIComponent(resourceName)}`;
+      } else if (labelSelector) {
+        // Workload (Deployment/StatefulSet/DaemonSet/Job) 和 Service:
         // 使用 labelSelector 参数查询（支持多个 selector，逗号分隔）
-        // 注意：K8s API 的 labelSelector 不需要 URL 编码，直接使用即可
-        url += `&labelSelector=${labelSelector}`;
+        url += `?namespace=${namespace}&labelSelector=${encodeURIComponent(labelSelector)}`;
       }
 
       const response = await authFetch(url);
