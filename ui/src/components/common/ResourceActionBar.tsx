@@ -4,7 +4,7 @@ import './ResourceActionBar.css';
 
 export interface ResourceActionBarProps {
   name: string;
-  namespace: string;
+  namespace?: string;  // 可选，集群资源没有 namespace
   onRefresh: () => void;
   onDelete: () => void;
   onDescribe?: () => void;  // 可选，Pod 详情页需要
@@ -55,10 +55,12 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
             </button>
           </div>
         </div>
-        <div className="resource-namespace">
-          <span className="namespace-label">Namespace:</span>
-          <span className="namespace-value">{namespace}</span>
-        </div>
+        {namespace && (
+          <div className="resource-namespace">
+            <span className="namespace-label">Namespace:</span>
+            <span className="namespace-value">{namespace}</span>
+          </div>
+        )}
       </div>
     </div>
   );

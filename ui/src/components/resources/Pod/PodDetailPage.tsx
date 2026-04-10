@@ -96,8 +96,11 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
         // 触发事件
         window.dispatchEvent(new CustomEvent('tab-change', { detail: path }));
 
-        // 跳转到列表页
-        navigate(path);
+        // 跳转到列表页（根路径）
+        navigate('/');
+      } else {
+        // path 为空，不处理（namespace 和 name 的路径为空）
+        return;
       }
     },
     [navigate]
@@ -106,7 +109,7 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
   // 面包屑配置 - 资源类型 > namespace(不可点击) > name
   const breadcrumbs = useMemo(
     () => [
-      { label: 'Pods', path: '/pods' },
+      { label: 'Pods', path: 'pods' },  // 不带斜杠，与 PAGE_COMPONENTS key 一致
       { label: namespace, path: '' }, // namespace 不可点击
       { label: podName, path: '' },
     ],

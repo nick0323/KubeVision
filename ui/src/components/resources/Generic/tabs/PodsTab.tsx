@@ -64,15 +64,15 @@ export const PodsTab: React.FC<PodsTabProps> = ({
       const labelSelector = buildLabelSelector();
 
       // 构建 URL - namespace 作为 query 参数传递
-      let url = `/api/pod`;
+      let url = `/api/pod?limit=1000`;
 
       // Node 页面：使用 fieldSelector=spec.nodeName=node1
       if (resourceKind === 'Node' || resourceKind === 'node') {
-        url += `?fieldSelector=spec.nodeName=${encodeURIComponent(resourceName)}`;
+        url += `&fieldSelector=spec.nodeName=${encodeURIComponent(resourceName)}`;
       } else if (labelSelector) {
         // Workload (Deployment/StatefulSet/DaemonSet/Job) 和 Service:
         // 使用 labelSelector 参数查询（支持多个 selector，逗号分隔）
-        url += `?namespace=${namespace}&labelSelector=${encodeURIComponent(labelSelector)}`;
+        url += `&namespace=${namespace}&labelSelector=${encodeURIComponent(labelSelector)}`;
       }
 
       const response = await authFetch(url);

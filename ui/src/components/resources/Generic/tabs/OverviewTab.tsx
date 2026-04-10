@@ -244,14 +244,34 @@ const RESOURCE_FIELDS: Record<string, Array<{
   // Node
   node: [
     {
+      key: 'kernelVersion',
+      label: 'Kernel Version',
+      getValue: (data) => data.status?.nodeInfo?.kernelVersion,
+    },
+    {
       key: 'kubeletVersion',
       label: 'Kubelet Version',
       getValue: (data) => data.status?.nodeInfo?.kubeletVersion,
     },
     {
+      key: 'kubeProxyVersion',
+      label: 'KubeProxy Version',
+      getValue: (data) => data.status?.nodeInfo?.kubeProxyVersion,
+    },
+    {
       key: 'os',
       label: 'OS',
       getValue: (data) => data.status?.nodeInfo?.osImage,
+    },
+    {
+      key: 'architecture',
+      label: 'Architecture',
+      getValue: (data) => data.status?.nodeInfo?.architecture,
+    },
+    {
+      key: 'operatingSystem',
+      label: 'Operating System',
+      getValue: (data) => data.status?.nodeInfo?.operatingSystem,
     },
     {
       key: 'roles',
@@ -703,91 +723,137 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
             })}
           </div>
 
-          {/* Labels 和 Annotations - 同一行平分宽度 */}
+          {/* Labels 和 Annotations - 同一行平分宽度，最多显示 5 行 */}
           {(metadata.labels && Object.keys(metadata.labels).length > 0) ||
            (metadata.annotations && Object.keys(metadata.annotations).length > 0) ? (
             <div className="info-section">
               <div className="info-grid info-grid-2col">
-                {/* Labels */}
+                {/* Labels - 最多显示 5 个 */}
                 {metadata.labels && Object.keys(metadata.labels).length > 0 && (
                   <div className="info-item">
                     <span className="info-label">Labels</span>
                     <div className="label-list">
-                      {Object.entries(metadata.labels).map(([key, value]) => {
-                        const fullText = `${key}: ${value}`;
-                        const displayKey = truncateText(key as string, 30);
-                        const displayValue = truncateText(value as string, 30);
-                        
-                        // 只有当文本被截断时才显示 tooltip
-                        const isTruncated = displayKey !== key || displayValue !== value;
-                        
-                        const labelElement = (
-                          <span className="label-tag">
-                            <span className="label-key">{displayKey}</span>
-                            <span className="label-separator">: </span>
-                            <span className="label-value">{displayValue}</span>
-                          </span>
-                        );
-                        
-                        if (isTruncated) {
-                          return (
-                            <Tippy
-                              key={key}
-                              content={fullText}
-                              theme="light"
-                              placement="top"
-                              arrow={true}
-                              duration={200}
-                            >
-                              {labelElement}
-                            </Tippy>
+                      {Object.entries(metadata.labels)
+                        .slice(0, 5)
+                        .map(([key, value]) => {
+                          const fullText = `${key}: ${value}`;
+                          const displayKey = truncateText(key as string, 30);
+                          const displayValue = truncateText(value as string, 30);
+                          
+                          // 只有当文本被截断时才显示 tooltip
+                          const isTruncated = displayKey !== key || displayValue !== value;
+                          
+                          const labelElement = (
+                            <span className="label-tag">
+                              <span className="label-key">{displayKey}</span>
+                              <span className="label-separator">: </span>
+                              <span className="label-value">{displayValue}</span>
+                            </span>
                           );
-                        }
-                        
-                        return <span key={key}>{labelElement}</span>;
-                      })}
+                          
+                          if (isTruncated) {
+                            return (
+                              <Tippy
+                                key={key}
+                                content={fullText}
+                                theme="light"
+                                placement="top"
+                                arrow={true}
+                                duration={200}
+                              >
+                                {labelElement}
+                              </Tippy>
+                            );
+                          }
+                          
+                          return <span key={key}>{labelElement}</span>;
+                        })}
+                      {/* 显示更多提示 */}
+                      {Object.keys(metadata.labels).length > 5 && (
+                        <Tippy
+                          content={
+                            <div style={{ maxHeight: '200px', overflow: 'auto' }}>
+                              {Object.entries(metadata.labels).map(([key, value]) => (
+                                <div key={key}>{key}: {value}</div>
+                              ))}
+                            </div>
+                          }
+                          theme="light"
+                          placement="top"
+                          arrow={true}
+                          duration={200}
+                          interactive={true}
+                        >
+                          <span className="label-tag label-more">
+                            +{Object.keys(metadata.labels).length - 5} more
+                          </span>
+                        </Tippy>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Annotations */}
+                {/* Annotations - 最多显示 5 个 */}
                 {metadata.annotations && Object.keys(metadata.annotations).length > 0 && (
                   <div className="info-item">
                     <span className="info-label">Annotations</span>
                     <div className="annotation-list">
-                      {Object.entries(metadata.annotations).map(([key, value]) => {
-                        const fullText = `${key}: ${value}`;
-                        const displayKey = truncateText(key as string, 30);
-                        const displayValue = truncateText(value as string, 30);
-                        
-                        // 只有当文本被截断时才显示 tooltip
-                        const isTruncated = displayKey !== key || displayValue !== value;
-                        
-                        const labelElement = (
-                          <span className="annotation-tag">
-                            <span className="annotation-key">{displayKey}</span>
-                            <span className="annotation-separator">: </span>
-                            <span className="annotation-value">{displayValue}</span>
-                          </span>
-                        );
-                        
-                        if (isTruncated) {
-                          return (
-                            <Tippy
-                              key={key}
-                              content={fullText}
-                              theme="light"
-                              placement="top"
-                              arrow={true}
-                              duration={200}
-                            >
-                              {labelElement}
-                            </Tippy>
+                      {Object.entries(metadata.annotations)
+                        .slice(0, 5)
+                        .map(([key, value]) => {
+                          const fullText = `${key}: ${value}`;
+                          const displayKey = truncateText(key as string, 30);
+                          const displayValue = truncateText(value as string, 30);
+                          
+                          // 只有当文本被截断时才显示 tooltip
+                          const isTruncated = displayKey !== key || displayValue !== value;
+                          
+                          const labelElement = (
+                            <span className="annotation-tag">
+                              <span className="annotation-key">{displayKey}</span>
+                              <span className="annotation-separator">: </span>
+                              <span className="annotation-value">{displayValue}</span>
+                            </span>
                           );
-                        }
-                        
-                        return <span key={key}>{labelElement}</span>;
-                      })}
+                          
+                          if (isTruncated) {
+                            return (
+                              <Tippy
+                                key={key}
+                                content={fullText}
+                                theme="light"
+                                placement="top"
+                                arrow={true}
+                                duration={200}
+                              >
+                                {labelElement}
+                              </Tippy>
+                            );
+                          }
+                          
+                          return <span key={key}>{labelElement}</span>;
+                        })}
+                      {/* 显示更多提示 */}
+                      {Object.keys(metadata.annotations).length > 5 && (
+                        <Tippy
+                          content={
+                            <div style={{ maxHeight: '200px', overflow: 'auto' }}>
+                              {Object.entries(metadata.annotations).map(([key, value]) => (
+                                <div key={key}>{key}: {value}</div>
+                              ))}
+                            </div>
+                          }
+                          theme="light"
+                          placement="top"
+                          arrow={true}
+                          duration={200}
+                          interactive={true}
+                        >
+                          <span className="annotation-tag label-more">
+                            +{Object.keys(metadata.annotations).length - 5} more
+                          </span>
+                        </Tippy>
+                      )}
                     </div>
                   </div>
                 )}

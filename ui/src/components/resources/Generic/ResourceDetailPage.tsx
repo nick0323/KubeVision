@@ -99,8 +99,11 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
         // 触发事件
         window.dispatchEvent(new CustomEvent('tab-change', { detail: path }));
 
-        // 跳转到列表页
-        navigate(path);
+        // 跳转到列表页（根路径）
+        navigate('/');
+      } else {
+        // path 为空，不处理（namespace 和 name 的路径为空）
+        return;
       }
     },
     [navigate]
@@ -112,12 +115,36 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
   // 面包屑配置 - 与 Pod 详情页保持一致：资源类型 > namespace(不可点击) > name
   const breadcrumbs = useMemo(
     () => [
-      { label: config.title, path: `/${resourceType}s` },
+      { label: config.title, path: getResourceListPath(resourceType) },
       ...(isClusterResource ? [] : [{ label: namespace, path: '' }]),
       { label: resourceName, path: '' },
     ],
     [config.title, resourceType, namespace, resourceName, isClusterResource]
   );
+
+  /**
+   * 根据资源类型获取列表页路径（tab key，不带斜杠）
+   */
+  function getResourceListPath(type: string): string {
+    const typeToPath: Record<string, string> = {
+      pod: 'pods',
+      deployment: 'deployments',
+      statefulset: 'statefulsets',
+      daemonset: 'daemonsets',
+      job: 'jobs',
+      cronjob: 'cronjobs',
+      service: 'services',
+      ingress: 'ingress',
+      configmap: 'configmaps',
+      secret: 'secrets',
+      pvc: 'pvcs',
+      pv: 'pvs',
+      storageclass: 'storageclasses',
+      namespace: 'namespaces',
+      node: 'nodes',
+    };
+    return typeToPath[type] || 'overview';
+  }
 
   // Tab 配置
   const tabItems: TabItem[] = useMemo(
@@ -210,7 +237,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
       {/* 资源信息栏 */}
       <ResourceActionBar
         name={data?.metadata?.name || resourceName}
-        namespace={namespace}
+        namespace={isClusterResource ? undefined : namespace}
         onRefresh={refresh}
         onDelete={handleDelete}
       />
