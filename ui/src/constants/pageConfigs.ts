@@ -256,17 +256,19 @@ export const NODES_CONFIG = {
     { title: 'Name', dataIndex: 'name', width: '15%', sortable: true },
     { title: 'IP', dataIndex: 'ip', width: '15%' },
     { title: 'Role', dataIndex: 'role', width: '20%', sortable: true },
-    { 
-      title: 'CPU', 
-      dataIndex: 'cpuUsage', 
+    {
+      title: 'CPU',
+      dataIndex: 'cpuUsage',
       width: '10%',
-      render: (value: any) => value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A'
+      render: (value: any) =>
+        value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A',
     },
-    { 
-      title: 'Memory', 
-      dataIndex: 'memoryUsage', 
+    {
+      title: 'Memory',
+      dataIndex: 'memoryUsage',
       width: '10%',
-      render: (value: any) => value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A'
+      render: (value: any) =>
+        value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A',
     },
     {
       title: 'Pods',

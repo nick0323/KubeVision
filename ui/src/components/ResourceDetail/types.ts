@@ -12,7 +12,7 @@ import { Pod, K8sOwnerReference } from '../../types/k8s-resources';
  */
 export interface OverviewTabProps<T = any> {
   data?: T | null;
-  pod?: T | null;  // 兼容 Pod 详情页
+  pod?: T | null; // 兼容 Pod 详情页
   loading: boolean;
   onRefresh?: () => void;
   resourceType?: string;
@@ -26,7 +26,7 @@ export interface YamlTabProps {
   name: string;
   resourceType: string;
   data?: any | null;
-  pod?: any | null;  // 兼容 Pod 详情页
+  pod?: any | null; // 兼容 Pod 详情页
 }
 
 /**
@@ -34,7 +34,7 @@ export interface YamlTabProps {
  */
 export interface EventsTabProps {
   namespace: string;
-  podName?: string;  // 兼容 Pod 详情页
+  podName?: string; // 兼容 Pod 详情页
   name: string;
   resourceKind?: string;
   onRefresh?: () => void;

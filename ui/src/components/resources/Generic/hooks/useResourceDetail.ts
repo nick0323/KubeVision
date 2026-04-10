@@ -20,7 +20,9 @@ export interface UseResourceDetailReturn<T = any> {
 /**
  * 通用资源详情数据 Hook
  */
-export function useResourceDetail<T = any>(options: UseResourceDetailOptions): UseResourceDetailReturn<T> {
+export function useResourceDetail<T = any>(
+  options: UseResourceDetailOptions
+): UseResourceDetailReturn<T> {
   const { resourceType, namespace, name, autoRefresh = false, refreshInterval = 30000 } = options;
 
   const [data, setData] = useState<T | null>(null);

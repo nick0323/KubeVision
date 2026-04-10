@@ -16,7 +16,7 @@ export type {
   RelatedTabProps,
   LogsTabProps,
   TerminalTabProps,
-  
+
   // Pod 特有类型
   PodDetailPageProps,
   ContainerState,
@@ -25,7 +25,7 @@ export type {
   LogOptions,
   TerminalOptions,
   EventStats,
-  
+
   // 通用资源类型
   ResourceConfig,
   ResourceDetailPageProps,

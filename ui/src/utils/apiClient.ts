@@ -12,7 +12,6 @@ export interface ApiError extends Error {
   details?: any;
 }
 
-
 export const apiClient = {
   /**
    * 通用请求方法

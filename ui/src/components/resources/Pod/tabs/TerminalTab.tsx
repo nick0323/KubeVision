@@ -99,20 +99,22 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
           // 检查容器是否可见（不为 0）
           if (terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
             fitAddonRef.current?.fit();
-            
+
             // 发送 resize 消息给后端（只在已连接时发送）
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connected) {
-              wsRef.current.send(JSON.stringify({
-                type: 'resize',
-                cols: xtermRef.current.cols,
-                rows: xtermRef.current.rows,
-              }));
+              wsRef.current.send(
+                JSON.stringify({
+                  type: 'resize',
+                  cols: xtermRef.current.cols,
+                  rows: xtermRef.current.rows,
+                })
+              );
             }
           }
         }, 150);
       }
     });
-    
+
     if (tabContainer) {
       resizeObserver.observe(tabContainer);
     }
@@ -166,7 +168,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     ws.onopen = () => {
       setConnected(true);
       setSessionStart(new Date());
-      
+
       // 关键修复：连接成功后重新计算终端尺寸
       // 使用 setTimeout 确保 DOM 已经更新（display: none -> block）
       setTimeout(() => {
@@ -174,32 +176,36 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
           // 检查容器是否可见
           const width = terminalRef.current.offsetWidth;
           const height = terminalRef.current.offsetHeight;
-          
+
           if (width > 0 && height > 0) {
             // 强制重新计算尺寸
             fitAddonRef.current.fit();
-            
+
             // 发送初始尺寸给后端
-            wsRef.current?.send(JSON.stringify({
-              type: 'resize',
-              cols: xtermRef.current.cols,
-              rows: xtermRef.current.rows,
-            }));
-            
-            // 额外确保：再次调用 fit 确保正确
-            setTimeout(() => {
-              fitAddonRef.current?.fit();
-              
-              // 再次发送尺寸确保后端正确
-              wsRef.current?.send(JSON.stringify({
+            wsRef.current?.send(
+              JSON.stringify({
                 type: 'resize',
                 cols: xtermRef.current.cols,
                 rows: xtermRef.current.rows,
-              }));
+              })
+            );
+
+            // 额外确保：再次调用 fit 确保正确
+            setTimeout(() => {
+              fitAddonRef.current?.fit();
+
+              // 再次发送尺寸确保后端正确
+              wsRef.current?.send(
+                JSON.stringify({
+                  type: 'resize',
+                  cols: xtermRef.current.cols,
+                  rows: xtermRef.current.rows,
+                })
+              );
             }, 50);
           }
         }
-        
+
         xtermRef.current?.writeln('\r\n\x1b[32mConnected!\x1b[0m\r\n');
         xtermRef.current?.focus();
       }, 100);
@@ -403,7 +409,11 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
             </button>
           </div>
         )}
-        <div ref={terminalRef} className="terminal-container" style={{ display: connected ? 'block' : 'none' }} />
+        <div
+          ref={terminalRef}
+          className="terminal-container"
+          style={{ display: connected ? 'block' : 'none' }}
+        />
       </div>
     </div>
   );

@@ -9,7 +9,10 @@ import './OverviewTab.css';
 /**
  * 资源类型配置
  */
-const RESOURCE_CONFIG: Record<string, { title: string; hasContainers?: boolean; hasPorts?: boolean }> = {
+const RESOURCE_CONFIG: Record<
+  string,
+  { title: string; hasContainers?: boolean; hasPorts?: boolean }
+> = {
   pod: { title: 'Pod', hasContainers: true },
   deployment: { title: 'Deployment', hasContainers: true },
   statefulset: { title: 'StatefulSet', hasContainers: true },
@@ -30,254 +33,259 @@ const RESOURCE_CONFIG: Record<string, { title: string; hasContainers?: boolean; 
 /**
  * 各资源类型特有字段配置
  */
-const RESOURCE_FIELDS: Record<string, Array<{
-  key: string;
-  label: string;
-  getValue: (data: any) => any;
-  condition?: (data: any) => boolean;
-  render?: (value: any, data: any) => React.ReactNode;
-}>> = {
+const RESOURCE_FIELDS: Record<
+  string,
+  Array<{
+    key: string;
+    label: string;
+    getValue: (data: any) => any;
+    condition?: (data: any) => boolean;
+    render?: (value: any, data: any) => React.ReactNode;
+  }>
+> = {
   // Deployment
   deployment: [
     {
       key: 'strategy',
       label: 'Strategy',
-      getValue: (data) => data.spec?.strategy?.type,
+      getValue: data => data.spec?.strategy?.type,
     },
     {
       key: 'selector',
       label: 'Selector',
-      getValue: (data) => data.spec?.selector?.matchLabels,
+      getValue: data => data.spec?.selector?.matchLabels,
       render: (value: any) => renderLabelsInline(value),
     },
   ],
-  
+
   // StatefulSet
   statefulset: [
     {
       key: 'serviceName',
       label: 'Service Name',
-      getValue: (data) => data.spec?.serviceName,
+      getValue: data => data.spec?.serviceName,
     },
     {
       key: 'selector',
       label: 'Selector',
-      getValue: (data) => data.spec?.selector?.matchLabels,
+      getValue: data => data.spec?.selector?.matchLabels,
       render: (value: any) => renderLabelsInline(value),
     },
   ],
-  
+
   // DaemonSet
   daemonset: [
     {
       key: 'selector',
       label: 'Selector',
-      getValue: (data) => data.spec?.selector?.matchLabels,
+      getValue: data => data.spec?.selector?.matchLabels,
       render: (value: any) => renderLabelsInline(value),
     },
   ],
-  
+
   // Job
   job: [
     {
       key: 'completions',
       label: 'Completions',
-      getValue: (data) => data.spec?.completions || 1,
+      getValue: data => data.spec?.completions || 1,
     },
     {
       key: 'parallelism',
       label: 'Parallelism',
-      getValue: (data) => data.spec?.parallelism || 1,
+      getValue: data => data.spec?.parallelism || 1,
     },
   ],
-  
+
   // CronJob
   cronjob: [
     {
       key: 'schedule',
       label: 'Schedule',
-      getValue: (data) => data.spec?.schedule,
+      getValue: data => data.spec?.schedule,
     },
     {
       key: 'suspend',
       label: 'Suspend',
-      getValue: (data) => data.spec?.suspend,
-      render: (value: boolean) => value ? 'Yes' : 'No',
+      getValue: data => data.spec?.suspend,
+      render: (value: boolean) => (value ? 'Yes' : 'No'),
     },
   ],
-  
+
   // Service
   service: [
     {
       key: 'type',
       label: 'Type',
-      getValue: (data) => data.spec?.type,
+      getValue: data => data.spec?.type,
     },
     {
       key: 'clusterIP',
       label: 'Cluster IP',
-      getValue: (data) => data.spec?.clusterIP,
+      getValue: data => data.spec?.clusterIP,
     },
     {
       key: 'selector',
       label: 'Selector',
-      getValue: (data) => data.spec?.selector,
-      condition: (data) => data.spec?.selector && Object.keys(data.spec.selector).length > 0,
+      getValue: data => data.spec?.selector,
+      condition: data => data.spec?.selector && Object.keys(data.spec.selector).length > 0,
       render: (value: any) => renderLabelsInline(value),
     },
   ],
-  
+
   // Ingress
   ingress: [
     {
       key: 'ingressClassName',
       label: 'Class',
-      getValue: (data) => data.spec?.ingressClassName,
+      getValue: data => data.spec?.ingressClassName,
     },
     {
       key: 'rules',
       label: 'Rules',
-      getValue: (data) => data.spec?.rules?.length || 0,
+      getValue: data => data.spec?.rules?.length || 0,
       render: (value: number) => `${value} rule${value !== 1 ? 's' : ''}`,
     },
   ],
-  
+
   // ConfigMap
   configmap: [
     {
       key: 'dataCount',
       label: 'Data Count',
-      getValue: (data) => data.data ? Object.keys(data.data).length : 0,
+      getValue: data => (data.data ? Object.keys(data.data).length : 0),
     },
   ],
-  
+
   // Secret
   secret: [
     {
       key: 'type',
       label: 'Type',
-      getValue: (data) => data.type,
+      getValue: data => data.type,
     },
     {
       key: 'dataCount',
       label: 'Data Count',
-      getValue: (data) => data.data ? Object.keys(data.data).length : 0,
+      getValue: data => (data.data ? Object.keys(data.data).length : 0),
     },
   ],
-  
+
   // PVC
   pvc: [
     {
       key: 'accessModes',
       label: 'Access Modes',
-      getValue: (data) => data.spec?.accessModes?.[0],
+      getValue: data => data.spec?.accessModes?.[0],
     },
     {
       key: 'storageClass',
       label: 'Storage Class',
-      getValue: (data) => data.spec?.storageClassName,
+      getValue: data => data.spec?.storageClassName,
     },
     {
       key: 'volume',
       label: 'Volume',
-      getValue: (data) => data.spec?.volumeName,
-      condition: (data) => !!data.spec?.volumeName,
+      getValue: data => data.spec?.volumeName,
+      condition: data => !!data.spec?.volumeName,
     },
   ],
-  
+
   // PV
   pv: [
     {
       key: 'accessModes',
       label: 'Access Modes',
-      getValue: (data) => data.spec?.accessModes?.[0],
+      getValue: data => data.spec?.accessModes?.[0],
     },
     {
       key: 'storageClass',
       label: 'Storage Class',
-      getValue: (data) => data.spec?.storageClassName,
+      getValue: data => data.spec?.storageClassName,
     },
     {
       key: 'claim',
       label: 'Claim',
-      getValue: (data) => {
+      getValue: data => {
         const claimRef = data.spec?.claimRef;
         if (claimRef?.namespace && claimRef?.name) {
           return `${claimRef.namespace}/${claimRef.name}`;
         }
         return claimRef?.name;
       },
-      condition: (data) => !!data.spec?.claimRef?.name,
+      condition: data => !!data.spec?.claimRef?.name,
     },
   ],
-  
+
   // StorageClass
   storageclass: [
     {
       key: 'provisioner',
       label: 'Provisioner',
-      getValue: (data) => data.provisioner,
+      getValue: data => data.provisioner,
     },
     {
       key: 'bindingMode',
       label: 'Binding Mode',
-      getValue: (data) => data.volumeBindingMode,
+      getValue: data => data.volumeBindingMode,
     },
     {
       key: 'isDefault',
       label: 'Default',
-      getValue: (data) => data.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] === 'true',
-      render: (value: boolean) => value ? 'Yes' : 'No',
-      condition: (data) => data.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] !== undefined,
+      getValue: data =>
+        data.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] === 'true',
+      render: (value: boolean) => (value ? 'Yes' : 'No'),
+      condition: data =>
+        data.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] !== undefined,
     },
   ],
-  
+
   // Namespace
   namespace: [
     {
       key: 'phase',
       label: 'Phase',
-      getValue: (data) => data.status?.phase,
+      getValue: data => data.status?.phase,
     },
   ],
-  
+
   // Node
   node: [
     {
       key: 'kernelVersion',
       label: 'Kernel Version',
-      getValue: (data) => data.status?.nodeInfo?.kernelVersion,
+      getValue: data => data.status?.nodeInfo?.kernelVersion,
     },
     {
       key: 'kubeletVersion',
       label: 'Kubelet Version',
-      getValue: (data) => data.status?.nodeInfo?.kubeletVersion,
+      getValue: data => data.status?.nodeInfo?.kubeletVersion,
     },
     {
       key: 'kubeProxyVersion',
       label: 'KubeProxy Version',
-      getValue: (data) => data.status?.nodeInfo?.kubeProxyVersion,
+      getValue: data => data.status?.nodeInfo?.kubeProxyVersion,
     },
     {
       key: 'os',
       label: 'OS',
-      getValue: (data) => data.status?.nodeInfo?.osImage,
+      getValue: data => data.status?.nodeInfo?.osImage,
     },
     {
       key: 'architecture',
       label: 'Architecture',
-      getValue: (data) => data.status?.nodeInfo?.architecture,
+      getValue: data => data.status?.nodeInfo?.architecture,
     },
     {
       key: 'operatingSystem',
       label: 'Operating System',
-      getValue: (data) => data.status?.nodeInfo?.operatingSystem,
+      getValue: data => data.status?.nodeInfo?.operatingSystem,
     },
     {
       key: 'roles',
       label: 'Roles',
-      getValue: (data) => getNodeRoles(data.metadata?.labels),
-      condition: (data) => {
+      getValue: data => getNodeRoles(data.metadata?.labels),
+      condition: data => {
         const roles = getNodeRoles(data.metadata?.labels);
         return roles && roles.length > 0;
       },
@@ -313,7 +321,7 @@ function getNodeRoles(labels?: Record<string, string>): string[] {
 
   // 去重
   const uniqueRoles = [...new Set(roles)];
-  
+
   return uniqueRoles.length > 0 ? uniqueRoles : [];
 }
 
@@ -329,10 +337,10 @@ function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
         const fullText = `${key}: ${value}`;
         const displayKey = truncateText(key as string, 20);
         const displayValue = truncateText(value as string, 20);
-        
+
         // 只有当文本被截断时才显示 tooltip
         const isTruncated = displayKey !== key || displayValue !== value;
-        
+
         const labelElement = (
           <span className="label-tag">
             <span className="label-key">{displayKey}</span>
@@ -340,7 +348,7 @@ function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
             <span className="label-value">{displayValue}</span>
           </span>
         );
-        
+
         if (isTruncated) {
           return (
             <Tippy
@@ -355,7 +363,7 @@ function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
             </Tippy>
           );
         }
-        
+
         return <span key={key}>{labelElement}</span>;
       })}
     </div>
@@ -392,7 +400,11 @@ const formatRelativeTime = (timestamp?: string) => {
 /**
  * 通用资源概览 Tab
  */
-export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourceType = 'pod' }) => {
+export const OverviewTab: React.FC<OverviewTabProps> = ({
+  data,
+  loading,
+  resourceType = 'pod',
+}) => {
   const [containersExpanded, setContainersExpanded] = useState<Record<string, boolean>>({});
 
   const resourceInfo = RESOURCE_CONFIG[resourceType] || { title: resourceType };
@@ -417,11 +429,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
   // Workload 资源的容器信息（从 Pod Template 中提取）
   const workloadContainers = useMemo(() => {
     if (!resourceInfo.hasContainers) return [];
-    
+
     // 从 spec.template.spec.containers 中提取（适用于 Deployment、StatefulSet、DaemonSet、Job）
     const podSpec = spec?.template?.spec || spec;
     const containers = podSpec?.containers || [];
-    
+
     return containers.map((c: any) => ({
       name: c.name,
       image: c.image,
@@ -505,27 +517,19 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
           <div className="info-grid">
             <div className="info-item">
               <span className="info-label">Requests (CPU)</span>
-              <span className="info-value">
-                {container?.resources?.requests?.cpu || '-'}
-              </span>
+              <span className="info-value">{container?.resources?.requests?.cpu || '-'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Requests (Memory)</span>
-              <span className="info-value">
-                {container?.resources?.requests?.memory || '-'}
-              </span>
+              <span className="info-value">{container?.resources?.requests?.memory || '-'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Limits (CPU)</span>
-              <span className="info-value">
-                {container?.resources?.limits?.cpu || '-'}
-              </span>
+              <span className="info-value">{container?.resources?.limits?.cpu || '-'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Limits (Memory)</span>
-              <span className="info-value">
-                {container?.resources?.limits?.memory || '-'}
-              </span>
+              <span className="info-value">{container?.resources?.limits?.memory || '-'}</span>
             </div>
           </div>
         </div>
@@ -591,77 +595,77 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
             <div className="stats-grid">
               {/* Pod 特有的状态 */}
               {resourceType === 'pod' ? (
-              <>
-                <div className="stat-card">
-                  <div className="stat-value">
-                    <StatusBadge status={status.phase || 'Unknown'} resourceType={resourceType} />
-                  </div>
-                  <div className="stat-label">Phase</div>
-                </div>
-                {readyContainers && (
+                <>
                   <div className="stat-card">
                     <div className="stat-value">
-                      {readyContainers.ready} / {readyContainers.total}
+                      <StatusBadge status={status.phase || 'Unknown'} resourceType={resourceType} />
                     </div>
-                    <div className="stat-label">Ready Containers</div>
+                    <div className="stat-label">Phase</div>
                   </div>
-                )}
-                <div className="stat-card">
-                  <div className="stat-value">{restartCount}</div>
-                  <div className="stat-label">Restart Count</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-value">{spec?.nodeName || '-'}</div>
-                  <div className="stat-label">Node</div>
-                </div>
-              </>
-            ) : (
-              /* Workload 资源的状态 */
-              <>
-                <div className="stat-card">
-                  <div className="stat-value">
-                    {status.readyReplicas !== undefined ? (
-                      <StatusBadge
-                        status={
-                          status.readyReplicas === status.replicas
-                            ? 'Available'
-                            : status.readyReplicas > 0
-                              ? 'Partial'
-                              : 'Unavailable'
-                        }
-                        resourceType={resourceType}
-                      />
-                    ) : status.phase ? (
-                      <StatusBadge status={status.phase} resourceType={resourceType} />
-                    ) : (
-                      '-'
-                    )}
-                  </div>
-                  <div className="stat-label">Status</div>
-                </div>
-                {status.replicas !== undefined && (
+                  {readyContainers && (
+                    <div className="stat-card">
+                      <div className="stat-value">
+                        {readyContainers.ready} / {readyContainers.total}
+                      </div>
+                      <div className="stat-label">Ready Containers</div>
+                    </div>
+                  )}
                   <div className="stat-card">
-                    <div className="stat-value">{String(status.replicas)}</div>
-                    <div className="stat-label">Replicas</div>
+                    <div className="stat-value">{restartCount}</div>
+                    <div className="stat-label">Restart Count</div>
                   </div>
-                )}
-                {status.readyReplicas !== undefined && (
                   <div className="stat-card">
-                    <div className="stat-value">{String(status.readyReplicas)}</div>
-                    <div className="stat-label">Ready</div>
+                    <div className="stat-value">{spec?.nodeName || '-'}</div>
+                    <div className="stat-label">Node</div>
                   </div>
-                )}
-                {status.availableReplicas !== undefined && (
+                </>
+              ) : (
+                /* Workload 资源的状态 */
+                <>
                   <div className="stat-card">
-                    <div className="stat-value">{String(status.availableReplicas)}</div>
-                    <div className="stat-label">Available</div>
+                    <div className="stat-value">
+                      {status.readyReplicas !== undefined ? (
+                        <StatusBadge
+                          status={
+                            status.readyReplicas === status.replicas
+                              ? 'Available'
+                              : status.readyReplicas > 0
+                                ? 'Partial'
+                                : 'Unavailable'
+                          }
+                          resourceType={resourceType}
+                        />
+                      ) : status.phase ? (
+                        <StatusBadge status={status.phase} resourceType={resourceType} />
+                      ) : (
+                        '-'
+                      )}
+                    </div>
+                    <div className="stat-label">Status</div>
                   </div>
-                )}
-              </>
-            )}
+                  {status.replicas !== undefined && (
+                    <div className="stat-card">
+                      <div className="stat-value">{String(status.replicas)}</div>
+                      <div className="stat-label">Replicas</div>
+                    </div>
+                  )}
+                  {status.readyReplicas !== undefined && (
+                    <div className="stat-card">
+                      <div className="stat-value">{String(status.readyReplicas)}</div>
+                      <div className="stat-label">Ready</div>
+                    </div>
+                  )}
+                  {status.availableReplicas !== undefined && (
+                    <div className="stat-card">
+                      <div className="stat-value">{String(status.availableReplicas)}</div>
+                      <div className="stat-label">Available</div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       {/* RESOURCE INFORMATION */}
@@ -706,11 +710,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
             {RESOURCE_FIELDS[resourceType]?.map(field => {
               // 检查条件
               if (field.condition && !field.condition(data)) return null;
-              
+
               // 获取值
               const value = field.getValue(data);
               if (value === null || value === undefined || value === '') return null;
-              
+
               // 渲染
               return (
                 <div key={field.key} className="info-item">
@@ -725,7 +729,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
 
           {/* Labels 和 Annotations - 同一行平分宽度，最多显示 5 行 */}
           {(metadata.labels && Object.keys(metadata.labels).length > 0) ||
-           (metadata.annotations && Object.keys(metadata.annotations).length > 0) ? (
+          (metadata.annotations && Object.keys(metadata.annotations).length > 0) ? (
             <div className="info-section">
               <div className="info-grid info-grid-2col">
                 {/* Labels - 最多显示 5 个 */}
@@ -739,10 +743,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                           const fullText = `${key}: ${value}`;
                           const displayKey = truncateText(key as string, 30);
                           const displayValue = truncateText(value as string, 30);
-                          
+
                           // 只有当文本被截断时才显示 tooltip
                           const isTruncated = displayKey !== key || displayValue !== value;
-                          
+
                           const labelElement = (
                             <span className="label-tag">
                               <span className="label-key">{displayKey}</span>
@@ -750,7 +754,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                               <span className="label-value">{displayValue}</span>
                             </span>
                           );
-                          
+
                           if (isTruncated) {
                             return (
                               <Tippy
@@ -765,7 +769,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                               </Tippy>
                             );
                           }
-                          
+
                           return <span key={key}>{labelElement}</span>;
                         })}
                       {/* 显示更多提示 */}
@@ -774,7 +778,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                           content={
                             <div style={{ maxHeight: '200px', overflow: 'auto' }}>
                               {Object.entries(metadata.labels).map(([key, value]) => (
-                                <div key={key}>{key}: {value}</div>
+                                <div key={key}>
+                                  {key}: {value}
+                                </div>
                               ))}
                             </div>
                           }
@@ -804,10 +810,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                           const fullText = `${key}: ${value}`;
                           const displayKey = truncateText(key as string, 30);
                           const displayValue = truncateText(value as string, 30);
-                          
+
                           // 只有当文本被截断时才显示 tooltip
                           const isTruncated = displayKey !== key || displayValue !== value;
-                          
+
                           const labelElement = (
                             <span className="annotation-tag">
                               <span className="annotation-key">{displayKey}</span>
@@ -815,7 +821,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                               <span className="annotation-value">{displayValue}</span>
                             </span>
                           );
-                          
+
                           if (isTruncated) {
                             return (
                               <Tippy
@@ -830,7 +836,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                               </Tippy>
                             );
                           }
-                          
+
                           return <span key={key}>{labelElement}</span>;
                         })}
                       {/* 显示更多提示 */}
@@ -839,7 +845,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                           content={
                             <div style={{ maxHeight: '200px', overflow: 'auto' }}>
                               {Object.entries(metadata.annotations).map(([key, value]) => (
-                                <div key={key}>{key}: {value}</div>
+                                <div key={key}>
+                                  {key}: {value}
+                                </div>
                               ))}
                             </div>
                           }
@@ -960,11 +968,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                           : 'warning'
                     }`}
                   >
-                    {condition.status === 'True'
-                      ? '✓'
-                      : condition.status === 'False'
-                        ? '✗'
-                        : '?'}{' '}
+                    {condition.status === 'True' ? '✓' : condition.status === 'False' ? '✗' : '?'}{' '}
                     {condition.status}
                   </span>
                   {condition.lastTransitionTime && (

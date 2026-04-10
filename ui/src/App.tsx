@@ -412,20 +412,59 @@ export default function App() {
         <Route path="/pod/:namespace/:name" element={<PodDetailWrapper />} />
         {/* 通用资源详情页 - 所有资源统一使用 /:resourceType/:namespace/:name 格式 */}
         {/* 集群资源会自动忽略 namespace 参数 */}
-        <Route path="/deployment/:namespace/:name" element={<GenericResourceDetail resourceType="deployment" />} />
-        <Route path="/statefulset/:namespace/:name" element={<GenericResourceDetail resourceType="statefulset" />} />
-        <Route path="/daemonset/:namespace/:name" element={<GenericResourceDetail resourceType="daemonset" />} />
-        <Route path="/service/:namespace/:name" element={<GenericResourceDetail resourceType="service" />} />
-        <Route path="/configmap/:namespace/:name" element={<GenericResourceDetail resourceType="configmap" />} />
-        <Route path="/secret/:namespace/:name" element={<GenericResourceDetail resourceType="secret" />} />
-        <Route path="/ingress/:namespace/:name" element={<GenericResourceDetail resourceType="ingress" />} />
-        <Route path="/job/:namespace/:name" element={<GenericResourceDetail resourceType="job" />} />
-        <Route path="/cronjob/:namespace/:name" element={<GenericResourceDetail resourceType="cronjob" />} />
-        <Route path="/pvc/:namespace/:name" element={<GenericResourceDetail resourceType="pvc" />} />
+        <Route
+          path="/deployment/:namespace/:name"
+          element={<GenericResourceDetail resourceType="deployment" />}
+        />
+        <Route
+          path="/statefulset/:namespace/:name"
+          element={<GenericResourceDetail resourceType="statefulset" />}
+        />
+        <Route
+          path="/daemonset/:namespace/:name"
+          element={<GenericResourceDetail resourceType="daemonset" />}
+        />
+        <Route
+          path="/service/:namespace/:name"
+          element={<GenericResourceDetail resourceType="service" />}
+        />
+        <Route
+          path="/configmap/:namespace/:name"
+          element={<GenericResourceDetail resourceType="configmap" />}
+        />
+        <Route
+          path="/secret/:namespace/:name"
+          element={<GenericResourceDetail resourceType="secret" />}
+        />
+        <Route
+          path="/ingress/:namespace/:name"
+          element={<GenericResourceDetail resourceType="ingress" />}
+        />
+        <Route
+          path="/job/:namespace/:name"
+          element={<GenericResourceDetail resourceType="job" />}
+        />
+        <Route
+          path="/cronjob/:namespace/:name"
+          element={<GenericResourceDetail resourceType="cronjob" />}
+        />
+        <Route
+          path="/pvc/:namespace/:name"
+          element={<GenericResourceDetail resourceType="pvc" />}
+        />
         <Route path="/pv/:namespace/:name" element={<GenericResourceDetail resourceType="pv" />} />
-        <Route path="/storageclass/:namespace/:name" element={<GenericResourceDetail resourceType="storageclass" />} />
-        <Route path="/namespace/:namespace/:name" element={<GenericResourceDetail resourceType="namespace" />} />
-        <Route path="/node/:namespace/:name" element={<GenericResourceDetail resourceType="node" />} />
+        <Route
+          path="/storageclass/:namespace/:name"
+          element={<GenericResourceDetail resourceType="storageclass" />}
+        />
+        <Route
+          path="/namespace/:namespace/:name"
+          element={<GenericResourceDetail resourceType="namespace" />}
+        />
+        <Route
+          path="/node/:namespace/:name"
+          element={<GenericResourceDetail resourceType="node" />}
+        />
 
         {/* 重定向 */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -548,8 +587,16 @@ function GenericResourceDetail({ resourceType }: { resourceType: string }) {
 
         {/* 退出按钮 */}
         <div className="sider-bottom">
-          <button className="logout-btn" onClick={() => { authUtils.clearToken(); window.location.reload(); }}>
-            <span className="icon"><FiLogOut /></span>
+          <button
+            className="logout-btn"
+            onClick={() => {
+              authUtils.clearToken();
+              window.location.reload();
+            }}
+          >
+            <span className="icon">
+              <FiLogOut />
+            </span>
             <span>Sign out</span>
           </button>
         </div>

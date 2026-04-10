@@ -154,10 +154,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading }) => {
               <div className="info-item">
                 <span className="info-label">QoS Class</span>
                 <span className="info-value">
-                  <span className={`status-badge ${
-                    pod.status.qosClass === 'Guaranteed' ? 'status-success' :
-                    pod.status.qosClass === 'Burstable' ? 'status-warning' : 'status-error'
-                  }`}>
+                  <span
+                    className={`status-badge ${
+                      pod.status.qosClass === 'Guaranteed'
+                        ? 'status-success'
+                        : pod.status.qosClass === 'Burstable'
+                          ? 'status-warning'
+                          : 'status-error'
+                    }`}
+                  >
                     {pod.status.qosClass}
                   </span>
                 </span>
@@ -190,8 +195,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading }) => {
           </div>
 
           {/* Labels 和 Annotations - 同一行平分宽度 */}
-          {(pod.metadata?.labels && Object.keys(pod.metadata.labels).length > 0) || 
-           (pod.metadata?.annotations && Object.keys(pod.metadata.annotations).length > 0) ? (
+          {(pod.metadata?.labels && Object.keys(pod.metadata.labels).length > 0) ||
+          (pod.metadata?.annotations && Object.keys(pod.metadata.annotations).length > 0) ? (
             <div className="info-section">
               <div className="info-grid info-grid-2col">
                 {/* Labels */}

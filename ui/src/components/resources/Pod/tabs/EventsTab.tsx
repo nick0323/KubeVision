@@ -8,7 +8,13 @@ import './EventsTab.css';
 /**
  * Events Tab - 事件列表
  */
-export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName, name, resourceKind, onRefresh }) => {
+export const EventsTab: React.FC<EventsTabProps> = ({
+  namespace,
+  podName,
+  name,
+  resourceKind,
+  onRefresh,
+}) => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

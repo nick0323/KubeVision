@@ -4,10 +4,10 @@ import './ResourceActionBar.css';
 
 export interface ResourceActionBarProps {
   name: string;
-  namespace?: string;  // 可选，集群资源没有 namespace
+  namespace?: string; // 可选，集群资源没有 namespace
   onRefresh: () => void;
   onDelete: () => void;
-  onDescribe?: () => void;  // 可选，Pod 详情页需要
+  onDescribe?: () => void; // 可选，Pod 详情页需要
 }
 
 /**

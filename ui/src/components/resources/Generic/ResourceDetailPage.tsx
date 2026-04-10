@@ -148,10 +148,11 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
   // Tab 配置
   const tabItems: TabItem[] = useMemo(
-    () => config.tabs.map((key) => ({
-      key,
-      label: key.charAt(0).toUpperCase() + key.slice(1),
-    })),
+    () =>
+      config.tabs.map(key => ({
+        key,
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+      })),
     [config.tabs]
   );
 
@@ -167,36 +168,86 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab data={data} loading={loading} onRefresh={refresh} resourceType={resourceType} />;
+        return (
+          <OverviewTab
+            data={data}
+            loading={loading}
+            onRefresh={refresh}
+            resourceType={resourceType}
+          />
+        );
 
       case 'yaml':
-        return <YamlTab namespace={namespace} name={resourceName} resourceType={resourceType} data={data} />;
+        return (
+          <YamlTab
+            namespace={namespace}
+            name={resourceName}
+            resourceType={resourceType}
+            data={data}
+          />
+        );
 
       case 'events':
         return <EventsTab namespace={namespace} name={resourceName} resourceKind={config.title} />;
 
       case 'related':
-        return <RelatedTab namespace={namespace} name={resourceName} ownerReferences={(data as any)?.metadata?.ownerReferences} />;
+        return (
+          <RelatedTab
+            namespace={namespace}
+            name={resourceName}
+            ownerReferences={(data as any)?.metadata?.ownerReferences}
+          />
+        );
 
       case 'logs':
-        return <LogsTab namespace={namespace} name={resourceName} containers={(data as any)?.spec?.containers || []} />;
+        return (
+          <LogsTab
+            namespace={namespace}
+            name={resourceName}
+            containers={(data as any)?.spec?.containers || []}
+          />
+        );
 
       case 'terminal':
-        return <TerminalTab namespace={namespace} name={resourceName} containers={(data as any)?.spec?.containers || []} />;
+        return (
+          <TerminalTab
+            namespace={namespace}
+            name={resourceName}
+            containers={(data as any)?.spec?.containers || []}
+          />
+        );
 
       case 'pods':
-        return <PodsTab
-          namespace={namespace}
-          resourceName={resourceName}
-          resourceKind={config.title}
-          resourceLabels={(data as any)?.spec?.selector?.matchLabels || (data as any)?.metadata?.labels || {}}
-          ownerReferences={(data as any)?.metadata?.uid ? [{ uid: (data as any).metadata.uid, kind: config.title, name: resourceName }] : []}
-        />;
+        return (
+          <PodsTab
+            namespace={namespace}
+            resourceName={resourceName}
+            resourceKind={config.title}
+            resourceLabels={
+              (data as any)?.spec?.selector?.matchLabels || (data as any)?.metadata?.labels || {}
+            }
+            ownerReferences={
+              (data as any)?.metadata?.uid
+                ? [{ uid: (data as any).metadata.uid, kind: config.title, name: resourceName }]
+                : []
+            }
+          />
+        );
 
       default:
         return <div>Tab 内容不存在</div>;
     }
-  }, [activeTab, loading, error, data, namespace, resourceName, resourceType, config.title, refresh]);
+  }, [
+    activeTab,
+    loading,
+    error,
+    data,
+    namespace,
+    resourceName,
+    resourceType,
+    config.title,
+    refresh,
+  ]);
 
   // 渲染加载状态
   if (loading && !data) {

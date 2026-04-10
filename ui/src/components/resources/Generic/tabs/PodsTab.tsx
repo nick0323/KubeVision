@@ -28,12 +28,12 @@ interface PodsTabProps {
  * Pods Tab - 显示资源关联的 Pods
  * 使用资源的 Label Selector 查询关联的 Pod
  */
-export const PodsTab: React.FC<PodsTabProps> = ({ 
-  namespace, 
-  resourceName, 
-  resourceKind, 
+export const PodsTab: React.FC<PodsTabProps> = ({
+  namespace,
+  resourceName,
+  resourceKind,
   resourceLabels,
-  ownerReferences 
+  ownerReferences,
 }) => {
   const [pods, setPods] = useState<Pod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,14 +81,14 @@ export const PodsTab: React.FC<PodsTabProps> = ({
       if (result.code === 0 && result.data) {
         // 后端返回格式：{ code: 0, data: [...], page: {...} }
         // result.data 直接是数组
-        let allPods = Array.isArray(result.data) ? result.data : (result.data.data || []);
+        let allPods = Array.isArray(result.data) ? result.data : result.data.data || [];
 
         // 如果没有 label selector，使用 ownerReferences 二次过滤
         if (!labelSelector && ownerReferences && ownerReferences.length > 0) {
           allPods = allPods.filter((pod: any) => {
             const owners = pod.metadata?.ownerReferences || [];
-            return owners.some((owner: any) =>
-              owner.kind === resourceKind && owner.name === resourceName
+            return owners.some(
+              (owner: any) => owner.kind === resourceKind && owner.name === resourceName
             );
           });
         }
@@ -139,7 +139,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
               </tr>
             </thead>
             <tbody>
-              {pods.map((pod) => (
+              {pods.map(pod => (
                 <tr key={pod.name}>
                   <td>
                     <span className="resource-name-link">{pod.name}</span>

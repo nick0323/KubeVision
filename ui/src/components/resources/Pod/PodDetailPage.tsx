@@ -47,10 +47,15 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
   const [activeTab, setActiveTab] = useState<string>('overview');
 
   // 使用通用 Hook 获取 Pod 数据
-  const { data: pod, loading, error, refresh } = useResourceDetail<Pod>({ 
+  const {
+    data: pod,
+    loading,
+    error,
+    refresh,
+  } = useResourceDetail<Pod>({
     resourceType: 'pod',
-    namespace, 
-    name: podName 
+    namespace,
+    name: podName,
   });
 
   /**
@@ -67,7 +72,7 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
     if (window.confirm(`确定要删除 Pod "${podName}" 吗？此操作不可恢复。`)) {
       try {
         // 后端只支持单数形式：/api/pod/ns/name
-      const response = await authFetch(`/api/pod/${namespace}/${podName}`, {
+        const response = await authFetch(`/api/pod/${namespace}/${podName}`, {
           method: 'DELETE',
         });
         const result = await response.json();
@@ -109,7 +114,7 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
   // 面包屑配置 - 资源类型 > namespace(不可点击) > name
   const breadcrumbs = useMemo(
     () => [
-      { label: 'Pods', path: 'pods' },  // 不带斜杠，与 PAGE_COMPONENTS key 一致
+      { label: 'Pods', path: 'pods' }, // 不带斜杠，与 PAGE_COMPONENTS key 一致
       { label: namespace, path: '' }, // namespace 不可点击
       { label: podName, path: '' },
     ],
@@ -164,8 +169,12 @@ export const PodDetailPage: React.FC<PodDetailPageProps> = ({ collapsed, onToggl
       <TabNavigation tabs={TAB_CONFIG} activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Tab 内容 */}
-      {activeTab === 'overview' && <OverviewTab pod={pod} loading={loading} onRefresh={refresh} resourceType="pod" />}
-      {activeTab === 'yaml' && <YamlTab namespace={namespace} name={podName} resourceType="pod" data={pod} />}
+      {activeTab === 'overview' && (
+        <OverviewTab pod={pod} loading={loading} onRefresh={refresh} resourceType="pod" />
+      )}
+      {activeTab === 'yaml' && (
+        <YamlTab namespace={namespace} name={podName} resourceType="pod" data={pod} />
+      )}
       {activeTab === 'logs' && (
         <LogsTab namespace={namespace} name={podName} containers={pod?.spec?.containers || []} />
       )}

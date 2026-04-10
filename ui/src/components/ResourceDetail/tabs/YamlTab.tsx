@@ -69,10 +69,10 @@ const RESOURCE_TYPE_MAP: Record<string, { apiVersion: string; kind: string; titl
 /**
  * 通用 YAML Tab - 查看/编辑资源 YAML
  */
-export const YamlTab: React.FC<YamlTabProps> = ({ 
-  namespace, 
-  name, 
-  resourceType = 'pod', 
+export const YamlTab: React.FC<YamlTabProps> = ({
+  namespace,
+  name,
+  resourceType = 'pod',
   data,
   pod, // 兼容 PodDetailPage
 }) => {
@@ -92,10 +92,10 @@ export const YamlTab: React.FC<YamlTabProps> = ({
   const editorRef = useRef<HTMLPreElement>(null);
 
   // 获取资源类型配置
-  const resourceConfig = RESOURCE_TYPE_MAP[resourceType] || { 
-    apiVersion: 'v1', 
+  const resourceConfig = RESOURCE_TYPE_MAP[resourceType] || {
+    apiVersion: 'v1',
     kind: resourceType.charAt(0).toUpperCase() + resourceType.slice(1),
-    title: resourceType 
+    title: resourceType,
   };
 
   // 加载 YAML
@@ -110,9 +110,10 @@ export const YamlTab: React.FC<YamlTabProps> = ({
 
       if (result.code === 0 && result.data) {
         // 过滤隐藏字段
-        const filteredData = typeof result.data === 'string'
-          ? jsyaml.load(result.data)
-          : filterHiddenFields(result.data, displayOptions);
+        const filteredData =
+          typeof result.data === 'string'
+            ? jsyaml.load(result.data)
+            : filterHiddenFields(result.data, displayOptions);
 
         // 确保包含完整的 TypeMeta 字段
         const resourceWithMeta = {
