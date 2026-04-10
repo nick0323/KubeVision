@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 // RegisterRoutes 注册通用资源接口
@@ -40,7 +41,7 @@ func getResourceList(
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		clientset, metricsClient, err := getK8sClient()
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -57,7 +58,7 @@ func getResourceList(
 		since := c.Query("since")                   // Events 专用参数
 
 		// 调用 service 层获取数据
-		result, err := getResourceListByType(ctx, clientset, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
+		result, err := getResourceListByType(ctx, clientset, metricsClient, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -115,16 +116,11 @@ func getResourceDetail(
 		// 判断是否为集群资源（不需要 namespace）
 		// 对于集群资源，namespace 参数会被忽略
 		clusterResources := map[string]bool{
-			"node":              true,
-			"nodes":             true,
-			"pv":                true,
-			"pvs":               true,
-			"persistentvolume":  true,
-			"persistentvolumes": true,
-			"storageclass":      true,
-			"storageclasses":    true,
-			"namespace":         true,
-			"namespaces":        true,
+			"node":             true,
+			"pv":               true,
+			"persistentvolume": true,
+			"storageclass":     true,
+			"namespace":        true,
 		}
 
 		// 如果是集群资源，namespace 传空字符串
@@ -248,8 +244,7 @@ func deleteResourceByType(ctx context.Context, clientset *kubernetes.Clientset, 
 }
 
 // getResourceListByType 根据资源类型获取列表
-func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since string) ([]model.SearchableItem, error) {
-	resourceType = normalizeResourceType(resourceType)
+func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset, metricsClient *versioned.Clientset, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since string) ([]model.SearchableItem, error) {
 
 	switch resourceType {
 	case "pod":
@@ -407,7 +402,13 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		return result, nil
 
 	case "node":
-		nodes, err := service.ListNodes(ctx, clientset, nil, nil, labelSelector, fieldSelector)
+		// 获取节点 metrics
+		var nodeMetricsMap map[string]model.NodeMetrics
+		if metricsClient != nil {
+			nodeMetricsMap, _ = GetNodeMetrics(ctx, metricsClient)
+		}
+
+		nodes, err := service.ListNodes(ctx, clientset, nil, nodeMetricsMap, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -486,16 +487,4 @@ func getResourceByName(ctx context.Context, clientset *kubernetes.Clientset, res
 	default:
 		return nil, fmt.Errorf("不支持的资源类型：%s", resourceType)
 	}
-}
-
-// normalizeResourceType 规范化资源类型
-func normalizeResourceType(resourceType string) string {
-	resourceType = strings.ToLower(strings.TrimSpace(resourceType))
-	if strings.HasSuffix(resourceType, "ses") {
-		return resourceType
-	}
-	if strings.HasSuffix(resourceType, "s") && !strings.HasSuffix(resourceType, "ss") {
-		return resourceType[:len(resourceType)-1]
-	}
-	return resourceType
 }

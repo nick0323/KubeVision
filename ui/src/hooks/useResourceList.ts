@@ -218,7 +218,7 @@ export function useResourceList<T = any>(config: UseResourceListConfig): UseReso
 
     setNamespacesLoading(true);
     try {
-      const response = await authFetch('/api/namespaces?limit=1000&offset=0');
+      const response = await authFetch('/api/namespace?limit=1000&offset=0');
       const result = await response.json();
       if (result.code === 0 && result.data) {
         const nsList = Array.isArray(result.data) ? result.data : [];

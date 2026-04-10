@@ -157,7 +157,7 @@ export const INGRESS_CONFIG = {
 
 export const PVCS_CONFIG = {
   title: 'PersistentVolumeClaim',
-  apiEndpoint: '/api/pvcs',
+  apiEndpoint: '/api/pvc',
   resourceType: 'pvc',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '20%', sortable: true },
@@ -174,7 +174,7 @@ export const PVCS_CONFIG = {
 
 export const PVS_CONFIG = {
   title: 'PersistentVolume',
-  apiEndpoint: '/api/pvs',
+  apiEndpoint: '/api/pv',
   resourceType: 'pv',
   columns: [
     { title: 'Name', dataIndex: 'name', width: '20%', sortable: true },
@@ -256,8 +256,18 @@ export const NODES_CONFIG = {
     { title: 'Name', dataIndex: 'name', width: '15%', sortable: true },
     { title: 'IP', dataIndex: 'ip', width: '15%' },
     { title: 'Role', dataIndex: 'role', width: '20%', sortable: true },
-    { title: 'CPU', dataIndex: 'cpuUsage', width: '10%' },
-    { title: 'Memory', dataIndex: 'memoryUsage', width: '10%' },
+    { 
+      title: 'CPU', 
+      dataIndex: 'cpuUsage', 
+      width: '10%',
+      render: (value: any) => value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A'
+    },
+    { 
+      title: 'Memory', 
+      dataIndex: 'memoryUsage', 
+      width: '10%',
+      render: (value: any) => value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A'
+    },
     {
       title: 'Pods',
       dataIndex: 'podsUsed',

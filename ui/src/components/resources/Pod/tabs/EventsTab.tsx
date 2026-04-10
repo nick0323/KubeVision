@@ -25,7 +25,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({ namespace, podName, name, 
 
       // 传递 involvedObject 参数给后端，让后端在内存中过滤
       const response = await authFetch(
-        `/api/events?namespace=${namespace}&involvedObject=${kind}/${resourceName}`
+        `/api/event?namespace=${namespace}&involvedObject=${kind}/${resourceName}`
       );
       const result = await response.json();
 

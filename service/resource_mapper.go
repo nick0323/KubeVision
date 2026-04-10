@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -419,7 +420,9 @@ func calculateCPUUsage(capacity *resource.Quantity, usageStr string) float64 {
 	if capMilli <= 0 {
 		return 0
 	}
-	return (usageMilli / capMilli) * 100
+
+	// 计算使用率并转换为百分比，取整数
+	return math.Round((usageMilli / capMilli) * 100)
 }
 
 // calculateMemoryUsage 计算内存使用率
@@ -439,7 +442,9 @@ func calculateMemoryUsage(capacity *resource.Quantity, usageStr string) float64 
 	if capBytes <= 0 {
 		return 0
 	}
-	return (float64(usageBytes) / float64(capBytes)) * 100
+
+	// 计算使用率并转换为百分比，取整数
+	return math.Round((float64(usageBytes) / float64(capBytes)) * 100)
 }
 
 // calculateJobDuration 计算 Job 执行时长

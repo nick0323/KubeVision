@@ -285,6 +285,7 @@ func updateResourceByType(ctx context.Context, clientset *kubernetes.Clientset, 
 		return fmt.Errorf("不支持的资源类型：%s", resourceType)
 	}
 }
+
 func getResourceRelated(
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,

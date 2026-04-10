@@ -323,6 +323,12 @@ func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	// 注册日志流 WebSocket
 	api.RegisterLogStream(apiGroup, app.logger, app.getK8sClient)
 
+	// 注册 K8s Metrics 接口
+	api.RegisterK8sMetricsRoutes(apiGroup, app.logger, func() (*versioned.Clientset, error) {
+		_, metricsClient, _ := app.k8sClientMgr.GetDefaultClient()
+		return metricsClient, nil
+	})
+
 	// 注册通用资源接口（动态路由 /api/:resourceType）
 	// 支持所有 Kubernetes 资源：
 	// - 工作负载：pods, deployments, statefulsets, daemonsets, jobs, cronjobs
