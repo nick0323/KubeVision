@@ -164,7 +164,6 @@ func MapIngresses(ingresses []networkingv1.Ingress) []model.Ingress {
 			Class:         getIngressClass(ing),
 			Hosts:         getIngressHosts(ing),
 			Ports:         getIngressPorts(ing),
-			Status:        getIngressStatus(ing),
 			Path:          getIngressPaths(ing),    // ✅ 恢复返回 []string
 			TargetService: getIngressServices(ing), // ✅ 恢复返回 []string
 			Age:           CalculateAge(ing.CreationTimestamp),

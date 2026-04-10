@@ -37,7 +37,8 @@
 .status-ready,
 .status-active,
 .status-bound,
-.status-available {
+.status-available,
+.status-nodeport {
   background-color: rgba(82, 196, 26, 0.1);
   color: #52c41a;
   border: 1px solid rgba(82, 196, 26, 0.3);

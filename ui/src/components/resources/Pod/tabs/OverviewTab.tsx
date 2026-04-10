@@ -98,7 +98,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ pod, loading }) => {
           <div className="stats-grid">
             <div className="stat-card">
               <div className="stat-value">
-                <StatusBadge status={getPodStatus()} resourceType="pods" />
+                <StatusBadge status={getPodStatus()} resourceType="pod" />
               </div>
               <div className="stat-label">Phase</div>
             </div>

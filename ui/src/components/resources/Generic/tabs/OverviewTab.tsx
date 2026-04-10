@@ -624,7 +624,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ data, loading, resourc
                       <StatusBadge
                         status={
                           status.readyReplicas === status.replicas
-                            ? 'Ready'
+                            ? 'Available'
                             : status.readyReplicas > 0
                               ? 'Partial'
                               : 'Unavailable'

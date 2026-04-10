@@ -42,7 +42,7 @@ interface ResourceListPageProps {
 /**
  * 状态列标识
  */
-const STATUS_COLUMN_KEYS = ['status', 'Status', 'state', 'Phase'] as const;
+const STATUS_COLUMN_KEYS = ['status', 'Status', 'state', 'Phase', 'type', 'Type'] as const;
 
 /**
  * 通用资源列表页面组件（增强版）

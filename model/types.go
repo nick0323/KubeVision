@@ -312,7 +312,6 @@ type Ingress struct {
 	Class         string   `json:"class"`
 	Hosts         []string `json:"hosts"`
 	Ports         []string `json:"ports"`
-	Status        string   `json:"status"`
 	Path          []string `json:"path"`
 	TargetService []string `json:"targetService"`
 	Age           string   `json:"age"`
@@ -484,7 +483,6 @@ func (i Ingress) GetSearchableFields() map[string]string {
 	return map[string]string{
 		"Name":      i.Name,
 		"Namespace": i.Namespace,
-		"Status":    i.Status,
 	}
 }
 

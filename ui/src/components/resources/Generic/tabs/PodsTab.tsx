@@ -146,7 +146,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
                   </td>
                   <td>{pod.namespace}</td>
                   <td>
-                    <StatusBadge status={pod.status} resourceType="pods" />
+                    <StatusBadge status={pod.status} resourceType="pod" />
                   </td>
                   <td>{pod.ready || '-'}</td>
                   <td>{pod.restarts ?? '-'}</td>
