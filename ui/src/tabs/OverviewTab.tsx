@@ -2,7 +2,7 @@
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
-import { OverviewTabProps } from '../resources/types';
+import { OverviewTabProps } from '../pages/ResourceDetailPage.types';
 import { StatusBadge } from '../common/StatusBadge';
 import './OverviewTab.css';
 import '../styles/detail-page.css';

@@ -1,5 +1,5 @@
 ﻿import React, { useState, useCallback, useEffect } from 'react';
-import { RelatedTabProps } from '../resources/types';
+import { RelatedTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
@@ -8,18 +8,51 @@ import { useNavigate } from 'react-router-dom';
 interface RelatedResource {
   kind: string;
   name: string;
-  namespace?: string;
-  apiVersion?: string;
+  relation?: string;
 }
+
+// 关系类型标签（英文）
+const relationLabels: Record<string, string> = {
+  owner: 'Owner',
+  child: 'Child',
+  selectedBy: 'Selected By',
+  exposedBy: 'Exposed By',
+  autoscaled: 'Autoscaled',
+  protected: 'Protected By',
+  routedBy: 'Routed By',
+  volume: 'Volume',
+  volumeClaim: 'Volume Claim',
+  scheduledOn: 'Scheduled On',
+  scheduled: 'Scheduled',
+  headlessService: 'Headless Service',
+  selects: 'Selects',
+  endpoints: 'Endpoints',
+  usedBy: 'Used By',
+  boundPV: 'Bound PV',
+  boundPVC: 'Bound PVC',
+  storageClass: 'Storage Class',
+  provisionedPVC: 'Provisioned PVC',
+  provisionedPV: 'Provisioned PV',
+  tlsSecret: 'TLS Secret',
+  routesTo: 'Routes To',
+  quota: 'Quota',
+  contains: 'Contains',
+};
+
+// 集群级资源列表（不需要 namespace）
+const CLUSTER_SCOPE_RESOURCES = ['persistentvolume', 'pv', 'storageclass', 'namespace', 'node'];
 
 /**
  * Related Tab - 关联资源
  */
-export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerReferences }) => {
+export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourceType, ownerReferences }) => {
   const navigate = useNavigate();
   const [relatedResources, setRelatedResources] = useState<RelatedResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 判断是否为集群级资源
+  const isClusterResource = CLUSTER_SCOPE_RESOURCES.includes(resourceType.toLowerCase());
 
   // 加载关联资源
   useEffect(() => {
@@ -28,8 +61,11 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
       setError(null);
 
       try {
-        // 后端只支持单数形式：/api/pod/ns/name/related
-        const response = await authFetch(`/api/pod/${namespace}/${name}/related`);
+        // 动态构建 API 路径：集群级资源使用 _cluster_，其他使用 namespace
+        const apiPath = isClusterResource
+          ? `/api/${resourceType}/_cluster_/${name}/related`
+          : `/api/${resourceType}/${namespace}/${name}/related`;
+        const response = await authFetch(apiPath);
         const result = await response.json();
 
         if (result.code === 0 && result.data) {
@@ -39,7 +75,6 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
           const owners: RelatedResource[] = (ownerReferences || []).map(ref => ({
             kind: ref.kind,
             name: ref.name,
-            apiVersion: ref.apiVersion,
           }));
           setRelatedResources(owners);
         }
@@ -48,7 +83,6 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
         const owners: RelatedResource[] = (ownerReferences || []).map(ref => ({
           kind: ref.kind,
           name: ref.name,
-          apiVersion: ref.apiVersion,
         }));
         setRelatedResources(owners);
       } finally {
@@ -57,7 +91,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
     };
 
     loadRelated();
-  }, [namespace, name, ownerReferences]);
+  }, [namespace, name, resourceType, ownerReferences, isClusterResource]);
 
   // 跳转到资源详情
   const handleResourceClick = useCallback(
@@ -67,6 +101,12 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
     },
     [namespace, navigate]
   );
+
+  // 获取关系标签文本
+  const getRelationLabel = (relation?: string) => {
+    if (!relation) return '';
+    return relationLabels[relation] || relation;
+  };
 
   if (loading) {
     return <LoadingSpinner text="加载关联资源..." size="lg" />;
@@ -95,8 +135,9 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
           <table className="detail-table">
             <thead>
               <tr>
-                <th style={{ width: '200px' }}>Kind</th>
-                <th>Name</th>
+                <th style={{ width: '150px' }}>Kind</th>
+                <th style={{ width: '250px' }}>Name</th>
+                <th>Relation</th>
               </tr>
             </thead>
             <tbody>
@@ -112,6 +153,11 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, ownerRe
                     >
                       {resource.name}
                     </span>
+                  </td>
+                  <td>
+                    {resource.relation && (
+                      <span className="relation-badge">{getRelationLabel(resource.relation)}</span>
+                    )}
                   </td>
                 </tr>
               ))}

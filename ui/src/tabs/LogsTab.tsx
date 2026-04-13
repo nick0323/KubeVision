@@ -1,5 +1,5 @@
 ﻿import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { LogsTabProps } from '../resources/types';
+import { LogsTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { FaCog, FaDownload, FaChevronDown, FaEraser } from 'react-icons/fa';
@@ -47,10 +47,6 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
   // WebSocket ref
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectCountRef = useRef(0);
-  const MAX_RECONNECT_COUNT = 5; // 最多重连 5 次
-  const isReconnectingRef = useRef(false); // 防止 StrictMode 下重复重连
 
   // 设置面板
   const [showSettings, setShowSettings] = useState(false);
@@ -99,12 +95,11 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     return logs.length > MAX_LOG_LINES ? logs.length - MAX_LOG_LINES : 0;
   }, [logs]);
 
-  // Load logs via WebSocket
-  const loadLogs = useCallback(() => {
+  // Load logs when filter options change
+  useEffect(() => {
     const containerToUse = selectedContainer || (containers.length > 0 ? containers[0].name : '');
-
-    if (!containerToUse) return;
-
+    if (!containerToUse || !namespace || !name) return;
+    
     // Close existing connection
     if (wsRef.current) {
       wsRef.current.close();
@@ -115,11 +110,8 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     setLogs([]);
 
     // Connect to backend WebSocket
-    // 后端日志接口：/api/ws/stream?namespace=xxx&pod=xxx&container=xxx&previous=xxx
-    // 直接连接后端 8080 端口
     const token = localStorage.getItem('token');
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // 直接连接后端 8080 端口（不使用代理）
     const wsUrl = `${wsProtocol}//localhost:8080/api/ws/stream?namespace=${namespace}&pod=${name}&container=${containerToUse}&tailLines=${tailLines}&timestamps=${timestamps}&previous=${previous}&token=${token}`;
 
     const ws = new WebSocket(wsUrl);
@@ -128,9 +120,6 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     ws.onopen = () => {
       setConnected(true);
       setLoading(false);
-      // 重连成功后重置计数器
-      reconnectCountRef.current = 0;
-      isReconnectingRef.current = false;
     };
 
     ws.onmessage = event => {
@@ -153,9 +142,10 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
         } else if (data.type === 'error') {
           setError(data.message);
           setLoading(false);
-        } else if (data.type === 'ping') {
-          // 响应后端心跳，保持连接
+        } else if (data.type === 'heartbeat') {
           ws.send(JSON.stringify({ type: 'pong' }));
+        } else if (data.type === 'connected') {
+          // Connection established
         }
       } catch {
         // Ignore parse errors
@@ -166,73 +156,41 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       console.error('WebSocket error:', error);
       setError('WebSocket 连接失败，请检查 Pod 是否存在');
       setLoading(false);
-      // 停止重连
-      isReconnectingRef.current = true;
+      setConnected(false);
     };
 
     ws.onclose = () => {
       setConnected(false);
       setLoading(false);
-
-      // Pod 不存在时停止重连
-      if (error?.includes('not found') || error?.includes('不存在')) {
-        setError('Pod 不存在或已被删除');
-        isReconnectingRef.current = true;
-        return;
-      }
-
-      // 防止 StrictMode 下重复重连
-      if (isReconnectingRef.current) {
-        return;
-      }
-
-      // 检查重连次数
-      if (reconnectCountRef.current >= MAX_RECONNECT_COUNT) {
-        setError('连接失败：已达到最大重连次数');
-        return;
-      }
-
-      reconnectCountRef.current += 1;
-      isReconnectingRef.current = true;
-
-      // 3 秒后自动重连
-      reconnectTimeoutRef.current = setTimeout(() => {
-        isReconnectingRef.current = false;
-        loadLogs();
-      }, 3000);
     };
-  }, [namespace, name, selectedContainer, containers, tailLines, timestamps]);
-
-  // Load logs when filter options change
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
+  }, [namespace, name, selectedContainer, tailLines, timestamps, previous]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      isReconnectingRef.current = false;
-
       // 关闭 WebSocket 连接
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
       }
-
-      // 清除重连定时器
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-
-      reconnectCountRef.current = 0;
     };
   }, []);
 
   // Auto scroll to bottom when new logs arrive
   useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      // Only auto-scroll if user is already near bottom
+      if (isAtBottom) {
+        // Use setTimeout to ensure DOM is updated
+        setTimeout(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+          }
+        }, 0);
+      }
     }
   }, [logs]);
 
@@ -499,7 +457,12 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       {loading && logs.length === 0 ? (
         <LoadingSpinner text="Loading logs..." size="lg" />
       ) : error ? (
-        <ErrorDisplay message={error} type="error" showRetry onRetry={loadLogs} />
+        <ErrorDisplay 
+          message={error} 
+          type="error" 
+          showRetry 
+          onRetry={() => window.location.reload()} 
+        />
       ) : logs.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state-icon">📭</span>

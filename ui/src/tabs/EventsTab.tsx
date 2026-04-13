@@ -1,5 +1,5 @@
 ﻿import React, { useState, useCallback, useEffect } from 'react';
-import { EventsTabProps } from '../resources/types';
+import { EventsTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';

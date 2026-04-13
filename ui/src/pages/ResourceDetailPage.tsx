@@ -8,7 +8,7 @@ import { YamlTab } from '../tabs/YamlTab';
 import { EventsTab } from '../tabs/EventsTab';
 import { RelatedTab } from '../tabs/RelatedTab';
 import { useResourceDetail } from '../resources/useResourceDetail';
-import { ResourceDetailPageProps, RESOURCE_CONFIGS } from '../resources/types';
+import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
@@ -52,8 +52,8 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
     resourceType,
     namespace,
     name: resourceName,
-    autoRefresh: true,
-    refreshInterval: 30000,
+    // autoRefresh: true,
+    // refreshInterval: 30000,
   });
 
   /**
@@ -195,6 +195,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
           <RelatedTab
             namespace={namespace}
             name={resourceName}
+            resourceType={resourceType}
             ownerReferences={(data as any)?.metadata?.ownerReferences}
           />
         );

@@ -45,6 +45,7 @@ export interface EventsTabProps {
 export interface RelatedTabProps {
   namespace: string;
   name: string;
+  resourceType: string;
   ownerReferences?: K8sOwnerReference[];
 }
 

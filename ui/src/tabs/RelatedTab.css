@@ -40,3 +40,16 @@
 .table-row.clickable:hover {
   background: #f5f5f5;
 }
+
+.relation-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #52c41a;
+  font-weight: 400;
+  white-space: nowrap;
+  font-family: var(--font-main);
+}

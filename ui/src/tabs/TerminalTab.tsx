@@ -1,5 +1,5 @@
 ﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { TerminalTabProps } from '../resources/types';
+import { TerminalTabProps } from '../pages/ResourceDetailPage.types';
 import { FaPlug, FaTimes, FaEraser, FaChevronDown } from 'react-icons/fa';
 import NamespaceSelect from '../common/NamespaceSelect';
 import { Terminal } from 'xterm';
@@ -25,6 +25,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
   const shellRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync selected container when containers prop changes
   useEffect(() => {
@@ -121,6 +122,15 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
 
     return () => {
       resizeObserver.disconnect();
+      // 清理 WebSocket 和心跳
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
       if (fitAddonRef.current) {
         fitAddonRef.current.dispose();
         fitAddonRef.current = null;
@@ -155,33 +165,45 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     // Clear terminal
     xtermRef.current?.clear();
 
+    // 清理旧的心跳定时器
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+
+    // 关闭旧连接
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
     // Connect to backend WebSocket (port 8080)
-    // WebSocket 连接 - 直接连接后端 8080 端口
     const token = localStorage.getItem('token');
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // 直接连接后端 8080 端口（不使用代理）
+    // 直接连接后端 8080 端口
     const wsUrl = `${wsProtocol}//localhost:8080/api/ws/exec?namespace=${namespace}&pod=${name}&container=${containerToUse}&command=${shell}&token=${token}`;
+
+    console.log('[Terminal] Connecting to:', wsUrl);
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('[Terminal] WebSocket connected.');
       setConnected(true);
       setSessionStart(new Date());
 
-      // 关键修复：连接成功后重新计算终端尺寸
-      // 使用 setTimeout 确保 DOM 已经更新（display: none -> block）
+      // 浏览器会自动处理 WebSocket 协议层的心跳 (Ping/Pong)，无需应用层手动发送。
+      // 发送应用层数据反而可能导致连接异常。
+      
+      // 连接成功后重新计算终端尺寸
       setTimeout(() => {
         if (fitAddonRef.current && terminalRef.current && xtermRef.current) {
-          // 检查容器是否可见
           const width = terminalRef.current.offsetWidth;
           const height = terminalRef.current.offsetHeight;
 
           if (width > 0 && height > 0) {
-            // 强制重新计算尺寸
             fitAddonRef.current.fit();
-
-            // 发送初始尺寸给后端
             wsRef.current?.send(
               JSON.stringify({
                 type: 'resize',
@@ -190,11 +212,8 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
               })
             );
 
-            // 额外确保：再次调用 fit 确保正确
             setTimeout(() => {
               fitAddonRef.current?.fit();
-
-              // 再次发送尺寸确保后端正确
               wsRef.current?.send(
                 JSON.stringify({
                   type: 'resize',
@@ -229,14 +248,12 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
                 xtermRef.current?.writeln(data.message);
               }
             } catch {
-              // Plain text
               xtermRef.current?.write(text);
             }
           }
         };
         reader.readAsText(event.data);
       } else {
-        // 普通文本消息
         try {
           const data = JSON.parse(event.data);
           if (data.status === 'connected') {
@@ -255,20 +272,49 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
 
     ws.onerror = error => {
       console.error('[Terminal] WebSocket error:', error);
+      // 清除心跳
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
       setConnected(false);
       xtermRef.current?.writeln('\r\n\x1b[31mConnection error\x1b[0m\r\n');
     };
 
     ws.onclose = event => {
-      console.log('[Terminal] WebSocket closed:', event.code, event.reason);
+      console.log('[Terminal] WebSocket closed. Code:', event.code, 'Reason:', event.reason);
+      
+      // 提示超时或 Shell 退出问题
+      if (event.code === 1005 || event.code === 1006) {
+        console.warn('[Terminal] Connection was closed abruptly.');
+        // 如果连接时间很短（< 10s），通常是 Shell 启动失败或容器不支持交互
+        if (sessionStart && (new Date().getTime() - sessionStart.getTime()) < 10000) {
+           xtermRef.current?.writeln('\r\n\x1b[31mConnection closed immediately. Possible reasons:\x1b[0m\r\n');
+           xtermRef.current?.writeln('\x1b[33m1. Container does not support TTY/Stdin.\x1b[0m\r\n');
+           xtermRef.current?.writeln('\x1b[33m2. Selected shell (bash/sh) does not exist in container.\x1b[0m\r\n');
+           xtermRef.current?.writeln('\x1b[33m3. Pod is being terminated.\x1b[0m\r\n');
+        } else {
+           xtermRef.current?.writeln('\r\n\x1b[33mDisconnected (Proxy timeout or network issue)\x1b[0m\r\n');
+        }
+      }
+      
+      // 清除心跳
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
       setConnected(false);
       setSessionStart(null);
-      xtermRef.current?.writeln('\r\n\x1b[33mDisconnected\x1b[0m\r\n');
     };
   }, [namespace, name, selectedContainer, containers, shell]);
 
   // Disconnect
   const handleDisconnect = useCallback(() => {
+    // 清除心跳
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
     wsRef.current?.close();
     setConnected(false);
     setSessionStart(null);

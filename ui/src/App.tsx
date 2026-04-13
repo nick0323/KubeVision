@@ -8,7 +8,7 @@ import { SidebarLayout } from './common/SidebarLayout';
 import LoginPage from './pages/LoginPage.tsx';
 import { authUtils } from './utils/auth.ts';
 import { PAGE_COMPONENTS } from './constants/page-components.tsx';
-import { ResourceDetailPage as ImportedResourceDetail } from './resources';
+import { ResourceDetailPage as ImportedResourceDetail } from './pages/ResourceDetailPage';
 
 const ListPage: React.FC = () => {
   const getInitialTab = () => {

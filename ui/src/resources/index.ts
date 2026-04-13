@@ -1,6 +1,9 @@
-﻿// 通用资源组件导出
-export { ResourceDetailPage } from './ResourceDetailPage';
-export type { ResourceDetailPageProps } from './ResourceDetailPage.types';
+﻿// 通用资源组件导出 - 从 pages 导入
+export { ResourceDetailPage } from '../pages/ResourceDetailPage';
+export type { ResourceDetailPageProps } from '../pages/ResourceDetailPage.types';
+
+// Hook
+export { useResourceDetail } from './useResourceDetail';
 
 // Tabs 从统一目录导出
 export { OverviewTab } from '../tabs/OverviewTab';
