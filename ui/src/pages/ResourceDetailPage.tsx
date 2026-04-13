@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useMemo } from 'react';
+﻿import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../common/PageHeader.tsx';
 import { ResourceActionBar } from '../common/ResourceActionBar';
@@ -46,6 +46,13 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
   // 当前激活的 Tab
   const [activeTab, setActiveTab] = useState<string>(config.tabs[0] || 'overview');
+
+  // 当资源类型为 Pod 时，确保 activeTab 不是 'pods'
+  useEffect(() => {
+    if (resourceType === 'pod' && activeTab === 'pods') {
+      setActiveTab('overview');
+    }
+  }, [resourceType, activeTab]);
 
   // 使用通用 Hook 获取数据
   const { data, loading, error, refresh } = useResourceDetail({

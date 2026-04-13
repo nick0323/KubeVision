@@ -1,4 +1,5 @@
 ﻿import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { StatusBadge } from '../common/StatusBadge';
@@ -35,9 +36,15 @@ export const PodsTab: React.FC<PodsTabProps> = ({
   resourceLabels,
   ownerReferences,
 }) => {
+  const navigate = useNavigate();
   const [pods, setPods] = useState<Pod[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 跳转到 Pod 详情页
+  const handlePodClick = useCallback((podNamespace: string, podName: string) => {
+    navigate(`/pod/${podNamespace}/${podName}`);
+  }, [navigate]);
 
   // 从资源 Labels 构建 Label Selector
   const buildLabelSelector = useCallback(() => {
@@ -140,7 +147,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
             </thead>
             <tbody>
               {pods.map(pod => (
-                <tr key={pod.name}>
+                <tr key={pod.name} className="clickable-row" onClick={() => handlePodClick(pod.namespace, pod.name)}>
                   <td>
                     <span className="resource-name-link">{pod.name}</span>
                   </td>
