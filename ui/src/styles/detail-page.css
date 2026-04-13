@@ -303,11 +303,16 @@
 
 .condition-status {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 水平居中 */
 }
 
 .condition-time {
   font-size: 12px;
   color: #8c8c8c;
+  min-width: 60px; /* 防止时间列太窄 */
+  text-align: right;
 }
 
 /* 折叠按钮 */

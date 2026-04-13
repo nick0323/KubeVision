@@ -248,6 +248,11 @@ func (m *ClientManager) GetDefaultClient() (*kubernetes.Clientset, *metrics.Clie
 	return m.defaultClient.GetClientset()
 }
 
+// GetDefaultRESTConfig 获取默认客户端的 REST 配置（用于 WebSocket exec 等场景）
+func (m *ClientManager) GetDefaultRESTConfig() *rest.Config {
+	return m.defaultClient.config
+}
+
 // GetClient 获取指定名称的客户端（支持多集群）
 func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, *metrics.Clientset, error) {
 	if clusterName == "" || clusterName == "default" {

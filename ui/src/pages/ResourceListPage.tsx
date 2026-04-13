@@ -1,7 +1,7 @@
 ﻿import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageConfig } from '../types';
-import { StatusBadge } from '../components/ui/StatusBadge';
+import { StatusBadge } from '../common/StatusBadge';
 import {
   TableHeaderCell,
   TableRow,
@@ -9,12 +9,12 @@ import {
   TableSkeleton,
   EmptyState,
   ErrorState,
-} from '../components/ui/Table/index.tsx';
-import PageHeader from '../components/common/PageHeader.tsx';
-import SearchInput from '../components/common/SearchInput.tsx';
-import NamespaceSelect from '../components/common/NamespaceSelect.tsx';
-import RefreshButton from '../components/common/RefreshButton.tsx';
-import Pagination from '../components/common/Pagination.tsx';
+} from '../common/Table';
+import PageHeader from '../common/PageHeader.tsx';
+import SearchInput from '../common/SearchInput.tsx';
+import NamespaceSelect from '../common/NamespaceSelect.tsx';
+import RefreshButton from '../common/RefreshButton.tsx';
+import Pagination from '../common/Pagination.tsx';
 import { useResourceList } from '../hooks/useResourceList';
 import { useConfirm } from '../hooks/useConfirm';
 import './ResourceListPage.css';
@@ -44,18 +44,6 @@ interface ResourceListPageProps {
  */
 const STATUS_COLUMN_KEYS = ['status', 'Status', 'state', 'Phase', 'type', 'Type'] as const;
 
-/**
- * 通用资源列表页面组件（增强版）
- *
- * 特性：
- * - SWR 缓存模式，避免重复请求
- * - 搜索防抖（300ms）
- * - 骨架屏加载状态
- * - 友好的空状态和错误状态
- * - 支持行点击和操作按钮
- * - 操作确认对话框
- * - 权限校验
- */
 export const ResourceListPage: React.FC<ResourceListPageProps> = ({
   config,
   collapsed,

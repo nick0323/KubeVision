@@ -1,12 +1,4 @@
-﻿/**
- * 认证工具 - 修复版
- * 改进：
- * 1. 移除全局 window 污染
- * 2. 使用请求级 Token 读取
- * 3. 添加 token 刷新机制
- */
-
-export interface TokenInfo {
+﻿export interface TokenInfo {
   token: string;
   expiry?: number;
   username?: string;

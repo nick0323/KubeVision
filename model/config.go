@@ -57,6 +57,7 @@ type AuthConfig struct {
 	SessionTimeout  time.Duration `mapstructure:"sessionTimeout" json:"session_timeout"`
 	EnableRateLimit bool          `mapstructure:"enableRateLimit" json:"enable_rate_limit"`
 	RateLimit       int           `mapstructure:"rateLimit" json:"rate_limit"`
+	BcryptCost      int           `mapstructure:"bcryptCost" json:"bcrypt_cost"` // bcrypt 成本因子
 }
 
 // CacheConfig 缓存配置
@@ -98,6 +99,7 @@ func DefaultConfig() *Config {
 			SessionTimeout:  24 * time.Hour,
 			EnableRateLimit: true,
 			RateLimit:       100,
+			BcryptCost:      12, // 推荐值
 		},
 		Cache: CacheConfig{
 			Enabled:         true,
@@ -188,6 +190,10 @@ func (c *AuthConfig) Validate() error {
 	if c.LockDuration <= 0 {
 		return fmt.Errorf("锁定时间必须大于 0")
 	}
+	// BcryptCost 为 0 时使用默认值 12
+	if c.BcryptCost == 0 {
+		c.BcryptCost = 12
+	}
 	return nil
 }
 
@@ -267,11 +273,17 @@ func (c *Config) DeepCopy() *Config {
 
 // DeepCopy 创建服务器配置的深拷贝
 func (c *ServerConfig) DeepCopy() ServerConfig {
-	if c.AllowedOrigin == nil {
-		return *c
+	if c == nil {
+		return ServerConfig{}
 	}
-	allowedOriginCopy := make([]string, len(c.AllowedOrigin))
-	copy(allowedOriginCopy, c.AllowedOrigin)
+
+	// 深拷贝切片字段
+	var allowedOriginCopy []string
+	if c.AllowedOrigin != nil {
+		allowedOriginCopy = make([]string, len(c.AllowedOrigin))
+		copy(allowedOriginCopy, c.AllowedOrigin)
+	}
+
 	return ServerConfig{
 		Port:          c.Port,
 		Host:          c.Host,
@@ -281,22 +293,68 @@ func (c *ServerConfig) DeepCopy() ServerConfig {
 
 // DeepCopy 创建 Kubernetes 配置的深拷贝
 func (c *KubernetesConfig) DeepCopy() KubernetesConfig {
-	return *c
+	if c == nil {
+		return KubernetesConfig{}
+	}
+
+	// KubernetesConfig 只包含基本类型和字符串，直接拷贝即可
+	return KubernetesConfig{
+		Kubeconfig: c.Kubeconfig,
+		Timeout:    c.Timeout,
+		QPS:        c.QPS,
+		Burst:      c.Burst,
+		Insecure:   c.Insecure,
+		CAFile:     c.CAFile,
+		CertFile:   c.CertFile,
+		KeyFile:    c.KeyFile,
+		Token:      c.Token,
+		APIServer:  c.APIServer,
+	}
 }
 
 // DeepCopy 创建 JWT 配置的深拷贝
 func (c *JWTConfig) DeepCopy() JWTConfig {
-	return *c
+	if c == nil {
+		return JWTConfig{}
+	}
+
+	return JWTConfig{
+		Secret:     c.Secret,
+		Expiration: c.Expiration,
+	}
 }
 
 // DeepCopy 创建认证配置的深拷贝
 func (c *AuthConfig) DeepCopy() AuthConfig {
-	return *c
+	if c == nil {
+		return AuthConfig{}
+	}
+
+	return AuthConfig{
+		Username:        c.Username,
+		Password:        c.Password,
+		MaxLoginFail:    c.MaxLoginFail,
+		LockDuration:    c.LockDuration,
+		SessionTimeout:  c.SessionTimeout,
+		EnableRateLimit: c.EnableRateLimit,
+		RateLimit:       c.RateLimit,
+		BcryptCost:      c.BcryptCost,
+	}
 }
 
 // DeepCopy 创建缓存配置的深拷贝
 func (c *CacheConfig) DeepCopy() CacheConfig {
-	return *c
+	if c == nil {
+		return CacheConfig{}
+	}
+
+	return CacheConfig{
+		Enabled:         c.Enabled,
+		Type:            c.Type,
+		TTL:             c.TTL,
+		MaxSize:         c.MaxSize,
+		CleanupInterval: c.CleanupInterval,
+	}
 }
 
 // SafeString 返回配置的安全字符串表示（不暴露敏感信息）

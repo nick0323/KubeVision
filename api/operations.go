@@ -348,7 +348,19 @@ func streamPodLog(
 		}
 
 		// 验证并解析 WebSocket token
-		tokenStr := c.Query("token")
+		// 优先从 Sec-WebSocket-Protocol header 获取（安全方式）
+		tokenStr := c.GetHeader("Sec-WebSocket-Protocol")
+		if tokenStr == "" {
+			// Fallback: 尝试从 Authorization header 获取
+			tokenStr = c.GetHeader("Authorization")
+			if tokenStr != "" {
+				tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
+			}
+		}
+		// 最后才尝试从 query 参数获取（兼容性考虑，但不推荐）
+		if tokenStr == "" {
+			tokenStr = c.Query("token")
+		}
 		if tokenStr == "" {
 			logger.Warn("WebSocket 缺少 token 参数")
 			c.AbortWithStatus(http.StatusUnauthorized)
@@ -356,7 +368,13 @@ func streamPodLog(
 		}
 
 		// 验证 token 有效性
-		_, err = middleware.VerifyToken(tokenStr, middleware.GetJWTSecretFromConfig())
+		jwtSecret, err := middleware.GetJWTSecretFromConfig()
+		if err != nil {
+			logger.Error("JWT secret not configured", zap.Error(err))
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		_, err = middleware.VerifyToken(tokenStr, jwtSecret)
 		if err != nil {
 			logger.Warn("WebSocket token 验证失败", zap.Error(err))
 			c.AbortWithStatus(http.StatusUnauthorized)

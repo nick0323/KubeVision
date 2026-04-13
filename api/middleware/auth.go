@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -36,19 +37,25 @@ func SetJWTSecret(secret []byte) {
 }
 
 // GetJWTSecretFromConfig 从全局配置获取 JWT secret
-func GetJWTSecretFromConfig() []byte {
+// 返回错误如果 JWT secret 未初始化，调用方必须处理此错误
+func GetJWTSecretFromConfig() ([]byte, error) {
 	if jwtSecret == nil {
-		// 返回默认密钥（仅用于开发环境）
-		return []byte("k8svision-default-secret-change-in-production")
+		return nil, fmt.Errorf("JWT secret not initialized: please set K8SVISION_JWT_SECRET environment variable")
 	}
-	return jwtSecret
+	return jwtSecret, nil
 }
 
-func getJWTSecret(provider ConfigProvider) []byte {
+// getJWTSecret 从配置提供者获取 JWT secret
+// 返回错误如果配置提供者未初始化或获取失败
+func getJWTSecret(provider ConfigProvider) ([]byte, error) {
 	if provider == nil {
-		panic("配置提供者未初始化")
+		return nil, fmt.Errorf("config provider not initialized")
 	}
-	return provider.GetJWTSecret()
+	secret := provider.GetJWTSecret()
+	if len(secret) == 0 {
+		return nil, fmt.Errorf("JWT secret is empty")
+	}
+	return secret, nil
 }
 
 func safeStringClaim(claims jwt.MapClaims, key string) (string, bool) {
@@ -112,7 +119,11 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
-			return getJWTSecret(configProvider), nil
+			secret, err := getJWTSecret(configProvider)
+			if err != nil {
+				return nil, err
+			}
+			return secret, nil
 		})
 
 		if err != nil {
@@ -123,7 +134,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "Token 解析失败",
+				Message: "Token 验证失败",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return

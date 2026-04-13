@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import InfoCard from './InfoCard.tsx';
 import ResourceSummary from './ResourceSummary.tsx';
-import PageHeader from '../components/common/PageHeader.tsx';
+import PageHeader from '../common/PageHeader.tsx';
 import { OverviewPageProps, OverviewData, K8sEventSimple } from '../types';
 import { apiClient } from '../utils/apiClient';
 import { FaServer, FaCube, FaNetworkWired } from 'react-icons/fa';

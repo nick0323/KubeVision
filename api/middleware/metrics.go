@@ -87,6 +87,7 @@ func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 }
 
 // Allow 检查是否允许请求
+// 使用原地压缩优化，避免每次分配新切片
 func (rl *RateLimiter) Allow() bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
@@ -94,14 +95,15 @@ func (rl *RateLimiter) Allow() bool {
 	now := time.Now()
 	windowStart := now.Add(-rl.window)
 
-	// 移除窗口外的请求
-	validReqs := make([]time.Time, 0, len(rl.reqs))
-	for _, t := range rl.reqs {
-		if t.After(windowStart) {
-			validReqs = append(validReqs, t)
+	// 原地压缩：移除窗口外的请求
+	writeIdx := 0
+	for readIdx := 0; readIdx < len(rl.reqs); readIdx++ {
+		if rl.reqs[readIdx].After(windowStart) {
+			rl.reqs[writeIdx] = rl.reqs[readIdx]
+			writeIdx++
 		}
 	}
-	rl.reqs = validReqs
+	rl.reqs = rl.reqs[:writeIdx]
 
 	// 检查是否超过限制
 	if len(rl.reqs) >= rl.limit {

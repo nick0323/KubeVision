@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -17,15 +15,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/nick0323/K8sVision/api/middleware"
+	"github.com/nick0323/K8sVision/service"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
-	"k8s.io/client-go/util/homedir"
 )
 
 // Exec 配置常量
@@ -38,6 +33,14 @@ const (
 
 // 全局连接计数
 var activeExecConnections atomic.Int32
+
+// 全局 ClientManager（由 main.go 初始化时设置）
+var globalClientManager *service.ClientManager
+
+// SetGlobalClientManager 设置全局 ClientManager（在 main.go 初始化时调用）
+func SetGlobalClientManager(cm *service.ClientManager) {
+	globalClientManager = cm
+}
 
 // dnsLabelRegex 验证 namespace 名称 (DNS label 规范)
 var dnsLabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -164,14 +167,18 @@ func HandleExecWS(
 	configProvider middleware.ConfigProvider,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 从 WebSocket 请求中获取 token
-		tokenStr := c.Query("token")
+		// 优先从 Sec-WebSocket-Protocol header 获取 token（安全方式）
+		tokenStr := c.GetHeader("Sec-WebSocket-Protocol")
 		if tokenStr == "" {
-			// 尝试从 Authorization header 获取
+			// Fallback: 尝试从 Authorization header 获取
 			tokenStr = c.GetHeader("Authorization")
 			if tokenStr != "" {
 				tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
 			}
+		}
+		// 最后才尝试从 query 参数获取（兼容性考虑，但不推荐）
+		if tokenStr == "" {
+			tokenStr = c.Query("token")
 		}
 
 		if tokenStr == "" {
@@ -239,12 +246,21 @@ func handleExecWSImpl(
 	}
 
 	// 获取 K8s 客户端和配置（在 WebSocket 升级前）
-	clientset, config, err := getK8sClientWithConfig()
+	// 使用全局 ClientManager 而不是重新创建客户端
+	if globalClientManager == nil {
+		logger.Error("ClientManager 未初始化")
+		middleware.ResponseError(c, logger, fmt.Errorf("系统未初始化"), http.StatusInternalServerError)
+		return
+	}
+
+	clientset, _, err := globalClientManager.GetDefaultClient()
 	if err != nil {
 		logger.Error("获取 K8s 客户端失败", zap.Error(err))
 		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 		return
 	}
+
+	config := globalClientManager.GetDefaultRESTConfig()
 
 	// 检查 Pod 是否存在并获取容器列表（在 WebSocket 升级前）
 	pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
@@ -390,29 +406,4 @@ func hasContainer(pod *v1.Pod, containerName string) bool {
 		}
 	}
 	return false
-}
-
-// getK8sClientWithConfig 获取 K8s 客户端和配置
-func getK8sClientWithConfig() (*kubernetes.Clientset, *rest.Config, error) {
-	// 尝试 in-cluster config
-	config, err := rest.InClusterConfig()
-	if err == nil {
-		clientset, err := kubernetes.NewForConfig(config)
-		return clientset, config, err
-	}
-
-	// fallback 到 kubeconfig
-	kubeconfig := os.Getenv("KUBECONFIG")
-	if kubeconfig == "" {
-		home := homedir.HomeDir()
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
-
-	config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	return clientset, config, err
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -241,6 +242,9 @@ func (app *Application) initAPI() {
 	// 设置全局 JWT secret（用于 WebSocket token 验证）
 	middleware.SetJWTSecret([]byte(cfg.JWT.Secret))
 
+	// 设置全局 K8s ClientManager（用于 WebSocket exec 等场景）
+	api.SetGlobalClientManager(app.k8sClientMgr)
+
 	// 初始化 WebSocket upgrader（配置允许的源）
 	api.InitWebSocketUpgrader(cfg.Server.AllowedOrigin)
 }
@@ -395,9 +399,16 @@ func (app *Application) Run() error {
 
 	router := app.SetupRouter()
 
+	// 创建 http.Server 实例（支持优雅关闭）
+	srv := &http.Server{
+		Addr:    serverAddr,
+		Handler: router,
+	}
+
 	// 启动服务器（在 goroutine 中）
 	go func() {
-		if err := router.Run(serverAddr); err != nil {
+		app.logger.Info("HTTP 服务器开始监听", zap.String("address", serverAddr))
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			app.logger.Error("服务器运行失败", zap.Error(err))
 		}
 	}()
@@ -407,7 +418,18 @@ func (app *Application) Run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	app.logger.Info("收到退出信号，正在关闭服务器...")
+	app.logger.Info("收到退出信号，正在优雅关闭服务器...")
+
+	// 优雅关闭：等待活跃请求完成（最多等待 30 秒）
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		app.logger.Error("服务器优雅关闭失败", zap.Error(err))
+		return err
+	}
+
+	app.logger.Info("HTTP 服务器已优雅关闭")
 	return nil
 }
 
@@ -456,7 +478,4 @@ func main() {
 	if err := app.Run(); err != nil {
 		app.logger.Fatal("应用运行失败", zap.Error(err))
 	}
-
-	// 优雅关闭
-	time.Sleep(500 * time.Millisecond) // 等待服务器完全关闭
 }

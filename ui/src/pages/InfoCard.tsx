@@ -2,10 +2,6 @@
 import { InfoCardProps } from '../types';
 import './InfoCard.css';
 
-/**
- * 信息卡片组件
- * 保持与 InfoCard.jsx 完全一致的功能
- */
 export const InfoCard: React.FC<InfoCardProps> = ({ icon, title, value, status, children }) => {
   return (
     <div className="overview-card">

@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"time"
 
@@ -127,10 +128,19 @@ type K8sResourceMetrics struct {
 	Secrets    int64 `json:"secrets"`    // Secret 数
 
 	// API 调用
-	APICallsTotal   int64   `json:"apiCallsTotal"`   // 总 API 调用数
-	APICallsSuccess int64   `json:"apiCallsSuccess"` // 成功的 API 调用
-	APICallsFailed  int64   `json:"apiCallsFailed"`  // 失败的 API 调用
-	APILatencyP99   float64 `json:"apiLatencyP99"`   // API 调用 P99 延迟（毫秒）
+	APICallsTotal   int64            `json:"apiCallsTotal"`   // 总 API 调用数
+	APICallsSuccess int64            `json:"apiCallsSuccess"` // 成功的 API 调用
+	APICallsFailed  int64            `json:"apiCallsFailed"`  // 失败的 API 调用
+	APILatencyP99   float64          `json:"apiLatencyP99"`   // API 调用 P99 延迟（毫秒）
+	apiLatencyState *apiLatencyState // 延迟采样状态（使用指针避免拷贝问题）
+}
+
+// apiLatencyState K8s API 延迟采样状态
+type apiLatencyState struct {
+	mu      sync.Mutex
+	samples []float64
+	index   int
+	full    bool
 }
 
 // CacheMetrics 缓存相关指标
@@ -289,34 +299,15 @@ func (c *MetricsCollector) calculatePercentile(p float64) float64 {
 		return 0
 	}
 
-	// 排序
-	quickSort(samples, 0, len(samples)-1)
+	// 使用标准库排序（替代自定义 quickSort）
+	sort.Float64s(samples)
 
 	// 计算百分位
 	index := int(float64(len(samples)-1) * p)
+	if index >= len(samples) {
+		index = len(samples) - 1
+	}
 	return samples[index]
-}
-
-// quickSort 快速排序（用于百分位计算）
-func quickSort(arr []float64, low, high int) {
-	if low < high {
-		p := partition(arr, low, high)
-		quickSort(arr, low, p-1)
-		quickSort(arr, p+1, high)
-	}
-}
-
-func partition(arr []float64, low, high int) int {
-	pivot := arr[high]
-	i := low - 1
-	for j := low; j < high; j++ {
-		if arr[j] <= pivot {
-			i++
-			arr[i], arr[j] = arr[j], arr[i]
-		}
-	}
-	arr[i+1], arr[high] = arr[high], arr[i+1]
-	return i + 1
 }
 
 // UpdateAPIRates 更新 API 速率指标
@@ -455,10 +446,61 @@ func (c *MetricsCollector) RecordK8sAPICall(durationMs float64, success bool) {
 		c.metrics.K8s.APICallsFailed++
 	}
 
-	// 简单实现 P99 延迟（实际应该用直方图）
-	if durationMs > c.metrics.K8s.APILatencyP99 {
-		c.metrics.K8s.APILatencyP99 = durationMs
+	// 初始化延迟状态
+	if c.metrics.K8s.apiLatencyState == nil {
+		c.metrics.K8s.apiLatencyState = &apiLatencyState{
+			samples: make([]float64, PercentileSampleSize),
+		}
 	}
+
+	state := c.metrics.K8s.apiLatencyState
+
+	// 使用滑动窗口记录延迟采样
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	// 环形缓冲区写入
+	state.samples[state.index] = durationMs
+	state.index = (state.index + 1) % PercentileSampleSize
+	if state.index == 0 {
+		state.full = true
+	}
+
+	// 计算真实 P99
+	c.metrics.K8s.APILatencyP99 = c.calculateK8sAPILatencyPercentile(0.99)
+}
+
+// calculateK8sAPILatencyPercentile 计算 K8s API 延迟的百分位
+func (c *MetricsCollector) calculateK8sAPILatencyPercentile(p float64) float64 {
+	if c.metrics.K8s.apiLatencyState == nil {
+		return 0
+	}
+
+	state := c.metrics.K8s.apiLatencyState
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	var samples []float64
+	if state.full {
+		samples = make([]float64, len(state.samples))
+		copy(samples, state.samples)
+	} else {
+		samples = state.samples[:state.index]
+	}
+
+	if len(samples) == 0 {
+		return 0
+	}
+
+	// 使用标准库排序
+	sort.Float64s(samples)
+
+	// 计算百分位
+	index := int(float64(len(samples)-1) * p)
+	if index >= len(samples) {
+		index = len(samples) - 1
+	}
+	return samples[index]
 }
 
 // ==================== 缓存指标记录 ====================
