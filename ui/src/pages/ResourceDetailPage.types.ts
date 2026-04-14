@@ -150,7 +150,7 @@ export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
   },
   service: {
     title: 'Service',
-    tabs: ['overview', 'yaml', 'related', 'events'],
+    tabs: ['overview', 'yaml', 'endpoints', 'related', 'events'],
   },
   ingress: {
     title: 'Ingress',

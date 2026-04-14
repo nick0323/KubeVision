@@ -15,11 +15,8 @@ import './YamlTab.css';
  */
 const ALWAYS_HIDDEN_FIELDS = [
   'managedFields',
-  'resourceVersion',
-  'uid',
   'selfLink',
   'clusterName',
-  'generation',
 ];
 
 /**
@@ -43,6 +40,38 @@ const filterHiddenFields = (obj: any, options: YamlDisplayOptions): any => {
     filtered[key] = filterHiddenFields(value, options);
   }
   return filtered;
+};
+
+/**
+ * 清理 YAML 对象中的无效字段（用于更新）
+ */
+const cleanYamlForUpdate = (obj: any): any => {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(item => cleanYamlForUpdate(item));
+
+  const cleaned: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    // 跳过空 uid 的 ownerReferences
+    if (key === 'ownerReferences' && Array.isArray(value)) {
+      cleaned[key] = value.filter((ref: any) => ref.uid && ref.uid.trim() !== '');
+      if (cleaned[key].length > 0) {
+        cleaned[key] = cleaned[key].map((ref: any) => cleanYamlForUpdate(ref));
+      }
+      continue;
+    }
+    // 保留 resourceVersion 和 uid（K8s 更新必需），但跳过空值
+    if (['resourceVersion', 'uid'].includes(key)) {
+      if (value === '' || value === null || value === undefined) continue;
+      cleaned[key] = value;
+      continue;
+    }
+    // 跳过其他只读字段
+    if (['creationTimestamp', 'generation', 'selfLink', 'managedFields'].includes(key)) continue;
+    // 跳过空值
+    if (value === '' || value === null || value === undefined) continue;
+    cleaned[key] = cleanYamlForUpdate(value);
+  }
+  return cleaned;
 };
 
 /**
@@ -209,10 +238,12 @@ export const YamlTab: React.FC<YamlTabProps> = ({
     setLoading(true);
     try {
       const parsed = jsyaml.load(yamlContent);
+      // 清理无效字段
+      const cleaned = cleanYamlForUpdate(parsed);
       const response = await authFetch(`/api/${resourceType}/${namespace}/${name}/yaml`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ yaml: parsed }),
+        body: JSON.stringify({ yaml: cleaned }),
       });
 
       const contentType = response.headers.get('content-type');
@@ -244,10 +275,12 @@ export const YamlTab: React.FC<YamlTabProps> = ({
     setLoading(true);
     try {
       const parsed = jsyaml.load(yamlContent);
-      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}`, {
+      // 清理无效字段
+      const cleaned = cleanYamlForUpdate(parsed);
+      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}/yaml`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed),
+        body: JSON.stringify(cleaned),
       });
       const result = await response.json();
 

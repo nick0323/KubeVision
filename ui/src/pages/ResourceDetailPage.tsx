@@ -7,6 +7,7 @@ import { OverviewTab } from '../tabs/OverviewTab';
 import { YamlTab } from '../tabs/YamlTab';
 import { EventsTab } from '../tabs/EventsTab';
 import { RelatedTab } from '../tabs/RelatedTab';
+import { EndpointsTab } from '../tabs/EndpointsTab';
 import { useResourceDetail } from '../resources/useResourceDetail';
 import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -196,6 +197,9 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
       case 'events':
         return <EventsTab namespace={namespace} name={resourceName} resourceKind={config.title} />;
+
+      case 'endpoints':
+        return <EndpointsTab namespace={namespace} serviceName={resourceName} />;
 
       case 'related':
         return (
