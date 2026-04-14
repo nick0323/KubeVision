@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/nick0323/K8sVision/api/middleware"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -480,105 +481,39 @@ func streamPodLog(
 		previous := c.Query("previous")
 
 		// 输入验证
-		if !isValidResourceName(namespace) {
-			logger.Warn("无效的 namespace 格式", zap.String("namespace", namespace))
-			middleware.ResponseError(c, logger, fmt.Errorf("无效的 namespace 格式"), http.StatusBadRequest)
-			return
-		}
-		if !isValidResourceName(podName) {
-			logger.Warn("无效的 pod 名称格式", zap.String("pod", podName))
-			middleware.ResponseError(c, logger, fmt.Errorf("无效的 pod 名称格式"), http.StatusBadRequest)
-			return
-		}
-		if container != "" && !isValidResourceName(container) {
-			logger.Warn("无效的 container 名称格式", zap.String("container", container))
-			middleware.ResponseError(c, logger, fmt.Errorf("无效的 container 名称格式"), http.StatusBadRequest)
+		if err := validatePodLogParams(namespace, podName, container); err != nil {
+			logger.Warn("参数验证失败", zap.Error(err))
+			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
 			return
 		}
 
-		if namespace == "" || podName == "" {
-			logger.Warn("缺少必要参数：namespace 或 pod")
-			middleware.ResponseError(c, logger, fmt.Errorf("namespace 和 pod 参数为必填"), http.StatusBadRequest)
-			return
-		}
-
-		// 验证并解析 WebSocket token
-		tokenStr := ExtractTokenFromRequest(c)
-		if tokenStr == "" {
-			logger.Warn("WebSocket 缺少 token 参数")
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-
-		// 验证 token 有效性
-		jwtSecret, err := middleware.GetJWTSecretFromConfig()
-		if err != nil {
-			logger.Error("JWT secret not configured", zap.Error(err))
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		_, err = middleware.VerifyToken(tokenStr, jwtSecret)
-		if err != nil {
-			logger.Warn("WebSocket token 验证失败", zap.Error(err))
-			c.AbortWithStatus(http.StatusUnauthorized)
+		// WebSocket token 验证
+		if err := validateWebSocketToken(c, logger); err != nil {
 			return
 		}
 
 		// 检查连接数限制
-		currentConnections := wsConnectionCount.Load()
-		if currentConnections >= maxWSConnections {
-			logger.Warn("WebSocket 连接数过多", zap.Int32("current", currentConnections))
+		if err := checkConnectionLimit(logger); err != nil {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
 				"type":    "error",
-				"message": fmt.Sprintf("连接数过多：当前 %d，最大 %d", currentConnections, maxWSConnections),
+				"message": err.Error(),
 			})
 			return
 		}
-		wsConnectionCount.Add(1)
 		defer wsConnectionCount.Add(-1)
 
-		// 构建日志选项 - 使用 Follow 模式
-		opts := &v1.PodLogOptions{
-			Follow:    true,
-			TailLines: nil, // 不限制初始行数，让后端处理
-		}
-		if container != "" {
-			opts.Container = container
-		}
-		if timestamps == "true" {
-			opts.Timestamps = true
-		}
-		if previous == "true" {
-			opts.Previous = true
-		}
-		if tailLines != "" && tailLines != "0" {
-			var lines int64
-			if _, err := fmt.Sscanf(tailLines, "%d", &lines); err == nil && lines > 0 {
-				opts.TailLines = &lines
-			}
-		}
+		// 构建日志选项
+		opts := buildPodLogOptions(container, timestamps, previous, tailLines)
 
-		// 升级 WebSocket 连接
-		ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		// WebSocket 升级
+		ws, err := upgradeWebSocket(c, logger)
 		if err != nil {
-			logger.Error("WebSocket 升级失败", zap.Error(err))
-			c.Abort()
 			return
 		}
 		defer ws.Close()
 
 		// 设置 WebSocket 关闭处理器
-		var wsCloseOnce sync.Once
-		ws.SetCloseHandler(func(code int, text string) error {
-			logger.Info("客户端主动断开 WebSocket 连接",
-				zap.Int("code", code),
-				zap.String("pod", podName),
-			)
-			wsCloseOnce.Do(func() {
-				wsConnectionCount.Add(-1)
-			})
-			return nil
-		})
+		wsCloseOnce := setupWebSocketCloseHandler(ws, logger, podName)
 
 		logger.Info("日志 WebSocket 连接成功",
 			zap.String("namespace", namespace),
@@ -587,152 +522,274 @@ func streamPodLog(
 			zap.Int32("activeConnections", wsConnectionCount.Load()),
 		)
 
-		// 获取日志流 - Follow 模式会自动处理重连
-		req := clientset.CoreV1().Pods(namespace).GetLogs(podName, opts)
-		podLogs, err := req.Stream(ctx)
+		// 获取日志流
+		podLogs, err := getPodLogStream(ctx, clientset, namespace, podName, opts, logger)
 		if err != nil {
 			logger.Error("获取日志流失败", zap.Error(err))
-			ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("获取日志流失败：%v", err)})
+			if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("获取日志流失败：%v", err)}); writeErr != nil {
+				logger.Error("发送错误消息失败", zap.Error(writeErr))
+			}
 			return
 		}
 		defer podLogs.Close()
 
-		logger.Info("日志流打开成功",
-			zap.String("namespace", namespace),
-			zap.String("pod", podName),
-			zap.String("container", container),
-		)
-
 		// 发送连接成功消息
-		ws.WriteJSON(gin.H{
+		if writeErr := ws.WriteJSON(gin.H{
 			"type":    "connected",
 			"message": fmt.Sprintf("已连接到 %s/%s (%s)", namespace, podName, container),
-		})
+		}); writeErr != nil {
+			logger.Error("发送连接消息失败", zap.Error(writeErr))
+			return
+		}
 
-		// 使用 bufio.Reader 按行读取日志
-		reader := bufio.NewReader(podLogs)
-
-		// 创建 channel 用于传递日志数据
-		logChan := make(chan string, 200) // 增加缓冲区
+		// 启动日志读取 goroutine
+		logChan := make(chan string, 200)
 		errorChan := make(chan error, 1)
 		doneChan := make(chan struct{})
 
-		// 启动 goroutine 读取日志（非阻塞）
-		go func() {
-			defer close(doneChan)
-			logCount := int64(0)
-			lastReadTime := time.Now()
-
-			for {
-				select {
-				case <-ctx.Done():
-					logger.Debug("日志读取 goroutine 收到取消信号", zap.String("pod", podName))
-					return
-				default:
-					// 使用 ReadString 按行读取，遇到 \n 返回
-					// Follow 模式下，如果没有新日志会阻塞等待
-					line, err := reader.ReadString('\n')
-					readDuration := time.Since(lastReadTime)
-
-					if len(line) > 0 {
-						count := atomic.AddInt64(&logCount, 1)
-						logger.Debug("读取到日志行",
-							zap.String("pod", podName),
-							zap.Int64("lineNumber", count),
-							zap.Int("length", len(line)),
-							zap.Duration("sinceLastRead", readDuration),
-						)
-						select {
-						case logChan <- line:
-						default:
-							logger.Warn("logChan 已满，丢弃日志",
-								zap.String("pod", podName),
-								zap.Int64("lineNumber", count),
-							)
-						}
-						lastReadTime = time.Now()
-					}
-					if err != nil {
-						if err == io.EOF {
-							logger.Debug("日志流 EOF，等待新数据", zap.String("pod", podName))
-							// Follow 模式下，EOF 后继续等待新日志
-							time.Sleep(100 * time.Millisecond)
-							continue
-						} else if isTimeoutError(err) {
-							logger.Debug("连接超时，等待重试", zap.String("pod", podName), zap.Error(err))
-							time.Sleep(100 * time.Millisecond)
-							continue
-						} else {
-							logger.Error("读取日志流错误", zap.String("pod", podName), zap.Error(err))
-							errorChan <- err
-							return
-						}
-					}
-				}
-			}
-		}()
-
-		// 设置心跳定时器
-		heartbeatTicker := time.NewTicker(30 * time.Second)
-		defer heartbeatTicker.Stop()
-
-		// 设置最大连接时长（10 分钟）
-		maxDuration := 10 * time.Minute
-		timeoutTimer := time.NewTimer(maxDuration)
-		defer timeoutTimer.Stop()
+		go readPodLogs(ctx, podLogs, logChan, errorChan, doneChan, podName, logger)
 
 		// 主循环：处理日志、心跳、超时
-		for {
-			select {
-			case <-ctx.Done():
-				logger.Info("上下文取消，关闭日志流", zap.String("pod", podName))
-				wsCloseOnce.Do(func() {
-					wsConnectionCount.Add(-1)
-				})
-				return
-			case <-timeoutTimer.C:
-				logger.Info("连接超时，关闭日志流", zap.String("pod", podName), zap.Duration("maxDuration", maxDuration))
-				ws.WriteJSON(gin.H{"type": "info", "message": "连接超时，请重新连接"})
-				wsCloseOnce.Do(func() {
-					wsConnectionCount.Add(-1)
-				})
-				return
-			case <-heartbeatTicker.C:
-				// 发送心跳
-				if err := ws.WriteJSON(gin.H{"type": "heartbeat"}); err != nil {
-					logger.Debug("发送心跳失败", zap.String("pod", podName), zap.Error(err))
-					wsCloseOnce.Do(func() {
-						wsConnectionCount.Add(-1)
-					})
+		runWebSocketLoop(ctx, ws, logChan, errorChan, doneChan, podName, logger, wsCloseOnce)
+	}
+}
+
+// validatePodLogParams 验证 Pod 日志参数
+func validatePodLogParams(namespace, podName, container string) error {
+	if !isValidResourceName(namespace) {
+		return fmt.Errorf("无效的 namespace 格式")
+	}
+	if !isValidResourceName(podName) {
+		return fmt.Errorf("无效的 pod 名称格式")
+	}
+	if container != "" && !isValidResourceName(container) {
+		return fmt.Errorf("无效的 container 名称格式")
+	}
+	if namespace == "" || podName == "" {
+		return fmt.Errorf("namespace 和 pod 参数为必填")
+	}
+	return nil
+}
+
+// validateWebSocketToken 验证 WebSocket token
+func validateWebSocketToken(c *gin.Context, logger *zap.Logger) error {
+	tokenStr := ExtractTokenFromRequest(c)
+	if tokenStr == "" {
+		logger.Warn("WebSocket 缺少 token 参数")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return fmt.Errorf("缺少 token")
+	}
+
+	jwtSecret, err := middleware.GetJWTSecretFromConfig()
+	if err != nil {
+		logger.Error("JWT secret not configured", zap.Error(err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return err
+	}
+
+	_, err = middleware.VerifyToken(tokenStr, jwtSecret)
+	if err != nil {
+		logger.Warn("WebSocket token 验证失败", zap.Error(err))
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return err
+	}
+	return nil
+}
+
+// checkConnectionLimit 检查连接数限制
+func checkConnectionLimit(logger *zap.Logger) error {
+	currentConnections := wsConnectionCount.Load()
+	if currentConnections >= maxWSConnections {
+		logger.Warn("WebSocket 连接数过多", zap.Int32("current", currentConnections))
+		return fmt.Errorf("连接数过多：当前 %d，最大 %d", currentConnections, maxWSConnections)
+	}
+	wsConnectionCount.Add(1)
+	return nil
+}
+
+// buildPodLogOptions 构建 Pod 日志选项
+func buildPodLogOptions(container, timestamps, previous, tailLines string) *v1.PodLogOptions {
+	opts := &v1.PodLogOptions{
+		Follow:    true,
+		TailLines: nil,
+	}
+	if container != "" {
+		opts.Container = container
+	}
+	if timestamps == "true" {
+		opts.Timestamps = true
+	}
+	if previous == "true" {
+		opts.Previous = true
+	}
+	if tailLines != "" && tailLines != "0" {
+		var lines int64
+		if _, err := fmt.Sscanf(tailLines, "%d", &lines); err == nil && lines > 0 {
+			opts.TailLines = &lines
+		}
+	}
+	return opts
+}
+
+// upgradeWebSocket 升级 WebSocket 连接
+func upgradeWebSocket(c *gin.Context, logger *zap.Logger) (*websocket.Conn, error) {
+	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		logger.Error("WebSocket 升级失败", zap.Error(err))
+		c.Abort()
+		return nil, err
+	}
+	return ws, nil
+}
+
+// setupWebSocketCloseHandler 设置 WebSocket 关闭处理器
+func setupWebSocketCloseHandler(ws *websocket.Conn, logger *zap.Logger, podName string) *sync.Once {
+	var wsCloseOnce sync.Once
+	ws.SetCloseHandler(func(code int, text string) error {
+		logger.Info("客户端主动断开 WebSocket 连接",
+			zap.Int("code", code),
+			zap.String("pod", podName),
+		)
+		wsCloseOnce.Do(func() {
+			wsConnectionCount.Add(-1)
+		})
+		return nil
+	})
+	return &wsCloseOnce
+}
+
+// getPodLogStream 获取 Pod 日志流
+func getPodLogStream(ctx context.Context, clientset *kubernetes.Clientset, namespace, podName string, opts *v1.PodLogOptions, logger *zap.Logger) (io.ReadCloser, error) {
+	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, opts)
+	podLogs, err := req.Stream(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("日志流打开成功",
+		zap.String("namespace", namespace),
+		zap.String("pod", podName),
+	)
+
+	return podLogs, nil
+}
+
+// readPodLogs 读取 Pod 日志
+func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- string, errorChan chan<- error, doneChan chan struct{}, podName string, logger *zap.Logger) {
+	defer close(doneChan)
+
+	reader := bufio.NewReader(podLogs)
+	logCount := int64(0)
+	lastReadTime := time.Now()
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Debug("日志读取 goroutine 收到取消信号", zap.String("pod", podName))
+			return
+		default:
+			line, err := reader.ReadString('\n')
+			readDuration := time.Since(lastReadTime)
+
+			if len(line) > 0 {
+				count := atomic.AddInt64(&logCount, 1)
+				logger.Debug("读取到日志行",
+					zap.String("pod", podName),
+					zap.Int64("lineNumber", count),
+					zap.Int("length", len(line)),
+					zap.Duration("sinceLastRead", readDuration),
+				)
+				select {
+				case logChan <- line:
+				default:
+					logger.Warn("logChan 已满，丢弃日志",
+						zap.String("pod", podName),
+						zap.Int64("lineNumber", count),
+					)
+				}
+				lastReadTime = time.Now()
+			}
+
+			if err != nil {
+				if err == io.EOF {
+					logger.Debug("日志流 EOF，等待新数据", zap.String("pod", podName))
+					time.Sleep(100 * time.Millisecond)
+					continue
+				} else if isTimeoutError(err) {
+					logger.Debug("连接超时，等待重试", zap.String("pod", podName), zap.Error(err))
+					time.Sleep(100 * time.Millisecond)
+					continue
+				} else {
+					logger.Error("读取日志流错误", zap.String("pod", podName), zap.Error(err))
+					errorChan <- err
 					return
 				}
-				logger.Debug("心跳发送成功", zap.String("pod", podName))
-			case logLine := <-logChan:
-				// 发送日志到前端
-				if err := ws.WriteJSON(gin.H{
-					"type":    "log",
-					"content": logLine,
-				}); err != nil {
-					logger.Error("发送日志到 WebSocket 失败", zap.String("pod", podName), zap.Error(err))
-					wsCloseOnce.Do(func() {
-						wsConnectionCount.Add(-1)
-					})
-					return
-				}
-			case err := <-errorChan:
-				logger.Error("日志读取错误", zap.String("pod", podName), zap.Error(err))
-				ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("读取日志失败：%v", err)})
-				wsCloseOnce.Do(func() {
-					wsConnectionCount.Add(-1)
-				})
-				return
-			case <-doneChan:
-				logger.Info("日志读取 goroutine 退出", zap.String("pod", podName))
+			}
+		}
+	}
+}
+
+// runWebSocketLoop 运行 WebSocket 主循环
+func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan string, errorChan <-chan error, doneChan <-chan struct{}, podName string, logger *zap.Logger, wsCloseOnce *sync.Once) {
+	heartbeatTicker := time.NewTicker(30 * time.Second)
+	defer heartbeatTicker.Stop()
+
+	maxDuration := 10 * time.Minute
+	timeoutTimer := time.NewTimer(maxDuration)
+	defer timeoutTimer.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("上下文取消，关闭日志流", zap.String("pod", podName))
+			wsCloseOnce.Do(func() {
+				wsConnectionCount.Add(-1)
+			})
+			return
+		case <-timeoutTimer.C:
+			logger.Info("连接超时，关闭日志流", zap.String("pod", podName), zap.Duration("maxDuration", maxDuration))
+			if writeErr := ws.WriteJSON(gin.H{"type": "info", "message": "连接超时，请重新连接"}); writeErr != nil {
+				logger.Error("发送超时消息失败", zap.Error(writeErr))
+			}
+			wsCloseOnce.Do(func() {
+				wsConnectionCount.Add(-1)
+			})
+			return
+		case <-heartbeatTicker.C:
+			if err := ws.WriteJSON(gin.H{"type": "heartbeat"}); err != nil {
+				logger.Debug("发送心跳失败", zap.String("pod", podName), zap.Error(err))
 				wsCloseOnce.Do(func() {
 					wsConnectionCount.Add(-1)
 				})
 				return
 			}
+			logger.Debug("心跳发送成功", zap.String("pod", podName))
+		case logLine := <-logChan:
+			if err := ws.WriteJSON(gin.H{
+				"type":    "log",
+				"content": logLine,
+			}); err != nil {
+				logger.Error("发送日志到 WebSocket 失败", zap.String("pod", podName), zap.Error(err))
+				wsCloseOnce.Do(func() {
+					wsConnectionCount.Add(-1)
+				})
+				return
+			}
+		case err := <-errorChan:
+			logger.Error("日志读取错误", zap.String("pod", podName), zap.Error(err))
+			if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("读取日志失败：%v", err)}); writeErr != nil {
+				logger.Error("发送错误消息失败", zap.Error(writeErr))
+			}
+			wsCloseOnce.Do(func() {
+				wsConnectionCount.Add(-1)
+			})
+			return
+		case <-doneChan:
+			logger.Info("日志读取 goroutine 退出", zap.String("pod", podName))
+			wsCloseOnce.Do(func() {
+				wsConnectionCount.Add(-1)
+			})
+			return
 		}
 	}
 }

@@ -258,11 +258,6 @@ type CronJob struct {
 	Age              string `json:"age"`
 }
 
-// IsActive 检查 CronJob 是否活跃
-func (c *CronJob) IsActive() bool {
-	return !c.Suspend && c.Active > 0
-}
-
 // Job Job 状态
 type Job struct {
 	Namespace      string `json:"namespace"`

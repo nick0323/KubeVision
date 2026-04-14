@@ -8,7 +8,6 @@ import (
 
 	"github.com/nick0323/K8sVision/model"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -53,7 +52,7 @@ func ListPods(ctx context.Context, clientset *kubernetes.Clientset, podMetricsMa
 
 // ListPodsWithRaw 获取 Pod 列表（包含原始 Pod 列表和指标数据）
 // noLimit: 如果为 true，则不限制返回数量（用于集群概览等需要完整统计的场景）
-func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, podMetricsMap map[string]model.PodMetrics, namespace, labelSelector, fieldSelector string, noLimit ...bool) ([]model.Pod, *v1.PodList, error) {
+func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, podMetricsMap map[string]model.PodMetrics, namespace, labelSelector, fieldSelector string, noLimit ...bool) ([]model.Pod, *corev1.PodList, error) {
 	opts := DefaultListOptions()
 	opts.Namespace = namespace
 	opts.LabelSelector = labelSelector
@@ -65,10 +64,10 @@ func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, podMe
 	}
 
 	pods, err := ListResourcesWithNamespace(ctx, namespace,
-		func() (*v1.PodList, error) {
+		func() (*corev1.PodList, error) {
 			return clientset.CoreV1().Pods("").List(ctx, opts.Apply())
 		},
-		func(ns string) (*v1.PodList, error) {
+		func(ns string) (*corev1.PodList, error) {
 			return clientset.CoreV1().Pods(ns).List(ctx, opts.Apply())
 		},
 	)
@@ -198,10 +197,10 @@ func ListPVCs(ctx context.Context, clientset *kubernetes.Clientset, namespace, l
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
 	pvcList, err := ListResourcesWithNamespace(ctx, namespace,
-		func() (*v1.PersistentVolumeClaimList, error) {
+		func() (*corev1.PersistentVolumeClaimList, error) {
 			return clientset.CoreV1().PersistentVolumeClaims("").List(ctx, opts.Apply())
 		},
-		func(ns string) (*v1.PersistentVolumeClaimList, error) {
+		func(ns string) (*corev1.PersistentVolumeClaimList, error) {
 			return clientset.CoreV1().PersistentVolumeClaims(ns).List(ctx, opts.Apply())
 		},
 	)
@@ -252,10 +251,10 @@ func ListConfigMaps(ctx context.Context, clientset *kubernetes.Clientset, namesp
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
 	cmList, err := ListResourcesWithNamespace(ctx, namespace,
-		func() (*v1.ConfigMapList, error) {
+		func() (*corev1.ConfigMapList, error) {
 			return clientset.CoreV1().ConfigMaps("").List(ctx, opts.Apply())
 		},
-		func(ns string) (*v1.ConfigMapList, error) {
+		func(ns string) (*corev1.ConfigMapList, error) {
 			return clientset.CoreV1().ConfigMaps(ns).List(ctx, opts.Apply())
 		},
 	)
@@ -274,7 +273,7 @@ func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
 	// 优化：指定命名空间时只获取该命名空间的 Secrets
-	var secretList *v1.SecretList
+	var secretList *corev1.SecretList
 	var err error
 
 	if namespace != "" {
@@ -296,7 +295,7 @@ func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace
 // ==================== 集群资源列表 ====================
 
 // ListNodes 获取 Node 列表
-func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *v1.PodList, nodeMetricsMap map[string]model.NodeMetrics, labelSelector, fieldSelector string) ([]model.Node, error) {
+func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *corev1.PodList, nodeMetricsMap map[string]model.NodeMetrics, labelSelector, fieldSelector string) ([]model.Node, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector

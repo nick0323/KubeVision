@@ -151,8 +151,8 @@ func (c *MemoryCache[T]) SetWithTTL(key string, value T, ttl time.Duration) {
 func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	var zero T
 
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	item, exists := c.data[key]
 	if !exists {
@@ -163,27 +163,14 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	// 检查是否过期
 	if time.Now().After(item.ExpireTime) {
 		c.misses.Add(1)
-		// 异步删除过期项（限制并发数）
-		go func() {
-			select {
-			case <-c.ctx.Done():
-				return
-			default:
-				c.delete(key)
-			}
-		}()
+		// 删除过期项
+		delete(c.data, key)
 		return zero, false
 	}
 
 	// 更新访问时间（用于 LRU）
-	c.mutex.RUnlock()
-	c.mutex.Lock()
-	if item, exists := c.data[key]; exists {
-		item.LastAccess = time.Now()
-		c.data[key] = item
-	}
-	c.mutex.Unlock()
-	c.mutex.RLock()
+	item.LastAccess = time.Now()
+	c.data[key] = item
 
 	c.hits.Add(1)
 	return item.Value, true
@@ -209,13 +196,6 @@ func (c *MemoryCache[T]) GetOrSet(key string, valueFunc func() (T, error)) (T, e
 
 // Delete 删除缓存
 func (c *MemoryCache[T]) Delete(key string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	delete(c.data, key)
-}
-
-// delete 内部删除方法（无锁）
-func (c *MemoryCache[T]) delete(key string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	delete(c.data, key)

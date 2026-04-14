@@ -324,6 +324,7 @@ func MapNodes(nodes []corev1.Node, pods *corev1.PodList, metrics map[string]mode
 }
 
 // MapEndpoints 映射 Endpoints
+// nolint:staticcheck // Endpoints API 虽然已废弃，但目前仍在使用，后续会迁移到 EndpointSlice
 func MapEndpoints(endpoints []corev1.Endpoints) []model.Endpoints {
 	result := make([]model.Endpoints, len(endpoints))
 	for i, e := range endpoints {
@@ -729,6 +730,7 @@ func getNodeRoles(node corev1.Node) []string {
 }
 
 // getEndpointPorts 提取 Endpoint 端口（✅ 修复类型转换错误）
+// nolint:staticcheck // Endpoints API 虽然已废弃，但目前仍在使用
 func getEndpointPorts(ep corev1.Endpoints) []string {
 	if len(ep.Subsets) == 0 {
 		return []string{"-"}
@@ -794,6 +796,7 @@ func buildNodePodCountMap(pods *corev1.PodList) map[string]int {
 }
 
 // countEndpointAddresses 统计 Endpoint 地址数
+// nolint:staticcheck // Endpoints API 虽然已废弃，但目前仍在使用
 func countEndpointAddresses(ep corev1.Endpoints) int {
 	count := 0
 	for _, subset := range ep.Subsets {

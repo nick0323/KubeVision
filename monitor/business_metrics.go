@@ -12,9 +12,6 @@ import (
 // ==================== 业务指标常量 ====================
 
 const (
-	// 时间窗口大小（用于计算速率）
-	MetricsWindowDuration = 5 * time.Minute
-
 	// 指标上报间隔
 	MetricsReportInterval = 10 * time.Second
 
@@ -282,8 +279,21 @@ func (c *MetricsCollector) recordResponseTime(durationMs float64) {
 	}
 }
 
-// calculatePercentile 计算百分位
-func (c *MetricsCollector) calculatePercentile(p float64) float64 {
+// calculatePercentile 计算百分位（通用函数）
+func calculatePercentile(samples []float64, p float64) float64 {
+	if len(samples) == 0 {
+		return 0
+	}
+	sort.Float64s(samples)
+	index := int(float64(len(samples)-1) * p)
+	if index >= len(samples) {
+		index = len(samples) - 1
+	}
+	return samples[index]
+}
+
+// calculateResponseTimePercentile 计算 API 响应时间百分位
+func (c *MetricsCollector) calculateResponseTimePercentile(p float64) float64 {
 	c.rtMutex.Lock()
 	defer c.rtMutex.Unlock()
 
@@ -295,19 +305,7 @@ func (c *MetricsCollector) calculatePercentile(p float64) float64 {
 		samples = c.responseTimes[:c.rtIndex]
 	}
 
-	if len(samples) == 0 {
-		return 0
-	}
-
-	// 使用标准库排序（替代自定义 quickSort）
-	sort.Float64s(samples)
-
-	// 计算百分位
-	index := int(float64(len(samples)-1) * p)
-	if index >= len(samples) {
-		index = len(samples) - 1
-	}
-	return samples[index]
+	return calculatePercentile(samples, p)
 }
 
 // UpdateAPIRates 更新 API 速率指标
@@ -327,9 +325,9 @@ func (c *MetricsCollector) UpdateAPIRates() {
 	}
 
 	// 更新响应时间百分位
-	c.metrics.API.ResponseTimeP50 = c.calculatePercentile(0.5)
-	c.metrics.API.ResponseTimeP90 = c.calculatePercentile(0.9)
-	c.metrics.API.ResponseTimeP99 = c.calculatePercentile(0.99)
+	c.metrics.API.ResponseTimeP50 = c.calculateResponseTimePercentile(0.5)
+	c.metrics.API.ResponseTimeP90 = c.calculateResponseTimePercentile(0.9)
+	c.metrics.API.ResponseTimeP99 = c.calculateResponseTimePercentile(0.99)
 
 	// 计算平均响应时间
 	total := c.metrics.API.TotalRequests
@@ -488,19 +486,7 @@ func (c *MetricsCollector) calculateK8sAPILatencyPercentile(p float64) float64 {
 		samples = state.samples[:state.index]
 	}
 
-	if len(samples) == 0 {
-		return 0
-	}
-
-	// 使用标准库排序
-	sort.Float64s(samples)
-
-	// 计算百分位
-	index := int(float64(len(samples)-1) * p)
-	if index >= len(samples) {
-		index = len(samples) - 1
-	}
-	return samples[index]
+	return calculatePercentile(samples, p)
 }
 
 // ==================== 缓存指标记录 ====================

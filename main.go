@@ -41,9 +41,6 @@ const (
 	CacheStatsPath  = "/cache/stats"
 	APIPrefix       = "/api"
 	LoginPath       = "/api/login"
-
-	// 缓存配置
-	cacheSyncTimeout = 2 * time.Minute // 缓存同步超时时间
 )
 
 // Application 应用结构
@@ -144,7 +141,10 @@ func (app *Application) initBaseComponents() error {
 		return fmt.Errorf("初始化日志失败：%w", err)
 	}
 	app.configMgr.UpdateLogger(app.logger)
-	tempLogger.Sync()
+	if syncErr := tempLogger.Sync(); syncErr != nil {
+		// 忽略临时 logger 的 Sync 错误
+		_ = syncErr
+	}
 
 	// 1.3 安全配置检查和自动生成（必须在验证配置之前）
 	app.checkAndGenerateSecurityConfig()
@@ -481,7 +481,9 @@ func (app *Application) Close() {
 		app.configMgr.Close()
 	}
 	if app.logger != nil {
-		app.logger.Sync()
+		if syncErr := app.logger.Sync(); syncErr != nil {
+			app.logger.Error("logger Sync 失败", zap.Error(syncErr))
+		}
 	}
 
 	app.logger.Info("应用已关闭")

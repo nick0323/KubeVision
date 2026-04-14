@@ -47,11 +47,6 @@ type ClientManager struct {
 	stopCh         chan struct{}
 }
 
-var (
-	clientManagerInstance *ClientManager
-	once                  sync.Once
-)
-
 // NewClientHolder 创建新的客户端持有者
 func NewClientHolder(cfg *rest.Config, logger *zap.Logger) (*ClientHolder, error) {
 	clientset, err := kubernetes.NewForConfig(cfg)
@@ -304,18 +299,4 @@ func (m *ClientManager) Close() {
 		holder.Close()
 		return true
 	})
-}
-
-// InitClientManager 初始化客户端管理器
-func InitClientManager(configMgr *config.Manager, logger *zap.Logger) error {
-	var initErr error
-	once.Do(func() {
-		clientManagerInstance, initErr = NewClientManager(configMgr, logger)
-	})
-	return initErr
-}
-
-// GetClientManager 获取全局客户端管理器实例
-func GetClientManager() *ClientManager {
-	return clientManagerInstance
 }

@@ -40,6 +40,7 @@ func NewPodInformer(clientset *kubernetes.Clientset, namespace string) *PodInfor
 	pi.informer = informerFactory.Core().V1().Pods().Informer()
 
 	// 注册事件处理
+	// nolint:errcheck // In-Memory 操作不会失败
 	pi.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    pi.onPodAdd,
 		UpdateFunc: pi.onPodUpdate,
@@ -141,16 +142,6 @@ func (pi *PodInformer) updateOwnerRestarts(pod *v1.Pod) {
 	}
 }
 
-// hasOwnerReference 检查 Pod 是否有指定的 Owner
-func hasOwnerReference(pod *v1.Pod, ownerUID string) bool {
-	for _, ownerRef := range pod.OwnerReferences {
-		if string(ownerRef.UID) == ownerUID {
-			return true
-		}
-	}
-	return false
-}
-
 // GetRestartsByOwnerUID 根据 Owner UID 获取重启次数
 func (pi *PodInformer) GetRestartsByOwnerUID(ownerUID string) int32 {
 	pi.mu.RLock()
@@ -169,39 +160,6 @@ func (pi *PodInformer) GetPod(namespace, name string) (*v1.Pod, bool) {
 	defer pi.mu.RUnlock()
 	pod, exists := pi.podCache[namespace+"/"+name]
 	return pod, exists
-}
-
-// GetPodsByOwner 根据 Owner 获取所有 Pod
-func (pi *PodInformer) GetPodsByOwner(ownerUID string) []*v1.Pod {
-	pi.mu.RLock()
-	defer pi.mu.RUnlock()
-
-	var pods []*v1.Pod
-	for _, pod := range pi.podCache {
-		if hasOwnerReference(pod, ownerUID) {
-			pods = append(pods, pod)
-		}
-	}
-	return pods
-}
-
-// GetPodCount 获取 Pod 数量
-func (pi *PodInformer) GetPodCount() int {
-	pi.mu.RLock()
-	defer pi.mu.RUnlock()
-	return len(pi.podCache)
-}
-
-// GetRestartCache 获取重启缓存（用于调试）
-func (pi *PodInformer) GetRestartCache() map[string]int32 {
-	pi.mu.RLock()
-	defer pi.mu.RUnlock()
-
-	cacheCopy := make(map[string]int32, len(pi.restartCache))
-	for k, v := range pi.restartCache {
-		cacheCopy[k] = v
-	}
-	return cacheCopy
 }
 
 // 全局 PodInformer 实例

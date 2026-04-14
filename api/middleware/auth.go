@@ -95,10 +95,8 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			return
 		}
 
-		// 2. 检查 Bearer 格式（如果是 header）
-		if strings.HasPrefix(tokenStr, "Bearer ") {
-			tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
-		}
+		// 2. 移除 Bearer 前缀（如果是 header）
+		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
 
 		if tokenStr == "" {
 			logger.Warn("empty token",

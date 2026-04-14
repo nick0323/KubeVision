@@ -18,7 +18,9 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -186,62 +188,109 @@ func handleExecWSImpl(
 	getK8sClient K8sClientProvider,
 	username string,
 ) {
-	// 获取参数
+	// 1. 获取并验证参数
 	namespace := c.Query("namespace")
 	podName := c.Query("pod")
 	container := c.Query("container")
 	commandStr := c.Query("command")
 
-	// 验证 namespace 格式
+	if err := validateExecParams(namespace, podName); err != nil {
+		middleware.ResponseError(c, logger, err, http.StatusBadRequest)
+		return
+	}
+
+	// 2. 检查连接数限制
+	if err := checkExecConnectionLimit(logger, username); err != nil {
+		middleware.ResponseError(c, logger, err, http.StatusServiceUnavailable)
+		return
+	}
+	defer activeExecConnections.Add(-1)
+
+	// 3. 解析命令
+	command := parseExecCommand(commandStr)
+
+	// 4. 获取 K8s 客户端
+	clientset, config, err := getK8sExecClient(logger)
+	if err != nil {
+		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+		return
+	}
+
+	// 5. 验证 Pod 和容器
+	pod, err := validatePodAndContainer(clientset, namespace, podName, container, logger)
+	if err != nil {
+		middleware.ResponseError(c, logger, err, http.StatusNotFound)
+		return
+	}
+
+	// 6. 升级 WebSocket 连接
+	ws, err := upgradeExecWebSocket(c, logger, namespace, podName, container, username)
+	if err != nil {
+		return
+	}
+	defer ws.Close()
+
+	// 7. 创建 exec 请求并执行
+	if err := executeRemoteCommand(ws, clientset, config, pod, container, command, logger); err != nil {
+		logger.Error("exec 执行失败", zap.Error(err))
+	}
+}
+
+// validateExecParams 验证 exec 参数
+func validateExecParams(namespace, podName string) error {
 	if !isValidNamespace(namespace) {
-		middleware.ResponseError(c, logger, fmt.Errorf("invalid namespace format"), http.StatusBadRequest)
-		return
+		return fmt.Errorf("invalid namespace format")
 	}
-
 	if podName == "" {
-		middleware.ResponseError(c, logger, fmt.Errorf("missing pod name"), http.StatusBadRequest)
-		return
+		return fmt.Errorf("missing pod name")
 	}
+	return nil
+}
 
-	// 检查并发连接数
+// checkExecConnectionLimit 检查 exec 连接数限制
+func checkExecConnectionLimit(logger *zap.Logger, username string) error {
 	if activeExecConnections.Load() >= MaxExecConnections {
 		logger.Warn("exec 连接数已达上限",
 			zap.Int32("active", activeExecConnections.Load()),
 			zap.String("user", username),
 		)
-		middleware.ResponseError(c, logger, fmt.Errorf("服务繁忙，请稍后重试"), http.StatusServiceUnavailable)
-		return
+		return fmt.Errorf("服务繁忙，请稍后重试")
 	}
+	activeExecConnections.Add(1)
+	return nil
+}
 
-	// 解析命令
-	command := []string{ExecDefaultCommand}
-	if commandStr != "" {
-		command = []string{ExecDefaultCommand, "-c", commandStr}
+// parseExecCommand 解析 exec 命令
+func parseExecCommand(commandStr string) []string {
+	if commandStr == "" {
+		return []string{ExecDefaultCommand}
 	}
+	return []string{ExecDefaultCommand, "-c", commandStr}
+}
 
-	// 获取 K8s 客户端和配置（在 WebSocket 升级前）
-	// 使用全局 ClientManager 而不是重新创建客户端
+// getK8sExecClient 获取 K8s exec 客户端
+func getK8sExecClient(logger *zap.Logger) (*kubernetes.Clientset, *rest.Config, error) {
 	if globalClientManager == nil {
 		logger.Error("ClientManager 未初始化")
-		middleware.ResponseError(c, logger, fmt.Errorf("系统未初始化"), http.StatusInternalServerError)
-		return
+		return nil, nil, fmt.Errorf("系统未初始化")
 	}
 
 	clientset, _, err := globalClientManager.GetDefaultClient()
 	if err != nil {
 		logger.Error("获取 K8s 客户端失败", zap.Error(err))
-		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-		return
+		return nil, nil, err
 	}
 
 	config := globalClientManager.GetDefaultRESTConfig()
+	return clientset, config, nil
+}
 
-	// 检查 Pod 是否存在并获取容器列表（在 WebSocket 升级前）
+// validatePodAndContainer 验证 Pod 和容器
+func validatePodAndContainer(clientset *kubernetes.Clientset, namespace, podName, container string, logger *zap.Logger) (*v1.Pod, error) {
 	pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
 	if err != nil {
 		logger.Error("Pod 不存在", zap.Error(err))
-		middleware.ResponseError(c, logger, err, http.StatusNotFound)
-		return
+		return nil, err
 	}
 
 	// 验证 container 是否属于该 pod
@@ -250,21 +299,19 @@ func handleExecWSImpl(
 			zap.String("pod", podName),
 			zap.String("container", container),
 		)
-		middleware.ResponseError(c, logger, fmt.Errorf("container '%s' not found in pod '%s'", container, podName), http.StatusBadRequest)
-		return
+		return nil, fmt.Errorf("container '%s' not found in pod '%s'", container, podName)
 	}
 
-	// 升级 WebSocket 连接
+	return pod, nil
+}
+
+// upgradeExecWebSocket 升级 exec WebSocket 连接
+func upgradeExecWebSocket(c *gin.Context, logger *zap.Logger, namespace, podName, container, username string) (*websocket.Conn, error) {
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		logger.Error("WebSocket 升级失败", zap.Error(err))
-		return
+		return nil, err
 	}
-	defer ws.Close()
-
-	// 增加连接计数
-	activeExecConnections.Add(1)
-	defer activeExecConnections.Add(-1)
 
 	logger.Info("Terminal WebSocket 升级成功",
 		zap.String("namespace", namespace),
@@ -273,7 +320,7 @@ func handleExecWSImpl(
 		zap.String("user", username),
 	)
 
-	// 先发送连接成功消息
+	// 发送连接成功消息
 	if err := ws.WriteJSON(gin.H{
 		"status":    "connected",
 		"namespace": namespace,
@@ -282,17 +329,22 @@ func handleExecWSImpl(
 		"message":   fmt.Sprintf("Connected to %s/%s (%s)", namespace, podName, container),
 	}); err != nil {
 		logger.Error("发送连接消息失败", zap.Error(err))
-		return
+		ws.Close()
+		return nil, err
 	}
 
 	logger.Info("已发送连接消息")
+	return ws, nil
+}
 
+// executeRemoteCommand 执行远程命令
+func executeRemoteCommand(ws *websocket.Conn, clientset *kubernetes.Clientset, config *rest.Config, pod *v1.Pod, container string, command []string, logger *zap.Logger) error {
 	// 创建 exec 请求
 	req := clientset.CoreV1().RESTClient().
 		Post().
 		Resource("pods").
-		Name(podName).
-		Namespace(namespace).
+		Name(pod.Name).
+		Namespace(pod.Namespace).
 		SubResource("exec").
 		VersionedParams(&v1.PodExecOptions{
 			Container: container,
@@ -307,8 +359,10 @@ func handleExecWSImpl(
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {
 		logger.Error("创建 executor 失败", zap.Error(err))
-		ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Failed to create executor: %v", err)})
-		return
+		if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Failed to create executor: %v", err)}); writeErr != nil {
+			logger.Error("发送错误消息失败", zap.Error(writeErr))
+		}
+		return err
 	}
 
 	logger.Info("Executor 创建成功，开始 stream")
@@ -339,18 +393,19 @@ func handleExecWSImpl(
 		TerminalSizeQueue: sizeQueue,
 	})
 
-	if err != nil {
-		if err == io.EOF {
-			logger.Info("exec stream 正常结束",
-				zap.String("user", username),
-				zap.String("namespace", namespace),
-				zap.String("pod", podName),
-			)
-		} else {
-			logger.Error("exec stream 失败", zap.Error(err))
-			ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Exec failed: %v", err)})
+	if err != nil && err != io.EOF {
+		logger.Error("exec stream 失败", zap.Error(err))
+		if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Exec failed: %v", err)}); writeErr != nil {
+			logger.Error("发送错误消息失败", zap.Error(writeErr))
 		}
+		return err
 	}
+
+	logger.Info("exec stream 完成",
+		zap.String("namespace", pod.Namespace),
+		zap.String("pod", pod.Name),
+	)
+	return nil
 }
 
 // isValidNamespace 验证 namespace 名称是否符合 DNS label 规范

@@ -92,26 +92,6 @@ func GetWorkloadStatus(ready, desired int32) string {
 	return model.WorkloadUnavailable
 }
 
-func GetJobStatus(succeeded, failed, active int32) string {
-	if succeeded > 0 {
-		return model.PodSucceeded
-	} else if failed > 0 {
-		return model.PodFailed
-	} else if active > 0 {
-		return model.PodRunning
-	}
-	return model.PodPending
-}
-
-func GetCronJobStatus(activeCount int, lastSuccessfulTime interface{}) string {
-	if activeCount > 0 {
-		return model.PodRunning
-	} else if lastSuccessfulTime != nil {
-		return model.PodSucceeded
-	}
-	return model.PodPending
-}
-
 func TruncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s

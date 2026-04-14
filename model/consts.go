@@ -66,7 +66,7 @@ const (
 
 // 缓存配置常量
 const (
-	CacheSampleSize = 10
+	DefaultCacheTTL = 5 * time.Minute
 )
 
 // 响应配置常量
@@ -75,9 +75,11 @@ const (
 )
 
 // Ingress 配置
-var DefaultIngressPorts = []string{"80", "443"}
+const (
+	DefaultIngressPort = "80"
+)
 
-// 简化的错误码（只保留常用的）
+// 简化的错误码
 const (
 	CodeSuccess             = 0
 	CodeBadRequest          = 400

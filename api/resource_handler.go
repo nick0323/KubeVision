@@ -16,6 +16,18 @@ import (
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
+// isClusterResource 判断是否为集群级资源（不需要 namespace）
+func isClusterResource(resourceType string) bool {
+	clusterResources := map[string]bool{
+		"node":             true,
+		"pv":               true,
+		"persistentvolume": true,
+		"storageclass":     true,
+		"namespace":        true,
+	}
+	return clusterResources[strings.ToLower(resourceType)]
+}
+
 // RegisterRoutes 注册通用资源接口
 func RegisterRoutes(
 	r *gin.RouterGroup,
@@ -114,18 +126,8 @@ func getResourceDetail(
 		ctx := GetRequestContext(c)
 
 		// 判断是否为集群资源（不需要 namespace）
-		// 对于集群资源，namespace 参数会被忽略
-		clusterResources := map[string]bool{
-			"node":             true,
-			"pv":               true,
-			"persistentvolume": true,
-			"storageclass":     true,
-			"namespace":        true,
-		}
-
-		// 如果是集群资源，namespace 传空字符串
 		ns := namespace
-		if clusterResources[resourceType] {
+		if isClusterResource(resourceType) {
 			ns = ""
 		}
 
@@ -169,16 +171,8 @@ func deleteResource(
 		ctx := GetRequestContext(c)
 
 		// 判断是否为集群资源（不需要 namespace）
-		clusterResources := map[string]bool{
-			"node":         true,
-			"pv":           true,
-			"storageclass": true,
-			"namespace":    true,
-		}
-
-		// 如果是集群资源，namespace 传空字符串
 		ns := namespace
-		if clusterResources[resourceType] {
+		if isClusterResource(resourceType) {
 			ns = ""
 		}
 
