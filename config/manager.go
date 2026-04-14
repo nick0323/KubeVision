@@ -284,11 +284,36 @@ func (m *Manager) GetDuration(key string) time.Duration {
 	return m.viper.GetDuration(key)
 }
 
-// Set 设置配置值
+// Set 设置配置值（同时更新 viper 和内存中的 config）
 func (m *Manager) Set(key string, value interface{}) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.viper.Set(key, value)
+
+	// 同步更新内存中的 config 对象
+	parts := strings.Split(key, ".")
+	if len(parts) == 2 {
+		switch parts[0] {
+		case "auth":
+			switch parts[1] {
+			case "password":
+				if s, ok := value.(string); ok {
+					m.config.Auth.Password = s
+				}
+			case "username":
+				if s, ok := value.(string); ok {
+					m.config.Auth.Username = s
+				}
+			}
+		case "jwt":
+			switch parts[1] {
+			case "secret":
+				if s, ok := value.(string); ok {
+					m.config.JWT.Secret = s
+				}
+			}
+		}
+	}
 }
 
 // WriteConfig 写入配置文件

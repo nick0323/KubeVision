@@ -79,20 +79,6 @@ func (r *LoginRequest) Validate() error {
 	return nil
 }
 
-// ChangePasswordRequest 修改密码请求
-type ChangePasswordRequest struct {
-	OldPassword string `json:"oldPassword" binding:"required"`
-	NewPassword string `json:"newPassword" binding:"required,min=8,max=128"`
-}
-
-// TokenResponse Token 响应
-type TokenResponse struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken,omitempty"`
-	ExpiresIn    int64  `json:"expiresIn"`
-	TokenType    string `json:"tokenType"`
-}
-
 // ==================== 指标类型 ====================
 
 // PodMetrics Pod 指标

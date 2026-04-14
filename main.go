@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/nick0323/K8sVision/model"
 	"github.com/nick0323/K8sVision/monitor"
 	"github.com/nick0323/K8sVision/service"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -144,10 +146,19 @@ func (app *Application) initBaseComponents() error {
 	app.configMgr.UpdateLogger(app.logger)
 	tempLogger.Sync()
 
-	// 1.3 初始化 LRU 缓存
+	// 1.3 安全配置检查和自动生成（必须在验证配置之前）
+	app.checkAndGenerateSecurityConfig()
+
+	// 1.4 验证配置（必须在安全配置生成之后，重新获取最新配置）
+	cfg = app.configMgr.GetConfig()
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("配置验证失败：%w", err)
+	}
+
+	// 1.5 初始化 LRU 缓存
 	app.initLRUCache(cfg)
 
-	// 1.4 初始化监控器
+	// 1.6 初始化监控器
 	app.initMonitor()
 
 	return nil
@@ -193,12 +204,18 @@ func (app *Application) initMonitor() {
 	app.monitorMgr = monitor.NewMonitor(app.logger)
 }
 
-// initK8sClient 初始化 K8s 客户端
+// initK8sClient 初始化 K8s 客户端（可选）
 func (app *Application) initK8sClient() error {
 	var err error
 	app.k8sClientMgr, err = service.NewClientManager(app.configMgr, app.logger)
 	if err != nil {
-		return fmt.Errorf("初始化 K8s 客户端失败：%w", err)
+		// K8s 客户端初始化失败时记录警告，但不阻止启动
+		app.logger.Warn("K8s 客户端初始化失败，K8s 相关功能将不可用",
+			zap.Error(err),
+			zap.String("hint", "可以通过配置 kubeconfig 或使用 in-cluster 模式启用"),
+		)
+		// 不返回错误，允许服务继续启动
+		return nil
 	}
 	return nil
 }
@@ -206,6 +223,11 @@ func (app *Application) initK8sClient() error {
 // initK8sCache 初始化 K8s 缓存（Informer 机制）
 // 注：已移除未使用的缓存管理器，只保留 PodInformer
 func (app *Application) initK8sCache() {
+	if app.k8sClientMgr == nil {
+		app.logger.Debug("K8s 客户端管理器未初始化，跳过缓存初始化")
+		return
+	}
+
 	clientset, _, err := app.k8sClientMgr.GetDefaultClient()
 	if err != nil || clientset == nil {
 		app.logger.Warn("K8s 客户端不可用，跳过缓存初始化")
@@ -221,6 +243,9 @@ func (app *Application) initK8sCache() {
 
 // initServices 初始化服务层
 func (app *Application) initServices() {
+	if app.k8sClientMgr == nil {
+		return
+	}
 	clientset, _, _ := app.k8sClientMgr.GetDefaultClient()
 	if clientset == nil {
 		return
@@ -251,12 +276,17 @@ func (app *Application) initAPI() {
 
 // initMonitoring 初始化监控系统
 func (app *Application) initMonitoring() {
-	clientset, metricsClient, err := app.k8sClientMgr.GetDefaultClient()
-	if err != nil || clientset == nil {
+	if app.k8sClientMgr == nil {
+		app.logger.Debug("K8s 客户端管理器未初始化，跳过监控初始化")
 		return
 	}
 
-	monitor.InitTracing(app.logger)
+	clientset, metricsClient, err := app.k8sClientMgr.GetDefaultClient()
+	if err != nil || clientset == nil {
+		app.logger.Debug("K8s 客户端不可用，跳过监控初始化")
+		return
+	}
+
 	monitor.InitBusinessMetrics(app.logger)
 
 	app.monitorMgr.SetK8sClients(clientset, metricsClient)
@@ -455,6 +485,85 @@ func (app *Application) Close() {
 	}
 
 	app.logger.Info("应用已关闭")
+}
+
+// checkAndGenerateSecurityConfig 检查并生成安全配置
+func (app *Application) checkAndGenerateSecurityConfig() {
+	cfg := app.configMgr.GetConfig()
+
+	app.logger.Info("开始检查安全配置",
+		zap.Bool("jwt_secret_empty", cfg.JWT.Secret == ""),
+		zap.Bool("auth_password_empty", cfg.Auth.Password == ""),
+	)
+
+	needsSave := false
+
+	// 1. 检查 JWT Secret
+	if cfg.JWT.Secret == "" {
+		// 生成随机 JWT Secret
+		secret := generateRandomString(64)
+		cfg.JWT.Secret = secret
+
+		// 关键：将 JWT Secret 更新到配置管理器（同时更新 viper 和 config 对象）
+		app.configMgr.Set("jwt.secret", secret)
+
+		app.logger.Info("✅ JWT Secret 已自动生成",
+			zap.Int("length", len(secret)),
+			zap.String("hint", "建议将 JWT Secret 保存到配置文件或通过环境变量 K8SVISION_JWT_SECRET 设置"),
+		)
+		needsSave = true
+	} else if len(cfg.JWT.Secret) < 32 {
+		app.logger.Fatal("❌ JWT Secret 长度不足 32 位，请通过环境变量 K8SVISION_JWT_SECRET 设置")
+	}
+
+	// 2. 检查密码
+	if cfg.Auth.Password == "" {
+		// 生成随机密码并哈希
+		randomPassword := generateRandomString(16)
+
+		// 使用 bcrypt 哈希密码
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(randomPassword), bcrypt.DefaultCost)
+		if err != nil {
+			app.logger.Fatal("❌ 密码哈希失败", zap.Error(err))
+		}
+
+		// 将哈希后的密码转换为字符串
+		hashedPasswordStr := string(hashedPassword)
+
+		// 关键：将哈希后的密码更新到配置管理器（同时更新 viper 和 config 对象）
+		app.configMgr.Set("auth.password", hashedPasswordStr)
+
+		app.logger.Warn("⚠️  检测到管理员密码未配置",
+			zap.String("username", cfg.Auth.Username),
+			zap.String("plain_password", randomPassword),
+			zap.String("hint", "请使用上面的明文密码登录！首次启动已自动生成密码。"),
+		)
+		needsSave = true
+	}
+
+	// 如果需要保存配置
+	if needsSave {
+		app.logger.Info("🔒 安全配置已更新，建议重启服务以使用新生成的配置")
+	}
+
+	app.logger.Info("安全配置检查完成",
+		zap.Int("jwt_secret_final_length", len(app.configMgr.GetConfig().JWT.Secret)),
+		zap.Int("auth_password_final_length", len(app.configMgr.GetConfig().Auth.Password)),
+	)
+}
+
+// generateRandomString 生成随机字符串（使用 crypto/rand）
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+	bytes := make([]byte, length)
+	for i := range bytes {
+		// 使用 crypto/rand 生成随机索引
+		randByte := make([]byte, 1)
+		if _, err := rand.Read(randByte); err == nil {
+			bytes[i] = charset[int(randByte[0])%len(charset)]
+		}
+	}
+	return string(bytes)
 }
 
 func main() {

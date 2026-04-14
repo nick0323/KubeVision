@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -44,20 +43,6 @@ func SetGlobalClientManager(cm *service.ClientManager) {
 
 // dnsLabelRegex 验证 namespace 名称 (DNS label 规范)
 var dnsLabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
-
-// ExecSessionManager 管理活跃的 exec 会话
-type ExecSessionManager struct {
-	sessions sync.Map // map[string]*ExecSession
-}
-
-// ExecSession 代表一个活跃的 exec 会话
-type ExecSession struct {
-	Namespace  string
-	Pod        string
-	Container  string
-	StartTime  time.Time
-	CancelFunc context.CancelFunc
-}
 
 // wsInput 实现 io.Reader 接口，从 WebSocket 读取输入
 type wsInput struct {
@@ -167,19 +152,8 @@ func HandleExecWS(
 	configProvider middleware.ConfigProvider,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 优先从 Sec-WebSocket-Protocol header 获取 token（安全方式）
-		tokenStr := c.GetHeader("Sec-WebSocket-Protocol")
-		if tokenStr == "" {
-			// Fallback: 尝试从 Authorization header 获取
-			tokenStr = c.GetHeader("Authorization")
-			if tokenStr != "" {
-				tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
-			}
-		}
-		// 最后才尝试从 query 参数获取（兼容性考虑，但不推荐）
-		if tokenStr == "" {
-			tokenStr = c.Query("token")
-		}
+		// 从请求中提取 token
+		tokenStr := ExtractTokenFromRequest(c)
 
 		if tokenStr == "" {
 			logger.Warn("WebSocket exec 缺少 token")

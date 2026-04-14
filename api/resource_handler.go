@@ -141,15 +141,6 @@ func getResourceDetail(
 	}
 }
 
-// getResourceDetailCluster 获取集群资源详情（不需要 namespace）
-// 注意：此函数已废弃，集群资源通过 getResourceDetail 统一处理
-func getResourceDetailCluster(
-	logger *zap.Logger,
-	getK8sClient K8sClientProvider,
-) gin.HandlerFunc {
-	return getResourceDetail(logger, getK8sClient)
-}
-
 // deleteResource 删除资源
 func deleteResource(
 	logger *zap.Logger,

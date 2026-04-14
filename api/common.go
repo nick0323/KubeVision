@@ -18,16 +18,18 @@ import (
 )
 
 // WebSocket upgrader 统一配置
+// 注意：默认拒绝所有源，必须通过 InitWebSocketUpgrader 显式配置允许的源
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // 允许所有源（生产环境应配置允许的源）
+		return false // 默认拒绝所有源（生产环境安全配置）
 	},
 }
 
-// InitWebSocketUpgrader 初始化 WebSocket upgrader
+// InitWebSocketUpgrader 初始化 WebSocket upgrader，配置允许的源
 func InitWebSocketUpgrader(allowedOrigins []string) {
+	// 如果没有配置允许的源，使用默认策略（拒绝所有）
 	if len(allowedOrigins) == 0 {
 		return
 	}
@@ -35,7 +37,7 @@ func InitWebSocketUpgrader(allowedOrigins []string) {
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		if origin == "" {
-			return true
+			return true // 允许同源请求
 		}
 		for _, allowed := range allowedOrigins {
 			if allowed == "*" || allowed == origin {
@@ -255,4 +257,23 @@ func parseAgeToSeconds(ageStr string) int64 {
 	default:
 		return num
 	}
+}
+
+// ExtractTokenFromRequest 从请求中提取 JWT token
+// 优先级：Sec-WebSocket-Protocol header > Authorization header > query parameter
+func ExtractTokenFromRequest(c *gin.Context) string {
+	// 优先从 Sec-WebSocket-Protocol header 获取（安全方式）
+	tokenStr := c.GetHeader("Sec-WebSocket-Protocol")
+	if tokenStr == "" {
+		// Fallback: 尝试从 Authorization header 获取
+		tokenStr = c.GetHeader("Authorization")
+		if tokenStr != "" {
+			tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
+		}
+	}
+	// 最后尝试从 URL 参数获取（兼容性考虑）
+	if tokenStr == "" {
+		tokenStr = c.Query("token")
+	}
+	return tokenStr
 }

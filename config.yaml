@@ -1,52 +1,27 @@
-# K8sVision 配置文件
+# K8sVision 配置文件 - 简化版
+# 说明：JWT Secret 和密码为空时会自动生成
+
 server:
-  port: "8080"
+  port: "8080"  # HTTP 服务端口
   host: "0.0.0.0"
-  readTimeout: "30s"
-  writeTimeout: "30s"
-  idleTimeout: "60s"
-  maxHeaderBytes: 1048576  # 1MB
 
 kubernetes:
-  kubeconfig: ""
-  context: ""
-  timeout: "30s"
-  qps: 100
-  burst: 200
+  kubeconfig: ""  # 在集群外运行可留空
   insecure: true
-  caFile: ""
-  certFile: ""
-  keyFile: ""
-  token: ""
-  apiServer: ""
 
 jwt:
-  secret: "k8svision-default-jwt-secret-key-32-chars"  # 设置环境变量 K8SVISION_JWT_SECRET (至少32位字符)
-  expiration: "24h"
-  issuer: "k8svision"
-  audience: "k8svision-client"
+  secret: ""  # 留空会自动生成
+
+auth:
+  username: "admin"
+  password: '$2a$12$EHitFaZeRKOg1CFneyIhl./Mij2DiVgkDRzjZDV3lFJkR22n4WvEm'
 
 log:
   level: "info"
   format: "console"
-  output: "stdout"
-  maxSize: 100
-  maxBackups: 3
-  maxAge: 28
-  compress: true
-
-auth:
-  username: "admin"  # 设置环境变量 K8SVISION_AUTH_USERNAME
-  password: "$2a$12$YNtKf4tJu0Jpy.f8LjLj7uY5765s1S7YN8XdrQ2TtV9pxDQQ9ysdK"  # 默认密码：(cl;ZTJ99yRTrinW
-  maxLoginFail: 5
-  lockDuration: "10m"
-  sessionTimeout: "24h"
-  enableRateLimit: true
-  rateLimit: 100
 
 cache:
   enabled: true
   type: "memory"
   ttl: "5m"
   maxSize: 1000
-  cleanupInterval: "10m"

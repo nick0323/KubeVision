@@ -164,10 +164,12 @@ func (c *ServerConfig) Validate() error {
 
 // Validate 验证 JWT 配置
 func (c *JWTConfig) Validate() error {
+	// 注意：Secret 可以在启动时自动生成，因此这里只警告不报错
 	if c.Secret == "" {
-		return fmt.Errorf("JWT 密钥不能为空，请设置环境变量 K8SVISION_JWT_SECRET")
+		return nil // 启动时会自动生成
 	}
-	if len(c.Secret) < 16 {
+	// 如果已配置，检查长度
+	if len(c.Secret) > 0 && len(c.Secret) < 16 {
 		return fmt.Errorf("JWT 密钥长度至少 16 位字符，当前长度：%d", len(c.Secret))
 	}
 	if c.Expiration <= 0 {
@@ -181,8 +183,9 @@ func (c *AuthConfig) Validate() error {
 	if c.Username == "" {
 		return fmt.Errorf("认证用户名不能为空，请设置环境变量 K8SVISION_AUTH_USERNAME")
 	}
+	// 注意：Password 可以在启动时自动生成，因此这里只警告不报错
 	if c.Password == "" {
-		return fmt.Errorf("认证密码不能为空，请设置环境变量 K8SVISION_AUTH_PASSWORD")
+		return nil // 启动时会自动生成
 	}
 	if c.MaxLoginFail <= 0 {
 		return fmt.Errorf("最大登录失败次数必须大于 0")

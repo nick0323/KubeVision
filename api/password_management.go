@@ -2,7 +2,6 @@ package api
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -67,29 +66,9 @@ func (pm *PasswordManager) HashPassword(password string) (string, error) {
 	return string(hashedBytes), nil
 }
 
-// VerifyPassword 验证密码（兼容旧格式和新格式）
+// VerifyPassword 验证密码（使用标准 bcrypt 验证）
 func (pm *PasswordManager) VerifyPassword(password, hashedPassword string) bool {
-	// 尝试新格式（标准 bcrypt）
-	if !strings.Contains(hashedPassword, ":") {
-		err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-		return err == nil
-	}
-
-	// 旧格式：base64(salt):bcrypt_hash
-	parts := strings.SplitN(hashedPassword, ":", 2)
-	if len(parts) != 2 {
-		return false
-	}
-
-	salt, err := base64.URLEncoding.DecodeString(parts[0])
-	if err != nil {
-		return false
-	}
-
-	hashPart := parts[1]
-	passwordWithSalt := password + base64.URLEncoding.EncodeToString(salt)
-
-	err = bcrypt.CompareHashAndPassword([]byte(hashPart), []byte(passwordWithSalt))
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
 }
 

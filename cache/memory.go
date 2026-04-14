@@ -378,13 +378,3 @@ func (c *MemoryCache[T]) GetStatsStruct() CacheStats {
 		TotalRequests: totalRequests,
 	}
 }
-
-// NewMemoryCacheLRU 创建 LRU 缓存（兼容旧接口）
-func NewMemoryCacheLRU(config *model.CacheConfig, logger *zap.Logger) *MemoryCache[interface{}] {
-	return NewMemoryCache(config, logger)
-}
-
-// NewMemoryCacheOptimized 创建优化的内存缓存（兼容旧接口）
-func NewMemoryCacheOptimized(config *model.CacheConfig, logger *zap.Logger) *MemoryCache[interface{}] {
-	return NewMemoryCache(config, logger)
-}

@@ -503,19 +503,7 @@ func streamPodLog(
 		}
 
 		// 验证并解析 WebSocket token
-		// 优先从 Sec-WebSocket-Protocol header 获取（安全方式）
-		tokenStr := c.GetHeader("Sec-WebSocket-Protocol")
-		if tokenStr == "" {
-			// Fallback: 尝试从 Authorization header 获取
-			tokenStr = c.GetHeader("Authorization")
-			if tokenStr != "" {
-				tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
-			}
-		}
-		// 最后尝试从 URL 参数获取（兼容性考虑）
-		if tokenStr == "" {
-			tokenStr = c.Query("token")
-		}
+		tokenStr := ExtractTokenFromRequest(c)
 		if tokenStr == "" {
 			logger.Warn("WebSocket 缺少 token 参数")
 			c.AbortWithStatus(http.StatusUnauthorized)
