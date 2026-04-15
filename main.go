@@ -115,7 +115,7 @@ func (app *Application) Initialize() error {
 	// ========== 阶段 3：业务组件初始化 ==========
 	app.initBusinessComponents()
 
-	app.logger.Info("应用初始化完成",
+	app.logger.Info("Application initialization completed",
 		zap.String("version", Version),
 		zap.Bool("k8sEnabled", app.k8sClientMgr != nil),
 	)
@@ -190,7 +190,7 @@ func (app *Application) initBusinessComponents() {
 
 	// 3.4 启动配置监听（可选）
 	if err := app.configMgr.Watch(); err != nil {
-		app.logger.Warn("启动配置监听失败", zap.Error(err))
+		app.logger.Warn("Failed to start config watcher", zap.Error(err))
 	}
 }
 
@@ -418,7 +418,7 @@ func (app *Application) Run() error {
 	cfg := app.configMgr.GetConfig()
 	serverAddr := cfg.GetServerAddress()
 
-	app.logger.Info("服务器启动",
+	app.logger.Info("Server starting",
 		zap.String("address", serverAddr),
 		zap.Bool("cacheEnabled", cfg.Cache.Enabled),
 		zap.Bool("rateLimitEnabled", cfg.Auth.EnableRateLimit),
@@ -439,7 +439,7 @@ func (app *Application) Run() error {
 	go func() {
 		app.logger.Info("HTTP 服务器开始监听", zap.String("address", serverAddr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			app.logger.Error("服务器运行失败", zap.Error(err))
+			app.logger.Error("Server failed", zap.Error(err))
 		}
 	}()
 
@@ -448,24 +448,24 @@ func (app *Application) Run() error {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	app.logger.Info("收到退出信号，正在优雅关闭服务器...")
+	app.logger.Info("Exit signal received, gracefully shutting down server...")
 
 	// 优雅关闭：等待活跃请求完成（最多等待 30 秒）
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		app.logger.Error("服务器优雅关闭失败", zap.Error(err))
+		app.logger.Error("Server shutdown failed", zap.Error(err))
 		return err
 	}
 
-	app.logger.Info("HTTP 服务器已优雅关闭")
+	app.logger.Info("HTTP server gracefully shutdown")
 	return nil
 }
 
 // Close 关闭应用
 func (app *Application) Close() {
-	app.logger.Info("正在关闭应用...")
+	app.logger.Info("Shutting down application...")
 
 	// 按顺序关闭各个组件
 	if app.monitorMgr != nil {
@@ -486,14 +486,14 @@ func (app *Application) Close() {
 		}
 	}
 
-	app.logger.Info("应用已关闭")
+	app.logger.Info("Application closed")
 }
 
 // checkAndGenerateSecurityConfig 检查并生成安全配置
 func (app *Application) checkAndGenerateSecurityConfig() {
 	cfg := app.configMgr.GetConfig()
 
-	app.logger.Info("开始检查安全配置",
+	app.logger.Info("Starting security config check",
 		zap.Bool("jwt_secret_empty", cfg.JWT.Secret == ""),
 		zap.Bool("auth_password_empty", cfg.Auth.Password == ""),
 	)
@@ -547,15 +547,15 @@ func (app *Application) checkAndGenerateSecurityConfig() {
 	if needsSave {
 		if shouldPersist {
 			if err := app.configMgr.WriteConfigWithBackup(); err != nil {
-				app.logger.Fatal("安全配置持久化失败", zap.Error(err))
+				app.logger.Fatal("Security config persistence failed", zap.Error(err))
 			}
-			app.logger.Info("🔒 安全配置已更新并持久化")
+			app.logger.Info("🔒 Security config updated and persisted")
 		} else {
-			app.logger.Warn("安全配置仅保存在内存中，请尽快提供 config.yaml 或环境变量进行持久化")
+			app.logger.Warn("Security config only in memory, please provide config.yaml or environment variables for persistence")
 		}
 	}
 
-	app.logger.Info("安全配置检查完成",
+	app.logger.Info("Security config check completed",
 		zap.Int("jwt_secret_final_length", len(app.configMgr.GetConfig().JWT.Secret)),
 		zap.Int("auth_password_final_length", len(app.configMgr.GetConfig().Auth.Password)),
 	)

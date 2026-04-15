@@ -277,7 +277,7 @@ func getK8sExecClient(logger *zap.Logger) (*kubernetes.Clientset, *rest.Config, 
 
 	clientset, _, err := globalClientManager.GetDefaultClient()
 	if err != nil {
-		logger.Error("获取 K8s 客户端失败", zap.Error(err))
+		logger.Error("Failed to get K8s client", zap.Error(err))
 		return nil, nil, err
 	}
 
@@ -328,12 +328,12 @@ func upgradeExecWebSocket(c *gin.Context, logger *zap.Logger, namespace, podName
 		"container": container,
 		"message":   fmt.Sprintf("Connected to %s/%s (%s)", namespace, podName, container),
 	}); err != nil {
-		logger.Error("发送连接消息失败", zap.Error(err))
+		logger.Error("Failed to send connected message", zap.Error(err))
 		ws.Close()
 		return nil, err
 	}
 
-	logger.Info("已发送连接消息")
+	logger.Info("Connected message sent")
 	return ws, nil
 }
 
@@ -358,9 +358,9 @@ func executeRemoteCommand(ws *websocket.Conn, clientset *kubernetes.Clientset, c
 	// 创建 executor
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {
-		logger.Error("创建 executor 失败", zap.Error(err))
+		logger.Error("Failed to create executor", zap.Error(err))
 		if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Failed to create executor: %v", err)}); writeErr != nil {
-			logger.Error("发送错误消息失败", zap.Error(writeErr))
+			logger.Error("Failed to send error message", zap.Error(writeErr))
 		}
 		return err
 	}
@@ -394,14 +394,14 @@ func executeRemoteCommand(ws *websocket.Conn, clientset *kubernetes.Clientset, c
 	})
 
 	if err != nil && err != io.EOF {
-		logger.Error("exec stream 失败", zap.Error(err))
+		logger.Error("Exec stream failed", zap.Error(err))
 		if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Exec failed: %v", err)}); writeErr != nil {
-			logger.Error("发送错误消息失败", zap.Error(writeErr))
+			logger.Error("Failed to send error message", zap.Error(writeErr))
 		}
 		return err
 	}
 
-	logger.Info("exec stream 完成",
+	logger.Info("Exec stream completed",
 		zap.String("namespace", pod.Namespace),
 		zap.String("pod", pod.Name),
 	)

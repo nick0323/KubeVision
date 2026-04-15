@@ -318,7 +318,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		// 检查新密码是否在历史记录中
 		newHashedPassword, err := passwordManager.HashPassword(req.NewPassword)
 		if err != nil {
-			logger.Error("密码哈希失败", zap.Error(err))
+			logger.Error("Failed to hash password", zap.Error(err))
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeInternalServerError,
 				Message: "密码处理失败",
@@ -345,7 +345,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		// 持久化更新配置中的密码
 		configManager.Set("auth.password", newHashedPassword)
 		if err := PersistConfig(); err != nil {
-			logger.Error("写入配置文件失败", zap.Error(err))
+			logger.Error("Failed to write config file", zap.Error(err))
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeInternalServerError,
 				Message: "配置持久化失败",
@@ -357,7 +357,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		passwordManager.AddToPasswordHistory(newHashedPassword)
 
 		// 记录审计日志（不暴露敏感信息）
-		logger.Info("密码修改成功",
+		logger.Info("Password changed successfully",
 			zap.String("username", currentUser),
 			zap.String("clientIP", c.ClientIP()),
 			zap.Time("timestamp", time.Now()),

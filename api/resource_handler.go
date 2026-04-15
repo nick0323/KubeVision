@@ -106,7 +106,7 @@ func getResourceDetail(
 		namespace := c.Param("namespace")
 		name := c.Param("name")
 
-		logger.Info("获取资源详情",
+		logger.Info("Get resource details",
 			zap.String("resourceType", resourceType),
 			zap.String("namespace", namespace),
 			zap.String("name", name),
@@ -142,7 +142,7 @@ func getResourceDetail(
 		// 直接调用 K8s API 获取原始资源对象
 		obj, err := getResourceByName(ctx, clientset, resourceType, ns, name)
 		if err != nil {
-			logger.Error("获取资源失败", zap.Error(err))
+			logger.Error("Failed to get resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
@@ -191,7 +191,7 @@ func deleteResource(
 		// 根据资源类型调用不同的删除方法
 		err = deleteResourceByType(ctx, clientset, resourceType, ns, name)
 		if err != nil {
-			logger.Error("删除资源失败", zap.Error(err))
+			logger.Error("Failed to delete resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}

@@ -101,7 +101,7 @@ func (am *AuthManager) RecordFailure(username, ip string) {
 
 	if attempt.FailCount >= authConfig.MaxLoginFail {
 		attempt.LockUntil = time.Now().Add(authConfig.LockDuration)
-		am.logger.Warn("用户已被锁定",
+		am.logger.Warn("User is locked",
 			zap.String("username", username),
 			zap.String("ip", ip),
 			zap.Int("failCount", attempt.FailCount),
@@ -184,7 +184,7 @@ func (am *AuthManager) GetStats() map[string]interface{} {
 
 func (am *AuthManager) Close() {
 	close(am.stopCh)
-	am.logger.Info("认证管理器已关闭")
+	am.logger.Info("Authentication manager closed")
 }
 
 func (am *AuthManager) makeKey(username, ip string) string {
@@ -232,6 +232,6 @@ func (am *AuthManager) cleanup() {
 	}
 
 	if cleaned > 0 {
-		am.logger.Debug("清理过期登录记录", zap.Int("count", cleaned))
+		am.logger.Debug("Cleaned up expired login records", zap.Int("count", cleaned))
 	}
 }

@@ -601,7 +601,7 @@ func (c *MetricsCollector) StartPeriodicUpdates(interval time.Duration) {
 			select {
 			case <-ticker.C:
 				c.UpdateAPIRates()
-				c.logger.Debug("业务指标已更新")
+				c.logger.Debug("Business metrics updated")
 			case <-c.ctx.Done():
 				return
 			}
@@ -612,7 +612,7 @@ func (c *MetricsCollector) StartPeriodicUpdates(interval time.Duration) {
 // Close 关闭指标收集器
 func (c *MetricsCollector) Close() {
 	c.cancel()
-	c.logger.Info("业务指标收集器已关闭")
+	c.logger.Info("Business metrics collector closed")
 }
 
 // ==================== 全局实例 ====================

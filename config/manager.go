@@ -90,12 +90,12 @@ func (m *Manager) Load(configFile string) error {
 	// 读取配置文件
 	if err := m.viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			m.logger.Warn("配置文件未找到，使用默认配置", zap.String("configFile", configFile))
+			m.logger.Warn("Config file not found, using default config", zap.String("configFile", configFile))
 		} else {
 			return fmt.Errorf("读取配置文件失败：%w", err)
 		}
 	} else {
-		m.logger.Info("配置文件加载成功", zap.String("configFile", m.viper.ConfigFileUsed()))
+		m.logger.Info("Config file loaded successfully", zap.String("configFile", m.viper.ConfigFileUsed()))
 	}
 
 	// 解析配置（使用自定义解码钩子）
@@ -111,7 +111,7 @@ func (m *Manager) Load(configFile string) error {
 		return fmt.Errorf("配置验证失败：%w", err)
 	}
 
-	m.logger.Info("配置加载完成",
+	m.logger.Info("Configuration loaded",
 		zap.String("server", m.config.GetServerAddress()),
 		zap.String("logLevel", m.config.Log.Level),
 	)
@@ -128,15 +128,15 @@ func (m *Manager) Watch() error {
 	// 使用 viper 内置的配置监听
 	m.viper.WatchConfig()
 	m.viper.OnConfigChange(func(e fsnotify.Event) {
-		m.logger.Info("检测到配置文件变化，重新加载配置", zap.String("file", e.Name))
+		m.logger.Info("Config file changed, reloading", zap.String("file", e.Name))
 		if err := m.reload(); err != nil {
-			m.logger.Error("重新加载配置失败", zap.Error(err))
+			m.logger.Error("Failed to reload config", zap.Error(err))
 		} else {
 			m.notifyOnChange()
 		}
 	})
 
-	m.logger.Info("配置文件监听已启动", zap.String("configFile", m.configFile))
+	m.logger.Info("Config file watcher started", zap.String("configFile", m.configFile))
 	return nil
 }
 
@@ -197,7 +197,7 @@ func (m *Manager) reload() error {
 		return fmt.Errorf("重新验证配置失败：%w", err)
 	}
 
-	m.logger.Info("配置重新加载完成")
+	m.logger.Info("Config reloaded")
 	return nil
 }
 
@@ -336,7 +336,7 @@ func (m *Manager) WriteConfigWithBackup() error {
 	// 创建备份
 	if cfgPath != "" {
 		if err := m.createBackup(cfgPath); err != nil {
-			m.logger.Warn("创建配置备份失败", zap.Error(err))
+			m.logger.Warn("Failed to create config backup", zap.Error(err))
 		}
 	}
 

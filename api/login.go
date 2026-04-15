@@ -128,7 +128,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 
 		// 5. 登录成功
 		if usernameMatch && passwordMatch {
-			logger.Info("用户登录成功",
+			logger.Info("User login successful",
 				zap.String("username", req.Username),
 				zap.String("clientIP", c.ClientIP()),
 				zap.String("userAgent", c.GetHeader("User-Agent")),
@@ -158,7 +158,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		// 6. 登录失败
-		logger.Warn("用户登录失败",
+		logger.Warn("User login failed",
 			zap.String("username", req.Username),
 			zap.String("clientIP", c.ClientIP()),
 			zap.String("userAgent", c.GetHeader("User-Agent")),

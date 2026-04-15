@@ -207,7 +207,7 @@ func (c *MemoryCache[T]) Clear() {
 	defer c.mutex.Unlock()
 	c.data = make(map[string]CacheItem[T])
 	if c.logger != nil {
-		c.logger.Info("缓存已清空")
+		c.logger.Info("Cache cleared")
 	}
 }
 
@@ -282,7 +282,7 @@ func (c *MemoryCache[T]) cleanup() int {
 	}
 
 	if expiredCount > 0 && c.logger != nil {
-		c.logger.Debug("缓存清理完成", zap.Int("expiredCount", expiredCount))
+		c.logger.Debug("Cache cleanup completed", zap.Int("expiredCount", expiredCount))
 	}
 
 	return expiredCount
@@ -298,7 +298,7 @@ func (c *MemoryCache[T]) Close() {
 	c.cancel()
 	c.Clear()
 	if c.logger != nil {
-		c.logger.Info("缓存已关闭")
+		c.logger.Info("Cache closed")
 	}
 }
 

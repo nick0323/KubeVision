@@ -296,7 +296,7 @@ func (m *Metrics) Reset() {
 	// 清空资源计数
 	m.ResourceCounts = make(map[string]int64)
 
-	m.logger.Info("性能指标已重置")
+	m.logger.Info("Performance metrics reset")
 }
 
 // Monitor 性能监控器
@@ -365,7 +365,7 @@ func (m *Monitor) StartPeriodicLogging(interval time.Duration) {
 				m.updateSystemMetrics()
 
 				stats := m.metrics.GetStats()
-				m.logger.Info("性能指标统计",
+				m.logger.Info("Performance metrics statistics",
 					zap.Int64("totalRequests", stats["totalRequests"].(int64)),
 					zap.Float64("successRate", stats["successRate"].(float64)),
 					zap.String("avgResponseTime", stats["avgResponseTime"].(string)),
@@ -392,7 +392,7 @@ func (m *Monitor) updateSystemMetrics() {
 // Close 关闭监控器
 func (m *Monitor) Close() {
 	m.cancel()
-	m.logger.Info("性能监控器已关闭")
+	m.logger.Info("Performance monitor closed")
 }
 
 // GetMetricsManager 获取全局监控管理器实例

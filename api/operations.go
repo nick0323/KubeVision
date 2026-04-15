@@ -102,7 +102,7 @@ func RegisterLogStream(
 ) {
 	// 日志实时流 WebSocket
 	r.GET("/ws/stream", func(c *gin.Context) {
-		logger.Info("收到日志 WebSocket 请求",
+		logger.Info("Received log WebSocket request",
 			zap.String("path", c.Request.URL.Path),
 			zap.String("query", sanitizeRawQuery(c.Request.URL.RawQuery)),
 		)
@@ -214,7 +214,7 @@ func updateResourceYAML(
 		// 根据资源类型调用不同的更新方法
 		err = updateResourceByType(ctx, clientset, resourceType, namespace, name, jsonBytes)
 		if err != nil {
-			logger.Error("更新资源失败", zap.Error(err))
+			logger.Error("Failed to update resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -470,7 +470,7 @@ func streamPodLog(
 	return func(c *gin.Context) {
 		clientset, _, err := getK8sClient()
 		if err != nil {
-			logger.Error("获取 K8s 客户端失败", zap.Error(err))
+			logger.Error("Failed to get K8s client", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -487,7 +487,7 @@ func streamPodLog(
 
 		// 输入验证
 		if err := validatePodLogParams(namespace, podName, container); err != nil {
-			logger.Warn("参数验证失败", zap.Error(err))
+			logger.Warn("Parameter validation failed", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
 			return
 		}
@@ -520,7 +520,7 @@ func streamPodLog(
 		// 设置 WebSocket 关闭处理器（负责递减连接计数）
 		wsCloseOnce := setupWebSocketCloseHandler(ws, logger, podName)
 
-		logger.Info("日志 WebSocket 连接成功",
+		logger.Info("Log WebSocket connected",
 			zap.String("namespace", namespace),
 			zap.String("pod", podName),
 			zap.String("container", container),
@@ -530,9 +530,9 @@ func streamPodLog(
 		// 获取日志流
 		podLogs, err := getPodLogStream(ctx, clientset, namespace, podName, opts, logger)
 		if err != nil {
-			logger.Error("获取日志流失败", zap.Error(err))
-			if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("获取日志流失败：%v", err)}); writeErr != nil {
-				logger.Error("发送错误消息失败", zap.Error(writeErr))
+			logger.Error("Failed to get log stream", zap.Error(err))
+			if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Failed to get log stream: %v", err)}); writeErr != nil {
+				logger.Error("Failed to send error message", zap.Error(writeErr))
 			}
 			return
 		}
@@ -543,7 +543,7 @@ func streamPodLog(
 			"type":    "connected",
 			"message": fmt.Sprintf("已连接到 %s/%s (%s)", namespace, podName, container),
 		}); writeErr != nil {
-			logger.Error("发送连接消息失败", zap.Error(writeErr))
+			logger.Error("Failed to send connected message", zap.Error(writeErr))
 			return
 		}
 
@@ -652,7 +652,7 @@ func upgradeWebSocket(c *gin.Context, logger *zap.Logger) (*websocket.Conn, erro
 func setupWebSocketCloseHandler(ws *websocket.Conn, logger *zap.Logger, podName string) *sync.Once {
 	var wsCloseOnce sync.Once
 	ws.SetCloseHandler(func(code int, text string) error {
-		logger.Info("客户端主动断开 WebSocket 连接",
+		logger.Info("Client disconnected WebSocket",
 			zap.Int("code", code),
 			zap.String("text", text),
 			zap.String("pod", podName),
@@ -673,7 +673,7 @@ func getPodLogStream(ctx context.Context, clientset *kubernetes.Clientset, names
 		return nil, err
 	}
 
-	logger.Info("日志流打开成功",
+	logger.Info("Log stream opened",
 		zap.String("namespace", namespace),
 		zap.String("pod", podName),
 	)
@@ -692,7 +692,7 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Debug("日志读取 goroutine 收到取消信号", zap.String("pod", podName))
+			logger.Debug("Log reader goroutine received cancel signal", zap.String("pod", podName))
 			return
 		default:
 			line, err := reader.ReadString('\n')
@@ -700,7 +700,7 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 
 			if len(line) > 0 {
 				count := atomic.AddInt64(&logCount, 1)
-				logger.Debug("读取到日志行",
+				logger.Debug("Read log line",
 					zap.String("pod", podName),
 					zap.Int64("lineNumber", count),
 					zap.Int("length", len(line)),
@@ -719,15 +719,15 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 
 			if err != nil {
 				if err == io.EOF {
-					logger.Debug("日志流 EOF，等待新数据", zap.String("pod", podName))
+					logger.Debug("Log stream EOF, waiting for new data", zap.String("pod", podName))
 					time.Sleep(100 * time.Millisecond)
 					continue
 				} else if isTimeoutError(err) {
-					logger.Debug("连接超时，等待重试", zap.String("pod", podName), zap.Error(err))
+					logger.Debug("Connection timeout, retrying", zap.String("pod", podName), zap.Error(err))
 					time.Sleep(100 * time.Millisecond)
 					continue
 				} else {
-					logger.Error("读取日志流错误", zap.String("pod", podName), zap.Error(err))
+					logger.Error("Error reading log stream", zap.String("pod", podName), zap.Error(err))
 					errorChan <- err
 					return
 				}
@@ -748,15 +748,15 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Info("上下文取消，关闭日志流", zap.String("pod", podName))
+			logger.Info("Context cancelled, closing log stream", zap.String("pod", podName))
 			wsCloseOnce.Do(func() {
 				wsConnectionCount.Add(-1)
 			})
 			return
 		case <-timeoutTimer.C:
-			logger.Info("连接超时，关闭日志流", zap.String("pod", podName), zap.Duration("maxDuration", maxDuration))
-			if writeErr := ws.WriteJSON(gin.H{"type": "info", "message": "连接超时，请重新连接"}); writeErr != nil {
-				logger.Error("发送超时消息失败", zap.Error(writeErr))
+			logger.Info("Connection timeout, closing log stream", zap.String("pod", podName), zap.Duration("maxDuration", maxDuration))
+			if writeErr := ws.WriteJSON(gin.H{"type": "info", "message": "Connection timeout, please reconnect"}); writeErr != nil {
+				logger.Error("Failed to send timeout message", zap.Error(writeErr))
 			}
 			wsCloseOnce.Do(func() {
 				wsConnectionCount.Add(-1)
@@ -771,14 +771,14 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 						zap.Error(err),
 					)
 				} else {
-					logger.Debug("发送心跳失败", zap.String("pod", podName), zap.Error(err))
+					logger.Debug("Failed to send heartbeat", zap.String("pod", podName), zap.Error(err))
 				}
 				wsCloseOnce.Do(func() {
 					wsConnectionCount.Add(-1)
 				})
 				return
 			}
-			logger.Debug("心跳发送成功", zap.String("pod", podName))
+			logger.Debug("Heartbeat sent", zap.String("pod", podName))
 		case logLine := <-logChan:
 			if err := ws.WriteJSON(gin.H{
 				"type":    "log",
@@ -791,7 +791,7 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 						zap.Error(err),
 					)
 				} else {
-					logger.Error("发送日志到 WebSocket 失败", zap.String("pod", podName), zap.Error(err))
+					logger.Error("Failed to send log to WebSocket", zap.String("pod", podName), zap.Error(err))
 				}
 				wsCloseOnce.Do(func() {
 					wsConnectionCount.Add(-1)
@@ -799,16 +799,16 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 				return
 			}
 		case err := <-errorChan:
-			logger.Error("日志读取错误", zap.String("pod", podName), zap.Error(err))
-			if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("读取日志失败：%v", err)}); writeErr != nil {
-				logger.Error("发送错误消息失败", zap.Error(writeErr))
+			logger.Error("Log read error", zap.String("pod", podName), zap.Error(err))
+			if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Failed to read log: %v", err)}); writeErr != nil {
+				logger.Error("Failed to send error message", zap.Error(writeErr))
 			}
 			wsCloseOnce.Do(func() {
 				wsConnectionCount.Add(-1)
 			})
 			return
 		case <-doneChan:
-			logger.Info("日志读取 goroutine 退出", zap.String("pod", podName))
+			logger.Info("Log reader goroutine exited", zap.String("pod", podName))
 			wsCloseOnce.Do(func() {
 				wsConnectionCount.Add(-1)
 			})
@@ -930,7 +930,7 @@ func findRelatedResources(
 		if o.Labels != nil && len(result) < maxRelatedResources {
 			svcList, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
-				logger.Warn("查询 Pod 关联的 Service 失败", zap.Error(err))
+				logger.Warn("Failed to query Pod Service", zap.Error(err))
 			} else {
 				for _, svc := range svcList.Items {
 					if len(result) >= maxRelatedResources {
@@ -984,7 +984,7 @@ func findRelatedResources(
 		// 1. 子资源 - ReplicaSet
 		rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Deployment 的 ReplicaSet 失败", zap.Error(err))
+			logger.Warn("Failed to query Deployment ReplicaSet", zap.Error(err))
 		} else {
 			for _, rs := range rsList.Items {
 				for _, ownerRef := range rs.OwnerReferences {
@@ -1002,7 +1002,7 @@ func findRelatedResources(
 		if o.Spec.Selector != nil {
 			svcList, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
-				logger.Warn("查询 Deployment 关联的 Service 失败", zap.Error(err))
+				logger.Warn("Failed to query Deployment Service", zap.Error(err))
 			} else {
 				for _, svc := range svcList.Items {
 					if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
@@ -1018,7 +1018,7 @@ func findRelatedResources(
 		// 3. HPA (HorizontalPodAutoscaler)
 		hpaList, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Deployment 的 HPA 失败", zap.Error(err))
+			logger.Warn("Failed to query Deployment HPA", zap.Error(err))
 		} else {
 			for _, hpa := range hpaList.Items {
 				if hpa.Spec.ScaleTargetRef.Kind == "Deployment" && hpa.Spec.ScaleTargetRef.Name == o.Name {
@@ -1033,7 +1033,7 @@ func findRelatedResources(
 		// 4. PDB (PodDisruptionBudget)
 		pdbList, err := clientset.PolicyV1().PodDisruptionBudgets(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Deployment 的 PDB 失败", zap.Error(err))
+			logger.Warn("Failed to query Deployment PDB", zap.Error(err))
 		} else {
 			for _, pdb := range pdbList.Items {
 				if pdb.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, pdb.Spec.Selector.MatchLabels) {
@@ -1048,7 +1048,7 @@ func findRelatedResources(
 		// 5. Ingress (如果 Service 关联了 Ingress)
 		ingressList, err := clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Deployment 关联的 Ingress 失败", zap.Error(err))
+			logger.Warn("Failed to query Deployment Ingress", zap.Error(err))
 		} else {
 			// 先找到关联的 Service
 			svcNames := make(map[string]bool)
@@ -1081,7 +1081,7 @@ func findRelatedResources(
 		// 1. 子资源 - Pod
 		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 StatefulSet 的 Pod 失败", zap.Error(err))
+			logger.Warn("Failed to query StatefulSet Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
 				for _, ownerRef := range pod.OwnerReferences {
@@ -1099,7 +1099,7 @@ func findRelatedResources(
 		if o.Spec.Selector != nil {
 			svcList, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
-				logger.Warn("查询 StatefulSet 关联的 Service 失败", zap.Error(err))
+				logger.Warn("Failed to query StatefulSet Service", zap.Error(err))
 			} else {
 				for _, svc := range svcList.Items {
 					if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
@@ -1123,7 +1123,7 @@ func findRelatedResources(
 		// 4. HPA
 		hpaList, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 StatefulSet 的 HPA 失败", zap.Error(err))
+			logger.Warn("Failed to query StatefulSet HPA", zap.Error(err))
 		} else {
 			for _, hpa := range hpaList.Items {
 				if hpa.Spec.ScaleTargetRef.Kind == "StatefulSet" && hpa.Spec.ScaleTargetRef.Name == o.Name {
@@ -1149,7 +1149,7 @@ func findRelatedResources(
 		// 1. 子资源 - Pod
 		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 DaemonSet 的 Pod 失败", zap.Error(err))
+			logger.Warn("Failed to query DaemonSet Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
 				for _, ownerRef := range pod.OwnerReferences {
@@ -1167,7 +1167,7 @@ func findRelatedResources(
 		if o.Spec.Selector != nil {
 			svcList, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
-				logger.Warn("查询 DaemonSet 关联的 Service 失败", zap.Error(err))
+				logger.Warn("Failed to query DaemonSet Service", zap.Error(err))
 			} else {
 				for _, svc := range svcList.Items {
 					if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
@@ -1186,7 +1186,7 @@ func findRelatedResources(
 		// 1. 子资源 - Pod
 		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Job 的 Pod 失败", zap.Error(err))
+			logger.Warn("Failed to query Job Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
 				for _, ownerRef := range pod.OwnerReferences {
@@ -1216,7 +1216,7 @@ func findRelatedResources(
 		// 1. 子资源 - Job
 		jobList, err := clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 CronJob 的 Job 失败", zap.Error(err))
+			logger.Warn("Failed to query CronJob Job", zap.Error(err))
 		} else {
 			for _, job := range jobList.Items {
 				for _, ownerRef := range job.OwnerReferences {
@@ -1237,7 +1237,7 @@ func findRelatedResources(
 		if o.Spec.Selector != nil {
 			podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
-				logger.Warn("查询 Service 关联的 Pod 失败", zap.Error(err))
+				logger.Warn("Failed to query Service Pod", zap.Error(err))
 			} else {
 				for _, pod := range podList.Items {
 					if pod.Labels != nil && matchesSelector(pod.Labels, o.Spec.Selector) {
@@ -1253,7 +1253,7 @@ func findRelatedResources(
 		// 2. Endpoint
 		epList, err := clientset.CoreV1().Endpoints(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Service 的 Endpoint 失败", zap.Error(err))
+			logger.Warn("Failed to query Service Endpoint", zap.Error(err))
 		} else {
 			for _, ep := range epList.Items {
 				if ep.Name == o.Name {
@@ -1268,7 +1268,7 @@ func findRelatedResources(
 		// 3. Ingress
 		ingressList, err := clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Service 关联的 Ingress 失败", zap.Error(err))
+			logger.Warn("Failed to query Service Ingress", zap.Error(err))
 		} else {
 			for _, ing := range ingressList.Items {
 				for _, rule := range ing.Spec.Rules {
@@ -1295,7 +1295,7 @@ func findRelatedResources(
 		// 1. 查询通过 Volume 引用此 ConfigMap 的 Pod
 		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 ConfigMap 的引用 Pod 失败", zap.Error(err))
+			logger.Warn("Failed to query ConfigMap Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
 				for _, vol := range pod.Spec.Volumes {
@@ -1413,7 +1413,7 @@ func findRelatedResources(
 		// 1. 查询通过 Volume 引用此 Secret 的 Pod
 		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Secret 的引用 Pod 失败", zap.Error(err))
+			logger.Warn("Failed to query Secret Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
 				for _, vol := range pod.Spec.Volumes {
@@ -1516,7 +1516,7 @@ func findRelatedResources(
 		// 5. 查询引用此 Secret 的 ServiceAccount
 		saList, err := clientset.CoreV1().ServiceAccounts(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Secret 的引用 ServiceAccount 失败", zap.Error(err))
+			logger.Warn("Failed to query Secret ServiceAccount", zap.Error(err))
 		} else {
 			for _, sa := range saList.Items {
 				// 检查 imagePullSecrets
@@ -1584,7 +1584,7 @@ func findRelatedResources(
 		// 2. 关联的 Pod
 		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 PVC 的引用 Pod 失败", zap.Error(err))
+			logger.Warn("Failed to query PVC Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
 				for _, vol := range pod.Spec.Volumes {
@@ -1613,7 +1613,7 @@ func findRelatedResources(
 			if pvcNamespace != "" {
 				podList, err := clientset.CoreV1().Pods(pvcNamespace).List(ctx, metav1.ListOptions{})
 				if err != nil {
-					logger.Warn("查询 PV 的引用 Pod 失败", zap.Error(err))
+					logger.Warn("Failed to query PV Pod", zap.Error(err))
 				} else {
 					for _, pod := range podList.Items {
 						for _, vol := range pod.Spec.Volumes {
@@ -1645,7 +1645,7 @@ func findRelatedResources(
 			FieldSelector: "spec.nodeName=" + o.Name,
 		})
 		if err != nil {
-			logger.Warn("查询 Node 上的 Pod 失败", zap.Error(err))
+			logger.Warn("Failed to query Node Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
 				result = append(result, map[string]string{
@@ -1667,7 +1667,7 @@ func findRelatedResources(
 		// 查询此 Namespace 中的 Pod
 		podList, err := clientset.CoreV1().Pods(o.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 Namespace 中的 Pod 失败", zap.Error(err))
+			logger.Warn("Failed to query Namespace Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
 				result = append(result, map[string]string{
@@ -1683,7 +1683,7 @@ func findRelatedResources(
 		// 查询使用此 StorageClass 的 PVC
 		pvcList, err := clientset.CoreV1().PersistentVolumeClaims("").List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 StorageClass 的 PVC 失败", zap.Error(err))
+			logger.Warn("Failed to query StorageClass PVC", zap.Error(err))
 		} else {
 			for _, pvc := range pvcList.Items {
 				if pvc.Spec.StorageClassName != nil && *pvc.Spec.StorageClassName == o.Name {
@@ -1698,7 +1698,7 @@ func findRelatedResources(
 		// 查询使用此 StorageClass 的 PV
 		pvList, err := clientset.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("查询 StorageClass 的 PV 失败", zap.Error(err))
+			logger.Warn("Failed to query StorageClass PV", zap.Error(err))
 		} else {
 			for _, pv := range pvList.Items {
 				if pv.Spec.StorageClassName == o.Name {
