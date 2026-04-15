@@ -3,6 +3,7 @@
 # 忽略根目录的临时 Markdown 文件
 *.md
 .qwen
+*.exe
 # 但保留重要的项目文档
 !README.md
 !DEPLOYMENT.md
