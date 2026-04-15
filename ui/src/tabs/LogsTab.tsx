@@ -4,6 +4,8 @@ import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { FaCog, FaDownload, FaChevronDown, FaEraser } from 'react-icons/fa';
 import NamespaceSelect from '../common/NamespaceSelect';
+import { createAuthWebSocket, getWsUrl } from '../utils/auth';
+import { LOG_CONFIG } from '../constants';
 import './LogsTab.css';
 
 const LINES_OPTIONS = [
@@ -13,11 +15,11 @@ const LINES_OPTIONS = [
 ];
 
 // Performance: max log lines to display
-const MAX_LOG_LINES = 1000;
+const MAX_LOG_LINES = LOG_CONFIG.MAX_LOG_LINES;
 // Virtual scrolling: line height in pixels
-const LINE_HEIGHT = 23;
+const LINE_HEIGHT = LOG_CONFIG.LINE_HEIGHT;
 // Virtual scrolling: overscan rows
-const OVERSCAN_ROWS = 20;
+const OVERSCAN_ROWS = LOG_CONFIG.OVERSCAN_ROWS;
 
 /**
  * Logs Tab - Log Viewer
@@ -99,7 +101,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   useEffect(() => {
     const containerToUse = selectedContainer || (containers.length > 0 ? containers[0].name : '');
     if (!containerToUse || !namespace || !name) return;
-    
+
     // Close existing connection
     if (wsRef.current) {
       wsRef.current.close();
@@ -109,12 +111,10 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     setError(null);
     setLogs([]);
 
-    // Connect to backend WebSocket
-    const token = localStorage.getItem('token');
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//localhost:8080/api/ws/stream?namespace=${namespace}&pod=${name}&container=${containerToUse}&tailLines=${tailLines}&timestamps=${timestamps}&previous=${previous}&token=${token}`;
+    // Connect to backend WebSocket using auth utility
+    const wsUrl = getWsUrl(`/stream?namespace=${namespace}&pod=${name}&container=${containerToUse}&tailLines=${tailLines}&timestamps=${timestamps}&previous=${previous}`);
 
-    const ws = new WebSocket(wsUrl);
+    const ws = createAuthWebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -165,7 +165,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     };
   }, [namespace, name, selectedContainer, tailLines, timestamps, previous]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount or when component hides (Tab switch)
   useEffect(() => {
     return () => {
       // 关闭 WebSocket 连接

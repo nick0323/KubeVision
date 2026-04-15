@@ -8,7 +8,7 @@ import { YamlTab } from '../tabs/YamlTab';
 import { EventsTab } from '../tabs/EventsTab';
 import { RelatedTab } from '../tabs/RelatedTab';
 import { EndpointsTab } from '../tabs/EndpointsTab';
-import { useResourceDetail } from '../resources/useResourceDetail';
+import { useResourceDetail } from '../hooks/useResourceDetail';
 import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
@@ -299,7 +299,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
       {/* 资源信息栏 */}
       <ResourceActionBar
-        name={data?.metadata?.name || resourceName}
+        name={(data as any)?.metadata?.name || resourceName}
         namespace={isClusterResource ? undefined : namespace}
         onRefresh={refresh}
         onDelete={handleDelete}

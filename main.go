@@ -380,7 +380,7 @@ func (app *Application) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 // getK8sClient 【优化】获取 K8s 客户端（使用客户端管理器）
 func (app *Application) getK8sClient() (*kubernetes.Clientset, *versioned.Clientset, error) {
 	if app.k8sClientMgr == nil {
-		return nil, nil, nil
+		return nil, nil, fmt.Errorf("kubernetes client manager unavailable")
 	}
 	return app.k8sClientMgr.GetDefaultClient()
 }
@@ -499,6 +499,7 @@ func (app *Application) checkAndGenerateSecurityConfig() {
 	)
 
 	needsSave := false
+	shouldPersist := app.configMgr.GetConfigFile() != ""
 
 	// 1. 检查 JWT Secret
 	if cfg.JWT.Secret == "" {
@@ -521,10 +522,10 @@ func (app *Application) checkAndGenerateSecurityConfig() {
 	// 2. 检查密码
 	if cfg.Auth.Password == "" {
 		// 生成随机密码并哈希
-		randomPassword := generateRandomString(16)
+		generatedPassword := generateRandomString(16)
 
 		// 使用 bcrypt 哈希密码
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(randomPassword), bcrypt.DefaultCost)
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(generatedPassword), bcrypt.DefaultCost)
 		if err != nil {
 			app.logger.Fatal("❌ 密码哈希失败", zap.Error(err))
 		}
@@ -537,15 +538,21 @@ func (app *Application) checkAndGenerateSecurityConfig() {
 
 		app.logger.Warn("⚠️  检测到管理员密码未配置",
 			zap.String("username", cfg.Auth.Username),
-			zap.String("plain_password", randomPassword),
-			zap.String("hint", "请使用上面的明文密码登录！首次启动已自动生成密码。"),
+			zap.String("hint", "已自动生成密码哈希并准备持久化，请尽快通过管理接口重置密码或在配置文件中显式设置。"),
 		)
 		needsSave = true
 	}
 
 	// 如果需要保存配置
 	if needsSave {
-		app.logger.Info("🔒 安全配置已更新，建议重启服务以使用新生成的配置")
+		if shouldPersist {
+			if err := app.configMgr.WriteConfigWithBackup(); err != nil {
+				app.logger.Fatal("安全配置持久化失败", zap.Error(err))
+			}
+			app.logger.Info("🔒 安全配置已更新并持久化")
+		} else {
+			app.logger.Warn("安全配置仅保存在内存中，请尽快提供 config.yaml 或环境变量进行持久化")
+		}
 	}
 
 	app.logger.Info("安全配置检查完成",

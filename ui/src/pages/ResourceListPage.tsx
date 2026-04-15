@@ -309,7 +309,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
             placeholder={`搜索 ${config.title}...`}
             value={search}
             onChange={handleSearchChange}
-            disabled
+            disabled={true}
           />
           <RefreshButton onClick={refresh} loading />
         </PageHeader>

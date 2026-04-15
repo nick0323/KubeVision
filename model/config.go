@@ -81,10 +81,10 @@ func DefaultConfig() *Config {
 			Timeout:  30 * time.Second,
 			QPS:      100,
 			Burst:    200,
-			Insecure: true,
+			Insecure: false,
 		},
 		JWT: JWTConfig{
-			Secret:     "k8svision-default-jwt-secret-key-32-chars",
+			Secret:     "",
 			Expiration: 24 * time.Hour,
 		},
 		Log: LogConfig{

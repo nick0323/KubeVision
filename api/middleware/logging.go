@@ -41,6 +41,10 @@ func maskSensitiveQuery(query string) string {
 	return values.Encode()
 }
 
+func MaskSensitiveQuery(query string) string {
+	return maskSensitiveQuery(query)
+}
+
 // LoggingMiddleware 请求日志记录中间件
 // 记录请求的完整生命周期，包括开始和结束
 func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {

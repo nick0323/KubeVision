@@ -98,7 +98,7 @@ const RESOURCE_TYPE_MAP: Record<string, { apiVersion: string; kind: string; titl
 /**
  * 通用 YAML Tab - 查看/编辑资源 YAML
  */
-export const YamlTab: React.FC<YamlTabProps> = ({
+export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
   namespace,
   name,
   resourceType = 'pod',

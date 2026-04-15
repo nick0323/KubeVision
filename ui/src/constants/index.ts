@@ -65,3 +65,6 @@ export const MENU_LIST: MenuGroup[] = [
 // Pagination Configuration
 export const DEFAULT_PAGE_SIZE = 10;
 export const PAGE_SIZE_OPTIONS = [10, 15, 20, 50];
+
+// Re-export from config.ts
+export * from './config';

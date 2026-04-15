@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
 	"k8s.io/client-go/kubernetes"
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
@@ -26,6 +27,8 @@ var upgrader = websocket.Upgrader{
 		return false // 默认拒绝所有源（生产环境安全配置）
 	},
 }
+
+const webSocketAuthProtocol = "k8svision.auth"
 
 // InitWebSocketUpgrader 初始化 WebSocket upgrader，配置允许的源
 func InitWebSocketUpgrader(allowedOrigins []string) {
@@ -105,7 +108,10 @@ func GetRequestContext(c *gin.Context) context.Context {
 
 // GetTraceID 获取追踪 ID
 func GetTraceID(c *gin.Context) string {
-	tid := c.GetHeader("X-Trace-ID")
+	tid := ""
+	if c != nil && c.Request != nil {
+		tid = c.Request.Header.Get("X-Trace-ID")
+	}
 	if tid == "" {
 		tid = c.GetString("traceId")
 	}
@@ -262,8 +268,12 @@ func parseAgeToSeconds(ageStr string) int64 {
 // ExtractTokenFromRequest 从请求中提取 JWT token
 // 优先级：Sec-WebSocket-Protocol header > Authorization header > query parameter
 func ExtractTokenFromRequest(c *gin.Context) string {
+	if c == nil || c.Request == nil {
+		return ""
+	}
+
 	// 优先从 Sec-WebSocket-Protocol header 获取（安全方式）
-	tokenStr := c.GetHeader("Sec-WebSocket-Protocol")
+	tokenStr := extractTokenFromWebSocketProtocolHeader(c.GetHeader("Sec-WebSocket-Protocol"))
 	if tokenStr == "" {
 		// Fallback: 尝试从 Authorization header 获取
 		tokenStr = c.GetHeader("Authorization")
@@ -272,8 +282,47 @@ func ExtractTokenFromRequest(c *gin.Context) string {
 		}
 	}
 	// 最后尝试从 URL 参数获取（兼容性考虑）
-	if tokenStr == "" {
+	if tokenStr == "" && c.Request.URL != nil {
 		tokenStr = c.Query("token")
 	}
 	return tokenStr
+}
+
+func sanitizeRawQuery(raw string) string {
+	return middleware.MaskSensitiveQuery(raw)
+}
+
+func extractTokenFromWebSocketProtocolHeader(headerValue string) string {
+	if headerValue == "" {
+		return ""
+	}
+
+	parts := strings.Split(headerValue, ",")
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+
+	if len(parts) >= 2 && parts[0] == webSocketAuthProtocol && parts[1] != "" {
+		return parts[1]
+	}
+
+	return strings.TrimSpace(headerValue)
+}
+
+func buildWebSocketUpgradeHeaders(c *gin.Context) http.Header {
+	headerValue := c.GetHeader("Sec-WebSocket-Protocol")
+	if headerValue == "" {
+		return nil
+	}
+
+	parts := strings.Split(headerValue, ",")
+	for _, part := range parts {
+		if strings.TrimSpace(part) == webSocketAuthProtocol {
+			responseHeaders := make(http.Header)
+			responseHeaders.Set("Sec-WebSocket-Protocol", webSocketAuthProtocol)
+			return responseHeaders
+		}
+	}
+
+	return nil
 }

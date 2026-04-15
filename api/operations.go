@@ -104,7 +104,7 @@ func RegisterLogStream(
 	r.GET("/ws/stream", func(c *gin.Context) {
 		logger.Info("收到日志 WebSocket 请求",
 			zap.String("path", c.Request.URL.Path),
-			zap.String("query", c.Request.URL.RawQuery),
+			zap.String("query", sanitizeRawQuery(c.Request.URL.RawQuery)),
 		)
 		streamPodLog(logger, getK8sClient)(c)
 		// 停止 Gin 继续执行中间件
@@ -189,6 +189,11 @@ func updateResourceYAML(
 		var objData interface{} = reqBody
 		if yamlData, ok := reqBody["yaml"]; ok {
 			objData = yamlData
+		}
+
+		if err := validateResourceIdentity(resourceType, namespace, name, objData); err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
+			return
 		}
 
 		// 将 map 转换为 JSON 字节
@@ -633,7 +638,7 @@ func buildPodLogOptions(container, timestamps, previous, tailLines string) *v1.P
 
 // upgradeWebSocket 升级 WebSocket 连接
 func upgradeWebSocket(c *gin.Context, logger *zap.Logger) (*websocket.Conn, error) {
-	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	ws, err := upgrader.Upgrade(c.Writer, c.Request, buildWebSocketUpgradeHeaders(c))
 	if err != nil {
 		logger.Error("WebSocket 升级失败", zap.Error(err))
 		c.Abort()
@@ -648,6 +653,7 @@ func setupWebSocketCloseHandler(ws *websocket.Conn, logger *zap.Logger, podName 
 	ws.SetCloseHandler(func(code int, text string) error {
 		logger.Info("客户端主动断开 WebSocket 连接",
 			zap.Int("code", code),
+			zap.String("text", text),
 			zap.String("pod", podName),
 		)
 		wsCloseOnce.Do(func() {
@@ -757,7 +763,15 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 			return
 		case <-heartbeatTicker.C:
 			if err := ws.WriteJSON(gin.H{"type": "heartbeat"}); err != nil {
-				logger.Debug("发送心跳失败", zap.String("pod", podName), zap.Error(err))
+				// 客户端可能已断开连接
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					logger.Info("WebSocket 客户端断开连接（心跳检测）",
+						zap.String("pod", podName),
+						zap.Error(err),
+					)
+				} else {
+					logger.Debug("发送心跳失败", zap.String("pod", podName), zap.Error(err))
+				}
 				wsCloseOnce.Do(func() {
 					wsConnectionCount.Add(-1)
 				})
@@ -769,7 +783,15 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 				"type":    "log",
 				"content": logLine,
 			}); err != nil {
-				logger.Error("发送日志到 WebSocket 失败", zap.String("pod", podName), zap.Error(err))
+				// 客户端可能已断开连接
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					logger.Info("WebSocket 客户端断开连接",
+						zap.String("pod", podName),
+						zap.Error(err),
+					)
+				} else {
+					logger.Error("发送日志到 WebSocket 失败", zap.String("pod", podName), zap.Error(err))
+				}
 				wsCloseOnce.Do(func() {
 					wsConnectionCount.Add(-1)
 				})
@@ -824,6 +846,53 @@ func validateResourceParams(resourceType, namespace string) error {
 			return fmt.Errorf("资源类型 %s 为命名空间级资源，必须指定 namespace", resourceType)
 		}
 	}
+	return nil
+}
+
+func validateResourceIdentity(resourceType, namespace, name string, objData interface{}) error {
+	var payload struct {
+		Metadata struct {
+			Name      string `json:"name"`
+			Namespace string `json:"namespace"`
+		} `json:"metadata"`
+	}
+
+	raw, err := json.Marshal(objData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal resource identity: %w", err)
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return fmt.Errorf("failed to parse resource identity: %w", err)
+	}
+
+	if payload.Metadata.Name == "" {
+		return fmt.Errorf("metadata.name is required")
+	}
+	if payload.Metadata.Name != name {
+		return fmt.Errorf("metadata.name does not match request path")
+	}
+
+	normalizedType := strings.ToLower(strings.TrimSpace(resourceType))
+	if strings.HasSuffix(normalizedType, "ses") {
+		normalizedType = resourceType
+	} else if strings.HasSuffix(normalizedType, "s") && !strings.HasSuffix(normalizedType, "ss") {
+		normalizedType = normalizedType[:len(normalizedType)-1]
+	}
+
+	if ClusterScopeResources[normalizedType] {
+		if payload.Metadata.Namespace != "" {
+			return fmt.Errorf("cluster-scoped resource must not include metadata.namespace")
+		}
+		return nil
+	}
+
+	if payload.Metadata.Namespace == "" {
+		return fmt.Errorf("metadata.namespace is required")
+	}
+	if payload.Metadata.Namespace != namespace {
+		return fmt.Errorf("metadata.namespace does not match request path")
+	}
+
 	return nil
 }
 

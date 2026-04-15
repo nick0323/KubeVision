@@ -58,6 +58,10 @@ func getResourceList(
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
+		if clientset == nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("kubernetes client unavailable"), http.StatusServiceUnavailable)
+			return
+		}
 
 		ctx := GetRequestContext(c)
 		namespace := c.Query("namespace")
@@ -122,6 +126,10 @@ func getResourceDetail(
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
+		if clientset == nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("kubernetes client unavailable"), http.StatusServiceUnavailable)
+			return
+		}
 
 		ctx := GetRequestContext(c)
 
@@ -165,6 +173,10 @@ func deleteResource(
 		clientset, _, err := getK8sClient()
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+		if clientset == nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("kubernetes client unavailable"), http.StatusServiceUnavailable)
 			return
 		}
 

@@ -411,14 +411,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const resourceInfo = RESOURCE_CONFIG[resourceType] || { title: resourceType };
 
   // 提取 metadata、spec、status
-  const metadata = data?.metadata || {};
-  const spec = data?.spec || {};
-  const status = data?.status || {};
+  const typedData = data as Record<string, any>;
+  const metadata = typedData?.metadata || {};
+  const spec = typedData?.spec || {};
+  const status = typedData?.status || {};
 
   // Pod 特有的容器状态
   const containerStatuses = useMemo(() => {
-    if (resourceType !== 'pod' || !data?.status?.containerStatuses) return [];
-    return data.status.containerStatuses.map((cs: any) => ({
+    if (resourceType !== 'pod' || !typedData?.status?.containerStatuses) return [];
+    return typedData.status.containerStatuses.map((cs: any) => ({
       name: cs.name,
       ready: cs.ready,
       restartCount: cs.restartCount,
@@ -780,7 +781,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                             <div style={{ maxHeight: '200px', overflow: 'auto' }}>
                               {Object.entries(metadata.labels).map(([key, value]) => (
                                 <div key={key}>
-                                  {key}: {value}
+                                  {key}: {String(value)}
                                 </div>
                               ))}
                             </div>
@@ -847,7 +848,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                             <div style={{ maxHeight: '200px', overflow: 'auto' }}>
                               {Object.entries(metadata.annotations).map(([key, value]) => (
                                 <div key={key}>
-                                  {key}: {value}
+                                  {key}: {String(value)}
                                 </div>
                               ))}
                             </div>

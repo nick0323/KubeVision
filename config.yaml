@@ -1,27 +1,19 @@
-# K8sVision 配置文件 - 简化版
-# 说明：JWT Secret 和密码为空时会自动生成
-
-server:
-  port: "8080"  # HTTP 服务端口
-  host: "0.0.0.0"
-
-kubernetes:
-  kubeconfig: ""  # 在集群外运行可留空
-  insecure: true
-
-jwt:
-  secret: ""  # 留空会自动生成
-
 auth:
-  username: "admin"
-  password: '$2a$12$EHitFaZeRKOg1CFneyIhl./Mij2DiVgkDRzjZDV3lFJkR22n4WvEm'
-
-log:
-  level: "info"
-  format: "console"
-
+    password: $2a$12$EHitFaZeRKOg1CFneyIhl./Mij2DiVgkDRzjZDV3lFJkR22n4WvEm
+    username: admin
 cache:
-  enabled: true
-  type: "memory"
-  ttl: "5m"
-  maxSize: 1000
+    enabled: true
+    maxsize: 1000
+    ttl: 5m
+    type: memory
+jwt:
+    secret: bfspo%R&^5KXmCamSfC#b3XCKuCwbSfmPA0OWNxfBPNywW#sxWv9qWMRoy#M4vn0
+kubernetes:
+    insecure: false
+    kubeconfig: ""
+log:
+    format: console
+    level: info
+server:
+    host: 0.0.0.0
+    port: "8080"

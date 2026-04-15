@@ -75,7 +75,12 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 		traceId := c.GetString("traceId")
 		tokenStr := c.GetHeader("Authorization")
 
-		// 1. 检查 Authorization 头是否存在，如果不存在则尝试从 query 参数获取（WebSocket 支持）
+		// 1. 检查 Authorization 头是否存在，如果不存在则尝试从 Sec-WebSocket-Protocol header 获取（WebSocket 支持）
+		if tokenStr == "" {
+			tokenStr = extractTokenFromWebSocketProtocolHeader(c.GetHeader("Sec-WebSocket-Protocol"))
+		}
+
+		// 2. 如果还是没有，则尝试从 query 参数获取（兼容旧版 WebSocket）
 		if tokenStr == "" {
 			tokenStr = c.Query("token")
 		}
@@ -255,4 +260,25 @@ func VerifyToken(tokenStr string, secret []byte) (jwt.MapClaims, error) {
 	}
 
 	return claims, nil
+}
+
+// extractTokenFromWebSocketProtocolHeader 从 Sec-WebSocket-Protocol header 中提取 token
+// 格式："k8svision.auth, <token>" 或直接是 token
+func extractTokenFromWebSocketProtocolHeader(headerValue string) string {
+	if headerValue == "" {
+		return ""
+	}
+
+	parts := strings.Split(headerValue, ",")
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+
+	const webSocketAuthProtocol = "k8svision.auth"
+	if len(parts) >= 2 && parts[0] == webSocketAuthProtocol && parts[1] != "" {
+		return parts[1]
+	}
+
+	// 如果没有协议前缀，直接返回整个 header 值（可能是纯 token）
+	return strings.TrimSpace(headerValue)
 }

@@ -344,7 +344,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 
 		// 持久化更新配置中的密码
 		configManager.Set("auth.password", newHashedPassword)
-		if err := configManager.WriteConfig(); err != nil {
+		if err := PersistConfig(); err != nil {
 			logger.Error("写入配置文件失败", zap.Error(err))
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeInternalServerError,

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 	"github.com/nick0323/K8sVision/config"
 	"github.com/nick0323/K8sVision/model"
@@ -21,6 +23,13 @@ func GetAuthConfig() *model.AuthConfig {
 		return nil
 	}
 	return configManager.GetAuthConfig()
+}
+
+func PersistConfig() error {
+	if configManager == nil {
+		return errors.New("config manager not initialized")
+	}
+	return configManager.WriteConfigWithBackup()
 }
 
 // GetUsernameFromContext 从 gin 上下文获取用户名

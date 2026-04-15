@@ -307,7 +307,7 @@ func validatePodAndContainer(clientset *kubernetes.Clientset, namespace, podName
 
 // upgradeExecWebSocket 升级 exec WebSocket 连接
 func upgradeExecWebSocket(c *gin.Context, logger *zap.Logger, namespace, podName, container, username string) (*websocket.Conn, error) {
-	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	ws, err := upgrader.Upgrade(c.Writer, c.Request, buildWebSocketUpgradeHeaders(c))
 	if err != nil {
 		logger.Error("WebSocket 升级失败", zap.Error(err))
 		return nil, err

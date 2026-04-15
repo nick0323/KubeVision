@@ -320,7 +320,7 @@ func (m *Manager) Set(key string, value interface{}) {
 func (m *Manager) WriteConfig() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	return m.viper.WriteConfig()
+	return m.writeConfigLocked()
 }
 
 // WriteConfigWithBackup 写入配置文件并在覆盖前创建备份
@@ -340,7 +340,7 @@ func (m *Manager) WriteConfigWithBackup() error {
 		}
 	}
 
-	return m.viper.WriteConfig()
+	return m.writeConfigLocked()
 }
 
 // createBackup 创建配置文件备份
@@ -360,6 +360,26 @@ func (m *Manager) SetAndWrite(key string, value interface{}) error {
 	defer m.mutex.Unlock()
 
 	m.viper.Set(key, value)
+	return m.writeConfigLocked()
+}
+
+func (m *Manager) writeConfigLocked() error {
+	cfgPath := m.viper.ConfigFileUsed()
+	if cfgPath == "" {
+		if m.configFile != "" {
+			cfgPath = m.configFile
+		} else {
+			cfgPath = "config.yaml"
+		}
+		m.viper.SetConfigFile(cfgPath)
+	}
+
+	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+		return m.viper.SafeWriteConfigAs(cfgPath)
+	} else if err != nil {
+		return err
+	}
+
 	return m.viper.WriteConfig()
 }
 

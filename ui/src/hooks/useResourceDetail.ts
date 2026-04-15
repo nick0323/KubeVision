@@ -1,27 +1,26 @@
 ﻿import { useState, useCallback, useEffect, useRef } from 'react';
 import { authFetch } from '../utils/auth';
+import { TIME_CONFIG } from '../constants';
+import type { UseDetailReturn } from '../types';
 
+/**
+ * 详情查询 Hook 配置
+ */
 export interface UseResourceDetailOptions {
   resourceType: string;
   namespace: string;
   name: string;
-}
-
-export interface UseResourceDetailReturn<T = any> {
-  data: T | null;
-  loading: boolean;
-  error: string | null;
-  refresh: () => Promise<void>;
-  mutate: (data: T) => void;
+  autoRefresh?: boolean;
+  refreshInterval?: number;
 }
 
 /**
  * 通用资源详情数据 Hook
  */
-export function useResourceDetail<T = any>(
+export function useResourceDetail<T = unknown>(
   options: UseResourceDetailOptions
-): UseResourceDetailReturn<T> {
-  const { resourceType, namespace, name } = options;
+): UseDetailReturn<T> {
+  const { resourceType, namespace, name, autoRefresh = false, refreshInterval = TIME_CONFIG.REFRESH_INTERVAL } = options;
 
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,17 +55,17 @@ export function useResourceDetail<T = any>(
       if (result.code === 0 && result.data) {
         setData(result.data);
       } else {
-        setError(result.message || '加载失败');
+        setError(result.message || 'Failed to load');
       }
     } catch (err) {
       if (!mountedRef.current) return;
 
       if (err instanceof Error) {
         if (err.name !== 'AbortError') {
-          setError(err.message || '网络错误');
+          setError(err.message || 'Network error');
         }
       } else {
-        setError('网络错误');
+        setError('Network error');
       }
     } finally {
       if (mountedRef.current) {
@@ -101,6 +100,17 @@ export function useResourceDetail<T = any>(
       }
     };
   }, [resourceType, namespace, name, loadDetail]);
+
+  // 自动刷新
+  useEffect(() => {
+    if (!autoRefresh || loading) return;
+
+    const interval = setInterval(() => {
+      loadDetail();
+    }, refreshInterval);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, loading, loadDetail]);
 
   return {
     data,

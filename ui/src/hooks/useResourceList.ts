@@ -1,35 +1,10 @@
 ﻿import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { authFetch } from '../utils/auth';
-
-/**
- * 资源列表查询参数
- */
-export interface ListQueryParams {
-  namespace?: string;
-  search?: string;
-  limit: number;
-  offset: number;
-  sortBy: string;
-  sortOrder: 'asc' | 'desc';
-}
-
-/**
- * 分页元数据
- */
-export interface PageMeta {
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-/**
- * 资源列表响应数据
- */
-export interface ListResponse<T = any> {
-  data: T[];
-  total: number;
-  page?: PageMeta;
-}
+import {
+  PAGINATION_CONFIG,
+  CACHE_CONFIG,
+} from '../constants';
+import type { UseListReturn, ListQueryParams, PaginatedResponse } from '../types';
 
 /**
  * 资源列表 Hook 配置
@@ -46,45 +21,6 @@ export interface UseResourceListConfig {
 }
 
 /**
- * 资源列表 Hook 返回值
- */
-export interface UseResourceListReturn<T> {
-  // 数据状态
-  data: T[];
-  loading: boolean;
-  isValidating: boolean; // 正在重新验证/刷新
-  error: string | null;
-  total: number;
-
-  // 分页状态
-  page: number;
-  pageSize: number;
-  setPage: (page: number) => void;
-  setPageSize: (size: number) => void;
-
-  // 过滤状态
-  namespace: string;
-  search: string;
-  setNamespace: (ns: string) => void;
-  setSearch: (s: string) => void;
-
-  // 排序状态
-  sortField: string;
-  sortOrder: 'asc' | 'desc';
-  handleSort: (field: string) => void;
-
-  // 操作
-  refresh: () => Promise<void>;
-  mutate: (newData?: T[]) => void; // 手动更新数据
-  handleSubmit: () => void;
-  clearSearch: () => void;
-
-  // 命名空间列表
-  namespaces: string[];
-  namespacesLoading: boolean;
-}
-
-/**
  * 简单的内存缓存（SWR 模式）
  */
 interface CacheEntry<T> {
@@ -92,7 +28,7 @@ interface CacheEntry<T> {
   timestamp: number;
 }
 
-const cache = new Map<string, CacheEntry<any>>();
+const cache = new Map<string, CacheEntry<unknown>>();
 
 /**
  * 从缓存获取数据
@@ -123,8 +59,8 @@ function getCacheKey(endpoint: string, params: ListQueryParams): string {
   const paramsObj: Record<string, string> = {
     limit: params.limit.toString(),
     offset: params.offset.toString(),
-    sortBy: params.sortBy,
-    sortOrder: params.sortOrder,
+    sortBy: params.sortBy || '',
+    sortOrder: params.sortOrder || '',
   };
   if (params.namespace) paramsObj.namespace = params.namespace;
   if (params.search) paramsObj.search = params.search;
@@ -132,7 +68,7 @@ function getCacheKey(endpoint: string, params: ListQueryParams): string {
 }
 
 /**
- * 通用资源列表 Hook（增强版）
+ * 通用资源列表 Hook
  *
  * 特性：
  * - SWR 缓存模式，避免重复请求
@@ -141,13 +77,13 @@ function getCacheKey(endpoint: string, params: ListQueryParams): string {
  * - 请求取消
  * - 乐观更新
  */
-export function useResourceList<T = any>(config: UseResourceListConfig): UseResourceListReturn<T> {
+export function useResourceList<T = unknown>(config: UseResourceListConfig): UseListReturn<T> {
   const {
     apiEndpoint,
     namespaceFilter,
     defaultSort,
-    initialPageSize = 20,
-    staleTime = 30000,
+    initialPageSize = PAGINATION_CONFIG.DEFAULT_PAGE_SIZE,
+    staleTime = CACHE_CONFIG.STALE_TIME,
   } = config;
 
   // 状态管理
@@ -222,11 +158,11 @@ export function useResourceList<T = any>(config: UseResourceListConfig): UseReso
       const result = await response.json();
       if (result.code === 0 && result.data) {
         const nsList = Array.isArray(result.data) ? result.data : [];
-        setNamespaces(nsList.map((ns: any) => ns.name));
+        setNamespaces(nsList.map((ns: { name: string }) => ns.name));
         namespacesLoadedRef.current = true;
       }
     } catch (err) {
-      console.error('加载命名空间失败:', err);
+      console.error('Failed to load namespaces:', err);
     } finally {
       setNamespacesLoading(false);
     }
@@ -259,7 +195,6 @@ export function useResourceList<T = any>(config: UseResourceListConfig): UseReso
     setSortField(field);
     setSortOrder(newOrder);
     setPage(1);
-    // useEffect 会自动触发 loadData
   }, []);
 
   /**
@@ -301,7 +236,7 @@ export function useResourceList<T = any>(config: UseResourceListConfig): UseReso
       const response = await authFetch(`${apiEndpoint}?${params}`, {
         signal: controller.signal,
       });
-      const result = await response.json();
+      const result = (await response.json()) as PaginatedResponse<T>;
 
       if (mountedRef.current && result.code === 0 && result.data) {
         setData(result.data || []);
@@ -327,7 +262,6 @@ export function useResourceList<T = any>(config: UseResourceListConfig): UseReso
       if (newData !== undefined) {
         setData(newData);
       } else {
-        // 调用 refresh
         refresh();
       }
     },
@@ -359,7 +293,7 @@ export function useResourceList<T = any>(config: UseResourceListConfig): UseReso
         const response = await authFetch(`${apiEndpoint}?${params}`, {
           signal: controller.signal,
         });
-        const result = await response.json();
+        const result = (await response.json()) as PaginatedResponse<T>;
 
         if (mountedRef.current && result.code === 0 && result.data) {
           setData(result.data || []);

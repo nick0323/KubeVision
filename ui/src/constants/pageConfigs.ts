@@ -1,92 +1,62 @@
-﻿import { ColumnDef } from '../types';
+﻿/**
+ * Page Configurations
+ * 使用工厂函数创建资源配置，减少重复代码
+ */
 
-interface ExtendedColumn extends ColumnDef<any> {
-  sortable?: boolean;
-}
+import {
+  createPodConfig,
+  createWorkloadConfig,
+  createServiceConfig,
+  createNodeConfig,
+  createClusterResourceConfig,
+  createBaseConfig,
+  createNameColumn,
+  createNamespaceColumn,
+  createStatusColumn,
+  createAgeColumn,
+  finalizeConfig,
+  type ExtendedColumn,
+} from '../utils/resourceConfigFactory';
 
 // ==================== Workloads ====================
 
-export const PODS_CONFIG = {
-  title: 'Pods',
-  apiEndpoint: '/api/pod',
-  resourceType: 'pod',
-  columns: [
-    { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%', sortable: false },
-    { title: 'Status', dataIndex: 'status', width: '15%', sortable: true },
-    { title: 'Ready', dataIndex: 'ready', width: '8%' },
-    { title: 'Restarts', dataIndex: 'restarts', width: '8%', sortable: true },
-    { title: 'IP', dataIndex: 'podIP', width: '11%' },
-    { title: 'Node', dataIndex: 'nodeName', width: '10%' },
-    { title: 'Age', dataIndex: 'age', width: '8%', sortable: true },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-  defaultSort: { field: 'name', order: 'asc' as const },
-};
+export const PODS_CONFIG = createPodConfig();
 
-export const DEPLOYMENTS_CONFIG = {
+export const DEPLOYMENTS_CONFIG = createWorkloadConfig({
   title: 'Deployments',
   apiEndpoint: '/api/deployment',
   resourceType: 'deployment',
-  columns: [
-    { title: 'Name', dataIndex: 'name', width: '30%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
-    { title: 'Status', dataIndex: 'status', width: '15%', sortable: true },
-    {
-      title: 'Ready',
-      dataIndex: 'readyReplicas',
-      width: '10%',
-      render: (v: any, r: any) => `${v}/${r.desiredReplicas || 0}`,
-    },
+  extraColumns: [
     { title: 'UpToDate', dataIndex: 'updatedReplicas', width: '10%' },
     { title: 'Available', dataIndex: 'availableReplicas', width: '10%' },
-    { title: 'Age', dataIndex: 'age', width: '10%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+  ],
+});
 
-export const STATEFULSETS_CONFIG = {
+export const STATEFULSETS_CONFIG = createWorkloadConfig({
   title: 'StatefulSets',
   apiEndpoint: '/api/statefulset',
   resourceType: 'statefulset',
-  columns: [
-    { title: 'Name', dataIndex: 'name', width: '40%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
-    { title: 'Status', dataIndex: 'status', width: '15%', sortable: true },
-    {
-      title: 'Ready',
-      dataIndex: 'readyReplicas',
-      width: '15%',
-      render: (v: any, r: any) => `${v}/${r.desiredReplicas || 0}`,
-    },
-    { title: 'Age', dataIndex: 'age', width: '15%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+});
 
-export const DAEMONSETS_CONFIG = {
+export const DAEMONSETS_CONFIG = createWorkloadConfig({
   title: 'DaemonSets',
   apiEndpoint: '/api/daemonset',
   resourceType: 'daemonset',
-  columns: [
-    { title: 'Name', dataIndex: 'name', width: '30%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
-    { title: 'Status', dataIndex: 'status', width: '15%', sortable: true },
+  extraColumns: [
     { title: 'Desired', dataIndex: 'desiredReplicas', width: '10%' },
-    { title: 'Ready', dataIndex: 'readyReplicas', width: '10%' },
-    { title: 'Age', dataIndex: 'age', width: '20%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+  ],
+});
 
-export const JOBS_CONFIG = {
-  title: 'Jobs',
-  apiEndpoint: '/api/job',
-  resourceType: 'job',
+export const JOBS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'Jobs',
+    apiEndpoint: '/api/job',
+    resourceType: 'job',
+  }),
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '30%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
-    { title: 'Status', dataIndex: 'status', width: '15%', sortable: true },
+    createNameColumn('30%'),
+    createNamespaceColumn('15%'),
+    createStatusColumn('15%'),
     {
       title: 'Completions',
       dataIndex: 'succeeded',
@@ -94,51 +64,40 @@ export const JOBS_CONFIG = {
       render: (v: any, r: any) => `${v || 0}/${r.completions || 1}`,
     },
     { title: 'Duration', dataIndex: 'duration', width: '12%' },
-    { title: 'Age', dataIndex: 'age', width: '15%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+    createAgeColumn('15%'),
+  ],
+});
 
-export const CRONJOBS_CONFIG = {
-  title: 'CronJobs',
-  apiEndpoint: '/api/cronjob',
-  resourceType: 'cronjob',
+export const CRONJOBS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'CronJobs',
+    apiEndpoint: '/api/cronjob',
+    resourceType: 'cronjob',
+  }),
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '30%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
-    { title: 'Status', dataIndex: 'status', width: '15%', sortable: true },
+    createNameColumn('30%'),
+    createNamespaceColumn('15%'),
+    createStatusColumn('15%'),
     { title: 'Suspend', dataIndex: 'suspend', width: '12%' },
     { title: 'Schedule', dataIndex: 'schedule', width: '15%' },
     { title: 'Active', dataIndex: 'active', width: '8%' },
-    { title: 'Age', dataIndex: 'age', width: '5%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+    createAgeColumn('5%'),
+  ],
+});
 
 // ==================== Network ====================
 
-export const SERVICES_CONFIG = {
-  title: 'Services',
-  apiEndpoint: '/api/service',
-  resourceType: 'service',
-  columns: [
-    { title: 'Name', dataIndex: 'name', width: '25%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '18%' },
-    { title: 'Type', dataIndex: 'type', width: '15%' },
-    { title: 'Cluster IP', dataIndex: 'clusterIP', width: '18%' },
-    { title: 'Ports', dataIndex: 'ports', width: '16%' },
-    { title: 'Age', dataIndex: 'age', width: '8%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+export const SERVICES_CONFIG = createServiceConfig();
 
-export const INGRESS_CONFIG = {
-  title: 'Ingress',
-  apiEndpoint: '/api/ingress',
-  resourceType: 'ingress',
+export const INGRESS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'Ingress',
+    apiEndpoint: '/api/ingress',
+    resourceType: 'ingress',
+  }),
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '20%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '10%' },
+    createNameColumn('20%'),
+    createNamespaceColumn('10%'),
     { title: 'Class', dataIndex: 'class', width: '10%' },
     { title: 'Hosts', dataIndex: 'hosts', width: '15%' },
     {
@@ -148,159 +107,126 @@ export const INGRESS_CONFIG = {
       render: (v: any) => (Array.isArray(v) ? [...new Set(v)].join(', ') : v || '-'),
     },
     { title: 'Path', dataIndex: 'path', width: '25%' },
-    { title: 'Age', dataIndex: 'age', width: '5%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+    createAgeColumn('5%'),
+  ],
+});
 
 // ==================== Storage ====================
 
-export const PVCS_CONFIG = {
-  title: 'PersistentVolumeClaim',
-  apiEndpoint: '/api/pvc',
-  resourceType: 'pvc',
+export const PVCS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'PersistentVolumeClaim',
+    apiEndpoint: '/api/pvc',
+    resourceType: 'pvc',
+  }),
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '20%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
-    { title: 'Status', dataIndex: 'status', width: '10%', sortable: true },
+    createNameColumn('20%'),
+    createNamespaceColumn('15%'),
+    createStatusColumn('10%'),
     { title: 'AccessMode', dataIndex: 'accessMode', width: '15%' },
     { title: 'Volume', dataIndex: 'volumeName', width: '10%' },
     { title: 'Capacity', dataIndex: 'capacity', width: '10%' },
     { title: 'StorageClass', dataIndex: 'storageClass', width: '12%' },
-    { title: 'Age', dataIndex: 'age', width: '8%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+    createAgeColumn('8%'),
+  ],
+});
 
-export const PVS_CONFIG = {
+export const PVS_CONFIG = createClusterResourceConfig({
   title: 'PersistentVolume',
   apiEndpoint: '/api/pv',
   resourceType: 'pv',
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '20%', sortable: true },
-    { title: 'Status', dataIndex: 'status', width: '10%', sortable: true },
+    createNameColumn('20%'),
+    createStatusColumn('10%'),
     { title: 'Capacity', dataIndex: 'capacity', width: '10%' },
     { title: 'AccessMode', dataIndex: 'accessMode', width: '15%' },
     { title: 'StorageClass', dataIndex: 'storageClass', width: '10%' },
     { title: 'Claim', dataIndex: 'claimRef', width: '15%' },
     { title: 'ReclaimPolicy', dataIndex: 'reclaimPolicy', width: '15%' },
-    { title: 'Age', dataIndex: 'age', width: '5%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: false,
-};
+    createAgeColumn('5%'),
+  ],
+});
 
-export const STORAGECLASSES_CONFIG = {
+export const STORAGECLASSES_CONFIG = createClusterResourceConfig({
   title: 'StorageClasses',
   apiEndpoint: '/api/storageclass',
   resourceType: 'storageclass',
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '22%', sortable: true },
+    createNameColumn('22%'),
     { title: 'Provisioner', dataIndex: 'provisioner', width: '25%' },
     { title: 'ReclaimPolicy', dataIndex: 'reclaimPolicy', width: '15%' },
     { title: 'BindingMode', dataIndex: 'volumeBindingMode', width: '15%' },
     { title: 'Default', dataIndex: 'isDefault', width: '8%' },
-    { title: 'Age', dataIndex: 'age', width: '15%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: false,
-};
+    createAgeColumn('15%'),
+  ],
+});
 
 // ==================== Configuration ====================
 
-export const CONFIGMAPS_CONFIG = {
-  title: 'ConfigMaps',
-  apiEndpoint: '/api/configmap',
-  resourceType: 'configmap',
+export const CONFIGMAPS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'ConfigMaps',
+    apiEndpoint: '/api/configmap',
+    resourceType: 'configmap',
+  }),
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '30%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '20%' },
+    createNameColumn('30%'),
+    createNamespaceColumn('20%'),
     { title: 'Data Count', dataIndex: 'dataCount', width: '10%' },
     { title: 'Keys', dataIndex: 'keys', width: '30%' },
-    { title: 'Age', dataIndex: 'age', width: '10%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+    createAgeColumn('10%'),
+  ],
+});
 
-export const SECRETS_CONFIG = {
-  title: 'Secrets',
-  apiEndpoint: '/api/secret',
-  resourceType: 'secret',
+export const SECRETS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'Secrets',
+    apiEndpoint: '/api/secret',
+    resourceType: 'secret',
+  }),
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '30%', sortable: true },
-    { title: 'Namespace', dataIndex: 'namespace', width: '20%' },
+    createNameColumn('30%'),
+    createNamespaceColumn('20%'),
     { title: 'Type', dataIndex: 'type', width: '25%' },
     { title: 'Data Count', dataIndex: 'dataCount', width: '10%' },
-    { title: 'Age', dataIndex: 'age', width: '15%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-};
+    createAgeColumn('15%'),
+  ],
+});
 
 // ==================== Cluster ====================
 
-export const NAMESPACES_CONFIG = {
+export const NAMESPACES_CONFIG = createClusterResourceConfig({
   title: 'Namespaces',
   apiEndpoint: '/api/namespace',
   resourceType: 'namespace',
   columns: [
-    { title: 'Name', dataIndex: 'name', width: '60%', sortable: true },
-    { title: 'Status', dataIndex: 'status', width: '25%', sortable: true },
-    { title: 'Age', dataIndex: 'age', width: '15%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: false,
-};
+    createNameColumn('60%'),
+    createStatusColumn('25%'),
+    createAgeColumn('15%'),
+  ],
+});
 
-export const NODES_CONFIG = {
-  title: 'Nodes',
-  apiEndpoint: '/api/node',
-  resourceType: 'node',
-  columns: [
-    { title: 'Name', dataIndex: 'name', width: '15%', sortable: true },
-    { title: 'IP', dataIndex: 'ip', width: '15%' },
-    { title: 'Role', dataIndex: 'role', width: '20%', sortable: true },
-    {
-      title: 'CPU',
-      dataIndex: 'cpuUsage',
-      width: '10%',
-      render: (value: any) =>
-        value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A',
-    },
-    {
-      title: 'Memory',
-      dataIndex: 'memoryUsage',
-      width: '10%',
-      render: (value: any) =>
-        value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A',
-    },
-    {
-      title: 'Pods',
-      dataIndex: 'podsUsed',
-      width: '10%',
-      render: (value: any, record: any) => `${value}/${record.podsCapacity || 0}`,
-    },
-    { title: 'Status', dataIndex: 'status', width: '10%', sortable: true },
-    { title: 'Age', dataIndex: 'age', width: '10%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: false,
-  defaultSort: { field: 'name', order: 'asc' as const },
-};
+export const NODES_CONFIG = createNodeConfig();
 
-export const EVENTS_CONFIG = {
-  title: 'Events',
-  apiEndpoint: '/api/event',
-  resourceType: 'event',
+export const EVENTS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'Events',
+    apiEndpoint: '/api/event',
+    resourceType: 'event',
+  }),
   columns: [
     { title: 'Type', dataIndex: 'type', width: '10%', sortable: true },
     { title: 'Reason', dataIndex: 'reason', width: '10%' },
     { title: 'Message', dataIndex: 'message', width: '20%' },
     { title: 'Object', dataIndex: 'object', width: '20%' },
-    { title: 'Namespace', dataIndex: 'namespace', width: '15%' },
+    createNamespaceColumn('15%'),
     { title: 'Last Seen', dataIndex: 'lastSeen', width: '20%', sortable: true },
     { title: 'Count', dataIndex: 'count', width: '5%' },
-  ] as ExtendedColumn[],
-  namespaceFilter: true,
-  defaultSort: { field: 'lastSeen', order: 'asc' as const },
-};
+  ],
+  defaultSort: { field: 'lastSeen', order: 'asc' },
+});
 
-// ==================== 导出所有配置 ====================
+// ==================== Export All Configs ====================
 
 export const PAGE_CONFIGS = {
   pods: PODS_CONFIG,

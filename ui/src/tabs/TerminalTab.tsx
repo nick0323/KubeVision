@@ -6,8 +6,10 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import './TerminalTab.css';
+import { createAuthWebSocket, getWsUrl } from '../utils/auth';
+import { SHELL_CONFIG } from '../constants';
 
-const SHELL_OPTIONS = ['bash', 'sh', 'zsh'];
+const SHELL_OPTIONS = SHELL_CONFIG.OPTIONS;
 
 /**
  * Terminal Tab - 终端连接
@@ -84,21 +86,21 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     // 初次 fit - 使用 requestAnimationFrame 确保在下一帧渲染后调用
     requestAnimationFrame(() => {
       // 检查容器是否可见
-      if (terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
+      if (terminalRef.current && terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
         fitAddon.fit();
       }
       term.focus();
     });
 
     // Handle resize using ResizeObserver - 监听整个 tab 容器
-    const tabContainer = terminalRef.current.closest('.terminal-tab');
+    const tabContainer = terminalRef.current?.closest('.terminal-tab');
     const resizeObserver = new ResizeObserver(() => {
       if (fitAddonRef.current && xtermRef.current && terminalRef.current) {
         // 防抖处理
         clearTimeout((fitAddonRef.current as any).fitTimeout);
         (fitAddonRef.current as any).fitTimeout = setTimeout(() => {
           // 检查容器是否可见（不为 0）
-          if (terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
+          if (terminalRef.current && terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
             fitAddonRef.current?.fit();
 
             // 发送 resize 消息给后端（只在已连接时发送）
@@ -106,8 +108,8 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
               wsRef.current.send(
                 JSON.stringify({
                   type: 'resize',
-                  cols: xtermRef.current.cols,
-                  rows: xtermRef.current.rows,
+                  cols: xtermRef.current?.cols || 0,
+                  rows: xtermRef.current?.rows || 0,
                 })
               );
             }
@@ -177,15 +179,12 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
       wsRef.current = null;
     }
 
-    // Connect to backend WebSocket (port 8080)
-    const token = localStorage.getItem('token');
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // 直接连接后端 8080 端口
-    const wsUrl = `${wsProtocol}//localhost:8080/api/ws/exec?namespace=${namespace}&pod=${name}&container=${containerToUse}&command=${shell}&token=${token}`;
+    // Connect to backend WebSocket using auth utility
+    const wsUrl = getWsUrl(`/exec?namespace=${namespace}&pod=${name}&container=${containerToUse}&command=${shell}`);
 
     console.log('[Terminal] Connecting to:', wsUrl);
 
-    const ws = new WebSocket(wsUrl);
+    const ws = createAuthWebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -207,8 +206,8 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
             wsRef.current?.send(
               JSON.stringify({
                 type: 'resize',
-                cols: xtermRef.current.cols,
-                rows: xtermRef.current.rows,
+                cols: xtermRef.current?.cols || 0,
+                rows: xtermRef.current?.rows || 0,
               })
             );
 
@@ -217,8 +216,8 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
               wsRef.current?.send(
                 JSON.stringify({
                   type: 'resize',
-                  cols: xtermRef.current.cols,
-                  rows: xtermRef.current.rows,
+                  cols: xtermRef.current?.cols || 0,
+                  rows: xtermRef.current?.rows || 0,
                 })
               );
             }, 50);
