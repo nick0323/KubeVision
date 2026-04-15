@@ -64,8 +64,8 @@ temp/
 coverage.out
 coverage_partial.out
 
-# 前端测试文件和目录
-ui/src/__tests__/
+# 前端测试配置（保留测试文件）
+# ui/src/__tests__/  # 已移除，允许测试文件
 ui/src/setupTests.ts
 ui/jest.config.js
 
