@@ -64,9 +64,7 @@ const ListPage: React.FC = () => {
     };
   }, []);
 
-  const renderPage = () => {
-    return null;
-  };
+  const renderPage = () => null; // 未使用的函数，保留类型兼容
 
   return (
     <SidebarLayout activeTab={tab}>

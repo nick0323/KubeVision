@@ -182,15 +182,10 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     }
 
     // Connect to backend WebSocket using auth utility
-    const wsUrl = getWsUrl(`/exec?namespace=${namespace}&pod=${name}&container=${containerToUse}&command=${shell}`);
-
-    console.log('[Terminal] Connecting to:', wsUrl);
-
     const ws = createAuthWebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('[Terminal] WebSocket connected.');
       setConnected(true);
       setSessionStart(new Date());
 
@@ -272,7 +267,6 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     };
 
     ws.onerror = error => {
-      console.error('[Terminal] WebSocket error:', error);
       // 清除心跳
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
@@ -283,11 +277,8 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     };
 
     ws.onclose = event => {
-      console.log('[Terminal] WebSocket closed. Code:', event.code, 'Reason:', event.reason);
-      
       // 提示超时或 Shell 退出问题
       if (event.code === 1005 || event.code === 1006) {
-        console.warn('[Terminal] Connection was closed abruptly.');
         // 如果连接时间很短（< 10s），通常是 Shell 启动失败或容器不支持交互
         if (sessionStart && (new Date().getTime() - sessionStart.getTime()) < 10000) {
            xtermRef.current?.writeln('\r\n\x1b[31mConnection closed immediately. Possible reasons:\x1b[0m\r\n');
