@@ -182,6 +182,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     }
 
     // Connect to backend WebSocket using auth utility
+    const wsUrl = getWsUrl(`/exec?namespace=${namespace}&pod=${name}&container=${containerToUse}&command=${shell}`);
     const ws = createAuthWebSocket(wsUrl);
     wsRef.current = ws;
 
