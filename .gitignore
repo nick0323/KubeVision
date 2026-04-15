@@ -8,9 +8,11 @@
 !README.md
 !DEPLOYMENT.md
 !DOCS.md
-cmd/
-# 忽略子目录的 README.md（可选）
-# **/README.md
+
+# ==================== 敏感工具（不推送） ====================
+# 密码生成工具（包含敏感逻辑）
+cmd/tools/
+cmd/tools/generate_password.go
 
 # ==================== 依赖目录 ====================
 node_modules/
@@ -58,17 +60,18 @@ temp/
 *.bak
 *.backup
 
-# ==================== 测试文件（不推送） ====================
-# Go 测试文件
-*_test.go
+# ==================== 测试文件（保留核心测试） ====================
+# Go 测试文件 - 保留用于 CI/CD 和质量保证
+# *_test.go 不再忽略，允许提交核心测试
+
+# 测试覆盖率输出（不推送）
 coverage.out
 coverage_partial.out
 
-# 前端测试配置（保留测试文件）
-# ui/src/__tests__/  # 已移除，允许测试文件
+# 前端测试配置
 ui/src/setupTests.ts
 ui/jest.config.js
 
-# 测试生成的文件
+# 测试生成的文件（不推送）
 *.test.*
 *.spec.*
