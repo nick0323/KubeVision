@@ -3,12 +3,30 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from '
 import './App.css';
 import LoadingSpinner from './common/LoadingSpinner.tsx';
 import ErrorBoundary from './common/ErrorBoundary.tsx';
+import { NotificationContainer, useNotification } from './common/Notification';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
 import { SidebarLayout } from './common/SidebarLayout';
 import LoginPage from './pages/LoginPage.tsx';
 import { authUtils } from './utils/auth.ts';
 import { PAGE_COMPONENTS } from './constants/page-components.tsx';
 import { ResourceDetailPage as ImportedResourceDetail } from './pages/ResourceDetailPage';
+
+/**
+ * Main App Component with Notification support
+ */
+const AppWithNotification: React.FC = () => {
+  const { notifications, removeNotification } = useNotification();
+
+  return (
+    <>
+      <AppContent />
+      <NotificationContainer
+        notifications={notifications}
+        onRemove={removeNotification}
+      />
+    </>
+  );
+};
 
 const ListPage: React.FC = () => {
   const getInitialTab = () => {
@@ -79,7 +97,7 @@ const ListPage: React.FC = () => {
 };
 
 // 主应用组件
-export default function App() {
+function App() {
   const [login, setLogin] = useState<boolean>(() => authUtils.isLoggedIn());
 
   // 监听登录状态变化
@@ -208,3 +226,6 @@ function GenericResourceDetail({ resourceType }: { resourceType: string }) {
     </SidebarLayout>
   );
 }
+
+// 默认导出
+export default AppWithNotification;

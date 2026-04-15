@@ -1,6 +1,7 @@
 ﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { TerminalTabProps } from '../pages/ResourceDetailPage.types';
 import { FaPlug, FaTimes, FaEraser, FaChevronDown } from 'react-icons/fa';
+import { useNotification } from '../common/Notification';
 import NamespaceSelect from '../common/NamespaceSelect';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -15,6 +16,7 @@ const SHELL_OPTIONS = SHELL_CONFIG.OPTIONS;
  * Terminal Tab - 终端连接
  */
 export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, containers }) => {
+  const { notify } = useNotification();
   const [selectedContainer, setSelectedContainer] = useState<string>(
     containers.length > 0 ? containers[0].name : ''
   );
@@ -160,7 +162,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     const containerToUse = selectedContainer || (containers.length > 0 ? containers[0].name : '');
 
     if (!containerToUse) {
-      alert('Please select a container first');
+      notify.error('请先选择容器');
       return;
     }
 
