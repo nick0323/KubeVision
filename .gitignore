@@ -40,6 +40,7 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # 测试覆盖率
 coverage/
@@ -52,6 +53,10 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# 备份文件（可能包含敏感信息）
+*.bak
+*.backup
 
 # ==================== 测试文件（不推送） ====================
 # Go 测试文件

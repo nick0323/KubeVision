@@ -505,7 +505,6 @@ func streamPodLog(
 			})
 			return
 		}
-		defer wsConnectionCount.Add(-1)
 
 		// 构建日志选项
 		opts := buildPodLogOptions(container, timestamps, previous, tailLines)
@@ -513,11 +512,12 @@ func streamPodLog(
 		// WebSocket 升级
 		ws, err := upgradeWebSocket(c, logger)
 		if err != nil {
+			wsConnectionCount.Add(-1) // 升级失败时递减连接计数
 			return
 		}
 		defer ws.Close()
 
-		// 设置 WebSocket 关闭处理器
+		// 设置 WebSocket 关闭处理器（负责递减连接计数）
 		wsCloseOnce := setupWebSocketCloseHandler(ws, logger, podName)
 
 		logger.Info("日志 WebSocket 连接成功",

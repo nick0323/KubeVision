@@ -130,6 +130,14 @@ func (h *ClientHolder) IsHealthy() bool {
 
 // GetClientset 获取客户端集
 func (h *ClientHolder) GetClientset() (*kubernetes.Clientset, *metrics.Clientset, error) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	// 检查客户端是否已初始化
+	if h.clientset == nil {
+		return nil, nil, fmt.Errorf("kubernetes client is not initialized")
+	}
+
 	// 首次调用时，如果不健康但还未进行检查，允许使用客户端
 	if !h.IsHealthy() && !h.lastHealthCheck.IsZero() {
 		return nil, nil, fmt.Errorf("kubernetes client is unhealthy")
