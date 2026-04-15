@@ -1,7 +1,7 @@
 # KubeVision 配置文件
 # 敏感信息（密码、JWT Secret）请通过环境变量设置：
 # - KUBEVISION_AUTH_PASSWORD: bcrypt 哈希后的密码
-# - KUBEVISION_JWT_SECRET: JWT 签名密钥（建议 64 位以上）
+# - : JWT 签名密钥（建议 64 位以上）
 
 auth:
     username: admin
@@ -14,7 +14,7 @@ cache:
     type: memory
 
 jwt:
-    # secret: 请通过环境变量 KUBEVISION_JWT_SECRET 设置
+    #secret: 请通过环境变量 KUBEVISION_JWT_SECRET 设置
 
 kubernetes:
     insecure: false

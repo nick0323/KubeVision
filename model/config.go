@@ -117,36 +117,40 @@ func (c *Config) Validate() error {
 
 	// 验证服务器配置
 	if err := c.Server.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("服务器配置：%w", err))
 	}
 
 	// 验证 JWT 配置
 	if err := c.JWT.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("JWT 配置：%w", err))
 	}
 
 	// 验证认证配置
 	if err := c.Auth.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("认证配置：%w", err))
 	}
 
 	// 验证日志配置
 	if err := c.Log.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("日志配置：%w", err))
 	}
 
 	// 验证缓存配置
 	if err := c.Cache.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("缓存配置：%w", err))
 	}
 
 	// 验证 Kubernetes 配置
 	if err := c.Kubernetes.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("Kubernetes 配置：%w", err))
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("配置验证失败：%d 个错误", len(errs))
+		errMsg := fmt.Sprintf("配置验证失败：%d 个错误\n", len(errs))
+		for i, err := range errs {
+			errMsg += fmt.Sprintf("  %d. %v\n", i+1, err)
+		}
+		return fmt.Errorf("%s", errMsg)
 	}
 	return nil
 }

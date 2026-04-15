@@ -128,6 +128,7 @@
 /* Tail Lines 下拉框 */
 .setting-item-select {
   position: relative;
+  z-index: 1200; /* 确保下拉框容器层级最高 */
 }
 
 .custom-dropdown {
@@ -189,7 +190,7 @@
   border: 2px solid var(--border-theme);
   border-radius: var(--radius-lg);
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-  z-index: var(--z-index-dropdown);
+  z-index: 1100; /* 高于 settings-panel 的 1000 */
   overflow: hidden;
 }
 
@@ -345,6 +346,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: visible; /* 允许下拉框溢出 */
 }
 
 .setting-item {
