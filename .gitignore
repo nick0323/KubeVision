@@ -8,7 +8,7 @@
 !README.md
 !DEPLOYMENT.md
 !DOCS.md
-
+cmd/
 # 忽略子目录的 README.md（可选）
 # **/README.md
 
