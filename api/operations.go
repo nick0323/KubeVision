@@ -548,7 +548,8 @@ func streamPodLog(
 		}
 
 		// 启动日志读取 goroutine
-		logChan := make(chan string, 200)
+		// 优化：增加缓冲区大小防止阻塞，从 200 增加到 500
+		logChan := make(chan string, 500)
 		errorChan := make(chan error, 1)
 		doneChan := make(chan struct{})
 
