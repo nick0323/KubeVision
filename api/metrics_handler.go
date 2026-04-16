@@ -36,16 +36,16 @@ func GetNodeMetricsHandler(
 		// 获取 metrics client
 		metricsClient, err := getMetricsClient()
 		if err != nil {
-			logger.Warn("Metrics client 不可用", zap.Error(err))
+			logger.Warn("Metrics client unavailable", zap.Error(err))
 			// metrics-server 未安装，返回空数据
-			middleware.ResponseSuccess(c, []model.NodeMetrics{}, "metrics-server 未安装", nil)
+			middleware.ResponseSuccess(c, []model.NodeMetrics{}, "metrics-server not installed", nil)
 			return
 		}
 
 		// 获取节点 metrics
 		nodeMetricsList, err := metricsClient.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Error("获取节点 metrics 失败", zap.Error(err))
+			logger.Error("Failed to get node metrics", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -59,7 +59,7 @@ func GetNodeMetricsHandler(
 			})
 		}
 
-		middleware.ResponseSuccess(c, result, "获取节点 metrics 成功", nil)
+		middleware.ResponseSuccess(c, result, "Node metrics retrieved successfully", nil)
 	}
 }
 

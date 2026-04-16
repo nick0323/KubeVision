@@ -92,7 +92,7 @@ func (m *Manager) Load(configFile string) error {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			m.logger.Warn("Config file not found, using default config", zap.String("configFile", configFile))
 		} else {
-			return fmt.Errorf("读取配置文件失败：%w", err)
+			return fmt.Errorf("failed to read config file: %w", err)
 		}
 	} else {
 		m.logger.Info("Config file loaded successfully", zap.String("configFile", m.viper.ConfigFileUsed()))
@@ -100,7 +100,7 @@ func (m *Manager) Load(configFile string) error {
 
 	// 解析配置（使用自定义解码钩子）
 	if err := m.viper.Unmarshal(m.config); err != nil {
-		return fmt.Errorf("解析配置失败：%w", err)
+		return fmt.Errorf("failed to parse config: %w", err)
 	}
 
 	// 应用环境变量覆盖
@@ -108,7 +108,7 @@ func (m *Manager) Load(configFile string) error {
 
 	// 验证配置
 	if err := m.config.Validate(); err != nil {
-		return fmt.Errorf("配置验证失败：%w", err)
+		return fmt.Errorf("config validation failed: %w", err)
 	}
 
 	m.logger.Info("Configuration loaded",
@@ -181,12 +181,12 @@ func (m *Manager) reload() error {
 
 	// 重新读取配置文件
 	if err := m.viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("重新读取配置文件失败：%w", err)
+		return fmt.Errorf("failed to reload config file: %w", err)
 	}
 
 	// 解析配置
 	if err := m.viper.Unmarshal(m.config); err != nil {
-		return fmt.Errorf("重新解析配置失败：%w", err)
+		return fmt.Errorf("failed to re-parse config: %w", err)
 	}
 
 	// 应用环境变量覆盖
@@ -194,7 +194,7 @@ func (m *Manager) reload() error {
 
 	// 验证配置
 	if err := m.config.Validate(); err != nil {
-		return fmt.Errorf("重新验证配置失败：%w", err)
+		return fmt.Errorf("failed to re-validate config: %w", err)
 	}
 
 	m.logger.Info("Config reloaded")

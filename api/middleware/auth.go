@@ -93,8 +93,8 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "未授权访问",
-				Details: "缺少 Authorization 头或 token 参数",
+				Message: "Unauthorized access",
+				Details: "Missing Authorization header or token parameter",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return
@@ -110,7 +110,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "Token 不能为空",
+				Message: "Token cannot be empty",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return
@@ -137,7 +137,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "Token 验证失败",
+				Message: "Token verification failed",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return
@@ -150,7 +150,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "Token 无效或已过期",
+				Message: "Token is invalid or expired",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return
@@ -165,7 +165,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "Token 声明无效",
+				Message: "Invalid token claims",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return
@@ -180,7 +180,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "Token 缺少用户名",
+				Message: "Token missing username",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return
@@ -195,7 +195,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "Token 签发者无效",
+				Message: "Invalid token issuer",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return
@@ -210,7 +210,7 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			)
 			ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "Token 受众无效",
+				Message: "Invalid token audience",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return

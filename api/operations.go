@@ -125,7 +125,7 @@ func getResourceYAML(
 
 		// Event 不支持 YAML 接口
 		if resourceType == "event" || resourceType == "events" {
-			middleware.ResponseError(c, logger, fmt.Errorf("Event 资源不支持 YAML 格式"), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("Events resource does not support YAML format"), http.StatusBadRequest)
 			return
 		}
 
@@ -153,7 +153,7 @@ func getResourceYAML(
 			return
 		}
 
-		middleware.ResponseSuccess(c, string(yamlBytes), "YAML 获取成功", nil)
+		middleware.ResponseSuccess(c, string(yamlBytes), "YAML retrieved successfully", nil)
 	}
 }
 
@@ -169,7 +169,7 @@ func updateResourceYAML(
 
 		// Event 不支持 YAML 接口
 		if resourceType == "event" || resourceType == "events" {
-			middleware.ResponseError(c, logger, fmt.Errorf("Event 资源不支持 YAML 更新"), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("Events resource does not support YAML update"), http.StatusBadRequest)
 			return
 		}
 
@@ -181,7 +181,7 @@ func updateResourceYAML(
 		// 解析请求体 - 支持两种格式：{yaml: {...}} 或直接 {...}
 		var reqBody map[string]interface{}
 		if err := c.ShouldBindJSON(&reqBody); err != nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("无效的请求体：%v", err), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("invalid request body: %v", err), http.StatusBadRequest)
 			return
 		}
 
@@ -199,7 +199,7 @@ func updateResourceYAML(
 		// 将 map 转换为 JSON 字节
 		jsonBytes, err := json.Marshal(objData)
 		if err != nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("JSON 序列化失败：%v", err), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("JSON serialization failed: %v", err), http.StatusBadRequest)
 			return
 		}
 
@@ -219,7 +219,7 @@ func updateResourceYAML(
 			return
 		}
 
-		middleware.ResponseSuccess(c, nil, "资源更新成功", nil)
+		middleware.ResponseSuccess(c, nil, "Resource updated successfully", nil)
 	}
 }
 
@@ -232,156 +232,156 @@ func updateResourceByType(ctx context.Context, clientset *kubernetes.Clientset, 
 	case "pod":
 		pod := &v1.Pod{}
 		if err := json.Unmarshal(jsonBytes, pod); err != nil {
-			return fmt.Errorf("无效的 Pod 对象：%v", err)
+			return fmt.Errorf("invalid Pod object: %v", err)
 		}
 		// 检查必需字段
 		if pod.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.CoreV1().Pods(namespace).Update(ctx, pod, metav1.UpdateOptions{})
 		return err
 	case "deployment":
 		dep := &appsv1.Deployment{}
 		if err := json.Unmarshal(jsonBytes, dep); err != nil {
-			return fmt.Errorf("无效的 Deployment 对象：%v", err)
+			return fmt.Errorf("invalid Deployment object: %v", err)
 		}
 		if dep.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.AppsV1().Deployments(namespace).Update(ctx, dep, metav1.UpdateOptions{})
 		return err
 	case "statefulset":
 		sts := &appsv1.StatefulSet{}
 		if err := json.Unmarshal(jsonBytes, sts); err != nil {
-			return fmt.Errorf("无效的 StatefulSet 对象：%v", err)
+			return fmt.Errorf("invalid StatefulSet object: %v", err)
 		}
 		if sts.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.AppsV1().StatefulSets(namespace).Update(ctx, sts, metav1.UpdateOptions{})
 		return err
 	case "daemonset":
 		ds := &appsv1.DaemonSet{}
 		if err := json.Unmarshal(jsonBytes, ds); err != nil {
-			return fmt.Errorf("无效的 DaemonSet 对象：%v", err)
+			return fmt.Errorf("invalid DaemonSet object: %v", err)
 		}
 		if ds.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.AppsV1().DaemonSets(namespace).Update(ctx, ds, metav1.UpdateOptions{})
 		return err
 	case "service":
 		svc := &v1.Service{}
 		if err := json.Unmarshal(jsonBytes, svc); err != nil {
-			return fmt.Errorf("无效的 Service 对象：%v", err)
+			return fmt.Errorf("invalid Service object: %v", err)
 		}
 		if svc.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.CoreV1().Services(namespace).Update(ctx, svc, metav1.UpdateOptions{})
 		return err
 	case "configmap":
 		cm := &v1.ConfigMap{}
 		if err := json.Unmarshal(jsonBytes, cm); err != nil {
-			return fmt.Errorf("无效的 ConfigMap 对象：%v", err)
+			return fmt.Errorf("invalid ConfigMap object: %v", err)
 		}
 		if cm.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 		return err
 	case "secret":
 		secret := &v1.Secret{}
 		if err := json.Unmarshal(jsonBytes, secret); err != nil {
-			return fmt.Errorf("无效的 Secret 对象：%v", err)
+			return fmt.Errorf("invalid Secret object: %v", err)
 		}
 		if secret.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.CoreV1().Secrets(namespace).Update(ctx, secret, metav1.UpdateOptions{})
 		return err
 	case "ingress":
 		ing := &networkingv1.Ingress{}
 		if err := json.Unmarshal(jsonBytes, ing); err != nil {
-			return fmt.Errorf("无效的 Ingress 对象：%v", err)
+			return fmt.Errorf("invalid Ingress object: %v", err)
 		}
 		if ing.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.NetworkingV1().Ingresses(namespace).Update(ctx, ing, metav1.UpdateOptions{})
 		return err
 	case "job":
 		job := &batchv1.Job{}
 		if err := json.Unmarshal(jsonBytes, job); err != nil {
-			return fmt.Errorf("无效的 Job 对象：%v", err)
+			return fmt.Errorf("invalid Job object: %v", err)
 		}
 		if job.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.BatchV1().Jobs(namespace).Update(ctx, job, metav1.UpdateOptions{})
 		return err
 	case "cronjob":
 		cj := &batchv1.CronJob{}
 		if err := json.Unmarshal(jsonBytes, cj); err != nil {
-			return fmt.Errorf("无效的 CronJob 对象：%v", err)
+			return fmt.Errorf("invalid CronJob object: %v", err)
 		}
 		if cj.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.BatchV1().CronJobs(namespace).Update(ctx, cj, metav1.UpdateOptions{})
 		return err
 	case "persistentvolumeclaim", "pvc":
 		pvc := &v1.PersistentVolumeClaim{}
 		if err := json.Unmarshal(jsonBytes, pvc); err != nil {
-			return fmt.Errorf("无效的 PVC 对象：%v", err)
+			return fmt.Errorf("invalid PVC object: %v", err)
 		}
 		if pvc.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Update(ctx, pvc, metav1.UpdateOptions{})
 		return err
 	case "persistentvolume", "pv":
 		pv := &v1.PersistentVolume{}
 		if err := json.Unmarshal(jsonBytes, pv); err != nil {
-			return fmt.Errorf("无效的 PV 对象：%v", err)
+			return fmt.Errorf("invalid PV object: %v", err)
 		}
 		if pv.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.CoreV1().PersistentVolumes().Update(ctx, pv, metav1.UpdateOptions{})
 		return err
 	case "storageclass":
 		sc := &storagev1.StorageClass{}
 		if err := json.Unmarshal(jsonBytes, sc); err != nil {
-			return fmt.Errorf("无效的 StorageClass 对象：%v", err)
+			return fmt.Errorf("invalid StorageClass object: %v", err)
 		}
 		if sc.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.StorageV1().StorageClasses().Update(ctx, sc, metav1.UpdateOptions{})
 		return err
 	case "namespace":
 		ns := &v1.Namespace{}
 		if err := json.Unmarshal(jsonBytes, ns); err != nil {
-			return fmt.Errorf("无效的 Namespace 对象：%v", err)
+			return fmt.Errorf("invalid Namespace object: %v", err)
 		}
 		if ns.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.CoreV1().Namespaces().Update(ctx, ns, metav1.UpdateOptions{})
 		return err
 	case "node":
 		node := &v1.Node{}
 		if err := json.Unmarshal(jsonBytes, node); err != nil {
-			return fmt.Errorf("无效的 Node 对象：%v", err)
+			return fmt.Errorf("invalid Node object: %v", err)
 		}
 		if node.ResourceVersion == "" {
-			return fmt.Errorf("缺少必需字段：resourceVersion")
+			return fmt.Errorf("missing required field: resourceVersion")
 		}
 		_, err := clientset.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		return err
 	default:
-		return fmt.Errorf("不支持的资源类型：%s", resourceType)
+		return fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
 }
 
@@ -396,11 +396,11 @@ func getResourceRelated(
 
 		// 输入验证
 		if !isValidResourceName(namespace) {
-			middleware.ResponseError(c, logger, fmt.Errorf("无效的 namespace 格式"), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("invalid namespace format"), http.StatusBadRequest)
 			return
 		}
 		if !isValidResourceName(name) {
-			middleware.ResponseError(c, logger, fmt.Errorf("无效的资源名称格式"), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("invalid resource name format"), http.StatusBadRequest)
 			return
 		}
 
@@ -423,7 +423,7 @@ func getResourceRelated(
 		}
 
 		related := findRelatedResources(obj, resourceType, namespace, clientset, ctx, logger)
-		middleware.ResponseSuccess(c, related, "关联资源获取成功", nil)
+		middleware.ResponseSuccess(c, related, "Related resources retrieved successfully", nil)
 	}
 }
 
@@ -457,7 +457,7 @@ func getResourceRelatedCluster(
 		}
 
 		related := findRelatedResources(obj, resourceType, namespace, clientset, ctx, logger)
-		middleware.ResponseSuccess(c, related, "关联资源获取成功", nil)
+		middleware.ResponseSuccess(c, related, "Related resources retrieved successfully", nil)
 	}
 }
 
@@ -541,7 +541,7 @@ func streamPodLog(
 		// 发送连接成功消息
 		if writeErr := ws.WriteJSON(gin.H{
 			"type":    "connected",
-			"message": fmt.Sprintf("已连接到 %s/%s (%s)", namespace, podName, container),
+			"message": fmt.Sprintf("Connected to %s/%s (%s)", namespace, podName, container),
 		}); writeErr != nil {
 			logger.Error("Failed to send connected message", zap.Error(writeErr))
 			return
@@ -563,16 +563,16 @@ func streamPodLog(
 // validatePodLogParams 验证 Pod 日志参数
 func validatePodLogParams(namespace, podName, container string) error {
 	if !isValidResourceName(namespace) {
-		return fmt.Errorf("无效的 namespace 格式")
+		return fmt.Errorf("invalid namespace format")
 	}
 	if !isValidResourceName(podName) {
-		return fmt.Errorf("无效的 pod 名称格式")
+		return fmt.Errorf("invalid pod name format")
 	}
 	if container != "" && !isValidResourceName(container) {
-		return fmt.Errorf("无效的 container 名称格式")
+		return fmt.Errorf("invalid container name format")
 	}
 	if namespace == "" || podName == "" {
-		return fmt.Errorf("namespace 和 pod 参数为必填")
+		return fmt.Errorf("namespace and pod parameters are required")
 	}
 	return nil
 }
@@ -581,9 +581,9 @@ func validatePodLogParams(namespace, podName, container string) error {
 func validateWebSocketToken(c *gin.Context, logger *zap.Logger) error {
 	tokenStr := ExtractTokenFromRequest(c)
 	if tokenStr == "" {
-		logger.Warn("WebSocket 缺少 token 参数")
+		logger.Warn("WebSocket missing token parameter")
 		c.AbortWithStatus(http.StatusUnauthorized)
-		return fmt.Errorf("缺少 token")
+		return fmt.Errorf("missing token")
 	}
 
 	jwtSecret, err := middleware.GetJWTSecretFromConfig()
@@ -595,7 +595,7 @@ func validateWebSocketToken(c *gin.Context, logger *zap.Logger) error {
 
 	_, err = middleware.VerifyToken(tokenStr, jwtSecret)
 	if err != nil {
-		logger.Warn("WebSocket token 验证失败", zap.Error(err))
+		logger.Warn("WebSocket token verification failed", zap.Error(err))
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return err
 	}
@@ -606,8 +606,8 @@ func validateWebSocketToken(c *gin.Context, logger *zap.Logger) error {
 func checkConnectionLimit(logger *zap.Logger) error {
 	currentConnections := wsConnectionCount.Load()
 	if currentConnections >= maxWSConnections {
-		logger.Warn("WebSocket 连接数过多", zap.Int32("current", currentConnections))
-		return fmt.Errorf("连接数过多：当前 %d，最大 %d", currentConnections, maxWSConnections)
+		logger.Warn("Too many WebSocket connections", zap.Int32("current", currentConnections))
+		return fmt.Errorf("connection limit exceeded: current %d, max %d", currentConnections, maxWSConnections)
 	}
 	wsConnectionCount.Add(1)
 	return nil
@@ -641,7 +641,7 @@ func buildPodLogOptions(container, timestamps, previous, tailLines string) *v1.P
 func upgradeWebSocket(c *gin.Context, logger *zap.Logger) (*websocket.Conn, error) {
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, buildWebSocketUpgradeHeaders(c))
 	if err != nil {
-		logger.Error("WebSocket 升级失败", zap.Error(err))
+		logger.Error("WebSocket upgrade failed", zap.Error(err))
 		c.Abort()
 		return nil, err
 	}
@@ -709,7 +709,7 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 				select {
 				case logChan <- line:
 				default:
-					logger.Warn("logChan 已满，丢弃日志",
+					logger.Warn("logChan full, discarding log",
 						zap.String("pod", podName),
 						zap.Int64("lineNumber", count),
 					)
@@ -766,7 +766,7 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 			if err := ws.WriteJSON(gin.H{"type": "heartbeat"}); err != nil {
 				// 客户端可能已断开连接
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					logger.Info("WebSocket 客户端断开连接（心跳检测）",
+					logger.Info("WebSocket client disconnected (heartbeat check)",
 						zap.String("pod", podName),
 						zap.Error(err),
 					)
@@ -786,7 +786,7 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 			}); err != nil {
 				// 客户端可能已断开连接
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					logger.Info("WebSocket 客户端断开连接",
+					logger.Info("WebSocket client disconnected",
 						zap.String("pod", podName),
 						zap.Error(err),
 					)
@@ -840,11 +840,11 @@ func validateResourceParams(resourceType, namespace string) error {
 
 	if ClusterScopeResources[normalizedType] {
 		if namespace != "" {
-			return fmt.Errorf("资源类型 %s 为集群级资源，不应指定 namespace", resourceType)
+			return fmt.Errorf("resource type %s is cluster-scoped, namespace should not be specified", resourceType)
 		}
 	} else {
 		if namespace == "" {
-			return fmt.Errorf("资源类型 %s 为命名空间级资源，必须指定 namespace", resourceType)
+			return fmt.Errorf("resource type %s is namespace-scoped, namespace must be specified", resourceType)
 		}
 	}
 	return nil

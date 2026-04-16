@@ -29,7 +29,7 @@ func Recovery(logger *zap.Logger) gin.HandlerFunc {
 		// 返回友好的错误信息（不暴露 panic 详情）
 		ResponseError(c, logger, &model.APIError{
 			Code:    http.StatusInternalServerError,
-			Message: "服务器内部错误，请稍后重试",
+			Message: "Internal server error, please try again later",
 		}, http.StatusInternalServerError)
 	})
 }

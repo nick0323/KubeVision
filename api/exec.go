@@ -158,7 +158,7 @@ func HandleExecWS(
 		tokenStr := ExtractTokenFromRequest(c)
 
 		if tokenStr == "" {
-			logger.Warn("WebSocket exec 缺少 token")
+			logger.Warn("WebSocket exec missing token")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
@@ -166,7 +166,7 @@ func HandleExecWS(
 		// 验证 token 并获取用户名
 		claims, err := middleware.VerifyToken(tokenStr, configProvider.GetJWTSecret())
 		if err != nil {
-			logger.Warn("WebSocket exec token 验证失败", zap.Error(err))
+			logger.Warn("WebSocket exec token verification failed", zap.Error(err))
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
@@ -232,7 +232,7 @@ func handleExecWSImpl(
 
 	// 7. 创建 exec 请求并执行
 	if err := executeRemoteCommand(ws, clientset, config, pod, container, command, logger); err != nil {
-		logger.Error("exec 执行失败", zap.Error(err))
+		logger.Error("exec execution failed", zap.Error(err))
 	}
 }
 
@@ -250,11 +250,11 @@ func validateExecParams(namespace, podName string) error {
 // checkExecConnectionLimit 检查 exec 连接数限制
 func checkExecConnectionLimit(logger *zap.Logger, username string) error {
 	if activeExecConnections.Load() >= MaxExecConnections {
-		logger.Warn("exec 连接数已达上限",
+		logger.Warn("exec connection limit reached",
 			zap.Int32("active", activeExecConnections.Load()),
 			zap.String("user", username),
 		)
-		return fmt.Errorf("服务繁忙，请稍后重试")
+		return fmt.Errorf("service busy, please try again later")
 	}
 	activeExecConnections.Add(1)
 	return nil
@@ -271,8 +271,8 @@ func parseExecCommand(commandStr string) []string {
 // getK8sExecClient 获取 K8s exec 客户端
 func getK8sExecClient(logger *zap.Logger) (*kubernetes.Clientset, *rest.Config, error) {
 	if globalClientManager == nil {
-		logger.Error("ClientManager 未初始化")
-		return nil, nil, fmt.Errorf("系统未初始化")
+		logger.Error("ClientManager not initialized")
+		return nil, nil, fmt.Errorf("system not initialized")
 	}
 
 	clientset, _, err := globalClientManager.GetDefaultClient()
@@ -289,13 +289,13 @@ func getK8sExecClient(logger *zap.Logger) (*kubernetes.Clientset, *rest.Config, 
 func validatePodAndContainer(clientset *kubernetes.Clientset, namespace, podName, container string, logger *zap.Logger) (*v1.Pod, error) {
 	pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
 	if err != nil {
-		logger.Error("Pod 不存在", zap.Error(err))
+		logger.Error("Pod not found", zap.Error(err))
 		return nil, err
 	}
 
 	// 验证 container 是否属于该 pod
 	if container != "" && !hasContainer(pod, container) {
-		logger.Error("container 不存在于 pod 中",
+		logger.Error("Container not found in pod",
 			zap.String("pod", podName),
 			zap.String("container", container),
 		)
@@ -309,11 +309,11 @@ func validatePodAndContainer(clientset *kubernetes.Clientset, namespace, podName
 func upgradeExecWebSocket(c *gin.Context, logger *zap.Logger, namespace, podName, container, username string) (*websocket.Conn, error) {
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, buildWebSocketUpgradeHeaders(c))
 	if err != nil {
-		logger.Error("WebSocket 升级失败", zap.Error(err))
+		logger.Error("WebSocket upgrade failed", zap.Error(err))
 		return nil, err
 	}
 
-	logger.Info("Terminal WebSocket 升级成功",
+	logger.Info("Terminal WebSocket upgraded successfully",
 		zap.String("namespace", namespace),
 		zap.String("pod", podName),
 		zap.String("container", container),
@@ -365,7 +365,7 @@ func executeRemoteCommand(ws *websocket.Conn, clientset *kubernetes.Clientset, c
 		return err
 	}
 
-	logger.Info("Executor 创建成功，开始 stream")
+	logger.Info("Executor created successfully, starting stream")
 
 	// 创建带超时的上下文
 	ctx, cancel := context.WithTimeout(context.Background(), ExecSessionTimeout)

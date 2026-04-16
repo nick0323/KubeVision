@@ -65,16 +65,16 @@ type LoginRequest struct {
 // Validate 验证登录请求
 func (r *LoginRequest) Validate() error {
 	if r.Username == "" {
-		return errors.New("用户名不能为空")
+		return errors.New("username cannot be empty")
 	}
 	if r.Password == "" {
-		return errors.New("密码不能为空")
+		return errors.New("password cannot be empty")
 	}
 	if len(r.Username) < 3 {
-		return errors.New("用户名至少 3 个字符")
+		return errors.New("username must be at least 3 characters")
 	}
 	if len(r.Password) < 6 {
-		return errors.New("密码至少 6 个字符")
+		return errors.New("password must be at least 6 characters")
 	}
 	return nil
 }

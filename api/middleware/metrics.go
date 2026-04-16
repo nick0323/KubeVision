@@ -60,7 +60,7 @@ func ConcurrencyMiddleware(logger *zap.Logger, maxConcurrency int) gin.HandlerFu
 
 			c.JSON(http.StatusServiceUnavailable, gin.H{
 				"code":    http.StatusServiceUnavailable,
-				"message": "服务繁忙，请稍后重试",
+				"message": "Service is busy, please try again later",
 			})
 			c.Abort()
 		}

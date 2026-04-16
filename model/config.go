@@ -117,36 +117,36 @@ func (c *Config) Validate() error {
 
 	// 验证服务器配置
 	if err := c.Server.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("服务器配置：%w", err))
+		errs = append(errs, fmt.Errorf("server config: %w", err))
 	}
 
 	// 验证 JWT 配置
 	if err := c.JWT.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("JWT 配置：%w", err))
+		errs = append(errs, fmt.Errorf("JWT config: %w", err))
 	}
 
 	// 验证认证配置
 	if err := c.Auth.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("认证配置：%w", err))
+		errs = append(errs, fmt.Errorf("auth config: %w", err))
 	}
 
 	// 验证日志配置
 	if err := c.Log.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("日志配置：%w", err))
+		errs = append(errs, fmt.Errorf("log config: %w", err))
 	}
 
 	// 验证缓存配置
 	if err := c.Cache.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("缓存配置：%w", err))
+		errs = append(errs, fmt.Errorf("cache config: %w", err))
 	}
 
 	// 验证 Kubernetes 配置
 	if err := c.Kubernetes.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("Kubernetes 配置：%w", err))
+		errs = append(errs, fmt.Errorf("Kubernetes config: %w", err))
 	}
 
 	if len(errs) > 0 {
-		errMsg := fmt.Sprintf("配置验证失败：%d 个错误\n", len(errs))
+		errMsg := fmt.Sprintf("config validation failed: %d errors\n", len(errs))
 		for i, err := range errs {
 			errMsg += fmt.Sprintf("  %d. %v\n", i+1, err)
 		}
@@ -158,10 +158,10 @@ func (c *Config) Validate() error {
 // Validate 验证服务器配置
 func (c *ServerConfig) Validate() error {
 	if c.Port == "" {
-		return fmt.Errorf("服务器端口不能为空")
+		return fmt.Errorf("server port cannot be empty")
 	}
 	if c.Host == "" {
-		return fmt.Errorf("服务器主机不能为空")
+		return fmt.Errorf("server host cannot be empty")
 	}
 	return nil
 }
@@ -170,14 +170,14 @@ func (c *ServerConfig) Validate() error {
 func (c *JWTConfig) Validate() error {
 	// Secret 必须配置
 	if c.Secret == "" {
-		return fmt.Errorf("JWT secret 未配置，请设置环境变量 K8SVISION_JWT_SECRET")
+		return fmt.Errorf("JWT secret not configured, please set environment variable K8SVISION_JWT_SECRET")
 	}
 	// 检查长度
 	if len(c.Secret) < 16 {
-		return fmt.Errorf("JWT 密钥长度至少 16 位字符，当前长度：%d", len(c.Secret))
+		return fmt.Errorf("JWT secret must be at least 16 characters, current length: %d", len(c.Secret))
 	}
 	if c.Expiration <= 0 {
-		return fmt.Errorf("JWT 过期时间必须大于 0")
+		return fmt.Errorf("JWT expiration must be greater than 0")
 	}
 	return nil
 }
@@ -185,17 +185,17 @@ func (c *JWTConfig) Validate() error {
 // Validate 验证认证配置
 func (c *AuthConfig) Validate() error {
 	if c.Username == "" {
-		return fmt.Errorf("认证用户名不能为空，请设置环境变量 K8SVISION_AUTH_USERNAME")
+		return fmt.Errorf("auth username not configured, please set environment variable K8SVISION_AUTH_USERNAME")
 	}
 	// Password 必须配置
 	if c.Password == "" {
-		return fmt.Errorf("认证密码未配置，请设置环境变量 K8SVISION_AUTH_PASSWORD")
+		return fmt.Errorf("auth password not configured, please set environment variable K8SVISION_AUTH_PASSWORD")
 	}
 	if c.MaxLoginFail <= 0 {
-		return fmt.Errorf("最大登录失败次数必须大于 0")
+		return fmt.Errorf("max login failures must be greater than 0")
 	}
 	if c.LockDuration <= 0 {
-		return fmt.Errorf("锁定时间必须大于 0")
+		return fmt.Errorf("lock duration must be greater than 0")
 	}
 	// BcryptCost 为 0 时使用默认值 12
 	if c.BcryptCost == 0 {
@@ -213,7 +213,7 @@ func (c *LogConfig) Validate() error {
 		"error": true,
 	}
 	if !validLevels[c.Level] {
-		return fmt.Errorf("无效的日志级别：%s", c.Level)
+		return fmt.Errorf("invalid log level: %s", c.Level)
 	}
 
 	validFormats := map[string]bool{
@@ -221,7 +221,7 @@ func (c *LogConfig) Validate() error {
 		"console": true,
 	}
 	if !validFormats[c.Format] {
-		return fmt.Errorf("无效的日志格式：%s", c.Format)
+		return fmt.Errorf("invalid log format: %s", c.Format)
 	}
 	return nil
 }
@@ -230,10 +230,10 @@ func (c *LogConfig) Validate() error {
 func (c *CacheConfig) Validate() error {
 	if c.Enabled {
 		if c.TTL <= 0 {
-			return fmt.Errorf("缓存 TTL 必须大于 0")
+			return fmt.Errorf("cache TTL must be greater than 0")
 		}
 		if c.MaxSize <= 0 {
-			return fmt.Errorf("缓存最大大小必须大于 0")
+			return fmt.Errorf("cache max size must be greater than 0")
 		}
 	}
 	return nil
@@ -242,13 +242,13 @@ func (c *CacheConfig) Validate() error {
 // Validate 验证 Kubernetes 配置
 func (c *KubernetesConfig) Validate() error {
 	if c.QPS <= 0 {
-		return fmt.Errorf("Kubernetes QPS 必须大于 0")
+		return fmt.Errorf("Kubernetes QPS must be greater than 0")
 	}
 	if c.Burst <= 0 {
-		return fmt.Errorf("Kubernetes Burst 必须大于 0")
+		return fmt.Errorf("Kubernetes Burst must be greater than 0")
 	}
 	if c.Timeout <= 0 {
-		return fmt.Errorf("Kubernetes 超时时间必须大于 0")
+		return fmt.Errorf("Kubernetes timeout must be greater than 0")
 	}
 	return nil
 }

@@ -40,8 +40,8 @@ func TestConfigValidate_ErrorDetail(t *testing.T) {
 
 	err := config.Validate()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "配置验证失败")
-	assert.Contains(t, err.Error(), "JWT 配置")
+	assert.Contains(t, err.Error(), "config validation failed")
+	assert.Contains(t, err.Error(), "JWT config")
 	assert.Contains(t, err.Error(), "1. ")
 }
 
@@ -76,7 +76,7 @@ func TestConfigValidate_MultipleErrors(t *testing.T) {
 
 	err := config.Validate()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "配置验证失败")
+	assert.Contains(t, err.Error(), "config validation failed")
 	// 验证错误消息包含多个错误
 	assert.Greater(t, len(err.Error()), 50)
 }

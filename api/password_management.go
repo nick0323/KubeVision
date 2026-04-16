@@ -61,7 +61,7 @@ func NewPasswordManager() *PasswordManager {
 func (pm *PasswordManager) HashPassword(password string) (string, error) {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), BcryptCost)
 	if err != nil {
-		return "", fmt.Errorf("密码哈希失败：%w", err)
+		return "", fmt.Errorf("password hashing failed: %w", err)
 	}
 	return string(hashedBytes), nil
 }
@@ -88,7 +88,7 @@ func (pm *PasswordManager) GeneratePassword(length int) (string, error) {
 	for i := range b {
 		randomIndex, err := rand.Int(rand.Reader, charsetLen)
 		if err != nil {
-			return "", fmt.Errorf("生成随机字符失败：%w", err)
+			return "", fmt.Errorf("failed to generate random character: %w", err)
 		}
 		b[i] = charsetBytes[randomIndex.Int64()]
 	}
@@ -99,15 +99,15 @@ func (pm *PasswordManager) GeneratePassword(length int) (string, error) {
 // ValidatePasswordStrength 验证密码强度
 func (pm *PasswordManager) ValidatePasswordStrength(password string) (bool, string) {
 	if len(password) < model.MinPasswordLen {
-		return false, fmt.Sprintf("密码长度至少%d位", model.MinPasswordLen)
+		return false, fmt.Sprintf("password must be at least %d characters long", model.MinPasswordLen)
 	}
 	if len(password) > model.MaxPasswordLen {
-		return false, fmt.Sprintf("密码长度不能超过%d位", model.MaxPasswordLen)
+		return false, fmt.Sprintf("password length cannot exceed %d characters", model.MaxPasswordLen)
 	}
 
 	// 检查常见弱密码
 	if pm.isWeakPassword(password) {
-		return false, "密码过于简单，请使用更复杂的密码"
+		return false, "password is too weak, please use a more complex password"
 	}
 
 	// 检查密码复杂度
@@ -145,10 +145,10 @@ func (pm *PasswordManager) ValidatePasswordStrength(password string) (bool, stri
 	}
 
 	if charTypes < 3 {
-		return false, "密码必须包含至少 3 种字符类型（大写字母、小写字母、数字、特殊字符）"
+		return false, "password must contain at least 3 character types (uppercase, lowercase, digits, special characters)"
 	}
 
-	return true, "密码强度符合要求"
+	return true, "password strength is acceptable"
 }
 
 // IsPasswordInHistory 检查密码是否在历史记录中
@@ -270,7 +270,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		if err := c.ShouldBindJSON(&req); err != nil {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeBadRequest,
-				Message: "请求参数格式错误",
+				Message: "Invalid request parameter format",
 				Details: err.Error(),
 			}, http.StatusBadRequest)
 			return
@@ -280,7 +280,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		if valid, message := passwordManager.ValidatePasswordStrength(req.NewPassword); !valid {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeValidationFailed,
-				Message: "密码强度不符合要求",
+				Message: "Password strength does not meet requirements",
 				Details: message,
 			}, http.StatusBadRequest)
 			return
@@ -299,8 +299,8 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		if !oldPasswordMatch {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeUnauthorized,
-				Message: "旧密码错误",
-				Details: "请提供正确的旧密码",
+				Message: "Invalid old password",
+				Details: "Please provide the correct old password",
 			}, http.StatusUnauthorized)
 			return
 		}
@@ -309,8 +309,8 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		if req.OldPassword == req.NewPassword {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeValidationFailed,
-				Message: "新密码不能与旧密码相同",
-				Details: "请使用不同的新密码",
+				Message: "New password cannot be the same as old password",
+				Details: "Please use a different new password",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -321,8 +321,8 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			logger.Error("Failed to hash password", zap.Error(err))
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeInternalServerError,
-				Message: "密码处理失败",
-				Details: "无法生成密码哈希",
+				Message: "Password processing failed",
+				Details: "Unable to generate password hash",
 			}, http.StatusInternalServerError)
 			return
 		}
@@ -330,8 +330,8 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		if passwordManager.IsPasswordInHistory(req.NewPassword, newHashedPassword) {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeValidationFailed,
-				Message: "不能使用最近使用过的密码",
-				Details: "请使用新的密码",
+				Message: "Cannot use recently used password",
+				Details: "Please use a new password",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -348,7 +348,7 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			logger.Error("Failed to write config file", zap.Error(err))
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeInternalServerError,
-				Message: "配置持久化失败",
+				Message: "Config persistence failed",
 			}, http.StatusInternalServerError)
 			return
 		}
@@ -364,8 +364,8 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		)
 
 		middleware.ResponseSuccess(c, gin.H{
-			"message": "密码修改成功",
-		}, "密码修改成功", nil)
+			"message": "Password changed successfully",
+		}, "Password changed successfully", nil)
 	}
 }
 
@@ -396,8 +396,8 @@ func generatePassword(logger *zap.Logger) gin.HandlerFunc {
 			"password":       password,
 			"hashedPassword": hashedPassword,
 			"length":         len(password),
-			"warning":        "请安全保存明文密码，系统将不会再次显示",
-		}, "密码生成成功", nil)
+			"warning":        "Please save the plaintext password securely, the system will not display it again",
+		}, "Password generated successfully", nil)
 	}
 }
 
@@ -408,7 +408,7 @@ func hashPassword(logger *zap.Logger) gin.HandlerFunc {
 		if err := c.ShouldBindJSON(&req); err != nil {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeBadRequest,
-				Message: "请求参数格式错误",
+				Message: "Invalid request parameter format",
 				Details: err.Error(),
 			}, http.StatusBadRequest)
 			return
@@ -423,7 +423,7 @@ func hashPassword(logger *zap.Logger) gin.HandlerFunc {
 		middleware.ResponseSuccess(c, gin.H{
 			"hashedPassword": hashedPassword,
 			"cost":           BcryptCost,
-		}, "密码哈希成功", nil)
+		}, "Password hashed successfully", nil)
 	}
 }
 
@@ -434,7 +434,7 @@ func validatePassword(logger *zap.Logger) gin.HandlerFunc {
 		if err := c.ShouldBindJSON(&req); err != nil {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    model.CodeBadRequest,
-				Message: "请求参数格式错误",
+				Message: "Invalid request parameter format",
 				Details: err.Error(),
 			}, http.StatusBadRequest)
 			return
@@ -442,14 +442,14 @@ func validatePassword(logger *zap.Logger) gin.HandlerFunc {
 
 		isValid := passwordManager.VerifyPassword(req.Password, req.HashedPassword)
 
-		message := "密码验证失败"
+		message := "Password verification failed"
 		if isValid {
-			message = "密码验证通过"
+			message = "Password verification passed"
 		}
 
 		middleware.ResponseSuccess(c, gin.H{
 			"valid":   isValid,
 			"message": message,
-		}, "验证完成", nil)
+		}, "Verification completed", nil)
 	}
 }

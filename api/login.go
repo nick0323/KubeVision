@@ -36,7 +36,7 @@ func generateJTI() string {
 
 func InitAuthManager(logger *zap.Logger) {
 	if configManager == nil {
-		logger.Fatal("配置管理器未初始化")
+		logger.Fatal("Config manager not initialized")
 		return
 	}
 	authManager = NewAuthManager(logger, configManager)
@@ -50,7 +50,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		if err := c.ShouldBindJSON(&req); err != nil {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
-				Message: "请求参数格式错误",
+				Message: "Invalid request parameter format",
 				Details: err.Error(),
 			}, http.StatusBadRequest)
 			return
@@ -62,7 +62,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		if req.Username == "" || req.Password == "" {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
-				Message: "用户名和密码不能为空",
+				Message: "Username and password cannot be empty",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -70,7 +70,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		if len(req.Username) > UsernameMaxLen {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
-				Message: fmt.Sprintf("用户名长度不能超过 %d 个字符", UsernameMaxLen),
+				Message: fmt.Sprintf("Username length cannot exceed %d characters", UsernameMaxLen),
 			}, http.StatusBadRequest)
 			return
 		}
@@ -78,7 +78,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		if len(req.Password) > PasswordMaxLen {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusBadRequest,
-				Message: fmt.Sprintf("密码长度不能超过 %d 个字符", PasswordMaxLen),
+				Message: fmt.Sprintf("Password length cannot exceed %d characters", PasswordMaxLen),
 			}, http.StatusBadRequest)
 			return
 		}
@@ -88,7 +88,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		if authConfig == nil {
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusInternalServerError,
-				Message: "系统配置未初始化",
+				Message: "System configuration not initialized",
 			}, http.StatusInternalServerError)
 			return
 		}
@@ -102,7 +102,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 			lockTime := authManager.GetLockTime(username, clientIP)
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusTooManyRequests,
-				Message: "登录失败次数过多，账户已锁定",
+				Message: "Too many login failures, account locked",
 				Details: map[string]interface{}{
 					"remainingAttempts": remainingAttempts,
 					"maxFailCount":      authConfig.MaxLoginFail,
@@ -136,13 +136,13 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 
 			tokenString, err := generateToken(req.Username, authConfig)
 			if err != nil {
-				logger.Error("Token 生成失败",
+				logger.Error("Token generation failed",
 					zap.String("username", req.Username),
 					zap.Error(err),
 				)
 				middleware.ResponseError(c, logger, &model.APIError{
 					Code:    http.StatusInternalServerError,
-					Message: "Token 生成失败",
+					Message: "Token generation failed",
 				}, http.StatusInternalServerError)
 				return
 			}
@@ -153,7 +153,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 
 			middleware.ResponseSuccess(c, map[string]string{
 				"token": tokenString,
-			}, "登录成功", nil)
+			}, "Login successful", nil)
 			return
 		}
 
@@ -171,7 +171,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 
 			middleware.ResponseError(c, logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
-				Message: "用户名或密码错误",
+				Message: "Invalid username or password",
 				Details: map[string]interface{}{
 					"remainingAttempts": remainingAttempts,
 					"maxFailCount":      authConfig.MaxLoginFail,
@@ -183,7 +183,7 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		// authManager 未初始化时的处理
 		middleware.ResponseError(c, logger, &model.APIError{
 			Code:    http.StatusUnauthorized,
-			Message: "用户名或密码错误",
+			Message: "Invalid username or password",
 			Details: map[string]interface{}{
 				"maxFailCount": authConfig.MaxLoginFail,
 			},

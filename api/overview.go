@@ -22,6 +22,6 @@ func RegisterOverview(
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
-		middleware.ResponseSuccess(c, overview, "获取概览成功", nil)
+		middleware.ResponseSuccess(c, overview, "Overview retrieved successfully", nil)
 	})
 }

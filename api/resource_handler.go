@@ -88,7 +88,7 @@ func getResourceList(
 		}
 		paged := Paginate(filteredItems, params.Offset, params.Limit)
 
-		middleware.ResponseSuccess(c, paged, "获取列表成功", &model.PageMeta{
+		middleware.ResponseSuccess(c, paged, "List retrieved successfully", &model.PageMeta{
 			Total:  len(filteredItems),
 			Limit:  params.Limit,
 			Offset: params.Offset,
@@ -147,7 +147,7 @@ func getResourceDetail(
 			return
 		}
 
-		middleware.ResponseSuccess(c, obj, "获取资源详情成功", nil)
+		middleware.ResponseSuccess(c, obj, "Resource details retrieved successfully", nil)
 	}
 }
 
@@ -196,7 +196,7 @@ func deleteResource(
 			return
 		}
 
-		middleware.ResponseSuccess(c, nil, "资源删除成功", nil)
+		middleware.ResponseSuccess(c, nil, "Resource deleted successfully", nil)
 	}
 }
 
@@ -236,7 +236,7 @@ func deleteResourceByType(ctx context.Context, clientset *kubernetes.Clientset, 
 	case "node":
 		return clientset.CoreV1().Nodes().Delete(ctx, name, metav1.DeleteOptions{})
 	default:
-		return fmt.Errorf("不支持的资源类型：%s", resourceType)
+		return fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
 }
 
@@ -482,6 +482,6 @@ func getResourceByName(ctx context.Context, clientset *kubernetes.Clientset, res
 	case "endpoint":
 		return clientset.CoreV1().Endpoints(namespace).Get(ctx, name, metav1.GetOptions{})
 	default:
-		return nil, fmt.Errorf("不支持的资源类型：%s", resourceType)
+		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
 }

@@ -123,7 +123,7 @@ func getMetrics(logger *zap.Logger) gin.HandlerFunc {
 			},
 		}
 
-		middleware.ResponseSuccess(c, response, "指标获取成功", nil)
+		middleware.ResponseSuccess(c, response, "Metrics retrieved successfully", nil)
 	}
 }
 
@@ -138,7 +138,7 @@ func getBusinessMetrics(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		businessMetrics := collector.GetMetricsJSON()
-		middleware.ResponseSuccess(c, businessMetrics, "业务指标获取成功", nil)
+		middleware.ResponseSuccess(c, businessMetrics, "Business metrics retrieved successfully", nil)
 	}
 }
 
@@ -159,7 +159,7 @@ func getSystemMetrics(logger *zap.Logger) gin.HandlerFunc {
 			"metrics": systemMetrics,
 		}
 
-		middleware.ResponseSuccess(c, response, "系统指标获取成功", nil)
+		middleware.ResponseSuccess(c, response, "System metrics retrieved successfully", nil)
 	}
 }
 
@@ -183,7 +183,7 @@ func getHealthMetrics(logger *zap.Logger) gin.HandlerFunc {
 
 		c.JSON(httpStatus, gin.H{
 			"code":    model.CodeSuccess,
-			"message": "健康指标获取成功",
+			"message": "Health metrics retrieved successfully",
 			"data":    response,
 		})
 	}

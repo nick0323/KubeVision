@@ -53,7 +53,7 @@ type Application struct {
 	k8sClientMgr *service.ClientManager
 }
 
-var configFile = flag.String("config", "", "配置文件路径")
+var configFile = flag.String("config", "", "Path to config file")
 
 // initLogger 初始化日志
 func initLogger(cfg *model.Config) (*zap.Logger, error) {
@@ -130,7 +130,7 @@ func (app *Application) initBaseComponents() error {
 	app.configMgr = config.NewManager(tempLogger)
 
 	if err := app.configMgr.Load(app.configFile); err != nil {
-		tempLogger.Fatal("加载配置失败", zap.Error(err))
+		tempLogger.Fatal("Failed to load config", zap.Error(err))
 	}
 
 	// 1.2 初始化正式 logger
@@ -138,7 +138,7 @@ func (app *Application) initBaseComponents() error {
 	var err error
 	app.logger, err = initLogger(cfg)
 	if err != nil {
-		return fmt.Errorf("初始化日志失败：%w", err)
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
 	app.configMgr.UpdateLogger(app.logger)
 	if syncErr := tempLogger.Sync(); syncErr != nil {
@@ -152,7 +152,7 @@ func (app *Application) initBaseComponents() error {
 	// 1.4 验证配置（必须在安全配置生成之后，重新获取最新配置）
 	cfg = app.configMgr.GetConfig()
 	if err := cfg.Validate(); err != nil {
-		return fmt.Errorf("配置验证失败：%w", err)
+		return fmt.Errorf("config validation failed: %w", err)
 	}
 
 	// 1.5 初始化 LRU 缓存
@@ -210,9 +210,9 @@ func (app *Application) initK8sClient() error {
 	app.k8sClientMgr, err = service.NewClientManager(app.configMgr, app.logger)
 	if err != nil {
 		// K8s 客户端初始化失败时记录警告，但不阻止启动
-		app.logger.Warn("K8s 客户端初始化失败，K8s 相关功能将不可用",
+		app.logger.Warn("K8s client initialization failed, K8s features will be unavailable",
 			zap.Error(err),
-			zap.String("hint", "可以通过配置 kubeconfig 或使用 in-cluster 模式启用"),
+			zap.String("hint", "Can be enabled by configuring kubeconfig or using in-cluster mode"),
 		)
 		// 不返回错误，允许服务继续启动
 		return nil
@@ -224,13 +224,13 @@ func (app *Application) initK8sClient() error {
 // 注：已移除未使用的缓存管理器，只保留 PodInformer
 func (app *Application) initK8sCache() {
 	if app.k8sClientMgr == nil {
-		app.logger.Debug("K8s 客户端管理器未初始化，跳过缓存初始化")
+		app.logger.Debug("K8s client manager not initialized, skipping cache initialization")
 		return
 	}
 
 	clientset, _, err := app.k8sClientMgr.GetDefaultClient()
 	if err != nil || clientset == nil {
-		app.logger.Warn("K8s 客户端不可用，跳过缓存初始化")
+		app.logger.Warn("K8s client unavailable, skipping cache initialization")
 		return
 	}
 
@@ -238,7 +238,7 @@ func (app *Application) initK8sCache() {
 	podInformer := service.NewPodInformer(clientset, "")
 	service.SetPodInformer(podInformer)
 	go podInformer.Start(context.Background())
-	app.logger.Info("Pod Informer 已启动")
+	app.logger.Info("Pod Informer started")
 }
 
 // initServices 初始化服务层
@@ -277,20 +277,20 @@ func (app *Application) initAPI() {
 // initMonitoring 初始化监控系统
 func (app *Application) initMonitoring() {
 	if app.k8sClientMgr == nil {
-		app.logger.Debug("K8s 客户端管理器未初始化，跳过监控初始化")
+		app.logger.Debug("K8s client manager not initialized, skipping monitoring initialization")
 		return
 	}
 
 	clientset, metricsClient, err := app.k8sClientMgr.GetDefaultClient()
 	if err != nil || clientset == nil {
-		app.logger.Debug("K8s 客户端不可用，跳过监控初始化")
+		app.logger.Debug("K8s client unavailable, skipping monitoring initialization")
 		return
 	}
 
 	monitor.InitBusinessMetrics(app.logger)
 
 	app.monitorMgr.SetK8sClients(clientset, metricsClient)
-	app.logger.Info("K8s 监控已启用")
+	app.logger.Info("K8s monitoring enabled")
 }
 
 // SetupRouter 设置路由
@@ -437,7 +437,7 @@ func (app *Application) Run() error {
 
 	// 启动服务器（在 goroutine 中）
 	go func() {
-		app.logger.Info("HTTP 服务器开始监听", zap.String("address", serverAddr))
+		app.logger.Info("HTTP server starting", zap.String("address", serverAddr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			app.logger.Error("Server failed", zap.Error(err))
 		}
@@ -482,7 +482,7 @@ func (app *Application) Close() {
 	}
 	if app.logger != nil {
 		if syncErr := app.logger.Sync(); syncErr != nil {
-			app.logger.Error("logger Sync 失败", zap.Error(syncErr))
+			app.logger.Error("Failed to sync logger", zap.Error(syncErr))
 		}
 	}
 
@@ -510,13 +510,13 @@ func (app *Application) checkAndGenerateSecurityConfig() {
 		// 关键：将 JWT Secret 更新到配置管理器（同时更新 viper 和 config 对象）
 		app.configMgr.Set("jwt.secret", secret)
 
-		app.logger.Info("✅ JWT Secret 已自动生成",
+		app.logger.Info("JWT Secret auto-generated",
 			zap.Int("length", len(secret)),
-			zap.String("hint", "建议将 JWT Secret 保存到配置文件或通过环境变量 K8SVISION_JWT_SECRET 设置"),
+			zap.String("hint", "It is recommended to save the JWT Secret to the config file or set it via the K8SVISION_JWT_SECRET environment variable"),
 		)
 		needsSave = true
 	} else if len(cfg.JWT.Secret) < 32 {
-		app.logger.Fatal("❌ JWT Secret 长度不足 32 位，请通过环境变量 K8SVISION_JWT_SECRET 设置")
+		app.logger.Fatal("JWT Secret length is less than 32 characters, please set it via the K8SVISION_JWT_SECRET environment variable")
 	}
 
 	// 2. 检查密码
@@ -527,7 +527,7 @@ func (app *Application) checkAndGenerateSecurityConfig() {
 		// 使用 bcrypt 哈希密码
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(generatedPassword), bcrypt.DefaultCost)
 		if err != nil {
-			app.logger.Fatal("❌ 密码哈希失败", zap.Error(err))
+			app.logger.Fatal("Password hashing failed", zap.Error(err))
 		}
 
 		// 将哈希后的密码转换为字符串
@@ -536,9 +536,9 @@ func (app *Application) checkAndGenerateSecurityConfig() {
 		// 关键：将哈希后的密码更新到配置管理器（同时更新 viper 和 config 对象）
 		app.configMgr.Set("auth.password", hashedPasswordStr)
 
-		app.logger.Warn("⚠️  检测到管理员密码未配置",
+		app.logger.Warn("Admin password not configured",
 			zap.String("username", cfg.Auth.Username),
-			zap.String("hint", "已自动生成密码哈希并准备持久化，请尽快通过管理接口重置密码或在配置文件中显式设置。"),
+			zap.String("hint", "A random password hash has been generated and is ready for persistence. Please reset the password via the admin interface or set it explicitly in the config file."),
 		)
 		needsSave = true
 	}
@@ -549,7 +549,7 @@ func (app *Application) checkAndGenerateSecurityConfig() {
 			if err := app.configMgr.WriteConfigWithBackup(); err != nil {
 				app.logger.Fatal("Security config persistence failed", zap.Error(err))
 			}
-			app.logger.Info("🔒 Security config updated and persisted")
+			app.logger.Info("Security config updated and persisted")
 		} else {
 			app.logger.Warn("Security config only in memory, please provide config.yaml or environment variables for persistence")
 		}
@@ -583,9 +583,9 @@ func main() {
 	// 初始化应用
 	if err := app.Initialize(); err != nil {
 		if app.logger != nil {
-			app.logger.Fatal("应用初始化失败", zap.Error(err))
+			app.logger.Fatal("Application initialization failed", zap.Error(err))
 		}
-		fmt.Fprintf(os.Stderr, "应用初始化失败：%v\n", err)
+		fmt.Fprintf(os.Stderr, "Application initialization failed: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -594,6 +594,6 @@ func main() {
 
 	// 运行应用
 	if err := app.Run(); err != nil {
-		app.logger.Fatal("应用运行失败", zap.Error(err))
+		app.logger.Fatal("Application run failed", zap.Error(err))
 	}
 }
