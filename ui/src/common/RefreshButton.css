@@ -1,25 +1,25 @@
 /* RefreshButton 组件样式 */
 .refresh-button {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  margin: 0;
   background: transparent;
   border: 2px solid transparent;
   border-radius: 8px;
-  cursor: pointer;
   color: #999;
+  cursor: pointer;
+  display: flex;
   font-size: 18px;
+  height: 32px;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
   transition: all 0.2s ease;
+  width: 32px;
 }
 
 .refresh-button:hover {
   background: #e6f7ff;
-  color: #1890ff;
   border-color: #bae7ff;
+  color: #1890ff;
 }
 
 .refresh-button:active {
@@ -44,6 +44,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }

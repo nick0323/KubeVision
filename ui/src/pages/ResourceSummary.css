@@ -1,47 +1,47 @@
 .resource-summary-card {
   background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
   border: 1px solid #bae7ff; /* 更淡的蓝色边框 */
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.06);
-  padding: 16px 20px 12px 20px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06);
+  font-family: var(--font-main);
   margin-bottom: 0;
-  width: 100%;
-  max-width: 980px;
   margin-left: auto;
   margin-right: auto;
-  font-family: var(--font-main);
+  max-width: 980px;
+  padding: 16px 20px 12px;
+  width: 100%;
 }
 
 .resource-summary-title {
+  color: var(--text-primary);
   font-size: var(--font-size-lg);
   font-weight: 700;
   margin-bottom: 8px;
-  color: var(--text-primary);
 }
 
 .resource-summary-info {
   color: var(--text-tertiary);
+  font-family: inherit;
   font-size: var(--font-size-sm);
   margin-bottom: 8px;
-  font-family: inherit;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-num {
-  font-weight: 600;
   color: var(--text-primary);
+  font-weight: 600;
   margin: 0 var(--spacing-xs);
 }
 
 .resource-summary-row {
+  align-items: flex-start;
   display: flex;
   gap: 20px;
-  width: 100%;
   justify-content: space-between;
-  align-items: flex-start;
   margin-bottom: 8px;
+  width: 100%;
 }
 
 .resource-block {
@@ -50,10 +50,10 @@
 }
 
 .resource-header {
-  display: flex;
-  justify-content: space-between;
   align-items: baseline;
+  display: flex;
   font-size: var(--font-size-sm);
+  justify-content: space-between;
   margin-bottom: 6px;
 }
 
@@ -77,22 +77,22 @@
   background: #f3f4f6;
   border-radius: var(--radius-sm);
   height: 6px;
-  width: 100%;
   margin-bottom: 6px;
-  position: relative;
   overflow: hidden;
+  position: relative;
+  width: 100%;
 }
 
 .progress-bar.requests .progress {
   background: var(--primary);
-  height: 100%;
   border-radius: var(--radius-sm);
+  height: 100%;
 }
 
 .progress-bar.limits .progress {
   background: #ea580c;
-  height: 100%;
   border-radius: var(--radius-sm);
+  height: 100%;
 }
 
 .percent {
@@ -104,9 +104,9 @@
 
 .resource-summary-available {
   color: var(--text-tertiary);
+  font-family: var(--font-main);
   font-size: var(--font-size-sm);
   margin-top: 6px;
-  font-family: var(--font-main);
 }
 
 /* 滚动条隐藏已移至 ScrollbarHide.css 统一管理 */

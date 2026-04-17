@@ -1,31 +1,31 @@
 /* Tab 导航样式 */
 .tab-list {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #bae7ff;
+  border-radius: 8px;
   display: flex;
   gap: 0;
-  padding: 0;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #bae7ff;
-  margin-bottom: 16px;
-  align-items: center;
   height: 50px;
+  margin-bottom: 16px;
+  padding: 0;
 }
 
 .tab-item {
-  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 20px;
-  height: 50px;
-  border: 1px solid transparent !important;
   background: #fff;
+  border: 1px solid transparent !important;
+  border-radius: 6px;
   color: #595959;
+  cursor: pointer;
+  display: flex;
   font-size: 13px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-radius: 6px;
+  gap: 6px;
+  height: 50px;
   outline: none !important;
+  padding: 0 20px;
+  transition: all 0.2s;
 }
 
 .tab-item:first-child {
@@ -37,18 +37,18 @@
 }
 
 .tab-item:hover {
-  color: #1890ff;
   background: #e6f7ff;
   border-color: #91d5ff !important;
+  color: #1890ff;
 }
 
 .tab-item.active,
 .tab-item.active:hover,
 .tab-item.active:focus,
 .tab-item.active:focus-visible {
-  color: #1890ff;
   background: #e6f7ff;
   border-color: #d3adf7 !important;
+  color: #1890ff;
 }
 
 .tab-icon {

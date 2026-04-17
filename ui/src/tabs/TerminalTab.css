@@ -1,49 +1,49 @@
 /* Terminal Tab 样式 */
 .terminal-tab {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
   padding-bottom: 10px;
   width: 100%;
-  height: 100%;
-  box-sizing: border-box;
 }
 
 /* ========== 工具栏 ========== */
 .terminal-toolbar {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
   background: #fff;
-  border-radius: 8px;
   border: 1px solid #bae7ff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   box-sizing: border-box;
+  display: flex;
   flex-wrap: nowrap;
+  gap: 16px;
   height: 50px;
+  justify-content: space-between;
+  padding: 12px 16px;
+  width: 100%;
 }
 
 .terminal-toolbar-left {
-  display: flex;
   align-items: center;
+  display: flex;
   gap: 12px;
 }
 
 .terminal-title {
+  color: #262626;
   font-size: 14px;
   font-weight: 600;
-  color: #262626;
   white-space: nowrap;
 }
 
 .terminal-toolbar-right {
-  display: flex;
   align-items: center;
-  gap: 12px;
+  display: flex;
   flex-shrink: 0;
+  gap: 12px;
 }
 
 /* Container 选择 */
@@ -52,71 +52,71 @@
 }
 
 .terminal-container-select .namespace-select-custom {
-  width: 120px;
   min-width: 120px;
+  width: 120px;
 }
 
 .terminal-container-select .namespace-select-value {
-  padding: 6px 12px;
-  font-size: 14px;
-  font-family: var(--font-main);
-  color: #333;
+  align-items: center;
   background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
+  box-sizing: border-box;
+  color: #333;
   cursor: pointer;
+  display: flex;
+  font-family: var(--font-main);
+  font-size: 14px;
+  height: 32px;
+  padding: 6px 12px;
   transition: all 0.2s;
   user-select: none;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
 }
 
 .terminal-container-select .namespace-select-value:hover {
-  border-color: #40a9ff;
   background: #f0faff;
+  border-color: #40a9ff;
 }
 
 .terminal-container-select .namespace-select-value.open {
-  border-color: #1890ff;
   background: #fff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
 /* Shell 选择 */
 .terminal-shell-select {
-  position: relative;
   flex-shrink: 0;
+  position: relative;
 }
 
 .shell-select {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 80px;
-  padding: 6px 32px 6px 12px;
-  font-size: 14px;
-  font-family: var(--font-main);
-  color: #333;
   background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  height: 32px;
   box-sizing: border-box;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-main);
+  font-size: 14px;
+  height: 32px;
+  justify-content: space-between;
+  padding: 6px 32px 6px 12px;
+  transition: all 0.2s;
+  width: 80px;
 }
 
 .shell-select:hover {
-  border-color: #40a9ff;
   background: #f0faff;
+  border-color: #40a9ff;
 }
 
 .shell-select.active {
-  border-color: #1890ff;
   background: #fff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
 .shell-value {
@@ -125,9 +125,9 @@
 }
 
 .shell-arrow {
-  margin-left: 8px;
   color: #595959;
   font-size: 12px;
+  margin-left: 8px;
   transition: transform 0.2s;
 }
 
@@ -136,29 +136,29 @@
 }
 
 .shell-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
   background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-  z-index: 1000;
+  box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
+  left: 0;
   overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 1000;
 }
 
 .shell-option {
-  width: 100%;
-  padding: 6px 12px;
-  font-size: 14px;
-  color: #333;
   background: #fff;
   border: none;
+  color: #333;
   cursor: pointer;
-  transition: all 0.2s;
-  text-align: right;
   font-family: var(--font-main);
+  font-size: 14px;
+  padding: 6px 12px;
+  text-align: right;
+  transition: all 0.2s;
+  width: 100%;
 }
 
 .shell-option:hover {
@@ -182,31 +182,31 @@
 
 /* ========== 工具栏按钮 ========== */
 .toolbar-btn {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
+  background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  background: #fff;
   color: #595959;
   cursor: pointer;
-  transition: all 0.2s;
+  display: flex;
   flex-shrink: 0;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s;
+  width: 32px;
 }
 
 .toolbar-btn svg {
-  width: 14px;
-  height: 14px;
   font-size: 14px;
+  height: 14px;
+  width: 14px;
 }
 
 .toolbar-btn:hover {
+  background: #e6f7ff;
   border-color: #1890ff;
   color: #1890ff;
-  background: #e6f7ff;
 }
 
 .toolbar-btn:active {
@@ -214,8 +214,8 @@
 }
 
 .toolbar-btn:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .toolbar-btn.primary {
@@ -236,8 +236,8 @@
 }
 
 .toolbar-btn.danger {
-  color: #ff4d4f;
   border-color: #ffccc7;
+  color: #ff4d4f;
 }
 
 .toolbar-btn.danger:hover {
@@ -248,18 +248,18 @@
 
 /* 操作按钮 */
 .terminal-actions {
-  display: flex;
   align-items: center;
+  display: flex;
   gap: 8px;
 }
 
 /* 状态显示 */
 .terminal-status {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
   color: #bfbfbf;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
   white-space: nowrap;
 }
 
@@ -272,10 +272,10 @@
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  background: currentcolor;
   border-radius: 50%;
-  background: currentColor;
+  height: 8px;
+  width: 8px;
 }
 
 .terminal-status .separator {
@@ -285,56 +285,54 @@
 
 /* ========== 终端容器 ========== */
 .xterm-wrapper {
+  background: #fafafa;
+  border: 1px solid #bae7ff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  box-sizing: border-box;
   flex: 1;
-  width: 100%;
   height: calc(100vh - 280px);
   min-height: 600px;
-  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #bae7ff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  background: #fafafa;
   position: relative;
-  box-sizing: border-box;
+  width: 100%;
 }
 
 /* xterm 挂载的容器 */
 .xterm-wrapper .terminal-container {
-  width: 100%;
+  inset: 0;
   height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  min-height: 100%;
+
   /* 关键：确保容器在 display: block 后有明确尺寸 */
   min-width: 100%;
-  min-height: 100%;
+  position: absolute;
+  width: 100%;
 }
 
 /* 确保 xterm 终端占满容器 */
 .xterm-wrapper .xterm {
-  padding: 5px !important;
-  margin: 0 !important;
-  width: 100% !important;
   height: 100% !important;
+  margin: 0 !important;
+  padding: 5px !important;
+  width: 100% !important;
 }
 
 .xterm-wrapper .xterm-viewport {
-  height: 100% !important;
-  width: 100% !important;
-  overflow: auto !important;
   background-color: #fafafa !important;
+  height: 100% !important;
+  overflow: auto !important;
+  width: 100% !important;
 }
 
 .xterm-wrapper .xterm-screen {
-  padding: 0 !important;
   margin: 0 !important;
+  padding: 0 !important;
 }
 
 .xterm-wrapper .xterm-rows {
-  padding: 0 !important;
   margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* 强制 xterm 在 fit 后正确更新 DOM */
@@ -344,20 +342,20 @@
 
 /* 终端操作指引 */
 .terminal-guide {
+  align-items: center;
+  background: #fafafa;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   height: 100%;
+  justify-content: center;
   min-height: 500px;
   padding: 40px 20px;
-  background: #fafafa;
 }
 
 .guide-title {
+  color: #262626;
   font-size: 20px;
   font-weight: 600;
-  color: #262626;
   margin-bottom: 32px;
 }
 
@@ -369,25 +367,25 @@
 }
 
 .guide-step {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 14px;
   color: #595959;
+  display: flex;
+  font-size: 14px;
+  gap: 12px;
 }
 
 .step-number {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
   background: #1890ff;
+  border-radius: 50%;
   color: #fff;
+  display: flex;
+  flex-shrink: 0;
   font-size: 12px;
   font-weight: 600;
-  flex-shrink: 0;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
 }
 
 .step-text {
@@ -395,31 +393,31 @@
 }
 
 .inline-icon {
-  display: inline-flex;
   align-items: center;
-  margin: 0 4px;
   color: #1890ff;
+  display: inline-flex;
+  margin: 0 4px;
 }
 
 .connect-guide-btn {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
   background: #1890ff;
-  color: #fff;
   border: none;
   border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
+  gap: 8px;
+  padding: 12px 24px;
   transition: all 0.2s ease;
 }
 
 .connect-guide-btn:hover {
   background: #40a9ff;
+  box-shadow: 0 4px 12px rgb(24 144 255 / 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
 }
 
 .connect-guide-btn:active {

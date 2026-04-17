@@ -8,31 +8,31 @@
 
 /* ========== 工具栏 ========== */
 .yaml-toolbar {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
   background: #fff;
-  border-radius: 8px;
   border: 1px solid #bae7ff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   box-sizing: border-box;
+  display: flex;
   flex-wrap: nowrap;
+  gap: 16px;
   height: 50px;
+  justify-content: space-between;
+  padding: 12px 16px;
+  width: 100%;
 }
 
 .yaml-toolbar-left {
-  display: flex;
   align-items: center;
+  display: flex;
   gap: 12px;
 }
 
 .yaml-title {
+  color: #262626;
   font-size: 14px;
   font-weight: 600;
-  color: #262626;
 }
 
 .yaml-title-separator {
@@ -42,68 +42,68 @@
 }
 
 .yaml-status-inline {
-  font-size: 12px;
   color: #bfbfbf;
   font-family: var(--font-family);
-  white-space: nowrap;
+  font-size: 12px;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 .yaml-editing-badge {
-  display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
   background: #e6f7ff;
   border: 1px solid #91d5ff;
   border-radius: 4px;
-  font-size: 12px;
   color: #1890ff;
-  font-weight: 500;
+  display: inline-flex;
   font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
 }
 
 .yaml-toolbar-actions {
+  align-items: center;
   display: flex;
   gap: 8px;
-  align-items: center;
 }
 
 .yaml-display-toggles {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  padding-right: 12px;
   border-right: 1px solid #e8e8e8;
+  display: flex;
+  gap: 8px;
   margin-right: 8px;
+  padding-right: 12px;
 }
 
 /* Toggle Switch 样式 */
 .toggle-label {
-  display: flex;
   align-items: center;
-  gap: 8px;
   cursor: pointer;
+  display: flex;
+  gap: 8px;
   user-select: none;
 }
 
 .toggle-text {
-  font-size: 13px;
   color: #595959;
   font-family: var(--font-family);
+  font-size: 13px;
   white-space: nowrap;
 }
 
 .toggle-switch {
-  position: relative;
-  width: 44px;
-  height: 24px;
-  padding: 0;
+  background: #f5f5f5;
   border: none;
   border-radius: 12px;
-  background: #f5f5f5;
   cursor: pointer;
-  transition: background 0.2s;
   flex-shrink: 0;
+  height: 24px;
+  padding: 0;
+  position: relative;
+  transition: background 0.2s;
+  width: 44px;
 }
 
 .toggle-switch.active {
@@ -111,15 +111,15 @@
 }
 
 .toggle-slider {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.15);
+  height: 20px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
   transition: transform 0.2s;
+  width: 20px;
 }
 
 .toggle-switch.active .toggle-slider {
@@ -127,24 +127,24 @@
 }
 
 .toggle-switch:hover .toggle-slider {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.2);
 }
 
 /* ========== 工具栏按钮 ========== */
 .toolbar-btn {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
+  background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  background: #fff;
   color: #595959;
   cursor: pointer;
-  transition: all 0.2s ease;
+  display: flex;
   flex-shrink: 0;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  width: 32px;
 }
 
 .toolbar-btn svg {
@@ -152,9 +152,9 @@
 }
 
 .toolbar-btn:hover {
+  background: #e6f7ff;
   border-color: #1890ff;
   color: #1890ff;
-  background: #e6f7ff;
 }
 
 .toolbar-btn:active {
@@ -162,9 +162,9 @@
 }
 
 .toolbar-btn.success {
+  background: #f6ffed;
   border-color: #52c41a;
   color: #52c41a;
-  background: #f6ffed;
 }
 
 .toolbar-btn.primary {
@@ -180,13 +180,13 @@
 }
 
 .toolbar-btn.danger {
-  color: #ff4d4f;
   border-color: #ffccc7;
+  color: #ff4d4f;
 }
 
 .toolbar-btn.danger:hover {
-  border-color: #ff4d4f;
   background: #fff1f0;
+  border-color: #ff4d4f;
   color: #ff4d4f;
 }
 
@@ -210,44 +210,44 @@
 /* ========== 编辑器容器 ========== */
 .yaml-editor-container {
   background: #fff;
-  border-radius: 8px;
   border: 1px solid #bae7ff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   overflow: hidden;
 }
 
 /* 只读模式 - 语法高亮 */
 .yaml-editor-pre {
-  width: 100%;
-  max-height: 700px;
-  overflow: auto;
-  padding: 16px;
-  margin: 0;
   background: #fff;
   border: none;
+  color: #262626;
   font-family: var(--font-main) !important;
   font-size: 13px !important;
   line-height: 1.6 !important;
-  color: #262626;
+  margin: 0;
+  max-height: 700px;
+  overflow: auto;
+  overflow-wrap: break-word !important;
+  padding: 16px;
+  tab-size: 2;
   white-space: pre-wrap !important;
-  word-wrap: break-word !important;
+  width: 100%;
   word-break: break-word !important;
   overflow-wrap: break-word !important;
-  tab-size: 2;
 }
 
 .yaml-editor-pre code {
+  background: transparent;
+  color: inherit;
   display: block;
-  white-space: pre-wrap !important;
-  word-wrap: break-word !important;
-  word-break: break-word !important;
-  overflow-wrap: break-word !important;
   font-family: var(--font-main) !important;
   font-size: 13px !important;
   line-height: 1.6 !important;
-  color: inherit;
-  background: transparent;
+  overflow-wrap: break-word !important;
   padding: 0;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
 /* Prism.js 语法高亮样式 - 柔和配色 */
@@ -283,22 +283,22 @@
 
 /* 编辑模式 - textarea */
 .yaml-editor-textarea {
-  width: 100%;
-  min-height: 600px;
-  max-height: 700px;
-  overflow: auto;
-  padding: 16px;
-  margin: 0;
   background: #fff;
   border: none;
+  color: #262626;
   font-family: var(--font-main);
   font-size: 13px;
   line-height: 1.6;
-  color: #262626;
-  resize: vertical;
+  margin: 0;
+  max-height: 700px;
+  min-height: 600px;
   outline: none;
-  white-space: pre;
+  overflow: auto;
+  padding: 16px;
+  resize: vertical;
   tab-size: 2;
+  white-space: pre;
+  width: 100%;
 }
 
 .yaml-editor-textarea:focus {
@@ -308,9 +308,9 @@
 /* ========== Diff 视图 ========== */
 .diff-container {
   background: #fff;
-  border-radius: 8px;
   border: 1px solid #bae7ff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   overflow: hidden;
 }
 
@@ -332,8 +332,8 @@
 .yaml-editor-pre::-webkit-scrollbar,
 .yaml-editor-textarea::-webkit-scrollbar,
 .diff-container::-webkit-scrollbar {
-  width: 8px;
   height: 8px;
+  width: 8px;
 }
 
 .yaml-editor-pre::-webkit-scrollbar-track,
@@ -357,10 +357,10 @@
 }
 
 /* ========== 响应式设计 ========== */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .yaml-toolbar {
-    flex-direction: column;
     align-items: flex-start;
+    flex-direction: column;
     gap: 12px;
   }
 
@@ -371,8 +371,8 @@
 
   .toolbar-btn {
     flex: 1;
-    min-width: 80px;
     justify-content: center;
+    min-width: 80px;
   }
 
   .yaml-editor-pre,

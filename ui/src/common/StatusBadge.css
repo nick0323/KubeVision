@@ -1,17 +1,17 @@
 /* StatusBadge 样式 */
 .status-badge {
-  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 8px;
   border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
   font-size: 12px;
   font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  line-height: 1;
+  gap: 4px;
   height: 20px;
+  line-height: 1;
+  padding: 0 8px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .status-badge:hover {
@@ -39,18 +39,18 @@
 .status-bound,
 .status-available,
 .status-nodeport {
-  background-color: rgba(82, 196, 26, 0.1);
+  background-color: rgb(82 196 26 / 0.1);
+  border: 1px solid rgb(82 196 26 / 0.3);
   color: #52c41a;
-  border: 1px solid rgba(82, 196, 26, 0.3);
 }
 
 /* 🔵 蓝色状态 - 正常/信息 */
 .status-scaled,
 .status-normal,
 .status-clusterip {
-  background-color: rgba(24, 144, 255, 0.1);
+  background-color: rgb(24 144 255 / 0.1);
+  border: 1px solid rgb(24 144 255 / 0.3);
   color: #1890ff;
-  border: 1px solid rgba(24, 144, 255, 0.3);
 }
 
 /* 🟡 黄色状态 - 警告/等待 */
@@ -62,9 +62,9 @@
 .status-warning,
 .status-disabled,
 .status-external {
-  background-color: rgba(250, 173, 20, 0.1);
+  background-color: rgb(250 173 20 / 0.1);
+  border: 1px solid rgb(250 173 20 / 0.3);
   color: #faad14;
-  border: 1px solid rgba(250, 173, 20, 0.3);
 }
 
 /* 🔴 红色状态 - 错误/失败 */
@@ -74,24 +74,24 @@
 .status-notready,
 .status-crashloop,
 .status-error {
-  background-color: rgba(245, 34, 45, 0.1);
+  background-color: rgb(245 34 45 / 0.1);
+  border: 1px solid rgb(245 34 45 / 0.3);
   color: #f5222d;
-  border: 1px solid rgba(245, 34, 45, 0.3);
 }
 
 /* 🟣 紫色状态 - 特殊类型 */
 .status-loadbalancer {
-  background-color: rgba(114, 46, 209, 0.1);
+  background-color: rgb(114 46 209 / 0.1);
+  border: 1px solid rgb(114 46 209 / 0.3);
   color: #722ed1;
-  border: 1px solid rgba(114, 46, 209, 0.3);
 }
 
 /* ⚪ 灰色状态 - 未知/默认 */
 .status-unknown,
 .status-suspended {
-  background-color: rgba(140, 140, 140, 0.1);
+  background-color: rgb(140 140 140 / 0.1);
+  border: 1px solid rgb(140 140 140 / 0.3);
   color: #8c8c8c;
-  border: 1px solid rgba(140, 140, 140, 0.3);
 }
 
 /* 悬停效果 */
@@ -103,8 +103,8 @@
 
 /* 紧凑模式 */
 .status-badge.compact {
-  padding: 2px 6px;
   font-size: 11px;
+  padding: 2px 6px;
 }
 
 .status-badge.compact .status-text {

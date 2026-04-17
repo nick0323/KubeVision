@@ -1,42 +1,42 @@
 /* InfoCard 组件样式 */
 .info-card {
-  padding: 24px;
   background: #fff;
-  border-radius: 8px;
   border: 1px solid #bae7ff; /* 更淡的蓝色边框 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  padding: 24px;
   transition: box-shadow 0.2s ease;
 }
 
 .info-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
 }
 
 .info-card-header {
-  display: flex;
   align-items: center;
+  display: flex;
   gap: 12px;
   margin-bottom: 16px;
 }
 
 .info-card-icon {
-  font-size: 24px;
+  align-items: center;
   color: #1890ff;
   display: flex;
-  align-items: center;
+  font-size: 24px;
   justify-content: center;
 }
 
 .info-card-title {
+  color: #333;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
 }
 
 .info-card-value {
+  color: #333;
   font-size: 32px;
   font-weight: 700;
-  color: #333;
   margin-bottom: 8px;
 }
 

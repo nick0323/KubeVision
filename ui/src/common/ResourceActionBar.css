@@ -1,10 +1,10 @@
 /* 资源操作栏样式 */
 .resource-action-bar {
   background: #fff;
-  padding: 12px 20px;
   border: 1px solid #bae7ff;
   border-radius: 8px;
   margin-bottom: 16px;
+  padding: 12px 20px;
 }
 
 .resource-info {
@@ -14,15 +14,15 @@
 }
 
 .resource-name-row {
+  align-items: center;
   display: flex;
   justify-content: space-between;
-  align-items: center;
 }
 
 .resource-name {
+  color: #262626;
   font-size: 20px;
   font-weight: 600;
-  color: #262626;
   margin: 0;
 }
 
@@ -32,18 +32,18 @@
 }
 
 .action-btn {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
+  background: #f0f0f0;
   border: none;
   border-radius: 6px;
-  background: #f0f0f0;
   color: #595959;
   cursor: pointer;
-  transition: all 0.2s;
+  display: flex;
   font-size: 16px;
+  height: 32px;
+  justify-content: center;
+  transition: all 0.2s;
+  width: 32px;
 }
 
 .action-btn:hover {
@@ -59,6 +59,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -70,8 +71,8 @@
 }
 
 .resource-namespace {
-  font-size: 13px;
   color: #8c8c8c;
+  font-size: 13px;
 }
 
 .namespace-label {

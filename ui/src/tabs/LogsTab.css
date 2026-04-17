@@ -8,52 +8,52 @@
 
 /* 过滤选项容器 */
 .filter-options {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
   background: #fff;
-  border-radius: 8px;
   border: 1px solid #bae7ff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   box-sizing: border-box;
+  display: flex;
   flex-wrap: nowrap;
+  gap: 16px;
   height: 50px;
+  justify-content: space-between;
+  padding: 12px 16px;
+  width: 100%;
 }
 
 .filter-options-left {
-  display: flex;
   align-items: center;
-  gap: 16px;
+  display: flex;
   flex-shrink: 0;
+  gap: 16px;
   height: 100%;
 }
 
 .logs-title {
+  align-items: center;
+  color: var(--text-primary);
+  display: flex;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
   gap: var(--spacing-sm);
+  white-space: nowrap;
 }
 
 .logs-total {
+  color: var(--text-tertiary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-normal);
-  color: var(--text-tertiary);
 }
 
 .filter-options-right {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  margin-left: auto;
+  display: flex;
   flex-shrink: 0;
+  gap: 12px;
   height: 100%;
+  margin-left: auto;
 }
 
 /* Container 选择 */
@@ -62,56 +62,56 @@
 }
 
 .logs-container-select .namespace-select-custom {
-  width: 120px;
   min-width: 120px;
+  width: 120px;
 }
 
 .logs-container-select .namespace-select-value {
-  padding: 6px 12px;
-  font-size: 14px;
-  font-family: var(--font-main);
-  color: #333;
+  align-items: center;
   background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
+  box-sizing: border-box;
+  color: #333;
   cursor: pointer;
+  display: flex;
+  font-family: var(--font-main);
+  font-size: 14px;
+  height: 32px;
+  padding: 6px 12px;
   transition: all 0.2s ease;
   user-select: none;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
 }
 
 .logs-container-select .namespace-select-value:hover {
-  border-color: #40a9ff;
   background: #f0faff;
+  border-color: #40a9ff;
 }
 
 .logs-container-select .namespace-select-value.open {
-  border-color: #1890ff;
   background: #fff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
 .logs-container-select .namespace-select-dropdown {
   background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
 }
 
 .logs-container-select .namespace-select-option {
-  padding: 10px 16px;
-  font-size: 14px;
-  color: #333;
   background: #fff;
+  border-bottom: 1px solid rgb(186 231 255 / 0.2);
+  color: #333;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border-bottom: 1px solid rgba(186, 231, 255, 0.2);
-  white-space: nowrap;
+  font-size: 14px;
   overflow: hidden;
+  padding: 10px 16px;
   text-overflow: ellipsis;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .logs-container-select .namespace-select-option:hover {
@@ -137,43 +137,43 @@
 }
 
 .dropdown-trigger {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-sm) var(--spacing-md);
-  font-size: var(--font-size-sm);
-  font-family: var(--font-main);
-  color: var(--text-primary);
+  align-items: center;
   background: var(--bg-primary);
   border: 2px solid var(--border-theme);
   border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-normal) var(--transition-ease);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: var(--component-height-md);
   box-sizing: border-box;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-main);
+  font-size: var(--font-size-sm);
+  height: var(--component-height-md);
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-sm) var(--spacing-md);
+  transition: all var(--transition-normal) var(--transition-ease);
+  width: 100%;
 }
 
 .dropdown-trigger:hover {
-  border-color: var(--color-primary-light);
   background: #f0faff;
+  border-color: var(--color-primary-light);
 }
 
 .dropdown-trigger.active {
-  border-color: var(--color-primary);
   background: var(--bg-primary);
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-lightest);
 }
 
 .dropdown-value {
-  text-align: right;
   flex: 1;
+  text-align: right;
 }
 
 .dropdown-arrow {
-  margin-left: var(--spacing-sm);
   color: var(--text-secondary);
   font-size: var(--font-size-xs);
+  margin-left: var(--spacing-sm);
   transition: transform var(--transition-normal);
 }
 
@@ -182,29 +182,29 @@
 }
 
 .dropdown-menu {
-  position: absolute;
-  top: calc(100% + var(--spacing-xs));
-  left: 0;
-  right: 0;
   background: var(--bg-primary);
   border: 2px solid var(--border-theme);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-  z-index: 1100; /* 高于 settings-panel 的 1000 */
+  box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
+  left: 0;
   overflow: hidden;
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--spacing-xs));
+  z-index: 1100; /* 高于 settings-panel 的 1000 */
 }
 
 .dropdown-option {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
   background: var(--bg-primary);
   border: none;
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all var(--transition-normal) var(--transition-ease);
-  text-align: right;
   font-family: var(--font-main);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: right;
+  transition: all var(--transition-normal) var(--transition-ease);
+  width: 100%;
 }
 
 .dropdown-option:hover {
@@ -228,26 +228,26 @@
 
 /* 搜索输入框区域 */
 .filter-options .search-input-wrapper {
-  display: flex;
-  gap: 8px;
   align-items: center;
+  display: flex;
   flex-shrink: 0;
+  gap: 8px;
   height: 100%;
 }
 
 .filter-options .search-input {
-  width: 150px;
-  padding: 6px 12px;
-  font-size: 14px;
-  font-family: var(--font-main);
-  color: #333;
   background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  outline: none;
-  transition: border-color 0.2s;
-  height: 32px;
   box-sizing: border-box;
+  color: #333;
+  font-family: var(--font-main);
+  font-size: 14px;
+  height: 32px;
+  outline: none;
+  padding: 6px 12px;
+  transition: border-color 0.2s;
+  width: 150px;
 }
 
 .filter-options .search-input:focus {
@@ -255,39 +255,39 @@
 }
 
 .filter-options .search-input:hover {
-  border-color: #40a9ff;
   background: #f0faff;
+  border-color: #40a9ff;
 }
 
 .filter-options .search-btn {
-  padding: 0 10px;
+  align-items: center;
+  background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  background: #fff;
+  box-sizing: border-box;
   color: #595959;
-  font-size: 14px;
-  font-family: var(--font-main);
   cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  font-family: var(--font-main);
+  font-size: 14px;
+  height: 32px;
+  justify-content: center;
+  padding: 0 10px;
   transition: all 0.2s;
   white-space: nowrap;
-  flex-shrink: 0;
-  height: 32px;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .search-btn:hover {
+  background: #f0faff;
   border-color: #1890ff;
   color: #1890ff;
-  background: #f0faff;
 }
 
 .search-btn.clear-btn {
-  padding: 0 8px;
   color: #8c8c8c;
   font-size: 14px;
+  padding: 0 8px;
 }
 
 .search-btn.clear-btn:hover {
@@ -297,28 +297,28 @@
 
 /* 设置下拉菜单 */
 .settings-dropdown {
-  position: relative;
-  display: flex;
   align-items: center;
+  display: flex;
   height: 100%;
+  position: relative;
 }
 
 .settings-btn {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
+  background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  background: #fff;
+  box-sizing: border-box;
   color: #595959;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 14px;
+  display: flex;
   font-family: var(--font-main);
-  box-sizing: border-box;
+  font-size: 14px;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s;
+  width: 32px;
 }
 
 .settings-btn svg {
@@ -327,69 +327,69 @@
 
 .settings-btn:hover,
 .settings-btn.active {
+  background: #e6f7ff;
   border-color: #1890ff;
   color: #1890ff;
-  background: #e6f7ff;
 }
 
 .settings-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 280px;
-  padding: 16px;
   background: #fff;
   border: 1px solid #e8e8e8;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
   display: flex;
   flex-direction: column;
   gap: 16px;
   overflow: visible; /* 允许下拉框溢出 */
+  padding: 16px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 280px;
+  z-index: 1000;
 }
 
 .setting-item {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  display: flex;
   gap: 12px;
+  justify-content: space-between;
 }
 
 .setting-item label {
-  font-size: 13px;
   color: #262626;
   cursor: pointer;
-  white-space: nowrap;
+  font-size: 13px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .setting-item-select select {
-  padding: 8px 12px;
-  font-size: 14px;
-  font-family: var(--font-main);
-  color: #333;
   background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
-  width: 100px;
-  text-align: right;
-  height: 36px;
   box-sizing: border-box;
+  color: #333;
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 14px;
+  height: 36px;
+  outline: none;
+  padding: 8px 12px;
+  text-align: right;
+  transition: all 0.2s ease;
+  width: 100px;
 }
 
 .setting-item-select select:hover {
-  border-color: #40a9ff;
   background-color: #f0faff;
+  border-color: #40a9ff;
 }
 
 .setting-item-select select:focus {
-  border-color: #1890ff;
   background-color: #fff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
 /* Toggle Switch 样式 */
@@ -398,29 +398,29 @@
 }
 
 .toggle-btn {
-  position: relative;
-  width: 44px;
-  height: 24px;
-  padding: 0;
+  background: #f5f5f5;
   border: 1px solid #d9d9d9;
   border-radius: 12px;
-  background: #f5f5f5;
   cursor: pointer;
-  transition: all 0.2s;
   flex-shrink: 0;
+  height: 24px;
+  padding: 0;
+  position: relative;
+  transition: all 0.2s;
+  width: 44px;
 }
 
 .toggle-btn::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.2);
+  content: '';
+  height: 18px;
+  left: 2px;
+  position: absolute;
+  top: 2px;
   transition: all 0.2s;
+  width: 18px;
 }
 
 .toggle-btn.active {
@@ -433,34 +433,34 @@
 }
 
 .toggle-btn:hover::after {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
 }
 
 /* 操作按钮 */
 .filter-actions {
-  display: flex;
   align-items: center;
-  gap: 8px;
+  display: flex;
   flex-shrink: 0;
+  gap: 8px;
   height: 100%;
 }
 
 .action-btn {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
+  background: #fff;
   border: 2px solid #bae7ff;
   border-radius: 8px;
-  background: #fff;
+  box-sizing: border-box;
   color: #595959;
   cursor: pointer;
-  transition: all 0.2s;
-  font-size: 14px;
+  display: flex;
   font-family: var(--font-main);
-  box-sizing: border-box;
+  font-size: 14px;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s;
+  width: 32px;
 }
 
 .action-btn svg {
@@ -468,9 +468,9 @@
 }
 
 .action-btn:hover {
+  background: #e6f7ff;
   border-color: #1890ff;
   color: #1890ff;
-  background: #e6f7ff;
 }
 
 /* 滚动条样式 */
@@ -494,36 +494,36 @@
 
 /* Status Display */
 .filter-status {
-  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #bfbfbf;
-  white-space: nowrap;
-  padding: 4px 8px;
   background: #fafafa;
-  border-radius: 4px;
   border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  color: #bfbfbf;
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  padding: 4px 8px;
+  white-space: nowrap;
 }
 
 .filter-status.connected {
-  color: #52c41a;
   background: #f6ffed;
   border-color: #b7eb8f;
+  color: #52c41a;
 }
 
 .filter-status.disconnected {
-  color: #ff4d4f;
   background: #fff1f0;
   border-color: #ffccc7;
+  color: #ff4d4f;
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
   animation: pulse 2s ease-in-out infinite;
+  background: currentcolor;
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
 }
 
 @keyframes pulse {
@@ -531,6 +531,7 @@
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }

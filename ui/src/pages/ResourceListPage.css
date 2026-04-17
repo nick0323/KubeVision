@@ -1,29 +1,29 @@
 /* ResourceListPage 组件样式 */
 .resource-list-page {
+  background: #fff;
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #ffffff;
 }
 
 /* 表格容器 */
 .table-container {
-  flex: 1;
-  overflow: auto;
   background: #fff;
-  border-radius: 8px;
   border: 1px solid #bae7ff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  flex: 1;
   margin-bottom: 16px;
+  overflow: auto;
 }
 
 /* 表格样式 */
 .resource-table {
-  width: 100%;
-  table-layout: fixed;
   border-collapse: collapse;
   font-size: 14px;
   min-width: 100%;
+  table-layout: fixed;
+  width: 100%;
 }
 
 .resource-table thead {
@@ -35,13 +35,13 @@
 }
 
 .resource-table th {
+  border-bottom: none;
+  color: #1890ff;
+  font-weight: 600;
+  overflow: hidden;
   padding: 10px 16px;
   text-align: left;
-  font-weight: 600;
-  color: #1890ff;
-  border-bottom: none;
   user-select: none;
-  overflow: hidden;
 }
 
 .resource-table th.sorted {
@@ -49,8 +49,8 @@
 }
 
 .table-header-cell {
-  display: flex;
   align-items: center;
+  display: flex;
   justify-content: space-between;
 }
 
@@ -63,9 +63,9 @@
 }
 
 .sort-icon {
-  margin-left: 4px;
   color: #69c0ff;
   font-size: 12px;
+  margin-left: 4px;
 }
 
 th.sorted .sort-icon {
@@ -74,8 +74,8 @@ th.sorted .sort-icon {
 
 /* 表格行 */
 .resource-table tbody tr {
-  transition: background-color 0.2s;
   border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
 }
 
 .resource-table tbody tr:hover {
@@ -87,20 +87,20 @@ th.sorted .sort-icon {
 }
 
 .resource-table td {
-  padding: 10px 16px;
   color: #262626;
   max-width: 300px;
   overflow: hidden;
+  padding: 10px 16px;
 }
 
 /* 单元格文本 */
 .table-cell-text {
+  cursor: default;
   display: block;
   max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: default;
 }
 
 /* 资源名称链接样式 */
@@ -125,7 +125,7 @@ th.sorted .sort-icon {
   background: #e6f7ff;
   border: 2px solid #bae7ff;
   border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(24, 144, 255, 0.2);
+  box-shadow: 0 8px 20px rgb(24 144 255 / 0.2);
   max-width: 600px !important;
 }
 
@@ -133,8 +133,8 @@ th.sorted .sort-icon {
   color: #0050b3;
   font-size: 14px;
   font-weight: 500;
-  padding: 12px 16px;
   line-height: 1.6;
+  padding: 12px 16px;
 }
 
 .tippy-box[data-theme~='light'] .tippy-arrow {
@@ -147,17 +147,18 @@ th.sorted .sort-icon {
 }
 
 .skeleton-placeholder {
-  height: 20px;
+  animation: skeleton-loading 1.5s infinite;
   background: linear-gradient(90deg, #f0f0f0 25%, #e6f7ff 50%, #f0f0f0 75%);
   background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
   border-radius: 4px;
+  height: 20px;
 }
 
 @keyframes skeleton-loading {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -170,9 +171,9 @@ th.sorted .sort-icon {
 }
 
 .empty-state {
+  align-items: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 12px;
 }
 
@@ -181,16 +182,16 @@ th.sorted .sort-icon {
 }
 
 .empty-message {
-  margin: 0;
-  font-size: 14px;
   color: #8c8c8c;
+  font-size: 14px;
   font-weight: 500;
+  margin: 0;
 }
 
 .empty-description {
-  margin: 4px 0 0;
-  font-size: 13px;
   color: #bfbfbf;
+  font-size: 13px;
+  margin: 4px 0 0;
 }
 
 .empty-action {
@@ -198,13 +199,13 @@ th.sorted .sort-icon {
 }
 
 .clear-search-btn {
-  padding: 8px 20px;
+  background: #fff;
   border: 1px solid #1890ff;
   border-radius: 6px;
-  background: #fff;
   color: #1890ff;
-  font-size: 14px;
   cursor: pointer;
+  font-size: 14px;
+  padding: 8px 20px;
   transition: all 0.3s;
 }
 
@@ -220,9 +221,9 @@ th.sorted .sort-icon {
 }
 
 .error-state {
+  align-items: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 12px;
 }
 
@@ -231,9 +232,9 @@ th.sorted .sort-icon {
 }
 
 .error-message {
-  margin: 0;
-  font-size: 14px;
   color: #ff4d4f;
+  font-size: 14px;
+  margin: 0;
 }
 
 /* 操作按钮 */
@@ -244,17 +245,17 @@ th.sorted .sort-icon {
 }
 
 .action-btn {
-  padding: 4px 12px;
+  align-items: center;
+  background: #f0f0f0;
   border: none;
   border-radius: 4px;
-  background: #f0f0f0;
   color: #595959;
-  font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
   display: flex;
-  align-items: center;
+  font-size: 13px;
   gap: 4px;
+  padding: 4px 12px;
+  transition: all 0.2s;
 }
 
 .action-btn:hover:not(:disabled) {
@@ -263,8 +264,8 @@ th.sorted .sort-icon {
 }
 
 .action-btn:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .action-btn.danger {
@@ -278,36 +279,34 @@ th.sorted .sort-icon {
 
 /* 确认对话框 */
 .confirm-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
   animation: fade-in 0.2s ease;
+  background: rgb(0 0 0 / 0.45);
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  position: fixed;
+  z-index: 1000;
 }
 
 @keyframes fade-in {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
 }
 
 .confirm-modal {
+  animation: slide-down 0.3s ease;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-  min-width: 360px;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.2);
   max-width: 480px;
+  min-width: 360px;
   overflow: hidden;
-  animation: slide-down 0.3s ease;
 }
 
 @keyframes slide-down {
@@ -315,6 +314,7 @@ th.sorted .sort-icon {
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -331,55 +331,55 @@ th.sorted .sort-icon {
 }
 
 .confirm-modal-header {
-  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
   background: #f0f0f0;
   border-bottom: 1px solid #e6f7ff;
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
 }
 
 .confirm-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
   align-items: center;
-  justify-content: center;
   background: #bae7ff;
   border-radius: 50%;
+  display: flex;
   font-size: 18px;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
 }
 
 .confirm-modal-header h4 {
-  margin: 0;
+  color: #262626;
   font-size: 16px;
   font-weight: 600;
-  color: #262626;
+  margin: 0;
 }
 
 .confirm-modal-body {
-  padding: 20px;
-  font-size: 14px;
   color: #595959;
+  font-size: 14px;
   line-height: 1.6;
+  padding: 20px;
 }
 
 .confirm-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
   background: #fafafa;
   border-top: 1px solid #f0f0f0;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 20px;
 }
 
 .confirm-btn {
-  padding: 8px 24px;
   border: none;
   border-radius: 6px;
+  cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
+  padding: 8px 24px;
   transition: all 0.3s;
 }
 
@@ -412,19 +412,20 @@ th.sorted .sort-icon {
 
 /* 刷新状态指示器 */
 .refreshing-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #1890ff, transparent);
   animation: refresh-loading 1s infinite linear;
+  background: linear-gradient(90deg, transparent, #1890ff, transparent);
+  height: 2px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 @keyframes refresh-loading {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }

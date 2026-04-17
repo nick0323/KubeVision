@@ -1,15 +1,15 @@
 /* ErrorDisplay 组件样式 */
 .error-display {
+  align-items: center;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.08);
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 16px;
-  padding: 48px 32px;
-  border-radius: 12px;
   margin: 40px auto;
   max-width: 480px;
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 48px 32px;
 }
 
 .error-display.error {
@@ -25,9 +25,9 @@
 }
 
 .error-display-icon {
+  flex-shrink: 0;
   font-size: 56px;
   line-height: 1;
-  flex-shrink: 0;
 }
 
 .error-display-content {
@@ -36,10 +36,10 @@
 }
 
 .error-display-title {
+  font-family: var(--font-family);
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 8px;
-  font-family: var(--font-family);
 }
 
 .error-display.error .error-display-title {
@@ -55,31 +55,31 @@
 }
 
 .error-display-message {
-  font-size: 14px;
   color: #8c8c8c;
+  font-family: var(--font-family);
+  font-size: 14px;
   line-height: 1.6;
   word-break: break-word;
-  font-family: var(--font-family);
 }
 
 .error-display-retry {
-  margin-top: 24px;
-  padding: 10px 32px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #fff;
   background: #1890ff;
   border: none;
   border-radius: 8px;
+  color: #fff;
   cursor: pointer;
-  transition: all 0.2s ease;
   font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 24px;
+  padding: 10px 32px;
+  transition: all 0.2s ease;
 }
 
 .error-display-retry:hover {
   background: #40a9ff;
+  box-shadow: 0 4px 8px rgb(24 144 255 / 0.2);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.2);
 }
 
 .error-display-retry:active {

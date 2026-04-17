@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -343,7 +344,32 @@ func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset, labelS
 func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace, involvedObject, since, labelSelector, fieldSelector string) ([]model.Event, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
-	opts.FieldSelector = fieldSelector
+
+	// 构建 fieldSelector
+	fieldSelectors := []string{}
+
+	// 添加原有的 fieldSelector
+	if fieldSelector != "" {
+		fieldSelectors = append(fieldSelectors, fieldSelector)
+	}
+
+	// 如果指定了 involvedObject，添加到 fieldSelector 中（让 K8s API 过滤）
+	if involvedObject != "" {
+		parts := strings.SplitN(involvedObject, "/", 2)
+		if len(parts) == 2 {
+			kind := parts[0]
+			name := parts[1]
+			// 使用 K8s fieldSelector 过滤 involvedObject
+			fieldSelectors = append(fieldSelectors,
+				fmt.Sprintf("involvedObject.kind=%s", kind),
+				fmt.Sprintf("involvedObject.name=%s", name),
+			)
+		}
+	}
+
+	if len(fieldSelectors) > 0 {
+		opts.FieldSelector = strings.Join(fieldSelectors, ",")
+	}
 
 	// 从 K8s API 获取事件
 	events, err := clientset.CoreV1().Events(namespace).List(ctx, opts.Apply())
@@ -358,7 +384,7 @@ func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace,
 		duration = 1 * time.Hour
 	}
 
-	// 在内存中过滤指定时间范围内的事件
+	// 在内存中过滤指定时间范围内的事件（K8s API 已经过滤了 involvedObject）
 	cutoffTime := time.Now().Add(-duration)
 	filteredEvents := make([]corev1.Event, 0, len(events.Items))
 	for _, event := range events.Items {
@@ -366,20 +392,8 @@ func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace,
 		if eventTime.IsZero() {
 			eventTime = event.EventTime.Time
 		}
+		// 只过滤时间，involvedObject 已经由 K8s API 过滤
 		if !eventTime.IsZero() && eventTime.After(cutoffTime) {
-			// 如果指定了 involvedObject，进一步过滤
-			if involvedObject != "" {
-				// 解析 involvedObject（格式：Kind/Name）
-				parts := strings.SplitN(involvedObject, "/", 2)
-				if len(parts) == 2 {
-					kind := parts[0]
-					name := parts[1]
-					// 检查事件的 involvedObject 是否匹配
-					if event.InvolvedObject.Kind != kind || event.InvolvedObject.Name != name {
-						continue
-					}
-				}
-			}
 			filteredEvents = append(filteredEvents, event)
 		}
 	}

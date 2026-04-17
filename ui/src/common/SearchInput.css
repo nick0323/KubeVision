@@ -1,11 +1,11 @@
 /* SearchInput 组件样式 - 与 Namespace/状态选择框统一 */
 .search-input-wrapper {
-  position: relative;
-  display: flex;
   align-items: center;
+  display: flex;
   gap: 8px;
-  width: 220px !important; /* 与 Namespace/状态选择框一致的宽度 */
   min-width: 220px !important;
+  position: relative;
+  width: 220px !important; /* 与 Namespace/状态选择框一致的宽度 */
 }
 
 .search-input-form {
@@ -14,29 +14,29 @@
 }
 
 .search-input {
-  width: 100% !important;
-  padding: 6px 12px !important;
-  font-size: 14px !important;
-  font-family: var(--font-main) !important;
-  color: #333;
   background: #fff !important; /* 白色背景 */
   border: 2px solid #bae7ff !important; /* 淡蓝色边框 */
   border-radius: 8px !important; /* 圆角 */
-  transition: all 0.2s ease;
-  outline: none;
-  height: 32px !important;
   box-sizing: border-box !important;
+  color: #333;
+  font-family: var(--font-main) !important;
+  font-size: 14px !important;
+  height: 32px !important;
+  outline: none;
+  padding: 6px 12px !important;
+  transition: all 0.2s ease;
+  width: 100% !important;
 }
 
 .search-input:hover {
-  border-color: #40a9ff;
   background: #f0faff; /* 极淡蓝色悬停 */
+  border-color: #40a9ff;
 }
 
 .search-input:focus {
-  border-color: #1890ff;
   background: #fff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
 .search-input::placeholder {
@@ -44,20 +44,20 @@
 }
 
 .search-button {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  margin-left: 4px;
-  padding: 0;
   background: #1890ff;
   border: none;
   border-radius: 8px; /* 圆角 */
   color: #fff;
   cursor: pointer;
-  transition: all 0.2s ease;
+  display: flex;
   font-size: 14px;
+  height: 32px;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 0;
+  transition: all 0.2s ease;
+  width: 32px;
 }
 
 .search-button:hover {
@@ -69,19 +69,19 @@
 }
 
 .clear-button {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 32px;
-  padding: 0;
   background: transparent;
   border: none;
   border-radius: 8px; /* 圆角 */
   color: #999;
   cursor: pointer;
-  transition: all 0.2s ease;
+  display: flex;
   font-size: 14px;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  width: 28px;
 }
 
 .clear-button:hover {
@@ -90,19 +90,19 @@
 }
 
 .search-loading {
-  display: flex;
   align-items: center;
+  display: flex;
+  height: 20px;
   justify-content: center;
   width: 20px;
-  height: 20px;
 }
 
 .loading-dot {
-  width: 8px;
-  height: 8px;
+  animation: pulse 1s ease-in-out infinite;
   background: #1890ff;
   border-radius: 50%;
-  animation: pulse 1s ease-in-out infinite;
+  height: 8px;
+  width: 8px;
 }
 
 @keyframes pulse {
@@ -111,6 +111,7 @@
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.5;
     transform: scale(0.8);
@@ -118,11 +119,11 @@
 }
 
 .search-results-indicator {
-  width: 8px;
-  height: 8px;
+  animation: blink 2s ease-in-out infinite;
   background: #52c41a;
   border-radius: 50%;
-  animation: blink 2s ease-in-out infinite;
+  height: 8px;
+  width: 8px;
 }
 
 @keyframes blink {
@@ -130,6 +131,7 @@
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.3;
   }

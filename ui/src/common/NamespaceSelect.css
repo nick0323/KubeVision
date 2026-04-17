@@ -1,38 +1,38 @@
 /* NamespaceSelect 自定义组件样式 */
 .namespace-select-custom {
+  min-width: 220px;
   position: relative;
   width: 220px; /* 更宽的宽度 */
-  min-width: 220px;
 }
 
 /* 选择框主体 */
 .namespace-select-value {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 12px;
-  font-size: 14px;
-  font-family: var(--font-main);
-  color: #333;
   background: #fff; /* 白色背景 */
   border: 2px solid #bae7ff; /* 淡蓝色边框 */
   border-radius: 8px; /* 圆角 */
+  box-sizing: border-box;
+  color: #333;
   cursor: pointer;
+  display: flex;
+  font-family: var(--font-main);
+  font-size: 14px;
+  height: 32px;
+  justify-content: space-between;
+  padding: 6px 12px;
   transition: all 0.2s ease;
   user-select: none;
-  height: 32px;
-  box-sizing: border-box;
 }
 
 .namespace-select-value:hover {
-  border-color: #40a9ff;
   background: #f0faff; /* 极淡蓝色悬停 */
+  border-color: #40a9ff;
 }
 
 .namespace-select-value.open {
-  border-color: #1890ff;
   background: #fff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
 .namespace-select-value.disabled {
@@ -50,11 +50,11 @@
 
 /* 箭头 */
 .namespace-select-arrow {
-  margin-left: 8px;
   color: #595959;
-  font-size: 12px;
-  transition: transform 0.2s;
   flex-shrink: 0; /* 不压缩 */
+  font-size: 12px;
+  margin-left: 8px;
+  transition: transform 0.2s;
 }
 
 .namespace-select-value.open .namespace-select-arrow {
@@ -63,32 +63,31 @@
 
 /* 下拉选项容器 */
 .namespace-select-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  max-height: 300px;
-  overflow-y: auto;
-  overflow-x: hidden;
   background: #fff; /* 白色背景 */
   border: 2px solid #bae7ff; /* 淡蓝色边框 */
   border-radius: 8px; /* 圆角 */
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
+  left: 0;
+  max-height: 300px;
+  overflow: hidden auto;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
   z-index: 1000;
 }
 
 /* 选项 - 不换行 */
 .namespace-select-option {
-  padding: 6px 12px;
-  font-size: 14px;
-  color: #333;
   background: #fff; /* 白色背景 */
+  border-bottom: 1px solid rgb(186 231 255 / 0.2);
+  color: #333;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border-bottom: 1px solid rgba(186, 231, 255, 0.2);
-  white-space: nowrap; /* 不换行 */
+  font-size: 14px;
   overflow: hidden;
+  padding: 6px 12px;
   text-overflow: ellipsis;
+  transition: all 0.2s ease;
+  white-space: nowrap; /* 不换行 */
 }
 
 .namespace-select-option:last-child {

@@ -7,32 +7,32 @@
 }
 
 .event-type {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
   border-radius: 8px;
+  display: inline-flex;
   font-size: 13px;
   font-weight: 500;
+  gap: 6px;
+  padding: 4px 12px;
   white-space: nowrap;
 }
 
 .event-type.normal {
   background: #f6ffed;
-  color: #52c41a;
   border: 1px solid #b7eb8f;
+  color: #52c41a;
 }
 
 .event-type.warning {
   background: #fff7e6;
-  color: #faad14;
   border: 1px solid #ffd591;
+  color: #faad14;
 }
 
 .event-reason {
-  font-weight: 600;
   color: #262626;
   font-family: var(--font-main);
+  font-weight: 600;
 }
 
 .event-message {
