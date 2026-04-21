@@ -1,4 +1,3 @@
-// Package api 提供 Kubernetes 资源管理的 HTTP API 接口
 package api
 
 import (
@@ -18,21 +17,15 @@ import (
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
-// WebSocket upgrader 统一配置
-// 注意：默认拒绝所有源，必须通过 InitWebSocketUpgrader 显式配置允许的源
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return false // 默认拒绝所有源（生产环境安全配置）
-	},
+	CheckOrigin:     func(r *http.Request) bool { return false },
 }
 
 const webSocketAuthProtocol = "k8svision.auth"
 
-// InitWebSocketUpgrader 初始化 WebSocket upgrader，配置允许的源
 func InitWebSocketUpgrader(allowedOrigins []string) {
-	// 如果没有配置允许的源，使用默认策略（拒绝所有）
 	if len(allowedOrigins) == 0 {
 		return
 	}
@@ -40,7 +33,7 @@ func InitWebSocketUpgrader(allowedOrigins []string) {
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		if origin == "" {
-			return true // 允许同源请求
+			return true
 		}
 		for _, allowed := range allowedOrigins {
 			if allowed == "*" || allowed == origin {
@@ -51,7 +44,6 @@ func InitWebSocketUpgrader(allowedOrigins []string) {
 	}
 }
 
-// PaginationParams 分页参数
 type PaginationParams struct {
 	Limit     int
 	Offset    int
@@ -61,31 +53,17 @@ type PaginationParams struct {
 	SortOrder string
 }
 
-// K8sClientProvider K8s 客户端提供者函数类型
 type K8sClientProvider func() (*kubernetes.Clientset, *versioned.Clientset, error)
 
-// SearchableItem 可搜索接口
-type SearchableItem interface {
-	GetSearchableFields() map[string]string
-}
-
-// ParsePaginationParams 解析分页参数
 func ParsePaginationParams(c *gin.Context) PaginationParams {
-	limitStr := c.DefaultQuery("limit", strconv.Itoa(model.DefaultPageSize))
-	offsetStr := c.DefaultQuery("offset", strconv.Itoa(model.DefaultPageOffset))
-
 	limit := model.DefaultPageSize
-	if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
-		limit = parsedLimit
+	if l, err := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(limit))); err == nil && l > 0 {
+		limit = min(l, model.MaxPageSize)
 	}
 
-	offset := model.DefaultPageOffset
-	if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
-		offset = parsedOffset
-	}
-
-	if limit > model.MaxPageSize {
-		limit = model.MaxPageSize
+	offset := 0
+	if o, err := strconv.Atoi(c.DefaultQuery("offset", "0")); err == nil && o >= 0 {
+		offset = o
 	}
 
 	return PaginationParams{
@@ -98,7 +76,6 @@ func ParsePaginationParams(c *gin.Context) PaginationParams {
 	}
 }
 
-// GetRequestContext 获取请求上下文
 func GetRequestContext(c *gin.Context) context.Context {
 	if ctx := c.Request.Context(); ctx != nil {
 		return ctx
@@ -106,53 +83,32 @@ func GetRequestContext(c *gin.Context) context.Context {
 	return context.Background()
 }
 
-// GetTraceID 获取追踪 ID
-func GetTraceID(c *gin.Context) string {
-	tid := ""
-	if c != nil && c.Request != nil {
-		tid = c.Request.Header.Get("X-Trace-ID")
-	}
-	if tid == "" {
-		tid = c.GetString("traceId")
-	}
-	return tid
-}
-
-// Paginate 分页
 func Paginate[T any](list []T, offset, limit int) []T {
 	if offset < 0 || limit <= 0 || offset >= len(list) {
 		return []T{}
 	}
-
-	end := offset + limit
-	if end > len(list) {
-		end = len(list)
+	if end := offset + limit; end < len(list) {
+		return list[offset:end]
 	}
-
-	return list[offset:end]
+	return list[offset:]
 }
 
-// GenericSearchFilter 通用搜索过滤
-func GenericSearchFilter[T SearchableItem](items []T, search string) []T {
+func GenericSearchFilter[T model.SearchableItem](items []T, search string) []T {
 	if search == "" {
 		return items
 	}
-
 	searchLower := strings.ToLower(search)
-	var filtered []T
-
+	filtered := make([]T, 0, len(items))
 	for _, item := range items {
 		if matchesSearch(item, searchLower) {
 			filtered = append(filtered, item)
 		}
 	}
-
 	return filtered
 }
 
-func matchesSearch(item SearchableItem, searchLower string) bool {
-	fields := item.GetSearchableFields()
-	for _, value := range fields {
+func matchesSearch(item model.SearchableItem, searchLower string) bool {
+	for _, value := range item.GetSearchableFields() {
 		if strings.Contains(strings.ToLower(value), searchLower) {
 			return true
 		}
@@ -160,8 +116,7 @@ func matchesSearch(item SearchableItem, searchLower string) bool {
 	return false
 }
 
-// SortItems 排序
-func SortItems[T any](items []T, sortBy string, sortOrder string) []T {
+func SortItems[T any](items []T, sortBy, sortOrder string) []T {
 	sorted := make([]T, len(items))
 	copy(sorted, items)
 
@@ -178,20 +133,17 @@ func SortItems[T any](items []T, sortBy string, sortOrder string) []T {
 	return sorted
 }
 
-// getFieldValue 获取结构体字段的字符串值
 func getFieldValue(item interface{}, fieldName string) string {
 	if item == nil {
 		return ""
 	}
 
-	// 处理 map 类型
 	if m, ok := item.(map[string]interface{}); ok {
 		if val, exists := m[fieldName]; exists {
 			return fmt.Sprintf("%v", val)
 		}
 	}
 
-	// 处理结构体类型（使用反射）
 	v := reflect.ValueOf(item)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -200,16 +152,14 @@ func getFieldValue(item interface{}, fieldName string) string {
 		return ""
 	}
 
-	// 尝试多种字段名变体（兼容不同命名风格）
-	fieldNames := []string{
-		fieldName, // 原始名称
-		strings.ToUpper(fieldName[:1]) + fieldName[1:], // 首字母大写
-		strings.ToLower(fieldName[:1]) + fieldName[1:], // 首字母小写
+	variations := []string{
+		fieldName,
+		strings.ToUpper(fieldName[:1]) + fieldName[1:],
+		strings.ToLower(fieldName[:1]) + fieldName[1:],
 	}
 
-	for _, name := range fieldNames {
-		field := v.FieldByName(name)
-		if field.IsValid() && field.CanInterface() {
+	for _, name := range variations {
+		if field := v.FieldByName(name); field.IsValid() && field.CanInterface() {
 			return fmt.Sprintf("%v", field.Interface())
 		}
 	}
@@ -217,7 +167,6 @@ func getFieldValue(item interface{}, fieldName string) string {
 	return ""
 }
 
-// compareValues 比较两个字段的值
 func compareValues(valA, valB, sortBy string) int {
 	if sortBy == "age" || sortBy == "Age" {
 		timeA := parseAgeToSeconds(valA)
@@ -229,21 +178,18 @@ func compareValues(valA, valB, sortBy string) int {
 		}
 		return 0
 	}
-
 	return strings.Compare(valA, valB)
 }
 
-// parseAgeToSeconds 将年龄字符串转换为秒数
 func parseAgeToSeconds(ageStr string) int64 {
 	if ageStr == "" || ageStr == "-" {
 		return 0
 	}
 
 	i := 0
-	for i < len(ageStr) && (ageStr[i] >= '0' && ageStr[i] <= '9') {
+	for i < len(ageStr) && ageStr[i] >= '0' && ageStr[i] <= '9' {
 		i++
 	}
-
 	if i == 0 {
 		return 0
 	}
@@ -265,34 +211,27 @@ func parseAgeToSeconds(ageStr string) int64 {
 	}
 }
 
-// ExtractTokenFromRequest 从请求中提取 JWT token
-// 优先级：Sec-WebSocket-Protocol header > Authorization header > query parameter
 func ExtractTokenFromRequest(c *gin.Context) string {
 	if c == nil || c.Request == nil {
 		return ""
 	}
 
-	// 优先从 Sec-WebSocket-Protocol header 获取（安全方式）
-	tokenStr := extractTokenFromWebSocketProtocolHeader(c.GetHeader("Sec-WebSocket-Protocol"))
-	if tokenStr == "" {
-		// Fallback: 尝试从 Authorization header 获取
-		tokenStr = c.GetHeader("Authorization")
-		if tokenStr != "" {
-			tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
-		}
+	if token := extractTokenFromWebSocketProtocol(c.GetHeader("Sec-WebSocket-Protocol")); token != "" {
+		return token
 	}
-	// 最后尝试从 URL 参数获取（兼容性考虑）
-	if tokenStr == "" && c.Request.URL != nil {
-		tokenStr = c.Query("token")
+
+	if token := c.GetHeader("Authorization"); token != "" {
+		return strings.TrimPrefix(token, "Bearer ")
 	}
-	return tokenStr
+
+	return c.Query("token")
 }
 
 func sanitizeRawQuery(raw string) string {
 	return middleware.MaskSensitiveQuery(raw)
 }
 
-func extractTokenFromWebSocketProtocolHeader(headerValue string) string {
+func extractTokenFromWebSocketProtocol(headerValue string) string {
 	if headerValue == "" {
 		return ""
 	}
@@ -318,11 +257,16 @@ func buildWebSocketUpgradeHeaders(c *gin.Context) http.Header {
 	parts := strings.Split(headerValue, ",")
 	for _, part := range parts {
 		if strings.TrimSpace(part) == webSocketAuthProtocol {
-			responseHeaders := make(http.Header)
-			responseHeaders.Set("Sec-WebSocket-Protocol", webSocketAuthProtocol)
-			return responseHeaders
+			return http.Header{"Sec-WebSocket-Protocol": []string{webSocketAuthProtocol}}
 		}
 	}
 
 	return nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

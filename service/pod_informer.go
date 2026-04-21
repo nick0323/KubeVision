@@ -11,17 +11,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// PodInformer Pod Informer 管理器
 type PodInformer struct {
 	clientset    *kubernetes.Clientset
 	informer     cache.SharedIndexInformer
-	podCache     map[string]*v1.Pod // key: namespace/name
-	restartCache map[string]int32   // key: ownerUID, value: restarts
-	podRestarts  map[string]int32   // key: namespace/name, value: restarts (用于去重)
+	podCache     map[string]*v1.Pod
+	restartCache map[string]int32
+	podRestarts  map[string]int32
 	mu           sync.RWMutex
 }
 
-// NewPodInformer 创建 Pod Informer
 func NewPodInformer(clientset *kubernetes.Clientset, namespace string) *PodInformer {
 	pi := &PodInformer{
 		clientset:    clientset,
@@ -30,17 +28,13 @@ func NewPodInformer(clientset *kubernetes.Clientset, namespace string) *PodInfor
 		podRestarts:  make(map[string]int32),
 	}
 
-	// 创建 Informer
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(
 		clientset,
-		0, // 不设置 resync，完全依赖事件驱动
+		0,
 		informers.WithNamespace(namespace),
 	)
 
 	pi.informer = informerFactory.Core().V1().Pods().Informer()
-
-	// 注册事件处理
-	// nolint:errcheck // In-Memory 操作不会失败
 	pi.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    pi.onPodAdd,
 		UpdateFunc: pi.onPodUpdate,
@@ -50,65 +44,51 @@ func NewPodInformer(clientset *kubernetes.Clientset, namespace string) *PodInfor
 	return pi
 }
 
-// Start 启动 Informer
 func (pi *PodInformer) Start(ctx context.Context) {
 	pi.informer.Run(ctx.Done())
 }
 
-// HasSynced 检查是否已同步
 func (pi *PodInformer) HasSynced() bool {
 	return pi.informer.HasSynced()
 }
 
-// onPodAdd Pod 添加事件
 func (pi *PodInformer) onPodAdd(obj interface{}) {
 	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		return
 	}
-
 	key := pod.Namespace + "/" + pod.Name
 	pi.mu.Lock()
 	defer pi.mu.Unlock()
-
 	pi.podCache[key] = pod
 	pi.updateOwnerRestarts(pod)
 }
 
-// onPodUpdate Pod 更新事件
 func (pi *PodInformer) onPodUpdate(oldObj, newObj interface{}) {
 	newPod, ok := newObj.(*v1.Pod)
 	if !ok {
 		return
 	}
-
 	key := newPod.Namespace + "/" + newPod.Name
 	pi.mu.Lock()
 	defer pi.mu.Unlock()
-
 	pi.podCache[key] = newPod
 	pi.updateOwnerRestarts(newPod)
 }
 
-// onPodDelete Pod 删除事件
 func (pi *PodInformer) onPodDelete(obj interface{}) {
 	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		return
 	}
-
 	key := pod.Namespace + "/" + pod.Name
 	pi.mu.Lock()
 	defer pi.mu.Unlock()
 
-	// 获取该 Pod 的重启次数
 	podRestarts := pi.podRestarts[key]
-
-	// 从缓存中删除
 	delete(pi.podCache, key)
 	delete(pi.podRestarts, key)
 
-	// 从 Owner 缓存中减去该 Pod 的重启次数
 	for _, ownerRef := range pod.OwnerReferences {
 		ownerKey := string(ownerRef.UID)
 		pi.restartCache[ownerKey] -= podRestarts
@@ -118,43 +98,34 @@ func (pi *PodInformer) onPodDelete(obj interface{}) {
 	}
 }
 
-// updateOwnerRestarts 更新 Owner 的重启次数
 func (pi *PodInformer) updateOwnerRestarts(pod *v1.Pod) {
 	key := pod.Namespace + "/" + pod.Name
 
-	// 计算当前 Pod 的重启次数
 	var currentRestarts int32
 	for _, cs := range pod.Status.ContainerStatuses {
 		currentRestarts += cs.RestartCount
 	}
 
-	// 获取上次记录的重启次数
 	lastRestarts := pi.podRestarts[key]
 	pi.podRestarts[key] = currentRestarts
-
-	// 计算差值（可能为正、负或零）
 	delta := currentRestarts - lastRestarts
 
-	// 更新所有 Owner 的重启次数
 	for _, ownerRef := range pod.OwnerReferences {
 		ownerKey := string(ownerRef.UID)
 		pi.restartCache[ownerKey] += delta
 	}
 }
 
-// GetRestartsByOwnerUID 根据 Owner UID 获取重启次数
 func (pi *PodInformer) GetRestartsByOwnerUID(ownerUID string) int32 {
 	pi.mu.RLock()
 	defer pi.mu.RUnlock()
 	return pi.restartCache[ownerUID]
 }
 
-// GetRestartsByOwnerReference 根据 OwnerReference 获取重启次数
 func (pi *PodInformer) GetRestartsByOwnerReference(ownerRef metav1.OwnerReference) int32 {
 	return pi.GetRestartsByOwnerUID(string(ownerRef.UID))
 }
 
-// GetPod 获取 Pod
 func (pi *PodInformer) GetPod(namespace, name string) (*v1.Pod, bool) {
 	pi.mu.RLock()
 	defer pi.mu.RUnlock()
@@ -162,20 +133,16 @@ func (pi *PodInformer) GetPod(namespace, name string) (*v1.Pod, bool) {
 	return pod, exists
 }
 
-// 全局 PodInformer 实例
 var podInformerInstance *PodInformer
 
-// SetPodInformer 设置全局 PodInformer 实例
 func SetPodInformer(pi *PodInformer) {
 	podInformerInstance = pi
 }
 
-// GetPodInformer 获取全局 PodInformer 实例
 func GetPodInformer() *PodInformer {
 	return podInformerInstance
 }
 
-// GetRestartsByOwnerReference 根据 OwnerReference 获取重启次数（全局函数）
 func GetRestartsByOwnerReference(ownerRef metav1.OwnerReference) int32 {
 	if podInformerInstance == nil {
 		return 0

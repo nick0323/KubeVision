@@ -80,14 +80,14 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
             ) : (
               <span
                 className={
-                  (safeData.nodeReady ?? 0) === (safeData.nodeCount ?? 0)
+                  (safeData.nodeReadyCount ?? 0) === (safeData.nodeCount ?? 0)
                     ? 'status-ready'
                     : 'status-failed'
                 }
               >
-                {(safeData.nodeReady ?? 0) === (safeData.nodeCount ?? 0)
+                {(safeData.nodeReadyCount ?? 0) === (safeData.nodeCount ?? 0)
                   ? 'All Ready'
-                  : `${(safeData.nodeCount ?? 0) - (safeData.nodeReady ?? 0)} Not Ready`}
+                  : `${(safeData.nodeCount ?? 0) - (safeData.nodeReadyCount ?? 0)} Not Ready`}
               </span>
             )
           }

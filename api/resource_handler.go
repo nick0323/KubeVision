@@ -245,7 +245,7 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 
 	switch resourceType {
 	case "pod":
-		pods, err := service.ListPods(ctx, clientset, nil, namespace, labelSelector, fieldSelector)
+		pods, err := service.ListPods(ctx, clientset, namespace, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -399,13 +399,7 @@ func getResourceListByType(ctx context.Context, clientset *kubernetes.Clientset,
 		return result, nil
 
 	case "node":
-		// 获取节点 metrics
-		var nodeMetricsMap map[string]model.NodeMetrics
-		if metricsClient != nil {
-			nodeMetricsMap, _ = GetNodeMetrics(ctx, metricsClient)
-		}
-
-		nodes, err := service.ListNodes(ctx, clientset, nil, nodeMetricsMap, labelSelector, fieldSelector)
+		nodes, err := service.ListNodes(ctx, clientset, nil, labelSelector, fieldSelector)
 		if err != nil {
 			return nil, err
 		}
