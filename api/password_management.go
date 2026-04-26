@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/nick0323/K8sVision/api/middleware"
+	"github.com/nick0323/K8sVision/config"
 	"github.com/nick0323/K8sVision/model"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -122,7 +123,7 @@ func (pm *PasswordManager) ValidatePasswordStrength(password string) (bool, stri
 	}
 
 	if charTypes < 3 {
-		return false, "password must contain at least 3 character types (uppercase, lowercase, digits, special characters)"
+		return false, "password must contain at least 3 character types"
 	}
 	return true, "password strength is acceptable"
 }
@@ -206,29 +207,51 @@ func (pm *PasswordManager) hasRepeatedCharacters(password string) bool {
 	return false
 }
 
-var passwordManager = NewPasswordManager()
-
-func RegisterPasswordAdmin(r *gin.RouterGroup, logger *zap.Logger) {
-	r.POST("/admin/password/change", changePassword(logger))
-	r.POST("/admin/password/generate", generatePassword(logger))
-	r.POST("/admin/password/hash", hashPassword(logger))
-	r.POST("/admin/password/validate", validatePassword(logger))
+func isHashedPassword(password string) bool {
+	if len(password) < 60 {
+		return false
+	}
+	return strings.HasPrefix(password, "$2a$") ||
+		strings.HasPrefix(password, "$2b$") ||
+		strings.HasPrefix(password, "$2y$")
 }
 
-func changePassword(logger *zap.Logger) gin.HandlerFunc {
+func RegisterPasswordAdmin(r *gin.RouterGroup, configMgr *config.Manager, logger *zap.Logger) {
+	handler := &PasswordHandler{
+		passwordManager: NewPasswordManager(),
+		configManager:   configMgr,
+		logger:          logger,
+	}
+	handler.RegisterRoutes(r)
+}
+
+type PasswordHandler struct {
+	passwordManager *PasswordManager
+	configManager   *config.Manager
+	logger          *zap.Logger
+}
+
+func (h *PasswordHandler) RegisterRoutes(r *gin.RouterGroup) {
+	r.POST("/admin/password/change", h.ChangePassword())
+	r.POST("/admin/password/generate", h.GeneratePassword())
+	r.POST("/admin/password/hash", h.HashPassword())
+	r.POST("/admin/password/validate", h.ValidatePassword())
+}
+
+func (h *PasswordHandler) ChangePassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req PasswordChangeRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			middleware.ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeBadRequest,
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusBadRequest,
 				Message: "Invalid request parameter format",
 				Details: err.Error(),
 			}, http.StatusBadRequest)
 			return
 		}
 
-		if valid, msg := passwordManager.ValidatePasswordStrength(req.NewPassword); !valid {
-			middleware.ResponseError(c, logger, &model.APIError{
+		if valid, msg := h.passwordManager.ValidatePasswordStrength(req.NewPassword); !valid {
+			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    model.CodeValidationFailed,
 				Message: "Password strength does not meet requirements",
 				Details: msg,
@@ -236,16 +259,16 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		authConfig := GetAuthConfig()
+		authConfig := h.configManager.GetConfig().Auth
 		oldPasswordMatch := false
 		if isHashedPassword(authConfig.Password) {
-			oldPasswordMatch = passwordManager.VerifyPassword(req.OldPassword, authConfig.Password)
+			oldPasswordMatch = h.passwordManager.VerifyPassword(req.OldPassword, authConfig.Password)
 		} else {
 			oldPasswordMatch = req.OldPassword == authConfig.Password
 		}
 
 		if !oldPasswordMatch {
-			middleware.ResponseError(c, logger, &model.APIError{
+			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    model.CodeUnauthorized,
 				Message: "Invalid old password",
 			}, http.StatusUnauthorized)
@@ -253,25 +276,25 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		if req.OldPassword == req.NewPassword {
-			middleware.ResponseError(c, logger, &model.APIError{
+			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    model.CodeValidationFailed,
 				Message: "New password cannot be the same as old password",
 			}, http.StatusBadRequest)
 			return
 		}
 
-		newHashedPassword, err := passwordManager.HashPassword(req.NewPassword)
+		newHashedPassword, err := h.passwordManager.HashPassword(req.NewPassword)
 		if err != nil {
-			logger.Error("Failed to hash password", zap.Error(err))
-			middleware.ResponseError(c, logger, &model.APIError{
+			h.logger.Error("Failed to hash password", zap.Error(err))
+			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    model.CodeInternalServerError,
 				Message: "Password processing failed",
 			}, http.StatusInternalServerError)
 			return
 		}
 
-		if passwordManager.IsPasswordInHistory(req.NewPassword, newHashedPassword) {
-			middleware.ResponseError(c, logger, &model.APIError{
+		if h.passwordManager.IsPasswordInHistory(req.NewPassword, newHashedPassword) {
+			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    model.CodeValidationFailed,
 				Message: "Cannot use recently used password",
 			}, http.StatusBadRequest)
@@ -283,10 +306,10 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 			currentUser = "admin"
 		}
 
-		configManager.Set("auth.password", newHashedPassword)
-		passwordManager.AddToPasswordHistory(newHashedPassword)
+		h.configManager.Set("auth.password", newHashedPassword)
+		h.passwordManager.AddToPasswordHistory(newHashedPassword)
 
-		logger.Info("Password changed successfully (in-memory only)",
+		h.logger.Info("Password changed successfully (in-memory only)",
 			zap.String("username", currentUser),
 			zap.String("clientIP", c.ClientIP()),
 		)
@@ -295,22 +318,22 @@ func changePassword(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-func generatePassword(logger *zap.Logger) gin.HandlerFunc {
+func (h *PasswordHandler) GeneratePassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req PasswordGenerateRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			req.Length = model.DefaultPasswordLen
 		}
 
-		password, err := passwordManager.GeneratePassword(req.Length)
+		password, err := h.passwordManager.GeneratePassword(req.Length)
 		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			middleware.ResponseError(c, h.logger, err, http.StatusInternalServerError)
 			return
 		}
 
-		hashedPassword, err := passwordManager.HashPassword(password)
+		hashedPassword, err := h.passwordManager.HashPassword(password)
 		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			middleware.ResponseError(c, h.logger, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -318,26 +341,26 @@ func generatePassword(logger *zap.Logger) gin.HandlerFunc {
 			"password":       password,
 			"hashedPassword": hashedPassword,
 			"length":         len(password),
-			"warning":        "Please save the plaintext password securely, the system will not display it again",
+			"warning":        "Please save the plaintext password securely",
 		}, "Password generated successfully", nil)
 	}
 }
 
-func hashPassword(logger *zap.Logger) gin.HandlerFunc {
+func (h *PasswordHandler) HashPassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req PasswordHashRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			middleware.ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeBadRequest,
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusBadRequest,
 				Message: "Invalid request parameter format",
 				Details: err.Error(),
 			}, http.StatusBadRequest)
 			return
 		}
 
-		hashedPassword, err := passwordManager.HashPassword(req.Password)
+		hashedPassword, err := h.passwordManager.HashPassword(req.Password)
 		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			middleware.ResponseError(c, h.logger, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -348,19 +371,19 @@ func hashPassword(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-func validatePassword(logger *zap.Logger) gin.HandlerFunc {
+func (h *PasswordHandler) ValidatePassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req PasswordValidateRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			middleware.ResponseError(c, logger, &model.APIError{
-				Code:    model.CodeBadRequest,
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusBadRequest,
 				Message: "Invalid request parameter format",
 				Details: err.Error(),
 			}, http.StatusBadRequest)
 			return
 		}
 
-		isValid := passwordManager.VerifyPassword(req.Password, req.HashedPassword)
+		isValid := h.passwordManager.VerifyPassword(req.Password, req.HashedPassword)
 		message := "Password verification failed"
 		if isValid {
 			message = "Password verification passed"

@@ -6,22 +6,28 @@ import (
 	"sort"
 
 	"github.com/nick0323/K8sVision/model"
+	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
+const BytesPerGiB = 1024 * 1024 * 1024
+
 type OverviewService struct {
-	clientset *kubernetes.Clientset
+	clientset kubernetes.Interface
 }
 
-func NewOverviewService(clientset *kubernetes.Clientset) *OverviewService {
+func NewOverviewService(clientset kubernetes.Interface) *OverviewService {
 	return &OverviewService{clientset: clientset}
 }
 
 func (s *OverviewService) GetOverview(ctx context.Context) (*model.OverviewStatus, error) {
 	overview := &model.OverviewStatus{}
-	data := s.fetchAllResources(ctx)
+	data, err := s.fetchAllResources(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	if data.podsErr == nil {
 		overview.PodCount = len(data.pods)
@@ -77,62 +83,62 @@ type overviewData struct {
 	eventsErr   error
 }
 
-func (s *OverviewService) fetchAllResources(ctx context.Context) *overviewData {
+func (s *OverviewService) fetchAllResources(ctx context.Context) (*overviewData, error) {
 	data := &overviewData{}
+	g, ctx := errgroup.WithContext(ctx)
 
-	type podResult struct {
-		pods    []model.Pod
-		podsRaw *corev1.PodList
-		err     error
-	}
-	type nodeResult struct {
-		nodes    []model.Node
-		nodesRaw *corev1.NodeList
-		err      error
-	}
-
-	podChan := make(chan podResult, 1)
-	nodeChan := make(chan nodeResult, 1)
-	nsChan := make(chan []model.Namespace, 1)
-	svcChan := make(chan []model.Service, 1)
-	eventChan := make(chan []model.Event, 1)
-
-	go func() {
+	// 1. 并发查询 Pod
+	g.Go(func() error {
 		pods, podsRaw, err := ListPodsWithRaw(ctx, s.clientset, "", "", "", true)
-		podChan <- podResult{pods: pods, podsRaw: podsRaw, err: err}
-	}()
+		data.pods = pods
+		data.podsRaw = podsRaw
+		data.podsErr = err
+		return err
+	})
 
-	go func() {
+	// 2. 并发查询 Node
+	g.Go(func() error {
 		nodesRaw, err := s.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-		var nodes []model.Node
-		if err == nil && nodesRaw != nil {
-			nodes = MapNodes(nodesRaw.Items, &corev1.PodList{})
+		if err != nil {
+			data.nodesErr = err
+			return err
 		}
-		nodeChan <- nodeResult{nodes: nodes, nodesRaw: nodesRaw, err: err}
-	}()
+		data.nodes = MapNodes(nodesRaw.Items, &corev1.PodList{})
+		data.nodesRaw = nodesRaw
+		return nil
+	})
 
-	go func() { nsChan <- must(ListNamespaces(ctx, s.clientset, "", "")) }()
-	go func() { svcChan <- must(ListServices(ctx, s.clientset, "", "", "")) }()
-	go func() {
+	// 3. 并发查询 Namespace
+	g.Go(func() error {
+		nsList, err := ListNamespaces(ctx, s.clientset, "", "")
+		data.nsList = nsList
+		data.nsErr = err
+		return err
+	})
+
+	// 4. 并发查询 Service
+	g.Go(func() error {
+		services, err := ListServices(ctx, s.clientset, "", "", "")
+		data.services = services
+		data.servicesErr = err
+		return err
+	})
+
+	// 5. 并发查询 Events
+	g.Go(func() error {
 		events, err := s.getRecentEvents(ctx, model.DefaultOverviewEventsLimit)
-		eventChan <- events
-		_ = err
-	}()
+		data.events = events
+		data.eventsErr = err
+		return err
+	})
 
-	podRes := <-podChan
-	data.pods, data.podsRaw, data.podsErr = podRes.pods, podRes.podsRaw, podRes.err
+	// 等待所有任务完成
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
 
-	nodeRes := <-nodeChan
-	data.nodes, data.nodesRaw, data.nodesErr = nodeRes.nodes, nodeRes.nodesRaw, nodeRes.err
-
-	data.nsList, data.nsErr = <-nsChan, nil
-	data.services, data.servicesErr = <-svcChan, nil
-	data.events, data.eventsErr = <-eventChan, nil
-
-	return data
+	return data, nil
 }
-
-func must[T any](res T, _ error) T { return res }
 
 func (s *OverviewService) calcResourceUsage(nodesRaw *corev1.NodeList, podsRaw *corev1.PodList, overview *model.OverviewStatus) {
 	var cpuCap, memCap, cpuReq, cpuLim, memReq, memLim float64
@@ -179,7 +185,7 @@ func (s *OverviewService) getRecentEvents(ctx context.Context, limit int) ([]mod
 	if err != nil {
 		return nil, err
 	}
-	if eventList == nil || len(eventList.Items) == 0 {
+	if len(eventList.Items) == 0 {
 		return []model.Event{}, nil
 	}
 
@@ -203,11 +209,4 @@ func (s *OverviewService) getRecentEvents(ctx context.Context, limit int) ([]mod
 		}
 	}
 	return recentEvents, nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

@@ -1,22 +1,21 @@
-package security
+package config
 
 import (
 	"fmt"
 
-	"github.com/nick0323/K8sVision/config"
 	"go.uber.org/zap"
 )
 
-type SecurityConfig struct {
-	configMgr *config.Manager
+type SecurityChecker struct {
+	configMgr *Manager
 	logger    *zap.Logger
 }
 
-func NewSecurityConfig(configMgr *config.Manager, logger *zap.Logger) *SecurityConfig {
-	return &SecurityConfig{configMgr: configMgr, logger: logger}
+func NewSecurityChecker(configMgr *Manager, logger *zap.Logger) *SecurityChecker {
+	return &SecurityChecker{configMgr: configMgr, logger: logger}
 }
 
-func (s *SecurityConfig) CheckAndValidate() error {
+func (s *SecurityChecker) CheckAndValidate() error {
 	cfg := s.configMgr.GetConfig()
 
 	s.logger.Info("Validating security configuration",

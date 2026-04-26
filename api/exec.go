@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/nick0323/K8sVision/api/middleware"
+	"github.com/nick0323/K8sVision/config"
 	"github.com/nick0323/K8sVision/service"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
@@ -33,11 +34,12 @@ const (
 var (
 	activeExecConnections atomic.Int32
 	globalClientManager   *service.ClientManager
-	dnsLabelRegex         = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+	globalConfigManager   *config.Manager
 )
 
-func SetGlobalClientManager(cm *service.ClientManager) {
+func InitExecClientManager(cm *service.ClientManager, cfgMgr *config.Manager) {
 	globalClientManager = cm
+	globalConfigManager = cfgMgr
 }
 
 type wsInput struct {
@@ -205,7 +207,7 @@ func getK8sExecClient() (*kubernetes.Clientset, *rest.Config, error) {
 		return nil, nil, fmt.Errorf("system not initialized")
 	}
 
-	clientset, _, err := globalClientManager.GetDefaultClient()
+	clientset, err := globalClientManager.GetDefaultClient()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -299,7 +301,10 @@ func sendWebSocketError(ws *websocket.Conn, msg string, logger *zap.Logger) {
 }
 
 func isValidNamespace(namespace string) bool {
-	return namespace != "" && len(namespace) <= 63 && dnsLabelRegex.MatchString(namespace)
+	if namespace == "" || len(namespace) > 63 {
+		return false
+	}
+	return regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`).MatchString(namespace)
 }
 
 func hasContainer(pod *v1.Pod, containerName string) bool {

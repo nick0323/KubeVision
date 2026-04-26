@@ -38,12 +38,12 @@ func DefaultListOptions() *ListOptions {
 	return &ListOptions{Limit: 1000}
 }
 
-func ListPods(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.Pod, error) {
+func ListPods(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Pod, error) {
 	pods, _, err := ListPodsWithRaw(ctx, clientset, namespace, labelSelector, fieldSelector)
 	return pods, err
 }
 
-func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string, noLimit ...bool) ([]model.Pod, *corev1.PodList, error) {
+func ListPodsWithRaw(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string, noLimit ...bool) ([]model.Pod, *corev1.PodList, error) {
 	opts := DefaultListOptions()
 	opts.Namespace = namespace
 	opts.LabelSelector = labelSelector
@@ -53,14 +53,7 @@ func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, names
 		opts.Limit = 0
 	}
 
-	pods, err := ListResourcesWithNamespace(ctx, namespace,
-		func() (*corev1.PodList, error) {
-			return clientset.CoreV1().Pods("").List(ctx, opts.Apply())
-		},
-		func(ns string) (*corev1.PodList, error) {
-			return clientset.CoreV1().Pods(ns).List(ctx, opts.Apply())
-		},
-	)
+	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,7 +61,7 @@ func ListPodsWithRaw(ctx context.Context, clientset *kubernetes.Clientset, names
 	return MapPods(pods.Items), pods, nil
 }
 
-func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.Deployment, error) {
+func ListDeployments(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Deployment, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -79,7 +72,7 @@ func ListDeployments(ctx context.Context, clientset *kubernetes.Clientset, names
 	return MapDeployments(depList.Items), nil
 }
 
-func ListStatefulSets(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.StatefulSet, error) {
+func ListStatefulSets(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.StatefulSet, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -90,7 +83,7 @@ func ListStatefulSets(ctx context.Context, clientset *kubernetes.Clientset, name
 	return MapStatefulSets(stsList.Items), nil
 }
 
-func ListDaemonSets(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.DaemonSet, error) {
+func ListDaemonSets(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.DaemonSet, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -101,7 +94,7 @@ func ListDaemonSets(ctx context.Context, clientset *kubernetes.Clientset, namesp
 	return MapDaemonSets(dsList.Items), nil
 }
 
-func ListJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.Job, error) {
+func ListJobs(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Job, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -112,7 +105,7 @@ func ListJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace, l
 	return MapJobs(jobs.Items), nil
 }
 
-func ListCronJobs(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.CronJob, error) {
+func ListCronJobs(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.CronJob, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -123,7 +116,7 @@ func ListCronJobs(ctx context.Context, clientset *kubernetes.Clientset, namespac
 	return MapCronJobs(cronjobs.Items), nil
 }
 
-func ListServices(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.Service, error) {
+func ListServices(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Service, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -134,7 +127,7 @@ func ListServices(ctx context.Context, clientset *kubernetes.Clientset, namespac
 	return MapServices(svcs.Items), nil
 }
 
-func ListIngresses(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.Ingress, error) {
+func ListIngresses(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Ingress, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -145,25 +138,18 @@ func ListIngresses(ctx context.Context, clientset *kubernetes.Clientset, namespa
 	return MapIngresses(ingresses.Items), nil
 }
 
-func ListPVCs(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.PVC, error) {
+func ListPVCs(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.PVC, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
-	pvcList, err := ListResourcesWithNamespace(ctx, namespace,
-		func() (*corev1.PersistentVolumeClaimList, error) {
-			return clientset.CoreV1().PersistentVolumeClaims("").List(ctx, opts.Apply())
-		},
-		func(ns string) (*corev1.PersistentVolumeClaimList, error) {
-			return clientset.CoreV1().PersistentVolumeClaims(ns).List(ctx, opts.Apply())
-		},
-	)
+	pvcList, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
 	return MapPVCs(pvcList.Items), nil
 }
 
-func ListPVs(ctx context.Context, clientset *kubernetes.Clientset, labelSelector, fieldSelector string) ([]model.PV, error) {
+func ListPVs(ctx context.Context, clientset kubernetes.Interface, labelSelector, fieldSelector string) ([]model.PV, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -174,7 +160,7 @@ func ListPVs(ctx context.Context, clientset *kubernetes.Clientset, labelSelector
 	return MapPVs(pvList.Items), nil
 }
 
-func ListStorageClasses(ctx context.Context, clientset *kubernetes.Clientset, labelSelector, fieldSelector string) ([]model.StorageClass, error) {
+func ListStorageClasses(ctx context.Context, clientset kubernetes.Interface, labelSelector, fieldSelector string) ([]model.StorageClass, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -185,25 +171,18 @@ func ListStorageClasses(ctx context.Context, clientset *kubernetes.Clientset, la
 	return MapStorageClasses(scList.Items), nil
 }
 
-func ListConfigMaps(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.ConfigMap, error) {
+func ListConfigMaps(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.ConfigMap, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
-	cmList, err := ListResourcesWithNamespace(ctx, namespace,
-		func() (*corev1.ConfigMapList, error) {
-			return clientset.CoreV1().ConfigMaps("").List(ctx, opts.Apply())
-		},
-		func(ns string) (*corev1.ConfigMapList, error) {
-			return clientset.CoreV1().ConfigMaps(ns).List(ctx, opts.Apply())
-		},
-	)
+	cmList, err := clientset.CoreV1().ConfigMaps(namespace).List(ctx, opts.Apply())
 	if err != nil {
 		return nil, err
 	}
 	return MapConfigMaps(cmList.Items), nil
 }
 
-func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.Secret, error) {
+func ListSecrets(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Secret, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -223,7 +202,7 @@ func ListSecrets(ctx context.Context, clientset *kubernetes.Clientset, namespace
 	return MapSecrets(secretList.Items), nil
 }
 
-func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *corev1.PodList, labelSelector, fieldSelector string) ([]model.Node, error) {
+func ListNodes(ctx context.Context, clientset kubernetes.Interface, pods *corev1.PodList, labelSelector, fieldSelector string) ([]model.Node, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -242,7 +221,7 @@ func ListNodes(ctx context.Context, clientset *kubernetes.Clientset, pods *corev
 	return MapNodes(nodes.Items, pods), nil
 }
 
-func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset, labelSelector, fieldSelector string) ([]model.Namespace, error) {
+func ListNamespaces(ctx context.Context, clientset kubernetes.Interface, labelSelector, fieldSelector string) ([]model.Namespace, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -253,7 +232,7 @@ func ListNamespaces(ctx context.Context, clientset *kubernetes.Clientset, labelS
 	return MapNamespaces(nsList.Items), nil
 }
 
-func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace, involvedObject, since, labelSelector, fieldSelector string) ([]model.Event, error) {
+func ListEvents(ctx context.Context, clientset kubernetes.Interface, namespace, involvedObject, since, labelSelector, fieldSelector string) ([]model.Event, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 
@@ -313,7 +292,7 @@ func ListEvents(ctx context.Context, clientset *kubernetes.Clientset, namespace,
 	return MapEvents(filteredEvents), nil
 }
 
-func ListEndpoints(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector, fieldSelector string) ([]model.Endpoints, error) {
+func ListEndpoints(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Endpoints, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector

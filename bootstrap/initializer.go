@@ -2,18 +2,21 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/nick0323/K8sVision/api"
-	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/cache"
 	"github.com/nick0323/K8sVision/config"
-	"github.com/nick0323/K8sVision/internal/security"
 	"github.com/nick0323/K8sVision/model"
 	"github.com/nick0323/K8sVision/service"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+// ErrK8sUnavailable 表示 K8s 客户端未初始化（非致命错误）
+var ErrK8sUnavailable = errors.New("kubernetes client unavailable")
 
 type Initializer struct {
 	logger    *zap.Logger
@@ -32,11 +35,10 @@ func (i *Initializer) InitBaseComponents(configFile string) (*zap.Logger, *cache
 	}
 	i.configMgr.UpdateLogger(logger)
 
-	if err := security.NewSecurityConfig(i.configMgr, logger).CheckAndValidate(); err != nil {
+	if err := config.NewSecurityChecker(i.configMgr, logger).CheckAndValidate(); err != nil {
 		return nil, nil, err
 	}
 
-	cfg = i.configMgr.GetConfig()
 	if err := cfg.Validate(); err != nil {
 		return nil, nil, fmt.Errorf("config validation failed: %w", err)
 	}
@@ -44,25 +46,18 @@ func (i *Initializer) InitBaseComponents(configFile string) (*zap.Logger, *cache
 	return logger, InitLRUCache(i.configMgr, logger), nil
 }
 
-func (i *Initializer) InitK8sComponents(logger *zap.Logger) (*service.ClientManager, error) {
+func (i *Initializer) InitK8sComponents(ctx context.Context, logger *zap.Logger) (*service.ClientManager, error) {
 	k8sClientMgr, err := InitK8sClient(i.configMgr, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	InitK8sCache(k8sClientMgr, logger)
+	InitK8sCache(ctx, k8sClientMgr, logger)
 	return k8sClientMgr, nil
 }
 
 func InitLogger(cfg *model.Config) (*zap.Logger, error) {
-	var zapConfig zap.Config
-
-	if cfg.IsDevelopment() {
-		zapConfig = zap.NewDevelopmentConfig()
-	} else {
-		zapConfig = zap.NewProductionConfig()
-	}
-
+	// 1. 设置日志级别
 	logLevel := zap.InfoLevel
 	switch cfg.Log.Level {
 	case "debug":
@@ -74,18 +69,57 @@ func InitLogger(cfg *model.Config) (*zap.Logger, error) {
 	case "error":
 		logLevel = zap.ErrorLevel
 	}
-	zapConfig.Level = zap.NewAtomicLevelAt(logLevel)
 
-	if cfg.Log.Format == "console" {
-		zapConfig.Encoding = "console"
-	} else {
-		zapConfig.Encoding = "json"
+	// 2. 配置编码器
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "timestamp",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05.000"),
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
-	zapConfig.EncoderConfig.TimeKey = "timestamp"
-	zapConfig.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05.000")
+	if cfg.Log.Format == "console" {
+		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
 
-	return zapConfig.Build()
+	encoder := zapcore.NewConsoleEncoder(encoderConfig)
+	if cfg.Log.Format != "console" {
+		encoder = zapcore.NewJSONEncoder(encoderConfig)
+	}
+
+	// 3. 配置输出目标 (分级输出)
+	// 开发环境：全部输出到控制台
+	// 生产环境：Info+ 到 stdout，Error+ 到 stderr
+	var writeSyncers []zapcore.WriteSyncer
+	writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
+
+	if !cfg.IsDevelopment() {
+		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stderr))
+	}
+
+	// 4. 构建 Core
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel),
+	)
+
+	if !cfg.IsDevelopment() {
+		// 生产环境额外将 Error 级别输出到 stderr
+		core = zapcore.NewTee(
+			zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel),
+			zapcore.NewCore(encoder, zapcore.AddSync(os.Stderr), zapcore.ErrorLevel),
+		)
+	}
+
+	// 5. 构建 Logger
+	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
+	return logger, nil
 }
 
 func InitLRUCache(configMgr *config.Manager, logger *zap.Logger) *cache.MemoryCache[interface{}] {
@@ -99,18 +133,18 @@ func InitK8sClient(configMgr *config.Manager, logger *zap.Logger) (*service.Clie
 			zap.Error(err),
 			zap.String("hint", "Can be enabled by configuring kubeconfig or using in-cluster mode"),
 		)
-		return nil, nil
+		return nil, ErrK8sUnavailable
 	}
 	return k8sClientMgr, nil
 }
 
-func InitK8sCache(k8sClientMgr *service.ClientManager, logger *zap.Logger) {
+func InitK8sCache(ctx context.Context, k8sClientMgr *service.ClientManager, logger *zap.Logger) {
 	if k8sClientMgr == nil {
 		logger.Debug("K8s client manager not initialized, skipping cache initialization")
 		return
 	}
 
-	clientset, _, err := k8sClientMgr.GetDefaultClient()
+	clientset, err := k8sClientMgr.GetDefaultClient()
 	if err != nil || clientset == nil {
 		logger.Warn("K8s client unavailable, skipping cache initialization")
 		return
@@ -118,26 +152,19 @@ func InitK8sCache(k8sClientMgr *service.ClientManager, logger *zap.Logger) {
 
 	podInformer := service.NewPodInformer(clientset, "")
 	service.SetPodInformer(podInformer)
-	go podInformer.Start(context.Background())
+	go podInformer.Start(ctx)
 	logger.Info("Pod Informer started")
 }
 
+// InitServices 预留服务初始化扩展点
+// TODO: 未来可在此处初始化非 K8s 依赖的后台服务（如定时任务、消息队列消费者等）
 func InitServices(k8sClientMgr *service.ClientManager, logger *zap.Logger) {
-	if k8sClientMgr == nil {
-		return
-	}
-	clientset, _, _ := k8sClientMgr.GetDefaultClient()
-	if clientset == nil {
-		return
-	}
+	// 目前为空，保留用于后续扩展
 }
 
 func InitAPI(configMgr *config.Manager, k8sClientMgr *service.ClientManager, logger *zap.Logger) {
 	cfg := configMgr.GetConfig()
 
-	api.SetConfigManager(configMgr)
-	api.InitAuthManager(logger)
-	middleware.SetJWTSecret([]byte(cfg.JWT.Secret))
-	api.SetGlobalClientManager(k8sClientMgr)
+	api.InitExecClientManager(k8sClientMgr, configMgr)
 	api.InitWebSocketUpgrader(cfg.Server.AllowedOrigin)
 }

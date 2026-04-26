@@ -10,28 +10,21 @@ import (
 	"go.uber.org/zap"
 )
 
-var sensitiveParams = []string{
-	"token", "password", "passwd", "pwd",
-	"secret", "key", "api_key", "apikey",
-	"access_token", "refresh_token", "auth",
-}
+var sensitiveParams = []string{"token", "password", "secret", "key", "apikey", "auth"}
 
 func MaskSensitiveQuery(query string) string {
 	if query == "" {
 		return ""
 	}
-
 	values, err := url.ParseQuery(query)
 	if err != nil {
 		return "***parse_error***"
 	}
-
 	for _, param := range sensitiveParams {
 		if values.Has(param) {
 			values.Set(param, "***")
 		}
 	}
-
 	return values.Encode()
 }
 
@@ -43,13 +36,11 @@ func LoggingMiddleware(logger *zap.Logger) gin.HandlerFunc {
 		method := c.Request.Method
 		traceId := c.GetString("traceId")
 
-		maskedQuery := MaskSensitiveQuery(raw)
-
 		logger.Debug("request started",
 			zap.String("traceId", traceId),
 			zap.String("method", method),
 			zap.String("path", path),
-			zap.String("query", maskedQuery),
+			zap.String("query", MaskSensitiveQuery(raw)),
 			zap.String("clientIP", c.ClientIP()),
 		)
 
@@ -84,21 +75,17 @@ func TraceMiddleware() gin.HandlerFunc {
 		if traceId == "" {
 			traceId = generateTraceID()
 		}
-
 		c.Set("traceId", traceId)
 		c.Header("X-Trace-ID", traceId)
-
 		c.Next()
 	}
 }
 
 func generateTraceID() string {
 	timestamp := time.Now().Format("20060102150405")
-
 	randomBytes := make([]byte, 8)
 	if _, err := rand.Read(randomBytes); err != nil {
 		return timestamp + "-00000000"
 	}
-
 	return timestamp + "-" + hex.EncodeToString(randomBytes)
 }

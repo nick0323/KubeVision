@@ -3,7 +3,11 @@ package model
 import (
 	"fmt"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// ==================== API 响应 ====================
 
 type APIResponse struct {
 	Code      int       `json:"code"`
@@ -30,10 +34,14 @@ func (e *APIError) Error() string {
 	return e.Message
 }
 
+// ==================== 请求 ====================
+
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
+
+// ==================== 集群概览 ====================
 
 type OverviewStatus struct {
 	NodeCount      int     `json:"nodeCount"`
@@ -50,6 +58,8 @@ type OverviewStatus struct {
 	MemoryLimits   float64 `json:"memoryLimits"`
 	Events         []Event `json:"events"`
 }
+
+// ==================== K8s 资源 ====================
 
 type Node struct {
 	Name         string   `json:"name"`
@@ -226,6 +236,13 @@ type Endpoints struct {
 	Age       string   `json:"age"`
 }
 
+type NodeMetrics struct {
+	CPU    string `json:"cpu"`
+	Memory string `json:"memory"`
+}
+
+// ==================== 接口 ====================
+
 type SearchableItem interface {
 	GetSearchableFields() map[string]string
 }
@@ -298,9 +315,17 @@ func (e Endpoints) GetSearchableFields() map[string]string {
 	return map[string]string{"Name": e.Name, "Namespace": e.Namespace}
 }
 
+// ==================== 工具函数 ====================
+
+func FormatTime(t *metav1.Time) string {
+	if t == nil || t.IsZero() {
+		return ""
+	}
+	return t.Time.Format(TimeFormatRFC3339)
+}
+
 func FormatAge(t time.Time) string {
 	duration := time.Since(t)
-
 	if duration < time.Minute {
 		return "0s"
 	}

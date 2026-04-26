@@ -1,22 +1,12 @@
 package model
 
-import (
-	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-type NodeMetrics struct {
-	CPU    string `json:"cpu"`
-	Memory string `json:"memory"`
-}
+import "time"
 
 const (
 	Version         = "2.0.0-optimized"
 	MonitorInterval = 5 * time.Minute
 
 	HealthCheckPath = "/health"
-	CacheStatsPath  = "/cache/stats"
 	APIPrefix       = "/api"
 	LoginPath       = "/api/login"
 
@@ -51,10 +41,3 @@ const (
 	CodeValidationFailed    = 422
 	CodeInternalServerError = 500
 )
-
-func FormatTime(t *metav1.Time) string {
-	if t == nil || t.IsZero() {
-		return ""
-	}
-	return t.Time.Format(TimeFormatRFC3339)
-}

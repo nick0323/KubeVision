@@ -17,20 +17,16 @@ type CORSConfig struct {
 	MaxAge           int
 }
 
-func DefaultCORSConfig() *CORSConfig {
-	return &CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
-		ExposeHeaders:    []string{"Content-Length", "X-Trace-ID"},
-		AllowCredentials: false,
-		MaxAge:           3600,
-	}
-}
-
 func CORSMiddleware(config *CORSConfig) gin.HandlerFunc {
 	if config == nil {
-		config = DefaultCORSConfig()
+		config = &CORSConfig{
+			AllowOrigins:     []string{"*"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
+			ExposeHeaders:    []string{"Content-Length", "X-Trace-ID"},
+			AllowCredentials: false,
+			MaxAge:           3600,
+		}
 	}
 
 	if config.AllowCredentials && len(config.AllowOrigins) == 1 && config.AllowOrigins[0] == "*" {
@@ -61,19 +57,15 @@ func CORSMiddleware(config *CORSConfig) gin.HandlerFunc {
 		if config.AllowCredentials {
 			c.Header("Access-Control-Allow-Credentials", "true")
 		}
-
 		if len(config.ExposeHeaders) > 0 {
 			c.Header("Access-Control-Expose-Headers", strings.Join(config.ExposeHeaders, ", "))
 		}
-
 		if config.MaxAge > 0 {
 			c.Header("Access-Control-Max-Age", fmt.Sprintf("%d", config.MaxAge))
 		}
-
 		if len(config.AllowMethods) > 0 {
 			c.Header("Access-Control-Allow-Methods", strings.Join(config.AllowMethods, ", "))
 		}
-
 		if len(config.AllowHeaders) > 0 {
 			c.Header("Access-Control-Allow-Headers", strings.Join(config.AllowHeaders, ", "))
 		}

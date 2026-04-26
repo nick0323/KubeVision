@@ -3,7 +3,7 @@ package api
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -21,53 +21,34 @@ const (
 	PasswordMaxLen = 128
 )
 
-var (
+type LoginHandler struct {
 	authManager   *AuthManager
 	configManager *config.Manager
-)
-
-func SetConfigManager(mgr *config.Manager) {
-	configManager = mgr
+	passwordMgr   *PasswordManager
+	logger        *zap.Logger
 }
 
-func GetAuthConfig() model.AuthConfig {
-	if configManager == nil {
-		return model.AuthConfig{}
+func NewLoginHandler(authManager *AuthManager, configManager *config.Manager, logger *zap.Logger) *LoginHandler {
+	return &LoginHandler{
+		authManager:   authManager,
+		configManager: configManager,
+		passwordMgr:   NewPasswordManager(),
+		logger:        logger,
 	}
-	return configManager.GetConfig().Auth
 }
 
-func GetUsernameFromContext(c *gin.Context) string {
-	username, exists := c.Get("username")
-	if !exists {
-		return ""
+func InitAuthManager(logger *zap.Logger, configMgr *config.Manager) (*AuthManager, error) {
+	if configMgr == nil {
+		return nil, errors.New("config manager not initialized")
 	}
-	if usernameStr, ok := username.(string); ok {
-		return usernameStr
-	}
-	return ""
+	return NewAuthManager(logger, configMgr), nil
 }
 
-func generateJTI() string {
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		return fmt.Sprintf("%d", time.Now().UnixNano())
-	}
-	return base64.URLEncoding.EncodeToString(bytes)
-}
-
-func InitAuthManager(logger *zap.Logger) {
-	if configManager == nil {
-		logger.Fatal("Config manager not initialized")
-	}
-	authManager = NewAuthManager(logger, configManager)
-}
-
-func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
+func (h *LoginHandler) Handle() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req model.LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			middleware.ResponseError(c, logger, &model.APIError{
+			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    http.StatusBadRequest,
 				Message: "Invalid request parameter format",
 				Details: err.Error(),
@@ -79,13 +60,13 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		req.Password = strings.TrimSpace(req.Password)
 
 		if err := validateLoginRequest(req); err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
+			middleware.ResponseError(c, h.logger, err, http.StatusBadRequest)
 			return
 		}
 
-		authConfig := GetAuthConfig()
+		authConfig := h.getAuthConfig()
 		if authConfig.Username == "" {
-			middleware.ResponseError(c, logger, &model.APIError{
+			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    http.StatusInternalServerError,
 				Message: "System configuration not initialized",
 			}, http.StatusInternalServerError)
@@ -95,21 +76,115 @@ func LoginHandler(logger *zap.Logger) gin.HandlerFunc {
 		clientIP := c.ClientIP()
 		username := req.Username
 
-		if authManager != nil && authManager.IsLocked(username, clientIP) {
-			sendLockResponse(c, logger, authManager, username, clientIP, authConfig)
+		if h.authManager != nil && h.authManager.IsLocked(username, clientIP) {
+			h.sendLockResponse(c, username, clientIP, authConfig)
 			return
 		}
 
-		usernameMatch := req.Username == authConfig.Username
-		passwordMatch := verifyPassword(req.Password, authConfig.Password)
-
-		if usernameMatch && passwordMatch {
-			handleLoginSuccess(c, logger, username, req.Username, clientIP, authConfig)
-			return
+		if h.authenticate(c, username, req.Password, clientIP, authConfig) {
+			h.handleLoginSuccess(c, username, clientIP, authConfig)
+		} else {
+			h.handleLoginFailure(c, username, clientIP, authConfig)
 		}
-
-		handleLoginFailure(c, logger, username, clientIP, authConfig)
 	}
+}
+
+func (h *LoginHandler) getAuthConfig() model.AuthConfig {
+	if h.configManager == nil {
+		return model.AuthConfig{}
+	}
+	return h.configManager.GetConfig().Auth
+}
+
+func (h *LoginHandler) sendLockResponse(c *gin.Context, username, clientIP string, authConfig model.AuthConfig) {
+	middleware.ResponseError(c, h.logger, &model.APIError{
+		Code:    http.StatusTooManyRequests,
+		Message: "Too many login failures, account locked",
+		Details: map[string]interface{}{
+			"remainingAttempts": h.authManager.GetRemainingAttempts(username, clientIP),
+			"maxFailCount":      authConfig.MaxLoginFail,
+			"lockDuration":      authConfig.LockDuration.String(),
+			"lockTime":          h.authManager.GetLockTime(username, clientIP).String(),
+		},
+	}, http.StatusTooManyRequests)
+}
+
+func (h *LoginHandler) authenticate(c *gin.Context, username, password, clientIP string, authConfig model.AuthConfig) bool {
+	authConfig = h.getAuthConfig()
+	usernameMatch := username == authConfig.Username
+	passwordMatch := verifyPassword(password, authConfig.Password, h.passwordMgr)
+
+	return usernameMatch && passwordMatch
+}
+
+func verifyPassword(reqPassword, configPassword string, pm *PasswordManager) bool {
+	if isHashedPassword(configPassword) {
+		return pm.VerifyPassword(reqPassword, configPassword)
+	}
+	return reqPassword == configPassword
+}
+
+func (h *LoginHandler) handleLoginSuccess(c *gin.Context, username, clientIP string, authConfig model.AuthConfig) {
+	h.logger.Info("User login successful",
+		zap.String("username", username),
+		zap.String("clientIP", clientIP),
+	)
+
+	tokenString, err := h.generateToken(username, authConfig)
+	if err != nil {
+		h.logger.Error("Token generation failed", zap.String("username", username), zap.Error(err))
+		middleware.ResponseError(c, h.logger, &model.APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "Token generation failed",
+		}, http.StatusInternalServerError)
+		return
+	}
+
+	if h.authManager != nil {
+		h.authManager.RecordSuccess(username, clientIP)
+	}
+
+	middleware.ResponseSuccess(c, map[string]string{"token": tokenString}, "Login successful", nil)
+}
+
+func (h *LoginHandler) handleLoginFailure(c *gin.Context, username, clientIP string, authConfig model.AuthConfig) {
+	h.logger.Warn("User login failed",
+		zap.String("username", username),
+		zap.String("clientIP", clientIP),
+	)
+
+	details := map[string]interface{}{
+		"maxFailCount": authConfig.MaxLoginFail,
+	}
+
+	if h.authManager != nil {
+		h.authManager.RecordFailure(username, clientIP)
+		details["remainingAttempts"] = h.authManager.GetRemainingAttempts(username, clientIP)
+	}
+
+	middleware.ResponseError(c, h.logger, &model.APIError{
+		Code:    http.StatusUnauthorized,
+		Message: "Invalid username or password",
+		Details: details,
+	}, http.StatusUnauthorized)
+}
+
+func (h *LoginHandler) generateToken(username string, authConfig model.AuthConfig) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"iat":      time.Now().Unix(),
+		"exp":      time.Now().Add(authConfig.SessionTimeout).Unix(),
+		"iss":      middleware.JWTIssuer,
+		"aud":      middleware.JWTAudience,
+		"jti":      generateJTI(),
+	})
+
+	secret := h.configManager.GetJWTSecret()
+	if len(secret) == 0 {
+		return "", errors.New("JWT secret not configured")
+	}
+
+	return token.SignedString(secret)
 }
 
 func validateLoginRequest(req model.LoginRequest) error {
@@ -122,96 +197,34 @@ func validateLoginRequest(req model.LoginRequest) error {
 	if len(req.Username) > UsernameMaxLen {
 		return &model.APIError{
 			Code:    http.StatusBadRequest,
-			Message: fmt.Sprintf("Username length cannot exceed %d characters", UsernameMaxLen),
+			Message: "Username length cannot exceed 50 characters",
 		}
 	}
 	if len(req.Password) > PasswordMaxLen {
 		return &model.APIError{
 			Code:    http.StatusBadRequest,
-			Message: fmt.Sprintf("Password length cannot exceed %d characters", PasswordMaxLen),
+			Message: "Password length cannot exceed 128 characters",
 		}
 	}
 	return nil
 }
 
-func sendLockResponse(c *gin.Context, logger *zap.Logger, authManager *AuthManager, username, clientIP string, authConfig model.AuthConfig) {
-	middleware.ResponseError(c, logger, &model.APIError{
-		Code:    http.StatusTooManyRequests,
-		Message: "Too many login failures, account locked",
-		Details: map[string]interface{}{
-			"remainingAttempts": authManager.GetRemainingAttempts(username, clientIP),
-			"maxFailCount":      authConfig.MaxLoginFail,
-			"lockDuration":      authConfig.LockDuration.String(),
-			"lockTime":          authManager.GetLockTime(username, clientIP).String(),
-		},
-	}, http.StatusTooManyRequests)
-}
-
-func verifyPassword(reqPassword, configPassword string) bool {
-	if isHashedPassword(configPassword) {
-		pm := NewPasswordManager()
-		return pm.VerifyPassword(reqPassword, configPassword)
+func generateJTI() string {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		// 随机数生成失败时 panic，因为这是安全问题
+		panic("failed to generate random bytes for JTI: " + err.Error())
 	}
-	return reqPassword == configPassword
+	return base64.URLEncoding.EncodeToString(bytes)
 }
 
-func handleLoginSuccess(c *gin.Context, logger *zap.Logger, username, reqUsername, clientIP string, authConfig model.AuthConfig) {
-	logger.Info("User login successful",
-		zap.String("username", reqUsername),
-		zap.String("clientIP", clientIP),
-	)
-
-	tokenString, err := generateToken(reqUsername, authConfig)
-	if err != nil {
-		logger.Error("Token generation failed", zap.String("username", reqUsername), zap.Error(err))
-		middleware.ResponseError(c, logger, &model.APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "Token generation failed",
-		}, http.StatusInternalServerError)
-		return
+func GetUsernameFromContext(c *gin.Context) string {
+	username, exists := c.Get("username")
+	if !exists {
+		return ""
 	}
-
-	authManager.RecordSuccess(username, clientIP)
-	middleware.ResponseSuccess(c, map[string]string{"token": tokenString}, "Login successful", nil)
-}
-
-func handleLoginFailure(c *gin.Context, logger *zap.Logger, username, clientIP string, authConfig model.AuthConfig) {
-	logger.Warn("User login failed",
-		zap.String("username", username),
-		zap.String("clientIP", clientIP),
-	)
-
-	if authManager != nil {
-		authManager.RecordFailure(username, clientIP)
-		middleware.ResponseError(c, logger, &model.APIError{
-			Code:    http.StatusUnauthorized,
-			Message: "Invalid username or password",
-			Details: map[string]interface{}{
-				"remainingAttempts": authManager.GetRemainingAttempts(username, clientIP),
-				"maxFailCount":      authConfig.MaxLoginFail,
-			},
-		}, http.StatusUnauthorized)
-		return
+	if usernameStr, ok := username.(string); ok {
+		return usernameStr
 	}
-
-	middleware.ResponseError(c, logger, &model.APIError{
-		Code:    http.StatusUnauthorized,
-		Message: "Invalid username or password",
-		Details: map[string]interface{}{
-			"maxFailCount": authConfig.MaxLoginFail,
-		},
-	}, http.StatusUnauthorized)
-}
-
-func generateToken(username string, authConfig model.AuthConfig) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": username,
-		"iat":      time.Now().Unix(),
-		"exp":      time.Now().Add(authConfig.SessionTimeout).Unix(),
-		"iss":      middleware.JWTIssuer,
-		"aud":      middleware.JWTAudience,
-		"jti":      generateJTI(),
-	})
-
-	return token.SignedString(configManager.GetJWTSecret())
+	return ""
 }

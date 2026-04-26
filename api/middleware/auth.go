@@ -1,10 +1,9 @@
 package middleware
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -13,58 +12,48 @@ import (
 )
 
 const (
-	JWTIssuer             = "k8svision"
-	JWTAudience           = "k8svision-client"
-	webSocketAuthProtocol = "k8svision.auth"
+	JWTIssuer   = "k8svision"
+	JWTAudience = "k8svision-client"
 )
 
 type ConfigProvider interface {
 	GetJWTSecret() []byte
 }
 
-var (
-	jwtSecret     []byte
-	jwtSecretOnce sync.Once
-)
-
-func SetJWTSecret(secret []byte) {
-	jwtSecretOnce.Do(func() {
-		jwtSecret = secret
-	})
+type JWTMiddleware struct {
+	secret []byte
+	logger *zap.Logger
 }
 
-func GetJWTSecretFromConfig() ([]byte, error) {
-	if jwtSecret == nil {
-		return nil, fmt.Errorf("JWT secret not initialized")
+func NewJWTMiddleware(secret []byte, logger *zap.Logger) *JWTMiddleware {
+	return &JWTMiddleware{
+		secret: secret,
+		logger: logger,
 	}
-	return jwtSecret, nil
 }
 
-func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.HandlerFunc {
+func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		traceId := c.GetString("traceId")
 		tokenStr := getTokenFromRequest(c)
 
 		if tokenStr == "" {
-			logger.Warn("missing authorization",
+			m.logger.Warn("missing authorization",
 				zap.String("traceId", traceId),
 				zap.String("clientIP", c.ClientIP()),
-				zap.String("path", c.Request.URL.Path),
 			)
-			ResponseError(c, logger, &model.APIError{
+			ResponseError(c, m.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Unauthorized access",
-				Details: "Missing Authorization header or token parameter",
 			}, http.StatusUnauthorized)
 			c.Abort()
 			return
 		}
 
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
-
 		if tokenStr == "" {
-			logger.Warn("empty token", zap.String("traceId", traceId))
-			ResponseError(c, logger, &model.APIError{
+			m.logger.Warn("empty token", zap.String("traceId", traceId))
+			ResponseError(c, m.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Token cannot be empty",
 			}, http.StatusUnauthorized)
@@ -72,13 +61,13 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			return
 		}
 
-		claims, err := verifyToken(tokenStr, configProvider)
+		username, err := m.verifyAndSetClaims(c, tokenStr, configProvider)
 		if err != nil {
-			logger.Warn("token verification failed",
+			m.logger.Warn("token verification failed",
 				zap.String("traceId", traceId),
 				zap.Error(err),
 			)
-			ResponseError(c, logger, &model.APIError{
+			ResponseError(c, m.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Token verification failed",
 			}, http.StatusUnauthorized)
@@ -86,20 +75,31 @@ func JWTAuthMiddleware(logger *zap.Logger, configProvider ConfigProvider) gin.Ha
 			return
 		}
 
-		username := claims["username"].(string)
-		c.Set("username", username)
-
-		if jti, ok := claims["jti"].(string); ok && jti != "" {
-			c.Set("jti", jti)
-		}
-
-		logger.Info("authentication successful",
+		m.logger.Info("authentication successful",
 			zap.String("traceId", traceId),
 			zap.String("username", username),
 		)
-
 		c.Next()
 	}
+}
+
+func (m *JWTMiddleware) verifyAndSetClaims(c *gin.Context, tokenStr string, configProvider ConfigProvider) (string, error) {
+	claims, err := verifyToken(tokenStr, configProvider)
+	if err != nil {
+		return "", err
+	}
+
+	username, ok := claims["username"].(string)
+	if !ok || username == "" {
+		return "", errors.New("token missing username")
+	}
+
+	c.Set("username", username)
+	if jti, ok := claims["jti"].(string); ok && jti != "" {
+		c.Set("jti", jti)
+	}
+
+	return username, nil
 }
 
 func getTokenFromRequest(c *gin.Context) string {
@@ -120,7 +120,7 @@ func extractTokenFromWebSocket(headerValue string) string {
 	for i := range parts {
 		parts[i] = strings.TrimSpace(parts[i])
 	}
-	if len(parts) >= 2 && parts[0] == webSocketAuthProtocol && parts[1] != "" {
+	if len(parts) >= 2 && parts[0] == "k8svision.auth" && parts[1] != "" {
 		return parts[1]
 	}
 	return strings.TrimSpace(headerValue)
@@ -138,7 +138,6 @@ func verifyToken(tokenStr string, configProvider ConfigProvider) (jwt.MapClaims,
 		}
 		return secret, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -161,39 +160,51 @@ func verifyToken(tokenStr string, configProvider ConfigProvider) (jwt.MapClaims,
 
 func getJWTSecret(provider ConfigProvider) ([]byte, error) {
 	if provider == nil {
-		return nil, fmt.Errorf("config provider not initialized")
+		return nil, errors.New("config provider not initialized")
 	}
 	secret := provider.GetJWTSecret()
 	if len(secret) == 0 {
-		return nil, fmt.Errorf("JWT secret is empty")
+		return nil, errors.New("JWT secret not configured")
 	}
 	return secret, nil
 }
 
 func validateClaims(claims jwt.MapClaims) error {
-	if username, ok := claims["username"].(string); !ok || username == "" {
-		return fmt.Errorf("token missing username")
+	username, ok := claims["username"].(string)
+	if !ok || username == "" {
+		return errors.New("token missing username")
 	}
 
-	if iss, ok := claims["iss"].(string); ok && iss != "" && iss != JWTIssuer {
-		return fmt.Errorf("invalid token issuer")
+	iss, ok := claims["iss"].(string)
+	if !ok || iss == "" {
+		return errors.New("token missing issuer")
+	}
+	if iss != JWTIssuer {
+		return errors.New("invalid token issuer")
 	}
 
-	if aud, ok := claims["aud"].(string); ok && aud != "" && aud != JWTAudience {
-		return fmt.Errorf("invalid token audience")
+	aud, ok := claims["aud"].(string)
+	if !ok || aud == "" {
+		return errors.New("token missing audience")
+	}
+	if aud != JWTAudience {
+		return errors.New("invalid token audience")
 	}
 
 	return nil
 }
 
 func VerifyToken(tokenStr string, secret []byte) (jwt.MapClaims, error) {
+	if len(secret) == 0 {
+		return nil, errors.New("JWT secret not configured")
+	}
+
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
 		return secret, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

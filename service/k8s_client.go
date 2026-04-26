@@ -14,7 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 const (
@@ -25,7 +24,6 @@ const (
 
 type ClientHolder struct {
 	clientset       *kubernetes.Clientset
-	metricsClient   *metrics.Clientset
 	config          *rest.Config
 	mu              sync.RWMutex
 	closeCh         chan struct{}
@@ -49,18 +47,12 @@ func NewClientHolder(cfg *rest.Config, logger *zap.Logger) (*ClientHolder, error
 		return nil, fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
 
-	metricsClient, err := metrics.NewForConfig(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metrics client: %w", err)
-	}
-
 	holder := &ClientHolder{
-		clientset:     clientset,
-		metricsClient: metricsClient,
-		config:        cfg,
-		closeCh:       make(chan struct{}),
-		logger:        logger,
-		healthy:       true,
+		clientset: clientset,
+		config:    cfg,
+		closeCh:   make(chan struct{}),
+		logger:    logger,
+		healthy:   true,
 	}
 
 	go holder.startHealthCheck()
@@ -110,18 +102,18 @@ func (h *ClientHolder) IsHealthy() bool {
 	return h.healthy && time.Since(h.lastHealthCheck) < HealthCheckMaxAge
 }
 
-func (h *ClientHolder) GetClientset() (*kubernetes.Clientset, *metrics.Clientset, error) {
+func (h *ClientHolder) GetClientset() (*kubernetes.Clientset, error) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
 	if h.clientset == nil {
-		return nil, nil, fmt.Errorf("kubernetes client is not initialized")
+		return nil, fmt.Errorf("kubernetes client is not initialized")
 	}
 
 	if !h.IsHealthy() && !h.lastHealthCheck.IsZero() {
-		return nil, nil, fmt.Errorf("kubernetes client is unhealthy")
+		return nil, fmt.Errorf("kubernetes client is unhealthy")
 	}
-	return h.clientset, h.metricsClient, nil
+	return h.clientset, nil
 }
 
 func (h *ClientHolder) Close() {
@@ -213,7 +205,7 @@ func applyK8sConfig(cfg *rest.Config, k8sConfig *model.KubernetesConfig) {
 	cfg.UserAgent = "KubeVision/1.0"
 }
 
-func (m *ClientManager) GetDefaultClient() (*kubernetes.Clientset, *metrics.Clientset, error) {
+func (m *ClientManager) GetDefaultClient() (*kubernetes.Clientset, error) {
 	return m.defaultClient.GetClientset()
 }
 
@@ -221,7 +213,7 @@ func (m *ClientManager) GetDefaultRESTConfig() *rest.Config {
 	return m.defaultClient.config
 }
 
-func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, *metrics.Clientset, error) {
+func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, error) {
 	if clusterName == "" || clusterName == "default" {
 		return m.GetDefaultClient()
 	}

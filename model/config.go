@@ -15,9 +15,10 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port          string   `mapstructure:"port" json:"port"`
-	Host          string   `mapstructure:"host" json:"host"`
-	AllowedOrigin []string `mapstructure:"allowedOrigin" json:"allowedOrigin"`
+	Port             string   `mapstructure:"port" json:"port"`
+	Host             string   `mapstructure:"host" json:"host"`
+	AllowedOrigin    []string `mapstructure:"allowedOrigin" json:"allowedOrigin"`
+	MaxWsConnections int      `mapstructure:"maxWsConnections" json:"maxWsConnections"`
 }
 
 type KubernetesConfig struct {
@@ -65,9 +66,10 @@ type CacheConfig struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port:          "8080",
-			Host:          "0.0.0.0",
-			AllowedOrigin: []string{"http://localhost:3000", "http://localhost:8080"},
+			Port:             "8080",
+			Host:             "0.0.0.0",
+			AllowedOrigin:    []string{"http://localhost:3000", "http://localhost:8080"},
+			MaxWsConnections: 100,
 		},
 		Kubernetes: KubernetesConfig{
 			Timeout:  30 * time.Second,
