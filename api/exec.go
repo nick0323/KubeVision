@@ -14,8 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/nick0323/K8sVision/api/middleware"
-	"github.com/nick0323/K8sVision/config"
-	"github.com/nick0323/K8sVision/service"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,20 +24,16 @@ import (
 )
 
 const (
-	ExecDefaultCommand = "/bin/sh"
-	ExecSessionTimeout = 30 * time.Minute
+	ExecDefaultCommand     = "/bin/sh"
+	ExecSessionTimeout  = 30 * time.Minute
 	MaxExecConnections = 100
 )
 
-var (
-	activeExecConnections atomic.Int32
-	globalClientManager   *service.ClientManager
-	globalConfigManager   *config.Manager
-)
+var activeExecConnections atomic.Int32
 
-func InitExecClientManager(cm *service.ClientManager, cfgMgr *config.Manager) {
-	globalClientManager = cm
-	globalConfigManager = cfgMgr
+type ExecClientProvider interface {
+	GetClientset() (*kubernetes.Clientset, error)
+	GetRESTConfig() (*rest.Config, error)
 }
 
 type wsInput struct {
@@ -112,11 +106,11 @@ func (w *wsOutput) Write(p []byte) (int, error) {
 	return len(p), w.conn.WriteMessage(websocket.BinaryMessage, p)
 }
 
-func RegisterExecWS(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sClientProvider, configProvider middleware.ConfigProvider) {
-	r.GET("/ws/exec", HandleExecWS(logger, getK8sClient, configProvider))
+func RegisterExecWS(r *gin.RouterGroup, logger *zap.Logger, execClientProvider ExecClientProvider, configProvider middleware.ConfigProvider) {
+	r.GET("/ws/exec", HandleExecWS(logger, execClientProvider, configProvider))
 }
 
-func HandleExecWS(logger *zap.Logger, getK8sClient K8sClientProvider, configProvider middleware.ConfigProvider) gin.HandlerFunc {
+func HandleExecWS(logger *zap.Logger, execClientProvider ExecClientProvider, configProvider middleware.ConfigProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := ExtractTokenFromRequest(c)
 		if tokenStr == "" {
@@ -133,12 +127,12 @@ func HandleExecWS(logger *zap.Logger, getK8sClient K8sClientProvider, configProv
 		}
 
 		username, _ := claims["username"].(string)
-		handleExecWSImpl(c, logger, getK8sClient, username)
+		handleExecWSImpl(c, logger, execClientProvider, username)
 		c.Abort()
 	}
 }
 
-func handleExecWSImpl(c *gin.Context, logger *zap.Logger, getK8sClient K8sClientProvider, username string) {
+func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider ExecClientProvider, username string) {
 	namespace := c.Query("namespace")
 	podName := c.Query("pod")
 	container := c.Query("container")
@@ -155,7 +149,7 @@ func handleExecWSImpl(c *gin.Context, logger *zap.Logger, getK8sClient K8sClient
 	}
 	defer activeExecConnections.Add(-1)
 
-	clientset, config, err := getK8sExecClient()
+	clientset, config, err := getExecClient(execClientProvider)
 	if err != nil {
 		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 		return
@@ -202,16 +196,16 @@ func parseExecCommand(commandStr string) []string {
 	return []string{ExecDefaultCommand, "-c", commandStr}
 }
 
-func getK8sExecClient() (*kubernetes.Clientset, *rest.Config, error) {
-	if globalClientManager == nil {
-		return nil, nil, fmt.Errorf("system not initialized")
-	}
-
-	clientset, err := globalClientManager.GetDefaultClient()
+func getExecClient(provider ExecClientProvider) (*kubernetes.Clientset, *rest.Config, error) {
+	clientset, err := provider.GetClientset()
 	if err != nil {
 		return nil, nil, err
 	}
-	return clientset, globalClientManager.GetDefaultRESTConfig(), nil
+	config, err := provider.GetRESTConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	return clientset, config, nil
 }
 
 func validatePodAndContainer(clientset *kubernetes.Clientset, namespace, podName, container string) (*v1.Pod, error) {
@@ -242,9 +236,9 @@ func upgradeExecWebSocket(c *gin.Context, logger *zap.Logger, namespace, podName
 	if err := ws.WriteJSON(gin.H{
 		"status":    "connected",
 		"namespace": namespace,
-		"pod":       podName,
+		"pod":      podName,
 		"container": container,
-		"message":   fmt.Sprintf("Connected to %s/%s (%s)", namespace, podName, container),
+		"message":  fmt.Sprintf("Connected to %s/%s (%s)", namespace, podName, container),
 	}); err != nil {
 		ws.Close()
 		return nil, err
@@ -282,11 +276,11 @@ func executeRemoteCommand(ws *websocket.Conn, clientset *kubernetes.Clientset, c
 	output := &wsOutput{conn: ws}
 
 	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-		Stdin:             input,
-		Stdout:            output,
+		Stdin:              input,
+		Stdout:             output,
 		Stderr:            output,
 		Tty:               true,
-		TerminalSizeQueue: &termSizeQueue{sizeChan: sizeChan},
+		TerminalSizeQueue:  &termSizeQueue{sizeChan: sizeChan},
 	})
 
 	if err != nil && err != io.EOF {

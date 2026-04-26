@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/metrics/pkg/client/clientset/versioned"
 
 	"github.com/nick0323/K8sVision/api"
@@ -129,7 +130,6 @@ func (s *Server) healthCheckHandler(c *gin.Context) {
 }
 
 func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
-	// 1. 初始化 WebSocket 管理器
 	cfg := s.configMgr.GetConfig()
 	api.InitWebSocketManager(cfg.Server.MaxWsConnections)
 
@@ -140,10 +140,22 @@ func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	})
 
 	api.RegisterOperations(apiGroup, s.logger, s.getK8sClient)
-	api.RegisterExecWS(apiGroup, s.logger, s.getK8sClient, s.configMgr)
+	api.RegisterExecWS(apiGroup, s.logger, &serverClientProvider{mgr: s.k8sClientMgr}, s.configMgr)
 	api.RegisterLogStream(apiGroup, s.logger, s.getK8sClient, s.configMgr)
 	api.RegisterRoutes(apiGroup, s.logger, s.getK8sClient)
 	api.RegisterPasswordAdmin(apiGroup, s.configMgr, s.logger)
+}
+
+type serverClientProvider struct {
+	mgr *service.ClientManager
+}
+
+func (s *serverClientProvider) GetClientset() (*kubernetes.Clientset, error) {
+	return s.mgr.GetDefaultClient()
+}
+
+func (s *serverClientProvider) GetRESTConfig() (*rest.Config, error) {
+	return s.mgr.GetDefaultRESTConfig(), nil
 }
 
 func (s *Server) getK8sClient() (*kubernetes.Clientset, *versioned.Clientset, error) {

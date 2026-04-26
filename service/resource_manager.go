@@ -3,286 +3,328 @@ package service
 import (
 	"context"
 	"fmt"
-	"strings"
+	"sort"
+	"time"
 
 	"github.com/nick0323/K8sVision/model"
+	"github.com/nick0323/K8sVision/pkg/k8s"
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-// GetResourceByName 根据资源类型和名称获取对象（返回 K8s 原始对象）
 func GetResourceByName(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, name string) (interface{}, error) {
-	resourceType = strings.ToLower(resourceType)
+	rt := k8s.ResourceType(resourceType).Normalize()
+	getters := k8s.NewGetters(clientset)
 
-	switch resourceType {
-	case "pod":
-		return clientset.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "deployment":
-		return clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "statefulset":
-		return clientset.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "daemonset":
-		return clientset.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "service":
-		return clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "configmap":
-		return clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "secret":
-		return clientset.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "ingress":
-		return clientset.NetworkingV1().Ingresses(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "job":
-		return clientset.BatchV1().Jobs(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "cronjob":
-		return clientset.BatchV1().CronJobs(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "persistentvolumeclaim", "pvc":
-		return clientset.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, name, metav1.GetOptions{})
-	case "persistentvolume", "pv":
-		return clientset.CoreV1().PersistentVolumes().Get(ctx, name, metav1.GetOptions{})
-	case "storageclass":
-		return clientset.StorageV1().StorageClasses().Get(ctx, name, metav1.GetOptions{})
-	case "namespace":
-		return clientset.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
-	case "node":
-		return clientset.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
-	case "endpoint":
-		return clientset.CoreV1().Endpoints(namespace).Get(ctx, name, metav1.GetOptions{})
-	default:
+	getter, ok := getters[rt]
+	if !ok {
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
+
+	ns := namespace
+	if rt.IsClusterScoped() {
+		ns = ""
+	}
+
+	return getter.Get(ctx, ns, name)
 }
 
-// DeleteResourceByType 根据资源类型删除资源
 func DeleteResourceByType(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, name string) error {
-	resourceType = strings.ToLower(resourceType)
+	rt := k8s.ResourceType(resourceType).Normalize()
+	deleters := k8s.NewDeleters(clientset)
 
-	switch resourceType {
-	case "pod":
-		return clientset.CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "deployment":
-		return clientset.AppsV1().Deployments(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "statefulset":
-		return clientset.AppsV1().StatefulSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "daemonset":
-		return clientset.AppsV1().DaemonSets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "service":
-		return clientset.CoreV1().Services(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "configmap":
-		return clientset.CoreV1().ConfigMaps(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "secret":
-		return clientset.CoreV1().Secrets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "ingress":
-		return clientset.NetworkingV1().Ingresses(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "job":
-		return clientset.BatchV1().Jobs(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "cronjob":
-		return clientset.BatchV1().CronJobs(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "persistentvolumeclaim", "pvc":
-		return clientset.CoreV1().PersistentVolumeClaims(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-	case "persistentvolume", "pv":
-		return clientset.CoreV1().PersistentVolumes().Delete(ctx, name, metav1.DeleteOptions{})
-	case "storageclass":
-		return clientset.StorageV1().StorageClasses().Delete(ctx, name, metav1.DeleteOptions{})
-	case "namespace":
-		return clientset.CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
-	case "node":
-		return clientset.CoreV1().Nodes().Delete(ctx, name, metav1.DeleteOptions{})
-	default:
+	deleter, ok := deleters[rt]
+	if !ok {
 		return fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
+
+	ns := namespace
+	if rt.IsClusterScoped() {
+		ns = ""
+	}
+
+	return deleter.Delete(ctx, ns, name)
 }
 
-// ListResourcesByType 根据资源类型获取列表
 func ListResourcesByType(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since string) ([]model.SearchableItem, error) {
-	switch resourceType {
-	case "pod":
-		pods, err := ListPods(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	rt := k8s.ResourceType(resourceType).Normalize()
+	getters := k8s.NewGetters(clientset)
+
+	getter, ok := getters[rt]
+	if !ok {
+		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
+	}
+
+	opts := metav1.ListOptions{}
+	if labelSelector != "" {
+		opts.LabelSelector = labelSelector
+	}
+	if fieldSelector != "" {
+		opts.FieldSelector = fieldSelector
+	}
+
+	ns := namespace
+	if rt.IsClusterScoped() {
+		ns = ""
+	}
+
+	result, err := getter.List(ctx, ns, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return convertToSearchableItems(result, resourceType, rt, since)
+}
+
+func convertToSearchableItems(result interface{}, resourceType string, rt k8s.ResourceType, since string) ([]model.SearchableItem, error) {
+	switch rt {
+	case k8s.ResourcePod:
+		items, ok := result.(*v1.PodList)
+		if !ok {
+			return nil, fmt.Errorf("invalid pod list")
 		}
-		result := make([]model.SearchableItem, len(pods))
+		pods := MapPods(items.Items)
+		res := make([]model.SearchableItem, len(pods))
 		for i := range pods {
-			result[i] = &pods[i]
+			res[i] = &pods[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "deployment":
-		deployments, err := ListDeployments(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceDeployment:
+		items, ok := result.(*appsv1.DeploymentList)
+		if !ok {
+			return nil, fmt.Errorf("invalid deployment list")
 		}
-		result := make([]model.SearchableItem, len(deployments))
-		for i := range deployments {
-			result[i] = &deployments[i]
+		deps := MapDeployments(items.Items)
+		res := make([]model.SearchableItem, len(deps))
+		for i := range deps {
+			res[i] = &deps[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "statefulset":
-		statefulSets, err := ListStatefulSets(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceStatefulSet:
+		items, ok := result.(*appsv1.StatefulSetList)
+		if !ok {
+			return nil, fmt.Errorf("invalid statefulset list")
 		}
-		result := make([]model.SearchableItem, len(statefulSets))
-		for i := range statefulSets {
-			result[i] = &statefulSets[i]
+		sts := MapStatefulSets(items.Items)
+		res := make([]model.SearchableItem, len(sts))
+		for i := range sts {
+			res[i] = &sts[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "daemonset":
-		daemonSets, err := ListDaemonSets(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceDaemonSet:
+		items, ok := result.(*appsv1.DaemonSetList)
+		if !ok {
+			return nil, fmt.Errorf("invalid daemonset list")
 		}
-		result := make([]model.SearchableItem, len(daemonSets))
-		for i := range daemonSets {
-			result[i] = &daemonSets[i]
+		dss := MapDaemonSets(items.Items)
+		res := make([]model.SearchableItem, len(dss))
+		for i := range dss {
+			res[i] = &dss[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "service":
-		services, err := ListServices(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceService:
+		items, ok := result.(*v1.ServiceList)
+		if !ok {
+			return nil, fmt.Errorf("invalid service list")
 		}
-		result := make([]model.SearchableItem, len(services))
-		for i := range services {
-			result[i] = &services[i]
+		svcs := MapServices(items.Items)
+		res := make([]model.SearchableItem, len(svcs))
+		for i := range svcs {
+			res[i] = &svcs[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "configmap":
-		configMaps, err := ListConfigMaps(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceConfigMap:
+		items, ok := result.(*v1.ConfigMapList)
+		if !ok {
+			return nil, fmt.Errorf("invalid configmap list")
 		}
-		result := make([]model.SearchableItem, len(configMaps))
-		for i := range configMaps {
-			result[i] = &configMaps[i]
+		cms := MapConfigMaps(items.Items)
+		res := make([]model.SearchableItem, len(cms))
+		for i := range cms {
+			res[i] = &cms[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "secret":
-		secrets, err := ListSecrets(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceSecret:
+		items, ok := result.(*v1.SecretList)
+		if !ok {
+			return nil, fmt.Errorf("invalid secret list")
 		}
-		result := make([]model.SearchableItem, len(secrets))
+		secrets := MapSecrets(items.Items)
+		res := make([]model.SearchableItem, len(secrets))
 		for i := range secrets {
-			result[i] = &secrets[i]
+			res[i] = &secrets[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "ingress":
-		ingresses, err := ListIngresses(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceIngress:
+		items, ok := result.(*networkingv1.IngressList)
+		if !ok {
+			return nil, fmt.Errorf("invalid ingress list")
 		}
-		result := make([]model.SearchableItem, len(ingresses))
-		for i := range ingresses {
-			result[i] = &ingresses[i]
+		ings := MapIngresses(items.Items)
+		res := make([]model.SearchableItem, len(ings))
+		for i := range ings {
+			res[i] = &ings[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "job":
-		jobs, err := ListJobs(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceJob:
+		items, ok := result.(*batchv1.JobList)
+		if !ok {
+			return nil, fmt.Errorf("invalid job list")
 		}
-		result := make([]model.SearchableItem, len(jobs))
+		jobs := MapJobs(items.Items)
+		res := make([]model.SearchableItem, len(jobs))
 		for i := range jobs {
-			result[i] = &jobs[i]
+			res[i] = &jobs[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "cronjob":
-		cronJobs, err := ListCronJobs(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceCronJob:
+		items, ok := result.(*batchv1.CronJobList)
+		if !ok {
+			return nil, fmt.Errorf("invalid cronjob list")
 		}
-		result := make([]model.SearchableItem, len(cronJobs))
-		for i := range cronJobs {
-			result[i] = &cronJobs[i]
+		cjs := MapCronJobs(items.Items)
+		res := make([]model.SearchableItem, len(cjs))
+		for i := range cjs {
+			res[i] = &cjs[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "persistentvolumeclaim", "pvc":
-		pvcs, err := ListPVCs(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourcePVC:
+		items, ok := result.(*v1.PersistentVolumeClaimList)
+		if !ok {
+			return nil, fmt.Errorf("invalid pvc list")
 		}
-		result := make([]model.SearchableItem, len(pvcs))
+		pvcs := MapPVCs(items.Items)
+		res := make([]model.SearchableItem, len(pvcs))
 		for i := range pvcs {
-			result[i] = &pvcs[i]
+			res[i] = &pvcs[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "persistentvolume", "pv":
-		pvs, err := ListPVs(ctx, clientset, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourcePV:
+		items, ok := result.(*v1.PersistentVolumeList)
+		if !ok {
+			return nil, fmt.Errorf("invalid pv list")
 		}
-		result := make([]model.SearchableItem, len(pvs))
+		pvs := MapPVs(items.Items)
+		res := make([]model.SearchableItem, len(pvs))
 		for i := range pvs {
-			result[i] = &pvs[i]
+			res[i] = &pvs[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "storageclass":
-		storageClasses, err := ListStorageClasses(ctx, clientset, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceStorageClass:
+		items, ok := result.(*storagev1.StorageClassList)
+		if !ok {
+			return nil, fmt.Errorf("invalid storageclass list")
 		}
-		result := make([]model.SearchableItem, len(storageClasses))
-		for i := range storageClasses {
-			result[i] = &storageClasses[i]
+		scs := MapStorageClasses(items.Items)
+		res := make([]model.SearchableItem, len(scs))
+		for i := range scs {
+			res[i] = &scs[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "namespace":
-		namespaces, err := ListNamespaces(ctx, clientset, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceNamespace:
+		items, ok := result.(*v1.NamespaceList)
+		if !ok {
+			return nil, fmt.Errorf("invalid namespace list")
 		}
-		result := make([]model.SearchableItem, len(namespaces))
-		for i := range namespaces {
-			result[i] = &namespaces[i]
+		nss := MapNamespaces(items.Items)
+		res := make([]model.SearchableItem, len(nss))
+		for i := range nss {
+			res[i] = &nss[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "node":
-		nodes, err := ListNodes(ctx, clientset, nil, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceNode:
+		items, ok := result.(*v1.NodeList)
+		if !ok {
+			return nil, fmt.Errorf("invalid node list")
 		}
-		result := make([]model.SearchableItem, len(nodes))
+		nodes := MapNodes(items.Items, nil)
+		res := make([]model.SearchableItem, len(nodes))
 		for i := range nodes {
-			result[i] = &nodes[i]
+			res[i] = &nodes[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "endpoint":
-		endpoints, err := ListEndpoints(ctx, clientset, namespace, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceEndpoint:
+		items, ok := result.(*v1.EndpointsList)
+		if !ok {
+			return nil, fmt.Errorf("invalid endpoints list")
 		}
-		result := make([]model.SearchableItem, len(endpoints))
-		for i := range endpoints {
-			result[i] = &endpoints[i]
+		eps := MapEndpoints(items.Items)
+		res := make([]model.SearchableItem, len(eps))
+		for i := range eps {
+			res[i] = &eps[i]
 		}
-		return result, nil
+		return res, nil
 
-	case "event":
-		events, err := ListEvents(ctx, clientset, namespace, involvedObject, since, labelSelector, fieldSelector)
-		if err != nil {
-			return nil, err
+	case k8s.ResourceEvent:
+		items, ok := result.(*v1.EventList)
+		if !ok {
+			return nil, fmt.Errorf("invalid event list")
 		}
-		result := make([]model.SearchableItem, len(events))
+		events := MapEvents(filterEventsByTime(items.Items, since))
+		res := make([]model.SearchableItem, len(events))
 		for i := range events {
-			result[i] = &events[i]
+			res[i] = &events[i]
 		}
-		return result, nil
+		return res, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
+}
+
+func filterEventsByTime(events []v1.Event, since string) []v1.Event {
+	if since == "" {
+		return events
+	}
+
+	duration, err := time.ParseDuration(since)
+	if err != nil {
+		duration = 1 * time.Hour
+	}
+
+	cutoffTime := time.Now().Add(-duration)
+	filtered := make([]v1.Event, 0, len(events))
+	for _, e := range events {
+		eventTime := e.LastTimestamp.Time
+		if eventTime.IsZero() {
+			eventTime = e.EventTime.Time
+		}
+		if !eventTime.IsZero() && eventTime.After(cutoffTime) {
+			filtered = append(filtered, e)
+		}
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		iTime := filtered[i].LastTimestamp.Time
+		if iTime.IsZero() {
+			iTime = filtered[i].EventTime.Time
+		}
+		jTime := filtered[j].LastTimestamp.Time
+		if jTime.IsZero() {
+			jTime = filtered[j].EventTime.Time
+		}
+		return iTime.After(jTime)
+	})
+
+	return filtered
 }

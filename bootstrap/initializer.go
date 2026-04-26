@@ -165,6 +165,5 @@ func InitServices(k8sClientMgr *service.ClientManager, logger *zap.Logger) {
 func InitAPI(configMgr *config.Manager, k8sClientMgr *service.ClientManager, logger *zap.Logger) {
 	cfg := configMgr.GetConfig()
 
-	api.InitExecClientManager(k8sClientMgr, configMgr)
 	api.InitWebSocketUpgrader(cfg.Server.AllowedOrigin)
 }
