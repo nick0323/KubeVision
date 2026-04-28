@@ -16,43 +16,43 @@ import (
 type ResourceType string
 
 const (
-	ResourcePod           ResourceType = "pod"
+	ResourcePod          ResourceType = "pod"
 	ResourceDeployment   ResourceType = "deployment"
-	ResourceStatefulSet ResourceType = "statefulset"
-	ResourceDaemonSet   ResourceType = "daemonset"
-	ResourceService     ResourceType = "service"
-	ResourceConfigMap   ResourceType = "configmap"
-	ResourceSecret     ResourceType = "secret"
-	ResourceIngress   ResourceType = "ingress"
-	ResourceJob       ResourceType = "job"
-	ResourceCronJob   ResourceType = "cronjob"
-	ResourcePVC      ResourceType = "persistentvolumeclaim"
-	ResourcePV      ResourceType = "persistentvolume"
+	ResourceStatefulSet  ResourceType = "statefulset"
+	ResourceDaemonSet    ResourceType = "daemonset"
+	ResourceService      ResourceType = "service"
+	ResourceConfigMap    ResourceType = "configmap"
+	ResourceSecret       ResourceType = "secret"
+	ResourceIngress      ResourceType = "ingress"
+	ResourceJob          ResourceType = "job"
+	ResourceCronJob      ResourceType = "cronjob"
+	ResourcePVC          ResourceType = "persistentvolumeclaim"
+	ResourcePV           ResourceType = "persistentvolume"
 	ResourceStorageClass ResourceType = "storageclass"
-	ResourceNamespace ResourceType = "namespace"
-	ResourceNode     ResourceType = "node"
-	ResourceEndpoint ResourceType = "endpoint"
-	ResourceEvent   ResourceType = "event"
+	ResourceNamespace    ResourceType = "namespace"
+	ResourceNode         ResourceType = "node"
+	ResourceEndpoint     ResourceType = "endpoint"
+	ResourceEvent        ResourceType = "event"
 )
 
 var clusterScopedResources = map[ResourceType]bool{
-	ResourcePod:           false,
+	ResourcePod:          false,
 	ResourceDeployment:   false,
-	ResourceStatefulSet:    false,
-	ResourceDaemonSet:     false,
+	ResourceStatefulSet:  false,
+	ResourceDaemonSet:    false,
 	ResourceService:      false,
-	ResourceConfigMap:   false,
-	ResourceSecret:      false,
-	ResourceIngress:    false,
-	ResourceJob:        false,
-	ResourceCronJob:    false,
-	ResourcePVC:         false,
-	ResourcePV:         true,
+	ResourceConfigMap:    false,
+	ResourceSecret:       false,
+	ResourceIngress:      false,
+	ResourceJob:          false,
+	ResourceCronJob:      false,
+	ResourcePVC:          false,
+	ResourcePV:           true,
 	ResourceStorageClass: true,
-	ResourceNamespace:   true,
-	ResourceNode:        true,
-	ResourceEndpoint:    false,
-	ResourceEvent:      false,
+	ResourceNamespace:    true,
+	ResourceNode:         true,
+	ResourceEndpoint:     false,
+	ResourceEvent:        false,
 }
 
 func (rt ResourceType) IsClusterScoped() bool {
@@ -499,21 +499,21 @@ func (u *nodesUpdater) Delete(ctx context.Context, namespace, name string) error
 
 func NewGetters(client kubernetes.Interface) map[ResourceType]Getter {
 	return map[ResourceType]Getter{
-		ResourcePod:             &podsGetter{client},
-		ResourceDeployment:     &deploymentsGetter{client},
-		ResourceStatefulSet:     &statefulSetsGetter{client},
-		ResourceDaemonSet:       &daemonSetsGetter{client},
-		ResourceService:       &servicesGetter{client},
-		ResourceConfigMap:     &configMapsGetter{client},
-		ResourceSecret:        &secretsGetter{client},
-		ResourceIngress:       &ingressesGetter{client},
-		ResourceJob:           &jobsGetter{client},
-		ResourceCronJob:       &cronJobsGetter{client},
-		ResourcePVC:            &pvcsGetter{client},
-		ResourcePV:             &pvsGetter{client},
-		ResourceStorageClass:   &storageClassesGetter{client},
-		ResourceNamespace:     &namespacesGetter{client},
-		ResourceNode:          &nodesGetter{client},
+		ResourcePod:          &podsGetter{client},
+		ResourceDeployment:   &deploymentsGetter{client},
+		ResourceStatefulSet:  &statefulSetsGetter{client},
+		ResourceDaemonSet:    &daemonSetsGetter{client},
+		ResourceService:      &servicesGetter{client},
+		ResourceConfigMap:    &configMapsGetter{client},
+		ResourceSecret:       &secretsGetter{client},
+		ResourceIngress:      &ingressesGetter{client},
+		ResourceJob:          &jobsGetter{client},
+		ResourceCronJob:      &cronJobsGetter{client},
+		ResourcePVC:          &pvcsGetter{client},
+		ResourcePV:           &pvsGetter{client},
+		ResourceStorageClass: &storageClassesGetter{client},
+		ResourceNamespace:    &namespacesGetter{client},
+		ResourceNode:         &nodesGetter{client},
 		ResourceEndpoint:     &endpointsGetter{client},
 		ResourceEvent:        &eventsGetter{client},
 	}
@@ -521,40 +521,40 @@ func NewGetters(client kubernetes.Interface) map[ResourceType]Getter {
 
 func NewUpdaters(client kubernetes.Interface) map[ResourceType]Updater {
 	return map[ResourceType]Updater{
-		ResourcePod:           &podsUpdater{client},
+		ResourcePod:          &podsUpdater{client},
 		ResourceDeployment:   &deploymentsUpdater{client},
-		ResourceStatefulSet:   &statefulSetsUpdater{client},
-		ResourceDaemonSet:     &daemonSetsUpdater{client},
-		ResourceService:       &servicesUpdater{client},
-		ResourceConfigMap:     &configMapsUpdater{client},
-		ResourceSecret:        &secretsUpdater{client},
+		ResourceStatefulSet:  &statefulSetsUpdater{client},
+		ResourceDaemonSet:    &daemonSetsUpdater{client},
+		ResourceService:      &servicesUpdater{client},
+		ResourceConfigMap:    &configMapsUpdater{client},
+		ResourceSecret:       &secretsUpdater{client},
 		ResourceIngress:      &ingressesUpdater{client},
 		ResourceJob:          &jobsUpdater{client},
 		ResourceCronJob:      &cronJobsUpdater{client},
 		ResourcePVC:          &pvcsUpdater{client},
 		ResourcePV:           &pvsUpdater{client},
 		ResourceStorageClass: &storageClassesUpdater{client},
-		ResourceNamespace:   &namespacesUpdater{client},
-		ResourceNode:        &nodesUpdater{client},
+		ResourceNamespace:    &namespacesUpdater{client},
+		ResourceNode:         &nodesUpdater{client},
 	}
 }
 
 func NewDeleters(client kubernetes.Interface) map[ResourceType]Deleter {
 	return map[ResourceType]Deleter{
-		ResourcePod:           &podsUpdater{client},
+		ResourcePod:          &podsUpdater{client},
 		ResourceDeployment:   &deploymentsUpdater{client},
-		ResourceStatefulSet:   &statefulSetsUpdater{client},
-		ResourceDaemonSet:     &daemonSetsUpdater{client},
-		ResourceService:       &servicesUpdater{client},
-		ResourceConfigMap:     &configMapsUpdater{client},
-		ResourceSecret:        &secretsUpdater{client},
+		ResourceStatefulSet:  &statefulSetsUpdater{client},
+		ResourceDaemonSet:    &daemonSetsUpdater{client},
+		ResourceService:      &servicesUpdater{client},
+		ResourceConfigMap:    &configMapsUpdater{client},
+		ResourceSecret:       &secretsUpdater{client},
 		ResourceIngress:      &ingressesUpdater{client},
 		ResourceJob:          &jobsUpdater{client},
 		ResourceCronJob:      &cronJobsUpdater{client},
 		ResourcePVC:          &pvcsUpdater{client},
 		ResourcePV:           &pvsUpdater{client},
 		ResourceStorageClass: &storageClassesUpdater{client},
-		ResourceNamespace:   &namespacesUpdater{client},
-		ResourceNode:        &nodesUpdater{client},
+		ResourceNamespace:    &namespacesUpdater{client},
+		ResourceNode:         &nodesUpdater{client},
 	}
 }

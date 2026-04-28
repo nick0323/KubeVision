@@ -4,6 +4,7 @@
 *.md
 .qwen
 *.exe
+config.yaml
 # 但保留重要的项目文档
 !README.md
 !DEPLOYMENT.md

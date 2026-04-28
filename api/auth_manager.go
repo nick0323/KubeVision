@@ -55,7 +55,7 @@ func (am *AuthManager) getShard(username, ip string) *authShard {
 	key := fmt.Sprintf("%s|%s", username, ip)
 	h := fnv.New32a()
 	h.Write([]byte(key))
-	return am.shards[h.Sum32()%32]
+	return am.shards[h.Sum32()%AuthShardCount]
 }
 
 func (am *AuthManager) IsLocked(username, ip string) bool {

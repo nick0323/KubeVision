@@ -103,7 +103,12 @@ func (s *OverviewService) fetchAllResources(ctx context.Context) (*overviewData,
 			data.nodesErr = err
 			return err
 		}
-		data.nodes = MapNodes(nodesRaw.Items, &corev1.PodList{})
+		// 获取 metrics
+		metricsMap := make(map[string]*model.NodeMetrics)
+		if s.clientset != nil {
+			// 注意：这里需要 metrics 客户端，但 overview 中未传入，暂传空 map
+		}
+		data.nodes = MapNodes(nodesRaw.Items, &corev1.PodList{}, metricsMap)
 		data.nodesRaw = nodesRaw
 		return nil
 	})

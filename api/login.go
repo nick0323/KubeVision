@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -110,7 +111,6 @@ func (h *LoginHandler) sendLockResponse(c *gin.Context, username, clientIP strin
 }
 
 func (h *LoginHandler) authenticate(c *gin.Context, username, password, clientIP string, authConfig model.AuthConfig) bool {
-	authConfig = h.getAuthConfig()
 	usernameMatch := username == authConfig.Username
 	passwordMatch := verifyPassword(password, authConfig.Password, h.passwordMgr)
 
@@ -118,10 +118,24 @@ func (h *LoginHandler) authenticate(c *gin.Context, username, password, clientIP
 }
 
 func verifyPassword(reqPassword, configPassword string, pm *PasswordManager) bool {
-	if isHashedPassword(configPassword) {
+	if configPassword == "" {
+		return false
+	}
+	hashed := isHashedPassword(configPassword)
+	if hashed {
 		return pm.VerifyPassword(reqPassword, configPassword)
 	}
-	return reqPassword == configPassword
+	if reqPassword == configPassword {
+		return true
+	}
+	return false
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (h *LoginHandler) handleLoginSuccess(c *gin.Context, username, clientIP string, authConfig model.AuthConfig) {
@@ -170,13 +184,19 @@ func (h *LoginHandler) handleLoginFailure(c *gin.Context, username, clientIP str
 }
 
 func (h *LoginHandler) generateToken(username string, authConfig model.AuthConfig) (string, error) {
+	jti := generateJTI()
+	if jti == "" {
+		h.logger.Warn("failed to generate JTI, using timestamp")
+		jti = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
 		"iat":      time.Now().Unix(),
 		"exp":      time.Now().Add(authConfig.SessionTimeout).Unix(),
 		"iss":      middleware.JWTIssuer,
 		"aud":      middleware.JWTAudience,
-		"jti":      generateJTI(),
+		"jti":      jti,
 	})
 
 	secret := h.configManager.GetJWTSecret()
@@ -212,8 +232,7 @@ func validateLoginRequest(req model.LoginRequest) error {
 func generateJTI() string {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
-		// 随机数生成失败时 panic，因为这是安全问题
-		panic("failed to generate random bytes for JTI: " + err.Error())
+		return ""
 	}
 	return base64.URLEncoding.EncodeToString(bytes)
 }

@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"math"
-	"strconv"
 	"strings"
 	"time"
 
@@ -270,12 +269,12 @@ func MapNamespaces(namespaces []corev1.Namespace) []model.Namespace {
 	return result
 }
 
-func MapNodes(nodes []corev1.Node, pods *corev1.PodList) []model.Node {
+func MapNodes(nodes []corev1.Node, pods *corev1.PodList, nodeMetricsMap map[string]*model.NodeMetrics) []model.Node {
 	podCountMap := buildNodePodCountMap(pods)
 
 	result := make([]model.Node, len(nodes))
 	for i, n := range nodes {
-		result[i] = model.Node{
+		node := model.Node{
 			Name:         n.Name,
 			IP:           getInternalIP(n),
 			Status:       getNodeStatus(n),
@@ -284,6 +283,18 @@ func MapNodes(nodes []corev1.Node, pods *corev1.PodList) []model.Node {
 			PodsCapacity: int(n.Status.Capacity.Pods().Value()),
 			Age:          CalculateAge(n.CreationTimestamp),
 		}
+
+		// 计算CPU和Memory使用率
+		if metrics, ok := nodeMetricsMap[n.Name]; ok && metrics != nil {
+			if cpuCapacity, ok := n.Status.Capacity[corev1.ResourceCPU]; ok {
+				node.CPUUsage = calculateCPUUsage(&cpuCapacity, metrics.CPU)
+			}
+			if memCapacity, ok := n.Status.Capacity[corev1.ResourceMemory]; ok {
+				node.MemoryUsage = calculateMemoryUsage(&memCapacity, metrics.Memory)
+			}
+		}
+
+		result[i] = node
 	}
 	return result
 }
@@ -654,7 +665,7 @@ func getEndpointPorts(ep corev1.Endpoints) []string {
 	ports := make([]string, 0)
 	for _, subset := range ep.Subsets {
 		for _, p := range subset.Ports {
-			ports = append(ports, strconv.Itoa(int(p.Port)))
+			ports = append(ports, fmt.Sprintf("%d", p.Port))
 		}
 	}
 	if len(ports) == 0 {

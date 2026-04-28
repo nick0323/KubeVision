@@ -166,5 +166,18 @@ func (s *Server) getK8sClient() (*kubernetes.Clientset, *versioned.Clientset, er
 	if err != nil {
 		return nil, nil, err
 	}
-	return clientset, nil, nil
+	
+	// 创建 metrics 客户端
+	restConfig := s.k8sClientMgr.GetDefaultRESTConfig()
+	if restConfig == nil {
+		return clientset, nil, nil
+	}
+	
+	metricsClient, err := versioned.NewForConfig(restConfig)
+	if err != nil {
+		// metrics 客户端创建失败不影响主功能
+		return clientset, nil, nil
+	}
+	
+	return clientset, metricsClient, nil
 }

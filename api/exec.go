@@ -24,12 +24,14 @@ import (
 )
 
 const (
-	ExecDefaultCommand     = "/bin/sh"
-	ExecSessionTimeout  = 30 * time.Minute
+	ExecDefaultCommand = "/bin/sh"
+	ExecSessionTimeout = 30 * time.Minute
 	MaxExecConnections = 100
 )
 
 var activeExecConnections atomic.Int32
+
+var namespaceRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
 
 type ExecClientProvider interface {
 	GetClientset() (*kubernetes.Clientset, error)
@@ -236,9 +238,9 @@ func upgradeExecWebSocket(c *gin.Context, logger *zap.Logger, namespace, podName
 	if err := ws.WriteJSON(gin.H{
 		"status":    "connected",
 		"namespace": namespace,
-		"pod":      podName,
+		"pod":       podName,
 		"container": container,
-		"message":  fmt.Sprintf("Connected to %s/%s (%s)", namespace, podName, container),
+		"message":   fmt.Sprintf("Connected to %s/%s (%s)", namespace, podName, container),
 	}); err != nil {
 		ws.Close()
 		return nil, err
@@ -276,11 +278,11 @@ func executeRemoteCommand(ws *websocket.Conn, clientset *kubernetes.Clientset, c
 	output := &wsOutput{conn: ws}
 
 	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-		Stdin:              input,
-		Stdout:             output,
+		Stdin:             input,
+		Stdout:            output,
 		Stderr:            output,
 		Tty:               true,
-		TerminalSizeQueue:  &termSizeQueue{sizeChan: sizeChan},
+		TerminalSizeQueue: &termSizeQueue{sizeChan: sizeChan},
 	})
 
 	if err != nil && err != io.EOF {
@@ -298,7 +300,7 @@ func isValidNamespace(namespace string) bool {
 	if namespace == "" || len(namespace) > 63 {
 		return false
 	}
-	return regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`).MatchString(namespace)
+	return namespaceRegex.MatchString(namespace)
 }
 
 func hasContainer(pod *v1.Pod, containerName string) bool {

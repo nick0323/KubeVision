@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/nick0323/K8sVision/model"
@@ -64,8 +65,18 @@ func ListResourcesByType(ctx context.Context, clientset kubernetes.Interface, re
 	if labelSelector != "" {
 		opts.LabelSelector = labelSelector
 	}
+
+	fieldSelectors := []string{}
 	if fieldSelector != "" {
-		opts.FieldSelector = fieldSelector
+		fieldSelectors = append(fieldSelectors, fieldSelector)
+	}
+
+	if rt == k8s.ResourceEvent && involvedObject != "" {
+		fieldSelectors = append(fieldSelectors, "involvedObject.name="+involvedObject)
+	}
+
+	if len(fieldSelectors) > 0 {
+		opts.FieldSelector = strings.Join(fieldSelectors, ",")
 	}
 
 	ns := namespace
@@ -256,7 +267,8 @@ func convertToSearchableItems(result interface{}, resourceType string, rt k8s.Re
 		if !ok {
 			return nil, fmt.Errorf("invalid node list")
 		}
-		nodes := MapNodes(items.Items, nil)
+		// 无 metrics 客户端，传空 map
+		nodes := MapNodes(items.Items, nil, make(map[string]*model.NodeMetrics))
 		res := make([]model.SearchableItem, len(nodes))
 		for i := range nodes {
 			res[i] = &nodes[i]

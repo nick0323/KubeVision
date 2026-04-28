@@ -24,6 +24,7 @@ func isClusterResource(resourceType string) bool {
 func RegisterRoutes(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sClientProvider) {
 	r.GET("/:resourceType", getResourceList(logger, getK8sClient))
 	r.GET("/:resourceType/:namespace/:name", getResourceDetail(logger, getK8sClient))
+	// 注意: DELETE 操作是危险操作，生产环境建议添加额外的权限验证
 	r.DELETE("/:resourceType/:namespace/:name", deleteResource(logger, getK8sClient))
 }
 
@@ -36,7 +37,7 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Han
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		clientset, metricsClient, err := getK8sClient()
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -56,7 +57,36 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Han
 		involvedObject := c.Query("involvedObject")
 		since := c.Query("since")
 
-		// 调用 Service 层
+		// 特殊处理 Node 类型，传入 metricsClient
+		if strings.ToLower(resourceType) == "node" {
+			result, err := service.ListNodes(ctx, clientset, metricsClient, nil, labelSelector, fieldSelector)
+			if err != nil {
+				middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+				return
+			}
+			
+			// 转换为 []model.SearchableItem
+			items := make([]model.SearchableItem, len(result))
+			for i := range result {
+				items[i] = &result[i]
+			}
+			
+			params := ParsePaginationParams(c)
+			filteredItems := util.GenericSearchFilter(items, params.Search)
+			if params.SortBy != "" && params.SortOrder != "" {
+				filteredItems = util.SortItems(filteredItems, params.SortBy, params.SortOrder)
+			}
+			paged := util.Paginate(filteredItems, params.Offset, params.Limit)
+			
+			middleware.ResponseSuccess(c, paged, "List retrieved successfully", &model.PageMeta{
+				Total:  len(filteredItems),
+				Limit:  params.Limit,
+				Offset: params.Offset,
+			})
+			return
+		}
+
+		// 其他资源类型使用通用接口
 		result, err := service.ListResourcesByType(ctx, clientset, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)

@@ -43,7 +43,7 @@ func NewMemoryCache(config *model.CacheConfig, logger interface{}) *MemoryCache[
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cache := &MemoryCache[interface{}]{
-		data:    make(map[string]*CacheItem[interface{}]),
+		data:    make(map[string]*CacheItem[interface{}], config.MaxSize),
 		maxSize: config.MaxSize,
 		ttl:     config.TTL,
 		ctx:     ctx,

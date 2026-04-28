@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 type ListOptions struct {
@@ -183,6 +184,8 @@ func ListConfigMaps(ctx context.Context, clientset kubernetes.Interface, namespa
 }
 
 func ListSecrets(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Secret, error) {
+	// 注意: 列出 Secrets 需要 RBAC 权限 secrets/list
+	// 敏感数据可能泄露，建议在生产环境限制此接口的访问
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -202,7 +205,7 @@ func ListSecrets(ctx context.Context, clientset kubernetes.Interface, namespace,
 	return MapSecrets(secretList.Items), nil
 }
 
-func ListNodes(ctx context.Context, clientset kubernetes.Interface, pods *corev1.PodList, labelSelector, fieldSelector string) ([]model.Node, error) {
+func ListNodes(ctx context.Context, clientset kubernetes.Interface, metricsClient interface{}, pods *corev1.PodList, labelSelector, fieldSelector string) ([]model.Node, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector
@@ -218,7 +221,23 @@ func ListNodes(ctx context.Context, clientset kubernetes.Interface, pods *corev1
 		}
 	}
 
-	return MapNodes(nodes.Items, pods), nil
+	// 获取节点metrics
+	nodeMetricsMap := make(map[string]*model.NodeMetrics)
+	if metricsClient != nil {
+		if mc, ok := metricsClient.(versioned.Interface); ok {
+			metricsList, err := mc.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{})
+			if err == nil {
+				for i := range metricsList.Items {
+					nodeMetricsMap[metricsList.Items[i].Name] = &model.NodeMetrics{
+						CPU:    metricsList.Items[i].Usage.Cpu().String(),
+						Memory: metricsList.Items[i].Usage.Memory().String(),
+					}
+				}
+			}
+		}
+	}
+
+	return MapNodes(nodes.Items, pods, nodeMetricsMap), nil
 }
 
 func ListNamespaces(ctx context.Context, clientset kubernetes.Interface, labelSelector, fieldSelector string) ([]model.Namespace, error) {

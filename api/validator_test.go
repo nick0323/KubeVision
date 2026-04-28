@@ -53,10 +53,10 @@ func TestIsValidResourceName(t *testing.T) {
 
 func TestValidateResourceParams(t *testing.T) {
 	tests := []struct {
-		name          string
-		resourceType  string
-		namespace     string
-		wantErr       bool
+		name         string
+		resourceType string
+		namespace    string
+		wantErr      bool
 	}{
 		{"valid namespaced", "pod", "default", false},
 		{"valid cluster-scoped", "node", "", false},
