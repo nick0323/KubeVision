@@ -1,0 +1,30 @@
+/* 全局基础样式 */
+html, body, #root {
+  font-family: var(--font-main);
+  font-size: var(--font-size-base);
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+/* 布局根容器 */
+.layout-root {
+  display: flex;
+  height: 100vh;
+  background: var(--bg-primary);
+}
+
+/* 右侧内容区 */
+.main-content {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  background: var(--bg-primary);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}

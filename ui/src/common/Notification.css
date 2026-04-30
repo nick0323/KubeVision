@@ -14,7 +14,7 @@
 .notification {
   align-items: center;
   animation: slideInRight 0.3s ease-out;
-  background: #fff;
+  background: var(--bg-secondary);
   border-left: 4px solid;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
@@ -39,35 +39,35 @@
 }
 
 .notification-success {
-  border-left-color: #52c41a;
+  border-left-color: var(--success);
 }
 
 .notification-success .notification-icon {
-  color: #52c41a;
+  color: var(--success);
 }
 
 .notification-error {
-  border-left-color: #ff4d4f;
+  border-left-color: var(--danger);
 }
 
 .notification-error .notification-icon {
-  color: #ff4d4f;
+  color: var(--danger);
 }
 
 .notification-info {
-  border-left-color: #1890ff;
+  border-left-color: var(--primary);
 }
 
 .notification-info .notification-icon {
-  color: #1890ff;
+  color: var(--primary);
 }
 
 .notification-warning {
-  border-left-color: #faad14;
+  border-left-color: var(--warning);
 }
 
 .notification-warning .notification-icon {
-  color: #faad14;
+  color: var(--warning);
 }
 
 .notification-icon {
@@ -76,7 +76,7 @@
 }
 
 .notification-message {
-  color: #262626;
+  color: var(--text-message);
   flex: 1;
   font-size: 14px;
   line-height: 1.5;
@@ -85,7 +85,7 @@
 .notification-close {
   background: transparent;
   border: none;
-  color: #bfbfbf;
+  color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
   font-size: 14px;
@@ -94,5 +94,5 @@
 }
 
 .notification-close:hover {
-  color: #595959;
+  color: var(--text-secondary);
 }

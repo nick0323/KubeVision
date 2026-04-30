@@ -1,53 +1,62 @@
 /* InfoCard 组件样式 */
-.info-card {
+.overview-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 24px;
+  border-radius: 10px;
   background: #fff;
-  border: 1px solid #bae7ff; /* 更淡的蓝色边框 */
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
-  padding: 24px;
-  transition: box-shadow 0.2s ease;
+  border: 1px solid #bae7ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-height: 110px;
+  gap: 20px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
-.info-card:hover {
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+.overview-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 
-.info-card-header {
-  align-items: center;
+.overview-card .overview-icon {
+  font-size: 32px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.overview-card .overview-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.overview-card .overview-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #333;
+  line-height: 1.2;
+}
+
+.overview-card .overview-status {
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+/* InfoCard 图标列 */
+.overview-card-icon-col {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.info-card-icon {
   align-items: center;
-  color: #1890ff;
-  display: flex;
-  font-size: 24px;
   justify-content: center;
 }
 
-.info-card-title {
-  color: #333;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.info-card-value {
-  color: #333;
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.info-card-status {
-  font-size: 14px;
-}
-
-.info-card-status.status-ready {
-  color: #52c41a;
-}
-
-.info-card-status.status-failed {
-  color: #ff4d4f;
+/* InfoCard 内容列 */
+.overview-card-content-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }

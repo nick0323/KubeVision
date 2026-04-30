@@ -135,8 +135,8 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
           <table className="detail-table">
             <thead>
               <tr>
-                <th style={{ width: '150px' }}>Kind</th>
-                <th style={{ width: '250px' }}>Name</th>
+                <th>Kind</th>
+                <th>Name</th>
                 <th>Relation</th>
               </tr>
             </thead>

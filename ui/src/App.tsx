@@ -3,27 +3,30 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import LoadingSpinner from './common/LoadingSpinner.tsx';
 import ErrorBoundary from './common/ErrorBoundary.tsx';
-import { NotificationContainer, useNotification } from './common/Notification';
+import { NotificationProvider } from './common/NotificationContext';
+import { NotificationContainerWrapper } from './common/NotificationContainerWrapper';
 import { SidebarLayout } from './common/SidebarLayout';
 import LoginPage from './pages/LoginPage.tsx';
 import { authUtils } from './utils/auth.ts';
 import { PAGE_COMPONENTS } from './constants/page-components.tsx';
 import { ResourceDetailPage as ImportedResourceDetail } from './pages/ResourceDetailPage';
+import { useLocalStorage } from './hooks/useLocalStorage';
+
+/**
+ * Page Renderer Component (替代 IIFE)
+ */
+const PageRenderer: React.FC<{ tab: string; collapsed: boolean; onToggleCollapsed: () => void }> = ({ tab, collapsed, onToggleCollapsed }) => {
+  const PageComponent = PAGE_COMPONENTS[tab as keyof typeof PAGE_COMPONENTS];
+  return PageComponent ? (
+    <PageComponent collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
+  ) : null;
+};
 
 /**
  * List Page Component
  */
 const ListPage: React.FC = () => {
-  const getInitialTab = () => {
-    try {
-      const item = localStorage.getItem('current_tab');
-      return item || 'overview';
-    } catch {
-      return 'overview';
-    }
-  };
-
-  const [tab, setTab] = useState<string>(getInitialTab);
+  const [tab, setTab] = useLocalStorage<string>('current_tab', 'overview');
 
   useEffect(() => {
     const handleTabChange = (newTab: string) => {
@@ -64,12 +67,7 @@ const ListPage: React.FC = () => {
           )}
         >
           <Suspense fallback={<LoadingSpinner text="Loading..." size="lg" className="app-loading" />}>
-            {(() => {
-              const PageComponent = PAGE_COMPONENTS[tab as keyof typeof PAGE_COMPONENTS];
-              return PageComponent ? (
-                <PageComponent collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
-              ) : null;
-            })()}
+            <PageRenderer tab={tab} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
           </Suspense>
         </ErrorBoundary>
       )}
@@ -81,14 +79,7 @@ const ListPage: React.FC = () => {
  * Generic Resource Detail Page Wrapper
  */
 function GenericResourceDetail({ resourceType }: { resourceType: string }) {
-  const [tab] = useState<string>(() => {
-    try {
-      const item = localStorage.getItem('current_tab');
-      return item || 'overview';
-    } catch {
-      return 'overview';
-    }
-  });
+  const [tab] = useLocalStorage<string>('current_tab', 'overview');
 
   const handleMenuClick = () => {
     window.dispatchEvent(new CustomEvent('tab-change', { detail: tab }));
@@ -99,6 +90,8 @@ function GenericResourceDetail({ resourceType }: { resourceType: string }) {
       {({ collapsed, onToggleCollapsed }) => (
         <ImportedResourceDetail
           resourceType={resourceType}
+          namespace="default"
+          name=""
           collapsed={collapsed}
           onToggleCollapsed={onToggleCollapsed}
         />
@@ -111,7 +104,6 @@ function GenericResourceDetail({ resourceType }: { resourceType: string }) {
  * Main App Component with Notification support
  */
 const AppWithNotification: React.FC = () => {
-  const { notifications, removeNotification } = useNotification();
   const [login, setLogin] = useState<boolean>(() => authUtils.isLoggedIn());
 
   useEffect(() => {
@@ -125,19 +117,19 @@ const AppWithNotification: React.FC = () => {
 
   if (!login) {
     return (
-      <>
-        <LoginPage onLogin={() => setLogin(true)} />
-        <NotificationContainer
-          notifications={notifications}
-          onRemove={removeNotification}
-        />
-      </>
+      <NotificationProvider>
+        <>
+          <LoginPage onLogin={() => setLogin(true)} />
+          <NotificationContainerWrapper />
+        </>
+      </NotificationProvider>
     );
   }
 
   return (
-    <>
-      <BrowserRouter>
+    <NotificationProvider>
+      <>
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<ListPage />} />
           <Route path="/pod/:namespace/:name" element={<GenericResourceDetail resourceType="pod" />} />
@@ -158,11 +150,9 @@ const AppWithNotification: React.FC = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
-      <NotificationContainer
-        notifications={notifications}
-        onRemove={removeNotification}
-      />
+      <NotificationContainerWrapper />
     </>
+  </NotificationProvider>
   );
 };
 

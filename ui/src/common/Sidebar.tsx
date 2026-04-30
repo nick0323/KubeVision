@@ -95,8 +95,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
    */
   const handleMenuClick = useCallback(
     (key: string) => {
-      localStorage.setItem('current_tab', key);
+      // 先设置 current_tab
+      localStorage.setItem('current_tab', JSON.stringify(key));
+      // 触发事件（通知已挂载的组件）
       window.dispatchEvent(new CustomEvent('tab-change', { detail: key }));
+      // 跳转到列表页（ListPage 挂载时会读取最新的 current_tab）
       navigate('/');
       onMenuClick?.(key);
     },

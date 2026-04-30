@@ -2,8 +2,9 @@
 .resource-list-page {
   background: #fff;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  height: 100%;
+  width: 100%;
 }
 
 /* 表格容器 */
@@ -12,9 +13,18 @@
   border: 1px solid #bae7ff;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
-  flex: 1;
-  margin-bottom: 16px;
   overflow: auto;
+  flex: 1;
+}
+
+/* PageHeader 和表格之间的间距 */
+.resource-list-page > .page-header {
+  margin-bottom: 16px;
+}
+
+/* 表格和分页之间的间距 */
+.resource-list-page > .table-container {
+  margin-bottom: 16px;
 }
 
 /* 表格样式 */

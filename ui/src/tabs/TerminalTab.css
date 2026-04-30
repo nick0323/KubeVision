@@ -2,18 +2,19 @@
 .terminal-tab {
   box-sizing: border-box;
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 16px;
-  height: 100%;
-  padding-bottom: 10px;
+  min-height: 0;
   width: 100%;
+  height: 100%;
 }
 
 /* ========== 工具栏 ========== */
 .terminal-toolbar {
   align-items: center;
-  background: #fff;
-  border: 1px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 1px solid var(--primary-lighter);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   box-sizing: border-box;
@@ -33,7 +34,7 @@
 }
 
 .terminal-title {
-  color: #262626;
+  color: var(--text-message);
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -58,11 +59,11 @@
 
 .terminal-container-select .namespace-select-value {
   align-items: center;
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-sizing: border-box;
-  color: #333;
+  color: var(--text-main);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
@@ -74,13 +75,13 @@
 }
 
 .terminal-container-select .namespace-select-value:hover {
-  background: #f0faff;
-  border-color: #40a9ff;
+  background: var(--primary-light);
+  border-color: var(--primary-hover);
 }
 
 .terminal-container-select .namespace-select-value.open {
-  background: #fff;
-  border-color: #1890ff;
+  background: var(--bg-secondary);
+  border-color: var(--primary);
   box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
@@ -92,11 +93,11 @@
 
 .shell-select {
   align-items: center;
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-sizing: border-box;
-  color: #333;
+  color: var(--text-main);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
@@ -109,13 +110,13 @@
 }
 
 .shell-select:hover {
-  background: #f0faff;
-  border-color: #40a9ff;
+  background: var(--primary-light);
+  border-color: var(--primary-hover);
 }
 
 .shell-select.active {
-  background: #fff;
-  border-color: #1890ff;
+  background: var(--bg-secondary);
+  border-color: var(--primary);
   box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
@@ -125,7 +126,7 @@
 }
 
 .shell-arrow {
-  color: #595959;
+  color: var(--text-secondary);
   font-size: 12px;
   margin-left: 8px;
   transition: transform 0.2s;
@@ -136,8 +137,8 @@
 }
 
 .shell-menu {
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
   left: 0;
@@ -149,9 +150,9 @@
 }
 
 .shell-option {
-  background: #fff;
+  background: var(--bg-secondary);
   border: none;
-  color: #333;
+  color: var(--text-main);
   cursor: pointer;
   font-family: var(--font-main);
   font-size: 14px;
@@ -162,13 +163,13 @@
 }
 
 .shell-option:hover {
-  background: #e6f7ff;
-  color: #0050b3;
+  background: var(--primary-light);
+  color: var(--primary-dark);
 }
 
 .shell-option.selected {
-  background: #1890ff;
-  color: #fff;
+  background: var(--primary);
+  color: var(--bg-secondary);
   font-weight: 500;
 }
 
@@ -183,10 +184,10 @@
 /* ========== 工具栏按钮 ========== */
 .toolbar-btn {
   align-items: center;
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
-  color: #595959;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   flex-shrink: 0;
@@ -204,9 +205,9 @@
 }
 
 .toolbar-btn:hover {
-  background: #e6f7ff;
-  border-color: #1890ff;
-  color: #1890ff;
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .toolbar-btn:active {
@@ -219,31 +220,31 @@
 }
 
 .toolbar-btn.primary {
-  background: #1890ff;
-  border-color: #1890ff;
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--bg-secondary);
 }
 
 .toolbar-btn.primary:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
 .toolbar-btn.primary:disabled {
-  background: #1890ff;
-  border-color: #1890ff;
+  background: var(--primary);
+  border-color: var(--primary);
   opacity: 0.6;
 }
 
 .toolbar-btn.danger {
-  border-color: #ffccc7;
-  color: #ff4d4f;
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .toolbar-btn.danger:hover {
-  background: #fff1f0;
-  border-color: #ff4d4f;
-  color: #ff4d4f;
+  background: var(--bg-secondary)1f0;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* 操作按钮 */
@@ -256,7 +257,7 @@
 /* 状态显示 */
 .terminal-status {
   align-items: center;
-  color: #bfbfbf;
+  color: var(--text-border-light);
   display: flex;
   font-size: 12px;
   gap: 8px;
@@ -264,11 +265,11 @@
 }
 
 .terminal-status.connected {
-  color: #52c41a;
+  color: var(--success);
 }
 
 .terminal-status.disconnected {
-  color: #ff4d4f;
+  color: var(--danger);
 }
 
 .status-dot {
@@ -279,20 +280,19 @@
 }
 
 .terminal-status .separator {
-  color: #d9d9d9;
+  color: var(--border-primary);
   margin: 0 4px;
 }
 
 /* ========== 终端容器 ========== */
 .xterm-wrapper {
-  background: #fafafa;
-  border: 1px solid #bae7ff;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--primary-lighter);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   box-sizing: border-box;
   flex: 1;
-  height: calc(100vh - 280px);
-  min-height: 600px;
+  min-height: 500px;
   overflow: hidden;
   position: relative;
   width: 100%;
@@ -319,7 +319,7 @@
 }
 
 .xterm-wrapper .xterm-viewport {
-  background-color: #fafafa !important;
+  background-color: var(--bg-tertiary) !important;
   height: 100% !important;
   overflow: auto !important;
   width: 100% !important;
@@ -343,7 +343,7 @@
 /* 终端操作指引 */
 .terminal-guide {
   align-items: center;
-  background: #fafafa;
+  background: var(--bg-tertiary);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -353,7 +353,8 @@
 }
 
 .guide-title {
-  color: #262626;
+  color: var(--text-message);
+  font-family: var(--font-main);
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 32px;
@@ -368,17 +369,18 @@
 
 .guide-step {
   align-items: center;
-  color: #595959;
+  color: var(--text-secondary);
   display: flex;
+  font-family: var(--font-main);
   font-size: 14px;
   gap: 12px;
 }
 
 .step-number {
   align-items: center;
-  background: #1890ff;
+  background: var(--primary);
   border-radius: 50%;
-  color: #fff;
+  color: var(--bg-secondary);
   display: flex;
   flex-shrink: 0;
   font-size: 12px;
@@ -394,19 +396,20 @@
 
 .inline-icon {
   align-items: center;
-  color: #1890ff;
+  color: var(--primary);
   display: inline-flex;
   margin: 0 4px;
 }
 
 .connect-guide-btn {
   align-items: center;
-  background: #1890ff;
+  background: var(--primary);
   border: none;
   border-radius: 8px;
-  color: #fff;
+  color: var(--bg-secondary);
   cursor: pointer;
   display: flex;
+  font-family: var(--font-main);
   font-size: 14px;
   font-weight: 500;
   gap: 8px;
@@ -415,7 +418,7 @@
 }
 
 .connect-guide-btn:hover {
-  background: #40a9ff;
+  background: var(--primary-hover);
   box-shadow: 0 4px 12px rgb(24 144 255 / 0.3);
   transform: translateY(-2px);
 }

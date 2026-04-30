@@ -1,0 +1,53 @@
+/* CSS变量 - 全局设计令牌 */
+:root {
+  /* 主色调 */
+  --primary: #1890ff;
+  --primary-light: #e6f7ff;
+  --primary-lighter: #bae7ff;
+  --primary-hover: #40a9ff;
+  --primary-dark: #096dd9;
+
+  /* 语义色 */
+  --success: #52c41a;
+  --warning: #faad14;
+  --danger: #ff4d4f;
+
+  /* 背景色 */
+  --bg-primary: #f6f8fa;
+  --bg-secondary: #fff;
+  --bg-tertiary: #f5f5f5;
+
+  /* 文字色 */
+  --text-primary: #222;
+  --text-secondary: #444;
+  --text-tertiary: #666;
+  --text-quaternary: #888;
+  --text-disabled: #bbb;
+  --text-light: #ccc;
+
+  /* 滚动条 */
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #c1c1c1;
+
+  /* 字体 */
+  --font-main: 'Maple Mono', monospace;
+
+  /* 字号 */
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 20px;
+  --font-size-5xl: 32px;
+
+  /* 间距 */
+  --spacing-xs: 2px;
+  --spacing-sm: 8px;
+  --spacing-lg: 24px;
+  --spacing-xl: 20px;
+
+  /* 圆角 */
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}

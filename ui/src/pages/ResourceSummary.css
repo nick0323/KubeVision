@@ -1,82 +1,79 @@
+/* ResourceSummary 组件样式 */
 .resource-summary-card {
-  background: var(--bg-secondary);
-  border: 1px solid #bae7ff; /* 更淡的蓝色边框 */
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06);
-  font-family: var(--font-main);
-  margin-bottom: 0;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 980px;
-  padding: 16px 20px 12px;
+  background: #fff;
+  border: 1px solid #bae7ff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 16px;
+  position: relative;
+  z-index: 0;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
   width: 100%;
+}
+
+.resource-summary-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 
 .resource-summary-title {
-  color: var(--text-primary);
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: #333;
 }
 
 .resource-summary-info {
-  color: var(--text-tertiary);
-  font-family: inherit;
-  font-size: var(--font-size-sm);
-  margin-bottom: 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 16px;
 }
 
 .summary-num {
-  color: var(--text-primary);
   font-weight: 600;
-  margin: 0 var(--spacing-xs);
+  margin: 0 4px;
+  color: #333;
 }
 
 .resource-summary-row {
-  align-items: flex-start;
-  display: flex;
-  gap: 20px;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 12px;
 }
 
 .resource-block {
-  flex: 1 1 0;
   min-width: 0;
 }
 
 .resource-header {
-  align-items: baseline;
   display: flex;
-  font-size: var(--font-size-sm);
+  align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
 }
 
 .label.requests {
   color: var(--primary);
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .label.limits {
   color: #ea580c;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .value {
-  color: var(--text-quaternary);
-  font-size: var(--font-size-sm);
+  color: #666;
   font-weight: 500;
 }
 
 .progress-bar {
   background: #f3f4f6;
-  border-radius: var(--radius-sm);
-  height: 6px;
+  border-radius: 4px;
+  height: 8px;
   margin-bottom: 6px;
   overflow: hidden;
   position: relative;
@@ -85,28 +82,34 @@
 
 .progress-bar.requests .progress {
   background: var(--primary);
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: width 0.3s ease;
 }
 
 .progress-bar.limits .progress {
   background: #ea580c;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: width 0.3s ease;
 }
 
 .percent {
-  color: #6b7280;
-  font-size: var(--font-size-sm);
-  margin-bottom: 6px;
-  text-align: left;
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 8px;
 }
 
 .resource-summary-available {
-  color: var(--text-tertiary);
-  font-family: var(--font-main);
-  font-size: var(--font-size-sm);
-  margin-top: 6px;
+  font-size: 13px;
+  color: #666;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
 }
-
-/* 滚动条隐藏已移至 ScrollbarHide.css 统一管理 */

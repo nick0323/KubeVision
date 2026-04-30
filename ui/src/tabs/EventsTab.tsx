@@ -27,11 +27,10 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     try {
       // 优先使用 resourceKind 和 name，兼容旧的 podName
       const resourceName = name || podName;
-      const kind = resourceKind || 'Pod';
 
-      // 传递 involvedObject 参数给后端，让后端在内存中过滤
+      // 只传 resourceName，让后端过滤
       const response = await authFetch(
-        `/api/event?namespace=${namespace}&involvedObject=${kind}/${resourceName}`
+        `/api/event?namespace=${namespace}&involvedObject=${resourceName}`
       );
       const result = await response.json();
 
@@ -46,7 +45,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [namespace, name, podName, resourceKind]);
+  }, [namespace, name, podName]);
 
   useEffect(() => {
     loadEvents();

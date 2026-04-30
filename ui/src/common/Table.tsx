@@ -70,8 +70,8 @@ export interface TableColumn<T = any> {
 
 // ==================== TableHeaderCell 组件 ====================
 
-interface TableHeaderCellProps<T> {
-  column: TableColumn<T>;
+interface TableHeaderCellProps {
+  column: TableColumn;
   sortField: string;
   sortOrder: 'asc' | 'desc';
   onSort: (field: string) => void;
@@ -81,10 +81,10 @@ interface TableHeaderCellProps<T> {
  * 表头单元格组件
  */
 export const TableHeaderCell = memo(
-  <T,>({ column, sortField, sortOrder, onSort }: TableHeaderCellProps<T>) => {
+  ({ column, sortField, sortOrder, onSort }: TableHeaderCellProps) => {
     const isSorted = sortField === column.dataIndex;
     const sortIcon = isSorted ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : '';
-
+    
     return (
       <th style={{ width: column.width }} className={isSorted ? 'sorted' : ''}>
         <div
@@ -109,16 +109,16 @@ export const TableHeaderCell = memo(
       </th>
     );
   }
-) as <T>(props: TableHeaderCellProps<T>) => ReactElement;
+) as React.FC<TableHeaderCellProps>;
 
 (TableHeaderCell as any).displayName = 'TableHeaderCell';
 
 // ==================== TableCell 组件 ====================
 
-interface TableCellProps<T> {
-  value: any;
-  column: TableColumn<T>;
-  record: T;
+interface TableCellProps {
+  value: unknown;
+  column: TableColumn;
+  record: any;
   index: number;
   isStatusColumn: boolean;
   statusColumnIndex?: string;
@@ -130,7 +130,7 @@ interface TableCellProps<T> {
  * 数据单元格组件
  */
 export const TableCell = memo(
-  <T,>({
+  ({
     value,
     column,
     record,
@@ -139,57 +139,58 @@ export const TableCell = memo(
     statusColumnIndex,
     StatusBadge,
     resourceType,
-  }: TableCellProps<T>) => {
-    // 状态列使用 StatusBadge
-    if (isStatusColumn && column.dataIndex === statusColumnIndex) {
-      return (
-        <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-          {StatusBadge && <StatusBadge status={value} resourceType={resourceType} />}
-        </td>
-      );
-    }
+  }: TableCellProps) => {
+  // 状态列使用 StatusBadge
+      if (isStatusColumn && column.dataIndex === statusColumnIndex) {
+        const statusValue = typeof value === 'string' ? value : String(value ?? '');
+        return (
+          <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
+            {StatusBadge && <StatusBadge status={statusValue} resourceType={resourceType} />}
+          </td>
+        );
+      }
 
-    // 使用自定义渲染函数
-    if (column.render) {
-      const content = column.render(value, record, index);
-      // 将渲染结果转换为字符串用于 Tooltip
-      const tooltipText = typeof content === 'string' ? content : String(value ?? '');
-      return (
-        <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-          <TooltipCell content={content} text={tooltipText} />
-        </td>
-      );
-    }
+  // 使用自定义渲染函数
+      if (column.render) {
+        const content = column.render(value, record, index);
+        // 将渲染结果转换为字符串用于 Tooltip
+        const tooltipText = typeof content === 'string' ? content : String(value ?? '');
+        return (
+          <td key={String(column.dataIndex)} className={`table-cell ${column.className || ''}`}>
+            <TooltipCell content={content} text={tooltipText} />
+          </td>
+        );
+      }
 
-    // 数组显示
-    if (Array.isArray(value)) {
-      const text = value.join(', ');
+  // 数组显示
+      if (Array.isArray(value)) {
+        const text = (value as unknown[]).join(', ');
+        return (
+          <td key={String(column.dataIndex)} className={`table-cell ${column.className || ''}`}>
+            <TooltipCell content={text} text={text} />
+          </td>
+        );
+      }
+
+  // 对象显示
+      if (typeof value === 'object' && value !== null) {
+        const text = JSON.stringify(value);
+        return (
+          <td key={String(column.dataIndex)} className={`table-cell ${column.className || ''}`}>
+            <TooltipCell content={text} text={text} />
+          </td>
+        );
+      }
+
+  // 普通文本
+      const text = String(value ?? '');
       return (
-        <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
+        <td key={String(column.dataIndex)} className={`table-cell ${column.className || ''}`}>
           <TooltipCell content={text} text={text} />
         </td>
       );
-    }
-
-    // 对象显示
-    if (typeof value === 'object' && value !== null) {
-      const text = JSON.stringify(value);
-      return (
-        <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-          <TooltipCell content={text} text={text} />
-        </td>
-      );
-    }
-
-    // 普通文本
-    const text = String(value ?? '');
-    return (
-      <td key={column.dataIndex} className={`table-cell ${column.className || ''}`}>
-        <TooltipCell content={text} text={text} />
-      </td>
-    );
   }
-) as <T>(props: TableCellProps<T>) => ReactElement;
+) as React.FC<TableCellProps>;
 
 (TableCell as any).displayName = 'TableCell';
 
@@ -210,7 +211,7 @@ interface TableRowProps<T> {
  * 表格行组件
  */
 export const TableRow = memo(
-  <T,>({
+  ({
     record,
     rowIndex,
     columns,
@@ -219,17 +220,17 @@ export const TableRow = memo(
     StatusBadge,
     resourceType,
     onClick,
-  }: TableRowProps<T>) => {
+  }: TableRowProps<any>) => {
     const handleClick = useCallback(() => {
       onClick?.(record);
     }, [onClick, record]);
 
-    return (
-      <tr
-        key={rowIndex}
-        className={`table-row ${onClick ? 'clickable' : ''}`}
-        onClick={handleClick}
-      >
+  return (
+    <tr
+      key={rowIndex}
+      className={`table-row ${onClick ? 'clickable' : ''}`}
+      onClick={handleClick}
+    >
         {columns.map((column, colIndex) => (
           <TableCell
             key={colIndex}
@@ -246,7 +247,7 @@ export const TableRow = memo(
       </tr>
     );
   }
-) as <T>(props: TableRowProps<T>) => ReactElement;
+) as React.FC<TableRowProps<any>>;
 
 (TableRow as any).displayName = 'TableRow';
 

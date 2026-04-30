@@ -893,11 +893,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       }))
                     }
                   >
-                    <div>
-                      <span className="collapse-btn">{isExpanded ? '▼' : '▶'}</span>
-                      <span className="container-card-title">{container.name}</span>
-                      <span className="container-card-image">{container.image}</span>
-                    </div>
+                    <span className="collapse-btn">{isExpanded ? '▼' : '▶'}</span>
+                    <span className="container-card-title">{container.name}</span>
+                    <span className="container-card-image">{container.image}</span>
                     {containerSpec?.imagePullPolicy && (
                       <span className="container-card-pull-policy">
                         {containerSpec.imagePullPolicy}
@@ -932,11 +930,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       }))
                     }
                   >
-                    <div>
-                      <span className="collapse-btn">{isExpanded ? '▼' : '▶'}</span>
-                      <span className="container-card-title">{container.name}</span>
-                      <span className="container-card-image">{container.image}</span>
-                    </div>
+                    <span className="collapse-btn">{isExpanded ? '▼' : '▶'}</span>
+                    <span className="container-card-title">{container.name}</span>
+                    <span className="container-card-image">{container.image}</span>
                     {container.imagePullPolicy && (
                       <span className="container-card-pull-policy">
                         {container.imagePullPolicy}

@@ -1,0 +1,21 @@
+/* 状态标签 - styles/status.css 独有 */
+.status-tag,
+.event-type-normal,
+.event-type-warning {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.event-type-normal {
+  background: #e6f7e6;
+  color: var(--success);
+}
+
+.event-type-warning {
+  background: #ffeaea;
+  color: var(--danger);
+}

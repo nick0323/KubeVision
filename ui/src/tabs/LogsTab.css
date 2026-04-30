@@ -9,8 +9,8 @@
 /* 过滤选项容器 */
 .filter-options {
   align-items: center;
-  background: #fff;
-  border: 1px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 1px solid var(--primary-lighter);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   box-sizing: border-box;
@@ -68,11 +68,11 @@
 
 .logs-container-select .namespace-select-value {
   align-items: center;
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-sizing: border-box;
-  color: #333;
+  color: var(--text-main);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
@@ -84,27 +84,27 @@
 }
 
 .logs-container-select .namespace-select-value:hover {
-  background: #f0faff;
-  border-color: #40a9ff;
+  background: var(--primary-light);
+  border-color: var(--primary-hover);
 }
 
 .logs-container-select .namespace-select-value.open {
-  background: #fff;
-  border-color: #1890ff;
+  background: var(--bg-secondary);
+  border-color: var(--primary);
   box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
 .logs-container-select .namespace-select-dropdown {
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
 }
 
 .logs-container-select .namespace-select-option {
-  background: #fff;
+  background: var(--bg-secondary);
   border-bottom: 1px solid rgb(186 231 255 / 0.2);
-  color: #333;
+  color: var(--text-main);
   cursor: pointer;
   font-size: 14px;
   overflow: hidden;
@@ -115,13 +115,13 @@
 }
 
 .logs-container-select .namespace-select-option:hover {
-  background: #e6f7ff;
-  color: #0050b3;
+  background: var(--primary-light);
+  color: var(--primary-dark);
 }
 
 .logs-container-select .namespace-select-option.selected {
-  background: #1890ff;
-  color: #fff;
+  background: var(--primary);
+  color: var(--bg-secondary);
   font-weight: 500;
 }
 
@@ -155,7 +155,7 @@
 }
 
 .dropdown-trigger:hover {
-  background: #f0faff;
+  background: var(--primary-light);
   border-color: var(--color-primary-light);
 }
 
@@ -209,7 +209,7 @@
 
 .dropdown-option:hover {
   background: var(--color-primary-lightest);
-  color: #0050b3;
+  color: var(--primary-dark);
 }
 
 .dropdown-option.selected {
@@ -236,11 +236,11 @@
 }
 
 .filter-options .search-input {
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-sizing: border-box;
-  color: #333;
+  color: var(--text-main);
   font-family: var(--font-main);
   font-size: 14px;
   height: 32px;
@@ -251,21 +251,21 @@
 }
 
 .filter-options .search-input:focus {
-  border-color: #1890ff;
+  border-color: var(--primary);
 }
 
 .filter-options .search-input:hover {
-  background: #f0faff;
-  border-color: #40a9ff;
+  background: var(--primary-light);
+  border-color: var(--primary-hover);
 }
 
 .filter-options .search-btn {
   align-items: center;
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-sizing: border-box;
-  color: #595959;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   flex-shrink: 0;
@@ -279,20 +279,20 @@
 }
 
 .search-btn:hover {
-  background: #f0faff;
-  border-color: #1890ff;
-  color: #1890ff;
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .search-btn.clear-btn {
-  color: #8c8c8c;
+  color: var(--text-light);
   font-size: 14px;
   padding: 0 8px;
 }
 
 .search-btn.clear-btn:hover {
-  border-color: #ff4d4f;
-  color: #ff4d4f;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* 设置下拉菜单 */
@@ -305,11 +305,11 @@
 
 .settings-btn {
   align-items: center;
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-sizing: border-box;
-  color: #595959;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
@@ -327,14 +327,14 @@
 
 .settings-btn:hover,
 .settings-btn.active {
-  background: #e6f7ff;
-  border-color: #1890ff;
-  color: #1890ff;
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .settings-panel {
-  background: #fff;
-  border: 1px solid #e8e8e8;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
   display: flex;
@@ -357,7 +357,7 @@
 }
 
 .setting-item label {
-  color: #262626;
+  color: var(--text-message);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
@@ -365,11 +365,11 @@
 }
 
 .setting-item-select select {
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-sizing: border-box;
-  color: #333;
+  color: var(--text-main);
   cursor: pointer;
   font-family: var(--font-main);
   font-size: 14px;
@@ -382,13 +382,13 @@
 }
 
 .setting-item-select select:hover {
-  background-color: #f0faff;
-  border-color: #40a9ff;
+  background-color: var(--primary-light);
+  border-color: var(--primary-hover);
 }
 
 .setting-item-select select:focus {
-  background-color: #fff;
-  border-color: #1890ff;
+  background-color: var(--bg-secondary);
+  border-color: var(--primary);
   box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
 }
 
@@ -398,8 +398,8 @@
 }
 
 .toggle-btn {
-  background: #f5f5f5;
-  border: 1px solid #d9d9d9;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   cursor: pointer;
   flex-shrink: 0;
@@ -411,7 +411,7 @@
 }
 
 .toggle-btn::after {
-  background: #fff;
+  background: var(--bg-secondary);
   border-radius: 50%;
   box-shadow: 0 2px 4px rgb(0 0 0 / 0.2);
   content: '';
@@ -424,8 +424,8 @@
 }
 
 .toggle-btn.active {
-  background: #1890ff;
-  border-color: #1890ff;
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .toggle-btn.active::after {
@@ -447,11 +447,11 @@
 
 .action-btn {
   align-items: center;
-  background: #fff;
-  border: 2px solid #bae7ff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-lighter);
   border-radius: 8px;
   box-sizing: border-box;
-  color: #595959;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
@@ -468,9 +468,9 @@
 }
 
 .action-btn:hover {
-  background: #e6f7ff;
-  border-color: #1890ff;
-  color: #1890ff;
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 /* 滚动条样式 */
@@ -479,26 +479,26 @@
 }
 
 .filter-options::-webkit-scrollbar-track {
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
   border-radius: 3px;
 }
 
 .filter-options::-webkit-scrollbar-thumb {
-  background: #d9d9d9;
+  background: var(--border-primary);
   border-radius: 3px;
 }
 
 .filter-options::-webkit-scrollbar-thumb:hover {
-  background: #bfbfbf;
+  background: var(--text-border-light);
 }
 
 /* Status Display */
 .filter-status {
   align-items: center;
-  background: #fafafa;
-  border: 1px solid #e8e8e8;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  color: #bfbfbf;
+  color: var(--text-border-light);
   display: flex;
   font-size: 12px;
   gap: 6px;
@@ -507,15 +507,15 @@
 }
 
 .filter-status.connected {
-  background: #f6ffed;
-  border-color: #b7eb8f;
-  color: #52c41a;
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success);
 }
 
 .filter-status.disconnected {
-  background: #fff1f0;
-  border-color: #ffccc7;
-  color: #ff4d4f;
+  background: var(--bg-secondary)1f0;
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .status-dot {

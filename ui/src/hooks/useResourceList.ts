@@ -4,7 +4,15 @@ import {
   PAGINATION_CONFIG,
   CACHE_CONFIG,
 } from '../constants';
-import type { UseListReturn, ListQueryParams, PaginatedResponse } from '../types';
+import type { UseListReturn, ListQueryParams, APIResponse } from '../types';
+
+// 常量定义
+const API_ENDPOINTS = {
+  NAMESPACE_LIST: '/api/namespace',
+} as const;
+
+const DEFAULT_LIMIT = 1000;
+const DEFAULT_OFFSET = 0;
 
 /**
  * 资源列表 Hook 配置
@@ -236,8 +244,8 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
       const response = await authFetch(`${apiEndpoint}?${params}`, {
         signal: controller.signal,
       });
-      const result = (await response.json()) as PaginatedResponse<T>;
-
+      const result = (await response.json()) as APIResponse<T[]>;
+      
       if (mountedRef.current && result.code === 0 && result.data) {
         setData(result.data || []);
         setTotal(result.page?.total || result.data?.length || 0);
@@ -268,56 +276,19 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     [refresh]
   );
 
-  // 设置搜索防抖（只更新 searchRef，不触发加载）
+// 设置搜索防抖（只更新 searchRef，不触发加载）
   useEffect(() => {
     searchRef.current = search;
   }, [search]);
 
   // 统一的数据加载逻辑（监听所有需要触发加载的状态）
   useEffect(() => {
-    const controller = new AbortController();
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = controller;
-
-    const loadData = async () => {
-      const params = new URLSearchParams({
-        limit: pageSize.toString(),
-        offset: ((page - 1) * pageSize).toString(),
-        sortBy: sortField,
-        sortOrder,
-        ...(namespace ? { namespace } : {}),
-        ...(search ? { search } : {}),
-      });
-
-      try {
-        const response = await authFetch(`${apiEndpoint}?${params}`, {
-          signal: controller.signal,
-        });
-        const result = (await response.json()) as PaginatedResponse<T>;
-
-        if (mountedRef.current && result.code === 0 && result.data) {
-          setData(result.data || []);
-          setTotal(result.page?.total || result.data?.length || 0);
-        }
-      } catch (err) {
-        if (mountedRef.current && err instanceof Error && err.name !== 'AbortError') {
-          setError(err.message);
-        }
-      } finally {
-        if (mountedRef.current) {
-          setLoading(false);
-          setIsValidating(false);
-        }
-      }
-    };
-
-    setLoading(true);
-    loadData();
+    refresh();
 
     return () => {
-      controller.abort();
+      abortControllerRef.current?.abort();
     };
-  }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint]);
+  }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint, refresh]);
 
   return {
     data,

@@ -73,7 +73,7 @@ export interface ResourceSummaryProps {
 }
 
 export interface InfoCardProps {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   title: string;
   value: number | string;
   status?: React.ReactNode;
@@ -99,7 +99,7 @@ export interface K8sEventSimple {
 
 export interface OverviewData {
   nodeCount: number;
-  nodeReady: number;
+  nodeReadyCount: number;
   podCount: number;
   podNotReady: number;
   namespaceCount: number;

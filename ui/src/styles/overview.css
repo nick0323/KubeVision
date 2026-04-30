@@ -1,0 +1,88 @@
+/* ========================
+   Overview Page Styles
+   ======================== */
+
+/* 页面容器 - 组件之间16px */
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  background: transparent;
+}
+
+/* 页面加载状态 */
+.overview-loading,
+.overview-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  font-size: var(--font-size-lg);
+}
+
+.overview-loading {
+  color: #888;
+}
+
+.overview-error {
+  color: var(--danger);
+}
+
+/* ===== 统计卡片网格 ===== */
+.overview-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .overview-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .overview-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 资源使用情况区域 ===== */
+.overview-resources-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .overview-resources-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 状态标签统一样式 ===== */
+.status-success {
+  background: #f6ffed;
+  color: #52c41a;
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-warning {
+  background: #fff7e6;
+  color: #fa8c16;
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-empty {
+  color: #bbb;
+  font-size: 12px;
+}

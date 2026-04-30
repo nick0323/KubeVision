@@ -34,7 +34,7 @@ export const ResourceSummary: React.FC<ResourceSummaryProps> = ({
           <div className="progress-bar requests">
             <div className="progress" style={{ width: `${requestsPercent}%` }} />
           </div>
-          <div className="percent">{requestsPercent}% of capacity</div>
+          <div className="percent">{requestsPercent.toFixed(1)}% of capacity</div>
         </div>
         <div className="resource-block">
           <div className="resource-header">
@@ -46,7 +46,7 @@ export const ResourceSummary: React.FC<ResourceSummaryProps> = ({
           <div className="progress-bar limits">
             <div className="progress" style={{ width: `${limitsPercent}%` }} />
           </div>
-          <div className="percent">{limitsPercent}% of capacity</div>
+          <div className="percent">{limitsPercent.toFixed(1)}% of capacity</div>
         </div>
       </div>
       <div className="resource-summary-available">

@@ -101,8 +101,8 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
   const handleBreadcrumbClick = useCallback(
     (path: string) => {
       if (path) {
-        // 设置 current_tab
-        localStorage.setItem('current_tab', path);
+        // 设置 current_tab (使用 JSON.stringify 保持与 useLocalStorage 一致)
+        localStorage.setItem('current_tab', JSON.stringify(path));
 
         // 触发事件
         window.dispatchEvent(new CustomEvent('tab-change', { detail: path }));
@@ -201,13 +201,13 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
       case 'endpoints':
         return <EndpointsTab namespace={namespace} serviceName={resourceName} />;
 
-      case 'related':
+       case 'related':
         return (
           <RelatedTab
             namespace={namespace}
             name={resourceName}
             resourceType={resourceType}
-            ownerReferences={(data as any)?.metadata?.ownerReferences}
+            ownerReferences={(data as Record<string, any>)?.metadata?.ownerReferences}
           />
         );
 
@@ -216,7 +216,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
           <LogsTab
             namespace={namespace}
             name={resourceName}
-            containers={(data as any)?.spec?.containers || []}
+            containers={(data as Record<string, any>)?.spec?.containers || []}
           />
         );
 
@@ -225,22 +225,23 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
           <TerminalTab
             namespace={namespace}
             name={resourceName}
-            containers={(data as any)?.spec?.containers || []}
+            containers={(data as Record<string, any>)?.spec?.containers || []}
           />
         );
 
       case 'pods':
+        const resourceData = data as Record<string, any>;
         return (
           <PodsTab
             namespace={namespace}
             resourceName={resourceName}
             resourceKind={config.title}
             resourceLabels={
-              (data as any)?.spec?.selector?.matchLabels || (data as any)?.metadata?.labels || {}
+              resourceData?.spec?.selector?.matchLabels || resourceData?.metadata?.labels || {}
             }
             ownerReferences={
-              (data as any)?.metadata?.uid
-                ? [{ uid: (data as any).metadata.uid, kind: config.title, name: resourceName }]
+              resourceData?.metadata?.uid
+                ? [{ uid: resourceData.metadata.uid, kind: config.title, name: resourceName }]
                 : []
             }
           />

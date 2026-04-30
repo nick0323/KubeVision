@@ -1,8 +1,9 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React from 'react';
 import InfoCard from './InfoCard.tsx';
 import ResourceSummary from './ResourceSummary.tsx';
+import EventCard from './EventCard.tsx';
 import PageHeader from '../common/PageHeader.tsx';
-import { OverviewPageProps, OverviewData, K8sEventSimple } from '../types';
+import { OverviewPageProps, OverviewData } from '../types';
 import { apiClient } from '../utils/apiClient';
 import { FaServer, FaCube, FaNetworkWired } from 'react-icons/fa';
 import { FaThLarge } from 'react-icons/fa';
@@ -11,11 +12,11 @@ import { FaThLarge } from 'react-icons/fa';
  * 简化的 useFetch Hook
  */
 function useFetch<T>(url: string) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = React.useState<T | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchData = async () => {
       try {
         const result = await apiClient.get<T>(url);
@@ -33,61 +34,39 @@ function useFetch<T>(url: string) {
   return { data, loading, error };
 }
 
+/**
+ * 集群概览页面
+ */
 export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleCollapsed }) => {
   const { data, loading, error } = useFetch<OverviewData>('/api/overview');
   const safeData: Partial<OverviewData> = data || {};
 
-  // 格式化时间
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    const diffDay = Math.floor(diffHour / 24);
-
-    if (diffSec < 60) return 'Just now';
-    if (diffMin < 60) return `${diffMin}m ago`;
-    if (diffHour < 24) return `${diffHour}h ago`;
-    return `${diffDay}d ago`;
-  };
-
   if (loading) {
-    return <div style={{ textAlign: 'center', color: '#888', padding: '32px 0' }}>加载中...</div>;
+    return <div className="overview-loading">加载中...</div>;
   }
 
   if (error) {
-    return (
-      <div style={{ textAlign: 'center', color: 'red', padding: '32px 0' }}>错误：{error}</div>
-    );
+    return <div className="overview-error">错误：{error}</div>;
   }
 
   return (
-    <div>
+    <div className="overview-page">
       <PageHeader title="Overview" collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
 
-      <div className="overview-grid">
+      {/* 核心资源统计 - 4个卡片 */}
+      <div className="overview-stats-grid">
         <InfoCard
           icon={<FaServer />}
           title="Nodes"
           value={safeData.nodeCount || 0}
           status={
             safeData.nodeCount === 0 ? (
-              <div className="center-empty">
-                <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
-              </div>
+              <span className="status-empty">No data</span>
+            ) : (safeData.nodeReadyCount ?? 0) === (safeData.nodeCount ?? 0) ? (
+              <span className="status-success">All Ready ({safeData.nodeReadyCount})</span>
             ) : (
-              <span
-                className={
-                  (safeData.nodeReadyCount ?? 0) === (safeData.nodeCount ?? 0)
-                    ? 'status-ready'
-                    : 'status-failed'
-                }
-              >
-                {(safeData.nodeReadyCount ?? 0) === (safeData.nodeCount ?? 0)
-                  ? 'All Ready'
-                  : `${(safeData.nodeCount ?? 0) - (safeData.nodeReadyCount ?? 0)} Not Ready`}
+              <span className="status-warning">
+                {safeData.nodeReadyCount}/{safeData.nodeCount} Ready
               </span>
             )
           }
@@ -98,16 +77,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
           value={safeData.podCount || 0}
           status={
             safeData.podCount === 0 ? (
-              <div className="center-empty">
-                <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
-              </div>
+              <span className="status-empty">No data</span>
+            ) : (safeData.podNotReady ?? 0) === 0 ? (
+              <span className="status-success">All Ready</span>
             ) : (
-              <span
-                className={(safeData.podNotReady ?? 0) === 0 ? 'status-ready' : 'status-failed'}
-              >
-                {(safeData.podNotReady ?? 0) === 0
-                  ? 'All Ready'
-                  : `${safeData.podNotReady} Not Ready`}
+              <span className="status-warning">
+                {safeData.podNotReady} Not Ready
               </span>
             )
           }
@@ -116,187 +91,57 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
           icon={<FaThLarge />}
           title="Namespaces"
           value={safeData.namespaceCount || 0}
-          status={
-            safeData.namespaceCount === 0 ? (
-              <div className="center-empty">
-                <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
-              </div>
-            ) : (
-              <span className="status-ready">All Ready</span>
-            )
-          }
+          status={<span className="status-success">Available</span>}
         />
         <InfoCard
           icon={<FaNetworkWired />}
           title="Services"
           value={safeData.serviceCount || 0}
-          status={
-            safeData.serviceCount === 0 ? (
-              <div className="center-empty">
-                <span style={{ color: '#c0c4cc', fontSize: 'var(--font-size-sm)' }}>暂无数据</span>
-              </div>
-            ) : (
-              <span className="status-ready">All Ready</span>
-            )
-          }
+          status={<span className="status-success">Available</span>}
         />
       </div>
 
-      <div className="overview-row2">
-        <div className="overview-left-col">
+      {/* 资源使用情况 - CPU和Memory并排，事件在下方 */}
+      <div className="overview-resources-section">
+        <div className="overview-resources-grid">
           <ResourceSummary
             title="CPU"
             requestsValue={(safeData.cpuRequests ?? 0).toFixed(1)}
-            requestsPercent={(
-              ((safeData.cpuRequests ?? 0) / (safeData.cpuCapacity ?? 1)) *
-              100
-            ).toFixed(1)}
+            requestsPercent={
+              ((safeData.cpuRequests ?? 0) / (safeData.cpuCapacity ?? 1)) * 100
+            }
             limitsValue={(safeData.cpuLimits ?? 0).toFixed(1)}
-            limitsPercent={(
-              ((safeData.cpuLimits ?? 0) / (safeData.cpuCapacity ?? 1)) *
-              100
-            ).toFixed(1)}
+            limitsPercent={
+              ((safeData.cpuLimits ?? 0) / (safeData.cpuCapacity ?? 1)) * 100
+            }
             totalValue={(safeData.cpuCapacity ?? 0).toFixed(1)}
-            availableValue={((safeData.cpuCapacity ?? 0) - (safeData.cpuRequests ?? 0)).toFixed(1)}
+            availableValue={
+              ((safeData.cpuCapacity ?? 0) - (safeData.cpuRequests ?? 0)).toFixed(1)
+            }
             unit="cores"
           />
           <ResourceSummary
             title="Memory"
             requestsValue={(safeData.memoryRequests ?? 0).toFixed(1)}
-            requestsPercent={(
-              ((safeData.memoryRequests ?? 0) / (safeData.memoryCapacity ?? 1)) *
-              100
-            ).toFixed(1)}
+            requestsPercent={
+              ((safeData.memoryRequests ?? 0) / (safeData.memoryCapacity ?? 1)) * 100
+            }
             limitsValue={(safeData.memoryLimits ?? 0).toFixed(1)}
-            limitsPercent={(
-              ((safeData.memoryLimits ?? 0) / (safeData.memoryCapacity ?? 1)) *
-              100
-            ).toFixed(1)}
+            limitsPercent={
+              ((safeData.memoryLimits ?? 0) / (safeData.memoryCapacity ?? 1)) * 100
+            }
             totalValue={(safeData.memoryCapacity ?? 0).toFixed(1)}
-            availableValue={(
-              (safeData.memoryCapacity ?? 0) - (safeData.memoryRequests ?? 0)
-            ).toFixed(1)}
+            availableValue={
+              ((safeData.memoryCapacity ?? 0) - (safeData.memoryRequests ?? 0)).toFixed(1)
+            }
             unit="GiB"
           />
         </div>
+      </div>
 
-        <div className="overview-event-col">
-          <div className="overview-event-card resource-summary-card">
-            <div className="resource-summary-title">Recent Events</div>
-            {safeData.events && safeData.events.length > 0 ? (
-              safeData.events
-                .slice()
-                .sort(
-                  (a: K8sEventSimple, b: K8sEventSimple) =>
-                    new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime()
-                )
-                .slice(0, 5)
-                .map((e: K8sEventSimple, i: number) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      paddingBottom: '18px',
-                      borderBottom: i !== 4 ? '1px solid #f0f0f0' : 'none',
-                      marginBottom: i !== 4 ? 12 : 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 28,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'flex-start',
-                        marginTop: 2,
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: 16,
-                          height: 16,
-                          borderRadius: '50%',
-                          border: '2px solid #a5b4fc',
-                          background: '#fff',
-                          marginTop: 2,
-                        }}
-                      ></span>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
-                        <span
-                          className={
-                            e.type === 'Warning' ? 'event-type-warning' : 'event-type-normal'
-                          }
-                          style={{
-                            background: e.type === 'Warning' ? '#ffeaea' : '#e6f7ff',
-                            color: e.type === 'Warning' ? '#ff4d4f' : '#1890ff',
-                            borderRadius: '10px',
-                            padding: '2px 10px',
-                            fontSize: 'var(--font-size-sm)',
-                            fontWeight: 600,
-                            marginRight: 8,
-                          }}
-                        >
-                          {e.type}
-                        </span>
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            fontSize: 'var(--font-size-sm)',
-                            color: '#222',
-                            marginRight: 8,
-                          }}
-                        >
-                          {e.reason}
-                        </span>
-                        <span
-                          style={{
-                            marginLeft: 'auto',
-                            fontSize: 'var(--font-size-sm)',
-                            color: '#888',
-                            fontWeight: 400,
-                          }}
-                        >
-                          {formatRelativeTime(e.lastSeen)}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 'var(--font-size-sm)',
-                          color: '#444',
-                          marginBottom: 2,
-                          wordBreak: 'break-all',
-                        }}
-                      >
-                        {e.message}
-                      </div>
-                      <div
-                        style={{ fontSize: 'var(--font-size-sm)', color: '#888', fontWeight: 400 }}
-                      >
-                        {e.pod ? `Pod: ${e.pod}` : ''}
-                        {e.cloneset ? `CloneSet: ${e.cloneset}` : ''}
-                        {e.namespace && e.name ? `Pod: ${e.namespace}/${e.name}` : ''}
-                        {e.reporter ? ` Reporter: ${e.reporter}` : ''}
-                      </div>
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <div
-                style={{
-                  color: '#888',
-                  fontSize: 'var(--font-size-sm)',
-                  padding: '24px 0',
-                  textAlign: 'center',
-                }}
-              >
-                暂无数据
-              </div>
-            )}
-          </div>
-        </div>
+      {/* 事件列表 - 占满整行 */}
+      <div className="overview-events-section">
+        <EventCard events={safeData.events || []} limit={5} />
       </div>
     </div>
   );
