@@ -3,18 +3,20 @@ import InfoCard from './InfoCard.tsx';
 import ResourceSummary from './ResourceSummary.tsx';
 import EventCard from './EventCard.tsx';
 import PageHeader from '../common/PageHeader.tsx';
+import RefreshButton from '../common/RefreshButton.tsx';
 import { OverviewPageProps, OverviewData } from '../types';
 import { apiClient } from '../utils/apiClient';
 import { FaServer, FaCube, FaNetworkWired } from 'react-icons/fa';
 import { FaThLarge } from 'react-icons/fa';
 
 /**
- * 简化的 useFetch Hook
+ * 简化的 useFetch Hook（支持手动刷新）
  */
 function useFetch<T>(url: string) {
   const [data, setData] = React.useState<T | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = React.useState<number>(0);
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -29,16 +31,21 @@ function useFetch<T>(url: string) {
     };
 
     fetchData();
-  }, [url]);
+  }, [url, refreshKey]);
 
-  return { data, loading, error };
+  const refresh = React.useCallback(() => {
+    setLoading(true);
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  return { data, loading, error, refresh };
 }
 
 /**
  * 集群概览页面
  */
 export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleCollapsed }) => {
-  const { data, loading, error } = useFetch<OverviewData>('/api/overview');
+  const { data, loading, error, refresh } = useFetch<OverviewData>('/api/overview');
   const safeData: Partial<OverviewData> = data || {};
 
   if (loading) {
@@ -51,7 +58,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
 
   return (
     <div className="overview-page">
-      <PageHeader title="Overview" collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} />
+      <PageHeader title="Overview" collapsed={collapsed} onToggleCollapsed={onToggleCollapsed}>
+        <RefreshButton onClick={refresh} loading={loading} />
+      </PageHeader>
 
       {/* 核心资源统计 - 4个卡片 */}
       <div className="overview-stats-grid">

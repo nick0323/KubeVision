@@ -9,18 +9,18 @@
 .namespace-select-value {
   align-items: center;
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-primary);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 32px;
   justify-content: space-between;
   padding: 6px 12px;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   user-select: none;
 }
 
@@ -32,7 +32,7 @@
 .namespace-select-value.open {
   background: var(--bg-secondary);
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
+  box-shadow: 0 0 0 2px var(--bg-info);
 }
 
 .namespace-select-value.disabled {
@@ -52,9 +52,9 @@
 .namespace-select-arrow {
   color: var(--text-secondary);
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   margin-left: 8px;
-  transition: transform 0.2s;
+  transition: transform var(--transition-fast);
 }
 
 .namespace-select-value.open .namespace-select-arrow {
@@ -64,39 +64,37 @@
 /* 下拉选项容器 */
 .namespace-select-dropdown {
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px var(--bg-info);
   left: 0;
   max-height: 300px;
   overflow: hidden auto;
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  z-index: 1000;
+  z-index: var(--z-index-dropdown);
 }
 
 /* 选项 - 不换行 */
 .namespace-select-option {
   background: var(--bg-secondary);
-  border-bottom: 1px solid rgb(186 231 255 / 0.2);
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   overflow: hidden;
   padding: 6px 12px;
   text-overflow: ellipsis;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   white-space: nowrap;
 }
 
 .namespace-select-option:last-child {
-  border-bottom: none;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
 .namespace-select-option:first-child {
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 
 .namespace-select-option:hover {
@@ -107,7 +105,6 @@
 .namespace-select-option.selected {
   background: var(--primary);
   color: var(--bg-secondary);
-  font-weight: 500;
 }
 
 .namespace-select-option.disabled {
@@ -123,12 +120,12 @@
 
 .namespace-select-dropdown::-webkit-scrollbar-track {
   background: var(--text-scrollbar-track);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .namespace-select-dropdown::-webkit-scrollbar-thumb {
   background: var(--text-scrollbar-thumb);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .namespace-select-dropdown::-webkit-scrollbar-thumb:hover {

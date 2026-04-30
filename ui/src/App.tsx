@@ -58,7 +58,7 @@ const ListPage: React.FC = () => {
         <ErrorBoundary
           fallback={({ error, onRetry }) => (
             <div className="error-fallback">
-              <h3>Page Load Failed</h3>
+              <h3 className="error-title">Page Load Failed</h3>
               <p>{error?.message || 'Unknown error'}</p>
               <button onClick={onRetry} className="retry-btn">
                 Retry

@@ -1,9 +1,9 @@
 /* Tab 导航样式 */
 .tab-list {
   align-items: center;
-  background: #fff;
-  border: 1px solid #bae7ff;
-  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-sm);
   display: flex;
   gap: 0;
   height: 50px;
@@ -13,20 +13,19 @@
 
 .tab-item {
   align-items: center;
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid transparent !important;
-  border-radius: 6px;
-  color: #595959;
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-size-base);
   gap: 6px;
   height: 50px;
   outline: none !important;
   padding: 0 20px;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
 }
 
 .tab-item:first-child {
@@ -38,22 +37,22 @@
 }
 
 .tab-item:hover {
-  background: #e6f7ff;
-  border-color: #91d5ff !important;
-  color: #1890ff;
+  background: var(--bg-active);
+  border-color: var(--primary-light) !important;
+  color: var(--primary);
 }
 
 .tab-item.active,
 .tab-item.active:hover,
 .tab-item.active:focus,
 .tab-item.active:focus-visible {
-  background: #e6f7ff;
-  border-color: #d3adf7 !important;
-  color: #1890ff;
+  background: var(--bg-active);
+  border-color: var(--primary-lighter) !important;
+  color: var(--primary);
 }
 
 .tab-icon {
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .tab-label {

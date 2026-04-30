@@ -3,7 +3,7 @@
   margin-bottom: 8px;
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -38,14 +38,14 @@
 .table th {
   position: sticky;
   top: 0;
-  z-index: 10;
-  background: #f5f7fa;
-  font-weight: 600;
+  z-index: var(--z-index-sticky);
+  background: var(--bg-surface-alt);
   color: var(--primary);
+  font-weight: var(--font-weight-normal);
   text-align: left;
   padding: 10px 16px;
-  border-bottom: 2px solid #e1e5e9;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 2px solid var(--bg-active-solid);
+  box-shadow: var(--shadow-inset-sm);
 }
 
 .table th:first-child {
@@ -57,14 +57,14 @@
 }
 
 .table td {
-  border-bottom: 1px solid #f5f7fa;
+  border-bottom: 1px solid var(--bg-surface-alt);
   vertical-align: middle;
   padding: 10px 16px;
   font-size: var(--font-size-sm);
 }
 
 .table tbody tr:hover {
-  background-color: #f8faff;
+  background-color: var(--bg-hover);
 }
 
 .table tr:last-child td:first-child {
@@ -77,11 +77,10 @@
 
 /* 资源名称链接 */
 .resource-name-link {
-  color: #2563eb;
+  color: var(--primary);
   cursor: pointer;
   text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
 }
 
 /* 滚动条样式 */
@@ -92,14 +91,14 @@
 
 .table-content-area::-webkit-scrollbar-track {
   background: var(--text-scrollbar-track);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .table-content-area::-webkit-scrollbar-thumb {
   background: var(--text-scrollbar-thumb);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .table-content-area::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--text-quaternary);
 }

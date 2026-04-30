@@ -1,7 +1,7 @@
 /* 登录页面整体居中背景 */
 .login-bg {
   align-items: center;
-  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  background: var(--gradient-page);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -10,18 +10,18 @@
 /* 登录卡片 */
 .login-form-card {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 40px 0 rgb(60 80 180 / 0.15);
+  box-shadow: var(--shadow-login-lg);
   display: flex;
   flex-direction: column;
   min-width: 340px;
   padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg) var(--spacing-xl);
-  transition: box-shadow 0.2s;
+  transition: box-shadow var(--transition-fast);
 }
 
 .login-form-card:hover {
-  box-shadow: 0 12px 48px 0 rgb(60 80 180 / 0.22);
+  box-shadow: var(--shadow-login-xl);
 }
 
 .login-form-card h2 {
@@ -29,17 +29,17 @@
   color: var(--text-primary);
   display: flex;
   font-size: var(--font-size-4xl);
-  font-weight: 800;
   gap: var(--spacing-sm);
   letter-spacing: 1px;
   margin-bottom: var(--spacing-xl);
 }
 
 .login-input {
-  background: #f6f8ff;
-  border: 1.5px solid #dbeafe;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--primary-light);
   border-radius: var(--radius-sm);
-  box-shadow: 0 1px 4px 0 rgb(60 80 180 / 0.04);
+  box-shadow: var(--shadow-login-sm);
+  font-family: var(--font-main);
   font-size: var(--font-size-lg);
   margin-bottom: var(--spacing-lg);
   outline: none;
@@ -51,20 +51,19 @@
 }
 
 .login-input:focus {
-  background: var(--bg-secondary);
-  border-color: #6366f1;
-  box-shadow: 0 2px 8px 0 rgb(60 80 180 / 0.1);
+  background: var(--bg-surface);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-login-md);
 }
 
 .login-btn {
-  background: linear-gradient(90deg, #6366f1 0%, #3182f6 100%);
+  background: var(--gradient-primary);
   border: none;
-  border-radius: 999px;
-  box-shadow: 0 2px 12px 0 rgb(60 80 180 / 0.1);
-  color: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-login-3xl);
+  color: var(--bg-surface);
   cursor: pointer;
   font-size: var(--font-size-lg);
-  font-weight: 700;
   margin-bottom: var(--spacing-sm);
   padding: var(--spacing-sm) 0;
   transition:
@@ -74,16 +73,15 @@
 }
 
 .login-btn:hover {
-  background: linear-gradient(90deg, #3182f6 0%, #6366f1 100%);
-  box-shadow: 0 4px 18px 0 rgb(60 80 180 / 0.18);
+  background: var(--gradient-page);
+  box-shadow: var(--shadow-login-2xl);
 }
 
 .login-error-tip {
-  background: #ffeaea;
+  background: var(--bg-danger);
   border-radius: var(--radius-sm);
-  color: #e14c4c;
+  color: var(--danger);
   font-size: var(--font-size-lg);
-  font-weight: 500;
   letter-spacing: 1px;
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm) var(--spacing-md);

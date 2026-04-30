@@ -6,16 +6,15 @@
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-md);
   font-size: var(--font-size-xs);
-  font-weight: 600;
   letter-spacing: 0.5px;
 }
 
 .event-type-normal {
-  background: #e6f7e6;
+  background: var(--bg-success);
   color: var(--success);
 }
 
 .event-type-warning {
-  background: #ffeaea;
+  background: var(--bg-danger);
   color: var(--danger);
 }

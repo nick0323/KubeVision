@@ -5,45 +5,44 @@
   align-items: center;
   justify-content: center;
   padding: 20px 24px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid #bae7ff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  box-shadow: var(--shadow-sm);
   min-height: 110px;
   gap: 20px;
-  transition: all 0.3s ease;
+  transition: var(--transition-normal);
   box-sizing: border-box;
   min-width: 0;
 }
 
 .overview-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
 
 .overview-card .overview-icon {
-  font-size: 32px;
+  font-size: var(--font-size-icon-md);
   color: var(--primary);
   flex-shrink: 0;
 }
 
 .overview-card .overview-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #666;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-normal);
   margin-bottom: 6px;
   letter-spacing: 0.5px;
 }
 
 .overview-card .overview-value {
-  font-size: 36px;
-  font-weight: 700;
-  color: #333;
+  font-size: var(--font-size-5xl);
+  color: var(--text-primary);
   line-height: 1.2;
 }
 
 .overview-card .overview-status {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   margin-top: 8px;
 }
 

@@ -5,12 +5,12 @@
   flex-direction: column;
   flex: 0 0 auto;
   align-self: stretch;
-  background: var(--bg-secondary);
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  border-right: 1.5px solid #e0e0e0;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sidebar);
+  z-index: var(--z-index-sticky);
+  border-right: 1.5px solid var(--bg-active-solid);
   overflow: hidden;
-  transition: width 0.2s ease, min-width 0.2s ease;
+  transition: width var(--transition-fast), min-width var(--transition-fast);
 }
 
 /* 折叠状态 */
@@ -37,33 +37,33 @@
 .sider-menu.collapsed li {
   justify-content: center;
   padding: var(--spacing-sm) 0;
-  margin: 0 8px 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  margin: 0 8px 0 8px;
+  border-radius: var(--radius-xs);
+  transition: var(--transition-fast);
 }
 
 .sider-menu.collapsed li:hover,
 .sider-menu.collapsed li.active {
-  background: var(--primary-light);
+  background: var(--bg-active);
   color: var(--primary);
   transform: scale(1.05);
 }
 
 .sider-menu.collapsed .icon {
   margin-right: 0;
-  font-size: 16px;
+  font-size: var(--font-size-lg);
 }
 
 .sider-menu.collapsed .sider-collapse-btn {
   right: 8px;
   width: 20px;
   height: 20px;
-  background: rgba(37, 99, 235, 0.1);
-  border-radius: 4px;
+  background: var(--bg-info);
+  border-radius: var(--radius-xs);
 }
 
 .sider-menu.collapsed .sider-collapse-btn:hover {
-  background: rgba(37, 99, 235, 0.2);
+  background: var(--bg-active);
   color: var(--primary);
 }
 
@@ -90,7 +90,6 @@
   padding: 0;
   margin: 0;
   font-size: var(--font-size-base);
-  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -100,15 +99,16 @@
   padding: var(--spacing-sm) var(--spacing-lg);
   cursor: pointer;
   font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semold);
   color: var(--text-secondary);
-  border-radius: 4px 0 0 4px;
-  margin-bottom: var(--spacing-xs);
-  transition: background 0.2s, color 0.2s;
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
+  margin-bottom: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .sider-menu li.active,
 .sider-menu li:hover {
-  background: var(--primary-light);
+  background: var(--bg-active);
   color: var(--primary);
 }
 
@@ -130,21 +130,43 @@
   justify-content: center;
   padding: 0;
   margin: 0;
+  position: relative;
+}
+
+.logo-text-full {
   font-family: var(--font-main);
-  font-weight: 600;
   font-size: var(--font-size-lg);
   color: var(--primary);
   letter-spacing: 1px;
-  position: relative;
+  font-weight: var(--font-weight-semibold);
+}
+
+.logo-compact {
+  height: 16px;
+  width: auto;
+  display: none;
 }
 
 .sider-menu.collapsed .logo-area {
   justify-content: center;
+  padding: 0;
 }
 
-.sider-menu.collapsed .logo-text-compact {
-  font-weight: 800;
-  letter-spacing: 1px;
+.sider-menu.collapsed .logo-text-full {
+  display: none;
+}
+
+.sider-menu.collapsed .logo-compact {
+  display: block;
+  margin: 22px auto;
+}
+
+.sider-menu.collapsed .logo-full {
+  display: none;
+}
+
+.sider-menu.collapsed .logo-compact {
+  display: block;
 }
 
 /* 折叠按钮 */
@@ -159,41 +181,40 @@
   background: transparent;
   color: var(--text-quaternary);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  z-index: 1;
+  transition: var(--transition-fast);
+  z-index: var(--z-index-above-base);
   padding: 0;
 }
 
 .sider-collapse-btn:hover {
-  background: var(--bg-tertiary);
+  background: var(--bg-surface-alt);
   color: var(--text-secondary);
 }
 
 /* 登出按钮 */
 .logout-btn {
   width: 100%;
-  padding: 12px 24px;
+  padding: var(--spacing-md) 24px;
   margin-top: 24px;
   background: none;
   color: var(--text-secondary);
   border: none;
-  border-radius: 4px 0 0 4px;
+  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
   font-family: var(--font-main);
   font-size: var(--font-size-base);
-  font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: background var(--transition-fast), color var(--transition-fast);
   line-height: 1.2;
   outline: none;
 }
 
 .logout-btn:hover {
-  background: var(--primary-light);
+  background: var(--bg-active);
   color: var(--primary);
 }
 

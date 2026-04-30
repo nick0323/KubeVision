@@ -64,20 +64,20 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Han
 				middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 				return
 			}
-			
+
 			// 转换为 []model.SearchableItem
 			items := make([]model.SearchableItem, len(result))
 			for i := range result {
 				items[i] = &result[i]
 			}
-			
+
 			params := ParsePaginationParams(c)
 			filteredItems := util.GenericSearchFilter(items, params.Search)
 			if params.SortBy != "" && params.SortOrder != "" {
 				filteredItems = util.SortItems(filteredItems, params.SortBy, params.SortOrder)
 			}
 			paged := util.Paginate(filteredItems, params.Offset, params.Limit)
-			
+
 			middleware.ResponseSuccess(c, paged, "List retrieved successfully", &model.PageMeta{
 				Total:  len(filteredItems),
 				Limit:  params.Limit,

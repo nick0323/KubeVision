@@ -1,10 +1,10 @@
 /* PageHeader 组件样式 */
 .page-header {
   align-items: center;
-  background: #fff;
-  border: 1px solid #bae7ff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xs);
   display: flex;
   justify-content: space-between;
   margin-bottom: 0;
@@ -20,17 +20,16 @@
 .page-title {
   align-items: center;
   display: flex;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
   line-height: 1;
   margin: 0;
 }
 
 .page-separator {
-  color: #e0e0e0;
+  color: var(--bg-active-solid);
   display: inline-block;
-  font-size: 18px;
-  font-weight: 300;
+  font-size: var(--font-size-2xl);
   line-height: 1;
   margin: 0 2px;
   vertical-align: middle;
@@ -40,8 +39,8 @@
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 4px;
-  color: #999;
+  border-radius: var(--radius-xs);
+  color: var(--text-light);
   cursor: pointer;
   display: flex;
   flex-shrink: 0;
@@ -50,13 +49,13 @@
   margin: 0;
   margin-left: 4px;
   padding: 0;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   width: 28px;
 }
 
 .page-collapse-btn:hover {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: var(--bg-active);
+  color: var(--primary);
 }
 
 .page-collapse-btn:active {
@@ -67,7 +66,7 @@
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .page-header-right > * {

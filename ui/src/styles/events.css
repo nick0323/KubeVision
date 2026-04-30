@@ -2,13 +2,12 @@
 .events-page .overview-title-main {
   margin-bottom: 20px;
   font-size: var(--font-size-lg);
-  font-weight: 700;
 }
 
 .events-page .search-area {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
   margin-bottom: 16px;
 }
 
@@ -26,7 +25,7 @@
 }
 
 .events-table td {
-  padding: 12px 16px;
+  padding: var(--spacing-md) 16px;
   vertical-align: top;
 }
 
@@ -40,6 +39,10 @@
 }
 
 /* Events表格列宽 */
+.events-table th {
+  font-weight: var(--font-weight-normal);
+}
+
 .events-table th::nth-child(1), .events-table td::nth-child(1) {
   width: 80px;
   min-width: 80px;

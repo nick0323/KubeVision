@@ -2,29 +2,28 @@
 .related-tab {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .kind-badge {
   align-items: center;
-  background: #e6f7ff;
-  border: 1px solid #91d5ff;
-  border-radius: 6px;
-  color: #1890ff;
+  background: var(--bg-active);
+  border: 1px solid var(--primary-light);
+  border-radius: var(--radius-xs);
+  color: var(--primary);
   display: inline-flex;
   font-family: var(--font-main);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
   gap: 6px;
   padding: 3px 10px;
   white-space: nowrap;
 }
 
 .related-resource-name {
-  color: #1890ff;
+  color: var(--primary);
   cursor: pointer;
   font-family: var(--font-main);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 
 .related-resource-name:hover {
@@ -33,22 +32,21 @@
 
 .table-row.clickable {
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-fast);
 }
 
 .table-row.clickable:hover {
-  background: #f5f5f5;
+  background: var(--bg-surface-alt);
 }
 
 .relation-badge {
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-  border-radius: 4px;
-  color: #52c41a;
+  background: var(--bg-success);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-xs);
+  color: var(--success);
   display: inline-block;
   font-family: var(--font-main);
-  font-size: 12px;
-  font-weight: 400;
+  font-size: var(--font-size-sm);
   padding: 2px 8px;
   white-space: nowrap;
 }

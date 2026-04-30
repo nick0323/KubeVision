@@ -1,8 +1,8 @@
 /* 资源操作栏样式 */
 .resource-action-bar {
-  background: #fff;
-  border: 1px solid #bae7ff;
-  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-sm);
   margin-bottom: 0;
   padding: 12px 20px;
 }
@@ -10,7 +10,7 @@
 .resource-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .resource-name-row {
@@ -20,35 +20,34 @@
 }
 
 .resource-name {
-  color: #262626;
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-2xl);
+  margin:0;
 }
 
 .resource-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .action-btn {
   align-items: center;
-  background: #f0f0f0;
+  background: var(--bg-surface-alt);
   border: none;
-  border-radius: 6px;
-  color: #595959;
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   height: 32px;
   justify-content: center;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   width: 32px;
 }
 
 .action-btn:hover {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: var(--bg-active);
+  color: var(--primary);
 }
 
 .action-btn.spinning {
@@ -66,20 +65,19 @@
 }
 
 .action-btn.danger:hover {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: var(--bg-danger);
+  color: var(--danger);
 }
 
 .resource-namespace {
-  color: #8c8c8c;
-  font-size: 13px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
 }
 
 .namespace-label {
-  font-weight: 500;
   margin-right: 4px;
 }
 
 .namespace-value {
-  color: #1890ff;
+  color: var(--primary);
 }

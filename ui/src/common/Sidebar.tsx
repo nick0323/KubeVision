@@ -121,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo */}
       <div className="logo-area">
         <span className="logo-text-full">KubeVision</span>
-        <span className="logo-text-compact">KV</span>
+        <img src="/src/assets/kubernetes-logo.svg" alt="Kubernetes" className="logo-compact" />
       </div>
 
       {/* 菜单 */}

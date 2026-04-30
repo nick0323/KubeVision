@@ -8,7 +8,7 @@
   position: fixed;
   right: 24px;
   top: 24px;
-  z-index: 9999;
+  z-index: var(--z-index-modal);
 }
 
 .notification {
@@ -16,8 +16,8 @@
   animation: slideInRight 0.3s ease-out;
   background: var(--bg-secondary);
   border-left: 4px solid;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
   display: flex;
   gap: 12px;
   max-width: 500px;
@@ -72,13 +72,13 @@
 
 .notification-icon {
   flex-shrink: 0;
-  font-size: 20px;
+  font-size: var(--font-size-2xl);
 }
 
 .notification-message {
   color: var(--text-message);
   flex: 1;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   line-height: 1.5;
 }
 
@@ -88,9 +88,9 @@
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
-  font-size: 14px;
-  padding: 4px;
-  transition: color 0.2s;
+  font-size: var(--font-size-base);
+  padding: var(--spacing-sm);
+  transition: color var(--transition-fast);
 }
 
 .notification-close:hover {

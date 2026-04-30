@@ -3,7 +3,7 @@
 .breadcrumb-list {
   align-items: center;
   display: flex;
-  gap: 4px;
+  gap: var(--spacing-sm);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -14,60 +14,57 @@
   align-items: center;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
-  gap: 4px;
+  font-size: var(--font-size-base);
+  gap: var(--spacing-sm);
 }
 
 .breadcrumb-link {
   align-items: center;
   background: none;
   border: none;
-  border-radius: 4px;
-  color: #1890ff;
+  border-radius: var(--radius-xs);
+  color: var(--primary);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-base);
   gap: 6px;
-  padding: 4px 8px;
-  transition: all 0.2s ease;
+  padding: var(--spacing-sm) 8px;
+  transition: var(--transition-fast);
 }
 
 .breadcrumb-link:hover {
-  background: #eff6ff;
-  color: #096dd9;
+  background: var(--bg-active);
+  color: var(--primary-dark);
 }
 
 .breadcrumb-text {
   align-items: center;
-  color: #374151;
+  color: var(--text-secondary);
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-base);
   gap: 6px;
-  padding: 4px 8px;
+  padding: var(--spacing-sm) 8px;
 }
 
 .breadcrumb-icon {
   align-items: center;
   display: flex;
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .breadcrumb-separator {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-family: var(--font-main);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   margin: 0 2px;
 }
 
 /* 当前项样式 */
 .breadcrumb-item:last-child .breadcrumb-link,
 .breadcrumb-item:last-child .breadcrumb-text {
-  color: #1f2937;
-  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .breadcrumb-item:last-child .breadcrumb-link {
@@ -76,7 +73,7 @@
 
 .breadcrumb-item:last-child .breadcrumb-link:hover {
   background: none;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 /* 响应式设计 */
@@ -86,11 +83,11 @@
   }
 
   .breadcrumb-item {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
   }
 
   .breadcrumb-link,
   .breadcrumb-text {
-    font-size: 13px;
+    font-size: var(--font-size-sm);
   }
 }

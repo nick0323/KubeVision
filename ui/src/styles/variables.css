@@ -1,23 +1,49 @@
 /* CSS变量 - 全局设计令牌 */
 :root {
-  /* 主色调 */
+  /* ========== 主色调 ========== */
   --primary: #1890ff;
-  --primary-light: #e6f7ff;
-  --primary-lighter: #bae7ff;
+  --primary-light: var(--bg-active);
+  --primary-lighter: var(--bg-active-solid);
   --primary-hover: #40a9ff;
   --primary-dark: #096dd9;
 
-  /* 语义色 */
+  /* ========== 语义色 ========== */
   --success: #52c41a;
   --warning: #faad14;
   --danger: #ff4d4f;
 
-  /* 背景色 */
-  --bg-primary: #f6f8fa;
-  --bg-secondary: #fff;
-  --bg-tertiary: #f5f5f5;
+  /* ========== 背景色系统 ========== */
+  /* 基础背景层级 */
+  --bg-base: #f6f8fa;           /* Layer 0: 页面主背景（淡灰白） */
+  --bg-surface: #ffffff;          /* Layer 1: 卡片/容器/表格背景（纯白） */
+  --bg-surface-alt: #f5f5f5;     /* Layer 1: 交替行/次要区域（浅灰） */
 
-  /* 文字色 */
+  /* 交互状态背景 */
+  --bg-hover: #f8faff;           /* 通用悬停背景（淡蓝） */
+  --bg-active: #e6f7ff;           /* 激活/选中背景（主色极淡） */
+  --bg-active-solid: #bae7ff;      /* 强激活背景（主色更浅） */
+
+  /* 语义状态背景（带透明度） */
+  --bg-success: rgba(82, 196, 26, 0.1);   /* 成功状态背景 */
+  --bg-warning: rgba(250, 173, 20, 0.1);   /* 警告状态背景 */
+  --bg-danger: rgba(245, 34, 45, 0.1);    /* 危险状态背景 */
+  --bg-info: rgba(24, 144, 255, 0.1);    /* 信息状态背景 */
+
+  /* 特殊场景背景 */
+  --bg-overlay: rgba(0, 0, 0, 0.45);       /* 模态框遮罩 */
+  --bg-disabled: #f5f5f5;                    /* 禁用状态背景 */
+  --bg-code: #fafafa;                      /* 代码块背景 */
+
+  /* 渐变背景 */
+  --gradient-primary: linear-gradient(90deg, #6366f1 0%, #3182f6 100%);
+  --gradient-page: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+
+  /* 兼容旧变量名（向后兼容） */
+  --bg-primary: var(--bg-base);
+  --bg-secondary: var(--bg-surface);
+  --bg-tertiary: var(--bg-surface-alt);
+
+  /* ========== 文字色 ========== */
   --text-primary: #222;
   --text-secondary: #444;
   --text-tertiary: #666;
@@ -25,29 +51,75 @@
   --text-disabled: #bbb;
   --text-light: #ccc;
 
-  /* 滚动条 */
-  --scrollbar-track: #f1f1f1;
-  --scrollbar-thumb: #c1c1c1;
+  /* ========== 字体 ========== */
+  --font-main: 'Maple Mono', monospace;  /* 全局字体：等宽字体 */
 
-  /* 字体 */
-  --font-main: 'Maple Mono', monospace;
+  /* ========== 字号 ========== */
+  /* 正文/UI字号（6种）*/
+  --font-size-xs: 11px;    /* 极小：标签、提示 */
+  --font-size-sm: 12px;    /* 小：表格、摘要、次要文字 */
+  --font-size-base: 14px;  /* 基础：正文、按钮（统一标准）*/
+  --font-size-lg: 16px;    /* 大：卡片标题、小标题 */
+  --font-size-2xl: 20px;  /* 2倍：页面标题 */
+  --font-size-5xl: 32px;  /* 5倍：统计数字 */
 
-  /* 字号 */
-  --font-size-xs: 11px;
-  --font-size-sm: 12px;
-  --font-size-base: 14px;
-  --font-size-lg: 16px;
-  --font-size-xl: 18px;
-  --font-size-2xl: 20px;
-  --font-size-5xl: 32px;
+  /* 图标字号（3种）*/
+  --font-size-icon-sm: 24px;  /* 小图标：折叠按钮、操作图标 */
+  --font-size-icon-md: 32px;  /* 中图标：Loading、空状态 */
+  --font-size-icon-lg: 48px;  /* 大图标：ErrorDisplay、空状态 */
 
-  /* 间距 */
-  --spacing-xs: 2px;
-  --spacing-sm: 8px;
-  --spacing-lg: 24px;
-  --spacing-xl: 20px;
+  /* ========== 间距（3种） ========== */
+  --spacing-sm: 8px;    /* 小间距：组件内边距、gap */
+  --spacing-md: 16px;   /* 中间距：表格单元格、卡片内边距 */
+  --spacing-lg: 24px;   /* 大间距：组件间距、页面边距 */
 
-  /* 圆角 */
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  /* ========== 圆角 ========== */
+  --radius-xs: 6px;      /* 极小圆角：状态点、小标签 */
+  --radius-sm: 8px;      /* 小圆角：按钮、输入框 */
+  --radius-md: 10px;     /* 中圆角：卡片、容器 */
+  --radius-lg: 14px;     /* 大圆角：表格、模态框 */
+
+  /* ========== 过渡动画 ========== */
+  --transition-fast: all 0.2s ease;    /* 快速过渡：按钮、链接 */
+  --transition-normal: all 0.3s ease;  /* 正常过渡：卡片、容器 */
+
+  /* ========== 字体粗细（精简为2种） ========== */
+  --font-weight-semibold: 500;  /* 半粗：导航栏等（适中加粗） */
+  --font-weight-normal: 400;   /* 正常：正文基础 */
+
+  /* ========== 阴影 ========== */
+  /* ========== 阴影（标准化） ========== */
+  /* 通用阴影 */
+  --shadow-xs: 0 1px 3px rgb(0 0 0 / 0.1);
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.15);
+  --shadow-lg: 0 4px 16px rgb(0 0 0 / 0.12);
+  --shadow-xl: 0 8px 30px rgb(0 0 0 / 0.2);
+
+  /* 主色阴影 */
+  --shadow-primary: 0 0 0 2px var(--bg-info);
+  --shadow-primary-lg: 0 4px 12px rgb(24 144 255 / 0.2);
+
+  /* 特殊场景阴影 */
+  --shadow-inset-xs: 0 -2px 8px rgb(0 0 0 / 0.1);
+  --shadow-login-sm: 0 1px 4px 0 rgb(60 80 180 / 0.04);
+  --shadow-login-md: 0 2px 8px 0 rgb(60 80 180 / 0.1);
+  --shadow-login-lg: 0 8px 40px 0 rgb(60 80 180 / 0.15);
+  --shadow-login-xl: 0 12px 48px 0 rgb(60 80 180 / 0.22);
+  --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.1);
+  --shadow-terminal: 0 4px 12px rgb(24 144 255 / 0.3);
+  --shadow-app: 0 -4px 16px rgba(0, 0, 0, 0.15);
+
+  /* ========== 层叠顺序（z-index） ========== */
+  --z-index-base: 0;        /* 默认层 */
+  --z-index-above-base: 1;  /* 基础层以上 */
+  --z-index-sticky: 10;     /* 吸顶/吸底元素 */
+  --z-index-elevated: 100;  /* 局部提升层级 */
+  --z-index-dropdown: 1000; /* 下拉框/弹出层 */
+  --z-index-toast: 1200;    /* 局部高优先级弹出 */
+  --z-index-modal: 9999;    /* 模态框/全局通知/加载动画 */
+  --z-index-header: 15;     /* 头部元素 */
+
+  /* ========== 边框宽度 ========== */
+  --border-width: 1px;        /* 标准边框宽度（统一为1px） */
 }

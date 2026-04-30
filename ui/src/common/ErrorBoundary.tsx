@@ -56,7 +56,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="error-boundary">
           <div className="error-content">
-            <h3>⚠️ 应用程序出现错误</h3>
+            <h3 className="error-title">⚠️ 应用程序出现错误</h3>
             <p>抱歉，应用程序遇到了一个意外错误。</p>
 
             <div className="error-actions">

@@ -23,7 +23,7 @@
   align-items: center;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
   justify-content: center;
   padding: 40px 20px;
 }
@@ -31,18 +31,17 @@
 .loading-text {
   color: var(--text-quaternary);
   font-size: var(--font-size-base);
-  font-weight: 500;
 }
 
 /* Overlay 模式 */
 .loading-overlay {
   align-items: center;
-  background-color: rgb(255 255 255 / 0.8);
+  background-color: var(--bg-surface);
   inset: 0;
   display: flex;
   justify-content: center;
   position: fixed;
-  z-index: 9999;
+  z-index: var(--z-index-modal);
 }
 
 /* 骨架屏加载动画 */
@@ -55,7 +54,7 @@
     var(--bg-secondary) 75%
   );
   background-size: 200% 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 @keyframes loading {
@@ -85,7 +84,7 @@
 }
 
 .skeleton-button {
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   height: 32px;
   width: 80px;
 }
@@ -126,7 +125,7 @@
 /* 进度条加载动画 */
 .progress-bar {
   background-color: var(--bg-tertiary);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   height: 4px;
   overflow: hidden;
   width: 100%;
@@ -135,7 +134,7 @@
 .progress-fill {
   animation: progress 2s ease-in-out infinite;
   background-color: var(--primary);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   height: 100%;
 }
 

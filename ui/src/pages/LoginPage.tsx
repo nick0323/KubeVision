@@ -84,11 +84,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       <form onSubmit={handleSubmit} className="login-form-card">
         <h2
           style={{
-            fontWeight: 700,
+            fontWeight: 'var(--font-weight-normal)',
             fontSize: 'var(--font-size-lg)',
             marginBottom: 24,
             letterSpacing: 1,
-            color: '#2563eb',
+            color: 'var(--primary-dark)',
           }}
         >
           KubeVision For Kubernetes

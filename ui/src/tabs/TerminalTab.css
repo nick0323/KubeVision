@@ -4,7 +4,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
   min-height: 0;
   width: 100%;
   height: 100%;
@@ -15,28 +15,27 @@
   align-items: center;
   background: var(--bg-secondary);
   border: 1px solid var(--primary-lighter);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xs);
   box-sizing: border-box;
   display: flex;
   flex-wrap: nowrap;
-  gap: 16px;
+  gap: var(--spacing-md);
   height: 50px;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--spacing-md) 16px;
   width: 100%;
 }
 
 .terminal-toolbar-left {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .terminal-title {
   color: var(--text-message);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--font-size-base);
   white-space: nowrap;
 }
 
@@ -44,7 +43,7 @@
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 /* Container 选择 */
@@ -60,17 +59,17 @@
 .terminal-container-select .namespace-select-value {
   align-items: center;
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-main);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 32px;
   padding: 6px 12px;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   user-select: none;
 }
 
@@ -82,7 +81,7 @@
 .terminal-container-select .namespace-select-value.open {
   background: var(--bg-secondary);
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
+  box-shadow: var(--shadow-primary);
 }
 
 /* Shell 选择 */
@@ -94,18 +93,18 @@
 .shell-select {
   align-items: center;
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-main);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 32px;
   justify-content: space-between;
   padding: 6px 32px 6px 12px;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   width: 80px;
 }
 
@@ -117,7 +116,7 @@
 .shell-select.active {
   background: var(--bg-secondary);
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
+  box-shadow: var(--shadow-primary);
 }
 
 .shell-value {
@@ -127,9 +126,9 @@
 
 .shell-arrow {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   margin-left: 8px;
-  transition: transform 0.2s;
+  transition: transform var(--transition-fast);
 }
 
 .shell-arrow.rotate {
@@ -138,15 +137,15 @@
 
 .shell-menu {
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-primary-lg);
   left: 0;
   overflow: hidden;
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  z-index: 1000;
+  z-index: var(--z-index-dropdown);
 }
 
 .shell-option {
@@ -155,10 +154,10 @@
   color: var(--text-main);
   cursor: pointer;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 6px 12px;
   text-align: right;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   width: 100%;
 }
 
@@ -170,23 +169,22 @@
 .shell-option.selected {
   background: var(--primary);
   color: var(--bg-secondary);
-  font-weight: 500;
 }
 
 .shell-option:first-child {
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }
 
 .shell-option:last-child {
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
 /* ========== 工具栏按钮 ========== */
 .toolbar-btn {
   align-items: center;
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
@@ -194,12 +192,12 @@
   height: 32px;
   justify-content: center;
   padding: 0;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   width: 32px;
 }
 
 .toolbar-btn svg {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 14px;
   width: 14px;
 }
@@ -251,7 +249,7 @@
 .terminal-actions {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 /* 状态显示 */
@@ -259,8 +257,8 @@
   align-items: center;
   color: var(--text-border-light);
   display: flex;
-  font-size: 12px;
-  gap: 8px;
+  font-size: var(--font-size-sm);
+  gap: var(--spacing-sm);
   white-space: nowrap;
 }
 
@@ -288,8 +286,8 @@
 .xterm-wrapper {
   background: var(--bg-tertiary);
   border: 1px solid var(--primary-lighter);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xs);
   box-sizing: border-box;
   flex: 1;
   min-height: 500px;
@@ -355,15 +353,14 @@
 .guide-title {
   color: var(--text-message);
   font-family: var(--font-main);
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--font-size-2xl);
   margin-bottom: 32px;
 }
 
 .guide-steps {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
   margin-bottom: 32px;
 }
 
@@ -372,8 +369,8 @@
   color: var(--text-secondary);
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
-  gap: 12px;
+  font-size: var(--font-size-base);
+  gap: var(--spacing-md);
 }
 
 .step-number {
@@ -383,8 +380,7 @@
   color: var(--bg-secondary);
   display: flex;
   flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--font-size-sm);
   height: 24px;
   justify-content: center;
   width: 24px;
@@ -405,21 +401,20 @@
   align-items: center;
   background: var(--primary);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--bg-secondary);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
-  font-weight: 500;
-  gap: 8px;
-  padding: 12px 24px;
-  transition: all 0.2s ease;
+  font-size: var(--font-size-base);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 24px;
+  transition: var(--transition-fast);
 }
 
 .connect-guide-btn:hover {
   background: var(--primary-hover);
-  box-shadow: 0 4px 12px rgb(24 144 255 / 0.3);
+  box-shadow: var(--shadow-terminal);
   transform: translateY(-2px);
 }
 

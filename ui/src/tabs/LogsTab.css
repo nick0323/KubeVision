@@ -2,7 +2,7 @@
 .logs-tab {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
   padding-bottom: 10px;
 }
 
@@ -11,15 +11,15 @@
   align-items: center;
   background: var(--bg-secondary);
   border: 1px solid var(--primary-lighter);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-xs);
   box-sizing: border-box;
   display: flex;
   flex-wrap: nowrap;
-  gap: 16px;
+  gap: var(--spacing-md);
   height: 50px;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--spacing-md) 16px;
   width: 100%;
 }
 
@@ -27,7 +27,7 @@
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: 16px;
+  gap: var(--spacing-md);
   height: 100%;
 }
 
@@ -36,7 +36,6 @@
   color: var(--text-primary);
   display: flex;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
   gap: var(--spacing-sm);
   white-space: nowrap;
 }
@@ -44,14 +43,13 @@
 .logs-total {
   color: var(--text-tertiary);
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-normal);
 }
 
 .filter-options-right {
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: 12px;
+  gap: var(--spacing-md);
   height: 100%;
   margin-left: auto;
 }
@@ -69,17 +67,17 @@
 .logs-container-select .namespace-select-value {
   align-items: center;
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-main);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 32px;
   padding: 6px 12px;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   user-select: none;
 }
 
@@ -91,14 +89,14 @@
 .logs-container-select .namespace-select-value.open {
   background: var(--bg-secondary);
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
+  box-shadow: var(--shadow-primary);
 }
 
 .logs-container-select .namespace-select-dropdown {
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-primary-lg);
 }
 
 .logs-container-select .namespace-select-option {
@@ -106,11 +104,11 @@
   border-bottom: 1px solid rgb(186 231 255 / 0.2);
   color: var(--text-main);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-base);
   overflow: hidden;
   padding: 10px 16px;
   text-overflow: ellipsis;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -122,13 +120,12 @@
 .logs-container-select .namespace-select-option.selected {
   background: var(--primary);
   color: var(--bg-secondary);
-  font-weight: 500;
 }
 
 /* Tail Lines 下拉框 */
 .setting-item-select {
   position: relative;
-  z-index: 1200; /* 确保下拉框容器层级最高 */
+  z-index: var(--z-index-toast); /* 确保下拉框容器层级最高 */
 }
 
 .custom-dropdown {
@@ -139,7 +136,7 @@
 .dropdown-trigger {
   align-items: center;
   background: var(--bg-primary);
-  border: 2px solid var(--border-theme);
+  border: var(--border-width) solid var(--border-theme);
   border-radius: var(--radius-lg);
   box-sizing: border-box;
   color: var(--text-primary);
@@ -183,15 +180,15 @@
 
 .dropdown-menu {
   background: var(--bg-primary);
-  border: 2px solid var(--border-theme);
+  border: var(--border-width) solid var(--border-theme);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 12px rgb(24 144 255 / 0.2);
+  box-shadow: var(--shadow-primary-lg);
   left: 0;
   overflow: hidden;
   position: absolute;
   right: 0;
   top: calc(100% + var(--spacing-xs));
-  z-index: 1100; /* 高于 settings-panel 的 1000 */
+  z-index: var(--z-index-toast); /* 高于 settings-panel 的 1000 */
 }
 
 .dropdown-option {
@@ -215,7 +212,6 @@
 .dropdown-option.selected {
   background: var(--color-primary);
   color: var(--color-white);
-  font-weight: var(--font-weight-medium);
 }
 
 .dropdown-option:first-child {
@@ -231,22 +227,22 @@
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: 8px;
+  gap: var(--spacing-sm);
   height: 100%;
 }
 
 .filter-options .search-input {
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-main);
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 32px;
   outline: none;
   padding: 6px 12px;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-fast);
   width: 150px;
 }
 
@@ -262,19 +258,19 @@
 .filter-options .search-btn {
   align-items: center;
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   flex-shrink: 0;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 32px;
   justify-content: center;
   padding: 0 10px;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -286,7 +282,7 @@
 
 .search-btn.clear-btn {
   color: var(--text-light);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   padding: 0 8px;
 }
 
@@ -306,23 +302,23 @@
 .settings-btn {
   align-items: center;
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 32px;
   justify-content: center;
   padding: 0;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   width: 32px;
 }
 
 .settings-btn svg {
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .settings-btn:hover,
@@ -335,49 +331,48 @@
 .settings-panel {
   background: var(--bg-secondary);
   border: 1px solid var(--border-light);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-logs-lg);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
   overflow: visible; /* 允许下拉框溢出 */
-  padding: 16px;
+  padding: var(--spacing-md);
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
   width: 280px;
-  z-index: 1000;
+  z-index: var(--z-index-dropdown);
 }
 
 .setting-item {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-md);
   justify-content: space-between;
 }
 
 .setting-item label {
   color: var(--text-message);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
   white-space: nowrap;
 }
 
 .setting-item-select select {
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-main);
   cursor: pointer;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 36px;
   outline: none;
-  padding: 8px 12px;
+  padding: var(--spacing-sm) 12px;
   text-align: right;
-  transition: all 0.2s ease;
+  transition: var(--transition-fast);
   width: 100px;
 }
 
@@ -389,7 +384,7 @@
 .setting-item-select select:focus {
   background-color: var(--bg-secondary);
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgb(24 144 255 / 0.2);
+  box-shadow: var(--shadow-primary);
 }
 
 /* Toggle Switch 样式 */
@@ -400,26 +395,26 @@
 .toggle-btn {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   flex-shrink: 0;
   height: 24px;
   padding: 0;
   position: relative;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   width: 44px;
 }
 
 .toggle-btn::after {
   background: var(--bg-secondary);
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 0.2);
+  box-shadow: var(--shadow-logs-sm);
   content: '';
   height: 18px;
   left: 2px;
   position: absolute;
   top: 2px;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   width: 18px;
 }
 
@@ -433,7 +428,7 @@
 }
 
 .toggle-btn:hover::after {
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+  box-shadow: var(--shadow-logs-md);
 }
 
 /* 操作按钮 */
@@ -441,30 +436,30 @@
   align-items: center;
   display: flex;
   flex-shrink: 0;
-  gap: 8px;
+  gap: var(--spacing-sm);
   height: 100%;
 }
 
 .action-btn {
   align-items: center;
   background: var(--bg-secondary);
-  border: 2px solid var(--primary-lighter);
-  border-radius: 8px;
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
   color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   height: 32px;
   justify-content: center;
   padding: 0;
-  transition: all 0.2s;
+  transition: var(--transition-fast);
   width: 32px;
 }
 
 .action-btn svg {
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .action-btn:hover {
@@ -480,12 +475,12 @@
 
 .filter-options::-webkit-scrollbar-track {
   background: var(--bg-tertiary);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .filter-options::-webkit-scrollbar-thumb {
   background: var(--border-primary);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .filter-options::-webkit-scrollbar-thumb:hover {
@@ -497,10 +492,10 @@
   align-items: center;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-light);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   color: var(--text-border-light);
   display: flex;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   gap: 6px;
   padding: 4px 8px;
   white-space: nowrap;
