@@ -1,9 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 
-// 懒加载概览页
+// LazyLoading...
 const LazyOverview = React.lazy(() => import('../pages/OverviewPage.tsx'));
 
-// 导入 ResourceListPage（不懒加载，因为需要传递 props）
+// 导入 ResourceListPage（notLazyLoading...need传递 props）
 import { ResourceListPage } from '../pages/ResourceListPage.tsx';
 import {
   PODS_CONFIG,
@@ -30,7 +30,7 @@ interface PageComponentProps {
 }
 
 /**
- * 创建资源列表页面组件
+ * CreateResource list page面Component
  */
 const createResourcePage = (config: any) => {
   return ({ collapsed, onToggleCollapsed }: PageComponentProps) => (
@@ -39,7 +39,7 @@ const createResourcePage = (config: any) => {
 };
 
 /**
- * 所有资源页面组件映射
+ * 所hasresourcepageComponentMapping
  */
 export const PAGE_COMPONENTS = {
   // 概览页

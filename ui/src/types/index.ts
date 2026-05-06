@@ -1,9 +1,9 @@
-﻿// types/index.ts
+// types/index.ts
 
-// ==================== API 响应类型 ====================
+// ==================== API response types ====================
 
 /**
- * 通用 API 响应结构
+ * Generic API response structure
  */
 export interface APIResponse<T = unknown> {
   code: number;
@@ -15,7 +15,7 @@ export interface APIResponse<T = unknown> {
 }
 
 /**
- * 分页元数据
+ * Pagination元data
  */
 export interface PageMeta {
   total: number;
@@ -24,7 +24,7 @@ export interface PageMeta {
 }
 
 /**
- * 分页查询参数
+ * Paginationquery参数
  */
 export interface ListQueryParams {
   limit: number;
@@ -38,7 +38,7 @@ export interface ListQueryParams {
 }
 
 /**
- * 分页响应数据
+ * Pagination响应data
  */
 export interface PaginatedResponse<T> {
   code: number;
@@ -47,7 +47,7 @@ export interface PaginatedResponse<T> {
   page?: PageMeta;
 }
 
-// ==================== UI 组件 Props ====================
+// ==================== UI Component Props ====================
 
 export interface PaginationProps {
   currentPage: number;
@@ -162,7 +162,7 @@ export interface PageConfig {
     dataIndex: string;
     width?: string;
     sortable?: boolean;
-    render?: (value: any, record: any) => React.ReactNode;
+    render?: (value: unknown, record: Record<string, unknown>) => React.ReactNode;
   }>;
   namespaceFilter: boolean;
   defaultSort?: {
@@ -171,10 +171,10 @@ export interface PageConfig {
   };
 }
 
-// ==================== 通用 Hooks 类型 ====================
+// ==================== Common Hooks Type ====================
 
 /**
- * 列表查询 Hook 返回值
+ * Listquery Hook Back值
  */
 export interface UseListReturn<T> {
   data: T[];
@@ -202,7 +202,7 @@ export interface UseListReturn<T> {
 }
 
 /**
- * 详情查询 Hook 返回值
+ * 详情query Hook Back值
  */
 export interface UseDetailReturn<T> {
   data: T | null;

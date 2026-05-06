@@ -1,8 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import './LoadingSpinner.css';
 
 /**
- * 加载动画组件 Props
+ * Loading... component Props
  */
 interface LoadingSpinnerProps {
   type?: 'spinner' | 'skeleton' | 'pulse' | 'progress';
@@ -13,7 +13,7 @@ interface LoadingSpinnerProps {
 }
 
 /**
- * 骨架屏组件 Props
+ * Skeleton screenComponent Props
  */
 interface SkeletonLoaderProps {
   rows?: number;
@@ -21,7 +21,7 @@ interface SkeletonLoaderProps {
 }
 
 /**
- * 表格骨架屏组件 Props
+ * TableSkeleton screenComponent Props
  */
 interface TableSkeletonProps {
   rows?: number;
@@ -30,15 +30,15 @@ interface TableSkeletonProps {
 }
 
 /**
- * 卡片骨架屏组件 Props
+ * CardSkeleton screenComponent Props
  */
 interface CardSkeletonProps {
   className?: string;
 }
 
 /**
- * 加载动画组件
- * 保持与 LoadingSpinner.jsx 完全一致的功能
+ * Loading... component
+ * Keep with LoadingSpinner.jsx exactly the same functionality
  */
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   type = 'spinner',
@@ -107,8 +107,8 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 };
 
 /**
- * 骨架屏加载组件
- * 保持与原始组件完全一致的功能
+ * Skeleton screenLoadComponent
+ * Keep withoriginalComponentexactly the same functionality
  */
 export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rows = 3, className = '' }) => {
   return (
@@ -121,7 +121,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({ rows = 3, classN
 };
 
 /**
- * 通用 DIV 骨架屏组件（用于非表格场景）
+ * Common DIV Skeleton screenComponent（for非Table场景）
  */
 export const DivSkeleton: React.FC<TableSkeletonProps> = ({
   rows = 5,
@@ -130,14 +130,14 @@ export const DivSkeleton: React.FC<TableSkeletonProps> = ({
 }) => {
   return (
     <div className={`table-skeleton ${className}`}>
-      {/* 表头骨架 */}
+      {/* Table header skeleton */}
       <div className="skeleton-row skeleton-header">
         {Array.from({ length: columns }).map((_, index) => (
           <div key={index} className="skeleton skeleton-text"></div>
         ))}
       </div>
 
-      {/* 表行骨架 */}
+      {/* Table row skeleton */}
       {Array.from({ length: rows }).map((_, rowIndex) => (
         <div key={rowIndex} className="skeleton-row">
           {Array.from({ length: columns }).map((_, colIndex) => (
@@ -150,8 +150,8 @@ export const DivSkeleton: React.FC<TableSkeletonProps> = ({
 };
 
 /**
- * 卡片骨架屏组件
- * 保持与原始组件完全一致的功能
+ * CardSkeleton screenComponent
+ * Keep withoriginalComponentexactly the same functionality
  */
 export const CardSkeleton: React.FC<CardSkeletonProps> = ({ className = '' }) => {
   return (

@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { RelatedTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
@@ -11,7 +11,7 @@ interface RelatedResource {
   relation?: string;
 }
 
-// 关系类型标签（英文）
+// 关系Typelabel（英文）
 const relationLabels: Record<string, string> = {
   owner: 'Owner',
   child: 'Child',
@@ -39,11 +39,11 @@ const relationLabels: Record<string, string> = {
   contains: 'Contains',
 };
 
-// 集群级资源列表（不需要 namespace）
+// cluster级resourceList（not needed namespace）
 const CLUSTER_SCOPE_RESOURCES = ['persistentvolume', 'pv', 'storageclass', 'namespace', 'node'];
 
 /**
- * Related Tab - 关联资源
+ * Related Tab - 关联resource
  */
 export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourceType, ownerReferences }) => {
   const navigate = useNavigate();
@@ -51,17 +51,17 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 判断是否为集群级资源
+  // Determine if cluster-level resource
   const isClusterResource = CLUSTER_SCOPE_RESOURCES.includes(resourceType.toLowerCase());
 
-  // 加载关联资源
+  // Loading...源
   useEffect(() => {
     const loadRelated = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        // 动态构建 API 路径：集群级资源使用 _cluster_，其他使用 namespace
+        // 动态Build API 路径：cluster级resourceUse _cluster_，其他Use namespace
         const apiPath = isClusterResource
           ? `/api/${resourceType}/_cluster_/${name}/related`
           : `/api/${resourceType}/${namespace}/${name}/related`;
@@ -71,7 +71,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
         if (result.code === 0 && result.data) {
           setRelatedResources(result.data || []);
         } else {
-          // 如果没有关联资源 API，使用 ownerReferences
+          // if没has关联resource API，Use ownerReferences
           const owners: RelatedResource[] = (ownerReferences || []).map(ref => ({
             kind: ref.kind,
             name: ref.name,
@@ -79,7 +79,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
           setRelatedResources(owners);
         }
       } catch {
-        // 降级处理：只显示 ownerReferences
+        // 降级Process：onlyDisplay ownerReferences
         const owners: RelatedResource[] = (ownerReferences || []).map(ref => ({
           kind: ref.kind,
           name: ref.name,
@@ -93,7 +93,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
     loadRelated();
   }, [namespace, name, resourceType, ownerReferences, isClusterResource]);
 
-  // 跳转到资源详情
+  // jump totoresource详情
   const handleResourceClick = useCallback(
     (kind: string, name: string) => {
       const resourceType = kind.toLowerCase() + 's';
@@ -102,14 +102,14 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
     [namespace, navigate]
   );
 
-  // 获取关系标签文本
+  // Get关系labeltext
   const getRelationLabel = (relation?: string) => {
     if (!relation) return '';
     return relationLabels[relation] || relation;
   };
 
   if (loading) {
-    return <LoadingSpinner text="加载关联资源..." size="lg" />;
+    return <LoadingSpinner text="Loading resources..." size="lg" />;
   }
 
   if (error && relatedResources.length === 0) {

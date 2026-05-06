@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { LoginPageProps } from '../types';
 import { authUtils } from '../utils/auth';
+import { notification } from '../common/Notification';
 import './LoginPage.css';
 
 /**
- * 登录页面组件
+ * Login pageComponent
  */
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [username, setUsername] = useState<string>('');
@@ -14,9 +15,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // 输入校验
+    if (!username || username.trim().length === 0) {
+      notification.error('Username cannot be empty');
+      return;
+    }
+    if (username.length < 3 || username.length > 32) {
+      notification.error('Username must be between 3 and 32 characters');
+      return;
+    }
+    if (!password || password.length === 0) {
+      notification.error('Password cannot be empty');
+      return;
+    }
+    if (password.length < 8 || password.length > 128) {
+      notification.error('Password must be between 8 and 128 characters');
+      return;
+    }
+
     setLoading(true);
 
-    // 只保存用户名，不保存密码
+    // onlySaveuser名，notSave密码
     if (remember) {
       localStorage.setItem('remembered_username', username);
     } else {
@@ -36,30 +56,31 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         const token = data.data?.token;
 
         if (!token) {
-          alert('登录响应中没有找到 token');
+          notification.error('No token found in login response');
           return;
         }
 
         authUtils.setToken(token);
 
         if (authUtils.isLoggedIn()) {
+          notification.success('Login successful');
           onLogin();
         } else {
-          alert('Token 验证失败，请重试');
+          notification.error('Token verification failed, please retry');
         }
       } else {
-        const errMsg = data.message || data.details || '用户名或密码错误';
-        alert(errMsg);
+        const errMsg = data.message || data.details || 'Wrong username or password';
+        notification.error(errMsg);
       }
     } catch {
-      alert('网络错误，请重试');
+      notification.error('Network error, please retry');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // 只加载保存的用户名
+    // onlyLoading...user名
     const savedUser = localStorage.getItem('remembered_username') || '';
     if (savedUser) {
       setUsername(savedUser);

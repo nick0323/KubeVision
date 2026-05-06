@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { EventsTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
@@ -6,7 +6,7 @@ import { authFetch } from '../utils/auth';
 import './EventsTab.css';
 
 /**
- * Events Tab - 事件列表
+ * Events Tab - Event list
  */
 export const EventsTab: React.FC<EventsTabProps> = ({
   namespace,
@@ -19,29 +19,29 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 加载事件
+  // Load事 component
   const loadEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // 优先使用 resourceKind 和 name，兼容旧的 podName
+      // preferUse resourceKind and name，兼容旧's podName
       const resourceName = name || podName;
 
-      // 只传 resourceName，让后端过滤
+      // only传 resourceName，letbackendfilter
       const response = await authFetch(
         `/api/event?namespace=${namespace}&involvedObject=${resourceName}`
       );
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        // 后端已经过滤，直接使用返回的数据
+        // backendalready经filter，直接UseBack'sdata
         setEvents(Array.isArray(result.data) ? result.data : []);
       } else {
-        setError(result.message || '加载事件失败');
+        setError(result.message || 'Load failed');
       }
     } catch {
-      setError('加载失败');
+      setError('Load Failed');
     } finally {
       setLoading(false);
     }
@@ -51,13 +51,13 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     loadEvents();
   }, [loadEvents, name, resourceKind]);
 
-  // 格式化时间
+  // format化time
   const formatTime = (timestamp?: string) => {
     if (!timestamp) return '-';
-    // 尝试解析多种时间格式
+    // 尝试解析多种timeformat
     try {
       const date = new Date(timestamp);
-      // 格式化为：2026-03-31 20:42:11
+      // Format: 2026-03-31 20:42:11
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
@@ -71,7 +71,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
   };
 
   if (loading) {
-    return <LoadingSpinner text="加载事件..." size="lg" />;
+    return <LoadingSpinner text="Loading....." size="lg" />;
   }
 
   if (error && events.length === 0) {

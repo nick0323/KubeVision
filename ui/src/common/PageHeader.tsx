@@ -10,7 +10,7 @@ export interface PageHeaderWithBreadcrumbProps extends PageHeaderProps {
 }
 
 /**
- * 页面头部组件
+ * Page headerComponent
  */
 export const PageHeader: React.FC<PageHeaderWithBreadcrumbProps> = ({
   title,
@@ -26,8 +26,8 @@ export const PageHeader: React.FC<PageHeaderWithBreadcrumbProps> = ({
         <button
           className="page-collapse-btn"
           onClick={onToggleCollapsed}
-          aria-label={collapsed ? '展开侧边栏' : '折叠侧边栏'}
-          title={collapsed ? '展开侧边栏' : '折叠侧边栏'}
+           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <FaBars />
         </button>

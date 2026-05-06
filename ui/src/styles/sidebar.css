@@ -1,4 +1,4 @@
-/* 侧边菜单 */
+/* sideMenu */
 .sider-menu {
   width: 180px;
   display: flex;
@@ -13,7 +13,7 @@
   transition: width var(--transition-fast), min-width var(--transition-fast);
 }
 
-/* 折叠状态 */
+/* 折叠Status */
 .sider-menu.collapsed {
   width: 60px;
   min-width: 60px;
@@ -169,7 +169,7 @@
   display: block;
 }
 
-/* 折叠按钮 */
+/* Collapse button */
 .sider-collapse-btn {
   position: absolute;
   right: 8px;

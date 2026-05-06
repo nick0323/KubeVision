@@ -1,9 +1,9 @@
-﻿import React, { useRef, useEffect, useState, memo, useCallback, ReactElement } from 'react';
+import React, { useRef, useEffect, useState, memo, useCallback, ReactElement } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
 
-// ==================== TooltipCell 组件 ====================
+// ==================== TooltipCell Component ====================
 
 interface TooltipCellProps {
   content: React.ReactNode;
@@ -12,14 +12,14 @@ interface TooltipCellProps {
 }
 
 /**
- * 带 Tooltip 的单元格组件
- * 只有当内容溢出时才显示 Tooltip
+ * 带 Tooltip 's单元格Component
+ * onlyhaswheninside容溢出时才Display Tooltip
  */
 export const TooltipCell: React.FC<TooltipCellProps> = memo(({ content, text, maxWidth = 600 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const spanRef = useRef<HTMLSpanElement>(null);
 
-  // 检测内容是否溢出
+  // 检测inside容is否溢出
   useEffect(() => {
     if (spanRef.current) {
       const isOverflowing = spanRef.current.scrollWidth > spanRef.current.clientWidth;
@@ -57,18 +57,18 @@ export const TooltipCell: React.FC<TooltipCellProps> = memo(({ content, text, ma
 
 TooltipCell.displayName = 'TooltipCell';
 
-// ==================== 表格列定义 ====================
+// ==================== TableColumn definition ====================
 
-export interface TableColumn<T = any> {
+export interface TableColumn<T = Record<string, unknown>> {
   title: string;
   dataIndex: string;
   width?: number | string;
   sortable?: boolean;
-  render?: (value: any, record: T, index: number) => React.ReactNode;
+  render?: (value: unknown, record: T, index: number) => React.ReactNode;
   className?: string;
 }
 
-// ==================== TableHeaderCell 组件 ====================
+// ==================== TableHeaderCell Component ====================
 
 interface TableHeaderCellProps {
   column: TableColumn;
@@ -78,7 +78,7 @@ interface TableHeaderCellProps {
 }
 
 /**
- * 表头单元格组件
+ * 表头单元格Component
  */
 export const TableHeaderCell = memo(
   ({ column, sortField, sortOrder, onSort }: TableHeaderCellProps) => {
@@ -111,14 +111,14 @@ export const TableHeaderCell = memo(
   }
 ) as React.FC<TableHeaderCellProps>;
 
-(TableHeaderCell as any).displayName = 'TableHeaderCell';
+(TableHeaderCell as React.FC<TableHeaderCellProps>).displayName = 'TableHeaderCell';
 
-// ==================== TableCell 组件 ====================
+// ==================== TableCell Component ====================
 
-interface TableCellProps {
+interface TableCellProps<T = Record<string, unknown>> {
   value: unknown;
-  column: TableColumn;
-  record: any;
+  column: TableColumn<T>;
+  record: T;
   index: number;
   isStatusColumn: boolean;
   statusColumnIndex?: string;
@@ -127,7 +127,7 @@ interface TableCellProps {
 }
 
 /**
- * 数据单元格组件
+ * data单元格Component
  */
 export const TableCell = memo(
   ({
@@ -140,7 +140,7 @@ export const TableCell = memo(
     StatusBadge,
     resourceType,
   }: TableCellProps) => {
-  // 状态列使用 StatusBadge
+  // Status列Use StatusBadge
       if (isStatusColumn && column.dataIndex === statusColumnIndex) {
         const statusValue = typeof value === 'string' ? value : String(value ?? '');
         return (
@@ -150,10 +150,10 @@ export const TableCell = memo(
         );
       }
 
-  // 使用自定义渲染函数
+      // UseCustomRenderfunction
       if (column.render) {
-        const content = column.render(value, record, index);
-        // 将渲染结果转换为字符串用于 Tooltip
+        const content = column.render(value, record as Record<string, unknown>, index);
+        // willRender结果转换for字符串for Tooltip
         const tooltipText = typeof content === 'string' ? content : String(value ?? '');
         return (
           <td key={String(column.dataIndex)} className={`table-cell ${column.className || ''}`}>
@@ -162,7 +162,7 @@ export const TableCell = memo(
         );
       }
 
-  // 数组显示
+      // 数组Display
       if (Array.isArray(value)) {
         const text = (value as unknown[]).join(', ');
         return (
@@ -172,7 +172,7 @@ export const TableCell = memo(
         );
       }
 
-  // 对象显示
+      // objectDisplay
       if (typeof value === 'object' && value !== null) {
         const text = JSON.stringify(value);
         return (
@@ -182,19 +182,19 @@ export const TableCell = memo(
         );
       }
 
-  // 普通文本
+      // 普通text
       const text = String(value ?? '');
       return (
         <td key={String(column.dataIndex)} className={`table-cell ${column.className || ''}`}>
           <TooltipCell content={text} text={text} />
         </td>
       );
-  }
+    }
 ) as React.FC<TableCellProps>;
 
-(TableCell as any).displayName = 'TableCell';
+(TableCell as React.FC<TableCellProps<Record<string, unknown>>>).displayName = 'TableCell';
 
-// ==================== TableRow 组件 ====================
+// ==================== TableRow Component ====================
 
 interface TableRowProps<T> {
   record: T;
@@ -208,7 +208,7 @@ interface TableRowProps<T> {
 }
 
 /**
- * 表格行组件
+ * TablerowComponent
  */
 export const TableRow = memo(
   ({
@@ -220,7 +220,7 @@ export const TableRow = memo(
     StatusBadge,
     resourceType,
     onClick,
-  }: TableRowProps<any>) => {
+  }: TableRowProps<Record<string, unknown>>) => {
     const handleClick = useCallback(() => {
       onClick?.(record);
     }, [onClick, record]);
@@ -231,27 +231,27 @@ export const TableRow = memo(
       className={`table-row ${onClick ? 'clickable' : ''}`}
       onClick={handleClick}
     >
-        {columns.map((column, colIndex) => (
-          <TableCell
-            key={colIndex}
-            value={(record as any)[column.dataIndex]}
-            column={column}
-            record={record}
-            index={rowIndex}
-            isStatusColumn={isStatusColumn}
-            statusColumnIndex={statusColumnIndex}
-            StatusBadge={StatusBadge}
-            resourceType={resourceType}
-          />
-        ))}
-      </tr>
-    );
+      {columns.map((column, colIndex) => (
+        <TableCell
+          key={colIndex}
+          value={(record as Record<string, unknown>)[column.dataIndex]}
+          column={column}
+          record={record}
+          index={rowIndex}
+          isStatusColumn={isStatusColumn}
+          statusColumnIndex={statusColumnIndex}
+          StatusBadge={StatusBadge}
+          resourceType={resourceType}
+        />
+      ))}
+    </tr>
+  );
   }
-) as React.FC<TableRowProps<any>>;
+) as React.FC<TableRowProps<Record<string, unknown>>>;
 
-(TableRow as any).displayName = 'TableRow';
+(TableRow as React.FC<TableRowProps<Record<string, unknown>>>).displayName = 'TableRow';
 
-// ==================== Table Skeleton 组件 ====================
+// ==================== Table Skeleton Component ====================
 
 interface TableSkeletonProps {
   columns: number;
@@ -259,7 +259,7 @@ interface TableSkeletonProps {
 }
 
 /**
- * 表格骨架屏
+ * TableSkeleton screen
  */
 export const TableSkeleton: React.FC<TableSkeletonProps> = memo(({ columns, rows = 10 }) => {
   return (
@@ -279,7 +279,7 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = memo(({ columns, rows
 
 TableSkeleton.displayName = 'TableSkeleton';
 
-// ==================== Empty State 组件 ====================
+// ==================== Empty State Component ====================
 
 interface EmptyStateProps {
   message?: string;
@@ -290,10 +290,10 @@ interface EmptyStateProps {
 }
 
 /**
- * 空状态组件
+ * Empty stateComponent
  */
 export const EmptyState: React.FC<EmptyStateProps> = memo(
-  ({ message = '暂无数据', description, icon = '📭', colSpan, action }) => {
+  ({ message = 'No data yet', description, icon = '📭', colSpan, action }) => {
     return (
       <tr className="empty-row">
         <td colSpan={colSpan}>
@@ -311,7 +311,7 @@ export const EmptyState: React.FC<EmptyStateProps> = memo(
 
 EmptyState.displayName = 'EmptyState';
 
-// ==================== Error State 组件 ====================
+// ==================== Error State Component ====================
 
 interface ErrorStateProps {
   message: string;
@@ -321,10 +321,10 @@ interface ErrorStateProps {
 }
 
 /**
- * 错误状态组件
+ * Error statusComponent
  */
 export const ErrorState: React.FC<ErrorStateProps> = memo(
-  ({ message, colSpan, onRetry, retryText = '重试' }) => {
+  ({ message, colSpan, onRetry, retryText = 'Retry' }) => {
     return (
       <tr className="error-row">
         <td colSpan={colSpan}>

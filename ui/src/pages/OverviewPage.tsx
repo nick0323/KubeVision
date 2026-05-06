@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import InfoCard from './InfoCard.tsx';
 import ResourceSummary from './ResourceSummary.tsx';
 import EventCard from './EventCard.tsx';
@@ -10,7 +10,7 @@ import { FaServer, FaCube, FaNetworkWired } from 'react-icons/fa';
 import { FaThLarge } from 'react-icons/fa';
 
 /**
- * 简化的 useFetch Hook（支持手动刷新）
+ * 简化's useFetch Hook（SupportmanualRefresh）
  */
 function useFetch<T>(url: string) {
   const [data, setData] = React.useState<T | null>(null);
@@ -42,18 +42,18 @@ function useFetch<T>(url: string) {
 }
 
 /**
- * 集群概览页面
+ * clusterOverview page
  */
 export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleCollapsed }) => {
   const { data, loading, error, refresh } = useFetch<OverviewData>('/api/overview');
   const safeData: Partial<OverviewData> = data || {};
 
   if (loading) {
-    return <div className="overview-loading">加载中...</div>;
+    return <div className="overview-loading">Loading....</div>;
   }
 
   if (error) {
-    return <div className="overview-error">错误：{error}</div>;
+    return <div className="overview-error">Error: {error}</div>;
   }
 
   return (
@@ -62,7 +62,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
         <RefreshButton onClick={refresh} loading={loading} />
       </PageHeader>
 
-      {/* 核心资源统计 - 4个卡片 */}
+      {/* Core resource statistics - 4 cards */}
       <div className="overview-stats-grid">
         <InfoCard
           icon={<FaServer />}
@@ -110,7 +110,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
         />
       </div>
 
-      {/* 资源使用情况 - CPU和Memory并排，事件在下方 */}
+      {/* Resource usage - CPU and Memory side by side, events below */}
       <div className="overview-resources-section">
         <div className="overview-resources-grid">
           <ResourceSummary
@@ -148,7 +148,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleC
         </div>
       </div>
 
-      {/* 事件列表 - 占满整行 */}
+      {/* Event list - full width */}
       <div className="overview-events-section">
         <EventCard events={safeData.events || []} limit={5} />
       </div>

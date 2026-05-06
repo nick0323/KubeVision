@@ -1,6 +1,6 @@
-﻿/**
+/**
  * Page Configurations
- * 使用工厂函数创建资源配置，减少重复代码
+ * Use工厂functionCreateresourceConfig，reduceduplicatecode
  */
 
 import {

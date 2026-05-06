@@ -1,4 +1,4 @@
-/* 全局基础样式 */
+/* global基础Style */
 html, body, #root {
   font-family: var(--font-main);
   font-size: var(--font-size-base);
@@ -13,14 +13,14 @@ html, body, #root {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 布局根容器 */
+/* layout根Container */
 .layout-root {
   display: flex;
   height: 100vh;
   background: var(--bg-base);
 }
 
-/* 右侧内容区 */
+/* 右侧inside容区 */
 .main-content {
   flex: 1;
   min-height: 0;

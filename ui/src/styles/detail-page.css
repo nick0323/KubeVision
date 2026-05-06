@@ -1,6 +1,6 @@
-/* 通用资源详情页样式 */
+/* CommonResource detail pageStyle */
  
-/* 详情页容器 */
+/* 详情页Container */
 .resource-detail-page {
   background: transparent;
   display: flex;
@@ -14,7 +14,7 @@
   --sidebar-width: 64px;
 }
 
-/* 卡片通用样式 */
+/* CardCommonStyle */
 .detail-card {
   background: var(--bg-surface);
   border: 1px solid var(--bg-active-solid);
@@ -37,7 +37,7 @@
   padding: 10px 20px;
 }
 
-/* 网格布局 */
+/* 网格layout */
 .info-grid {
   display: grid;
   gap: var(--spacing-md);
@@ -70,7 +70,7 @@
   text-decoration: underline;
 }
 
-/* 标签列表 */
+/* labelList */
 .label-list {
   display: flex;
   flex-wrap: wrap;
@@ -89,7 +89,7 @@
   color: var(--primary-dark);
 }
 
-/* 容器卡片 */
+/* ContainerCard */
 .container-card {
   border: 1px solid var(--bg-active-solid);
   border-radius: var(--radius-xs);
@@ -169,7 +169,7 @@
   text-transform: capitalize;
 }
 
-/* 环境变量样式 */
+/* 环境变量Style */
 .env-key {
   color: var(--primary);
 }
@@ -182,7 +182,7 @@
   color: var(--text-primary);
 }
 
-/* 表格样式 */
+/* TableStyle */
 .detail-table {
   border-collapse: collapse;
   font-size: var(--font-size-sm);
@@ -206,7 +206,7 @@
   background: var(--bg-surface-alt);
 }
 
-/* 条件列表 */
+/* bar componentList */
 .condition-list {
   display: flex;
   flex-direction: column;
@@ -242,7 +242,7 @@
   text-align: right;
 }
 
-/* 折叠按钮 */
+/* Collapse button */
 .collapse-btn {
   align-items: center;
   background: transparent;
@@ -259,7 +259,7 @@
   color: var(--primary);
 }
 
-/* 空状态 */
+/* Empty state */
 .empty-state {
   align-items: center;
   color: var(--text-quaternary);
@@ -277,7 +277,7 @@
   font-size: var(--font-size-base);
 }
 
-/* 日志容器样式 - 浅色主题 */
+/* Logs containerStyle - 浅色主题 */
 .log-container {
   background: var(--bg-code);
   border: 1px solid var(--bg-active-solid);
@@ -373,7 +373,7 @@
   }
 }
 
-/* 滚动条样式 */
+/* ScrollbarStyle */
 .log-container::-webkit-scrollbar {
   height: 10px;
   width: 10px;
@@ -418,7 +418,7 @@
   background: var(--bg-surface);
 }
 
-/* 统计卡片 */
+/* Stats card */
 .stats-grid {
   display: grid;
   gap: var(--spacing-md);
@@ -453,7 +453,7 @@
   color: var(--danger);
 }
 
-/* 事件列表 */
+/* Event list */
 .event-list {
   display: flex;
   flex-direction: column;

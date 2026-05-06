@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import './NamespaceSelect.css';
 
@@ -7,18 +7,18 @@ interface NamespaceSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  options?: string[]; // 父组件传入的命名空间列表
-  className?: string; // 自定义 className
-  width?: string; // 自定义宽度
+  options?: string[]; // Namespace list passed from parent component
+  className?: string; // Custom className
+  width?: string; // Custom width
 }
 
 /**
- * 自定义 Namespace 选择器组件 - 支持完全样式控制
+ * Custom Namespace SelectorComponent - Support完全Stylecontrol
  */
 export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
   value,
   onChange,
-  placeholder = '选择命名空间',
+  placeholder = 'Select namespace',
   disabled = false,
   options = [],
   className = '',
@@ -27,7 +27,7 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 点击外部关闭下拉
+  // Clickoutside部关闭under拉
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -58,7 +58,7 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
       ref={containerRef}
       style={width ? { width, minWidth: width } : {}}
     >
-      {/* 选择框主体 */}
+      {/* Select box body */}
       <div
         className={`namespace-select-value ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
         onClick={toggleDropdown}
@@ -69,10 +69,10 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
         </span>
       </div>
 
-      {/* 下拉选项 */}
+      {/* Dropdown options */}
       {isOpen && (
         <div className="namespace-select-dropdown">
-          {/* 全部选项 - 只在 placeholder 有值时显示 */}
+          {/* All options - only shown when placeholder has value */}
           {placeholder && (
             <div
               className={`namespace-select-option ${!value ? 'selected' : ''}`}
@@ -82,9 +82,9 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
             </div>
           )}
 
-          {/* 命名空间列表 */}
+          {/* Namespace list */}
           {options.length === 0 ? (
-            <div className="namespace-select-option disabled">暂无数据</div>
+            <div className="namespace-select-option disabled">No data yet</div>
           ) : (
             options.map(ns => (
               <div

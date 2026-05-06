@@ -1,17 +1,17 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { FaSync, FaClipboardList, FaTrash } from 'react-icons/fa';
 import './ResourceActionBar.css';
 
 export interface ResourceActionBarProps {
   name: string;
-  namespace?: string; // 可选，集群资源没有 namespace
+  namespace?: string; // Optional, cluster resources have no namespace
   onRefresh: () => void;
   onDelete: () => void;
-  onDescribe?: () => void; // 可选，Pod 详情页需要
+  onDescribe?: () => void; // Optional, needed for Pod detail page
 }
 
 /**
- * 资源操作栏 - 通用组件
+ * Resource action bar - CommonComponent
  */
 export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
   name,
@@ -40,17 +40,17 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
             <button
               className={`action-btn ${refreshing ? 'spinning' : ''}`}
               onClick={handleRefresh}
-              title="刷新"
+              title="Refresh"
               disabled={refreshing}
             >
               <FaSync />
             </button>
             {onDescribe && (
-              <button className="action-btn" onClick={onDescribe} title="查看详情">
+              <button className="action-btn" onClick={onDescribe} title="View details">
                 <FaClipboardList />
               </button>
             )}
-            <button className="action-btn danger" onClick={onDelete} title="删除">
+            <button className="action-btn danger" onClick={onDelete} title="Delete">
               <FaTrash />
             </button>
           </div>

@@ -1,4 +1,4 @@
-/* Events页面 */
+/* Eventspage */
 .events-page .overview-title-main {
   margin-bottom: 20px;
   font-size: var(--font-size-lg);
@@ -19,7 +19,7 @@
   margin-top: 16px;
 }
 
-/* Events表格（继承.table基础样式） */
+/* EventsTable（继承.table基础Style） */
 .events-table {
   min-width: 1200px;
 }
@@ -38,7 +38,7 @@
   min-width: 200px;
 }
 
-/* Events表格列宽 */
+/* EventsTable列宽 */
 .events-table th {
   font-weight: var(--font-weight-normal);
 }

@@ -1,4 +1,4 @@
-/* Pagination 组件样式 */
+/* Pagination ComponentStyle */
 .table-pagination-area {
   align-items: center;
   background: var(--bg-surface);
@@ -51,7 +51,7 @@
   border: 1px solid var(--text-disabled);
   border-radius: var(--radius-xs);
   cursor: pointer;
-  font-family: var(--font-main); /* 使用 Maple Mono 字体，与左侧导航栏一致 */
+  font-family: var(--font-main); /* Using Maple Mono font, consistent with left nav */
   font-size: var(--font-size-base);
   outline: none;
   padding: var(--spacing-sm) 8px;

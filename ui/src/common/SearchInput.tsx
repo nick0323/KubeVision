@@ -1,10 +1,10 @@
-﻿import React, { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import { SearchInputProps } from '../types';
 import './SearchInput.css';
 
 /**
- * 搜索输入框组件
+ * SearchInput fieldComponent
  */
 export const SearchInput: React.FC<SearchInputProps> = ({
   placeholder = 'Search...',
@@ -29,7 +29,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      // 只在按 Enter 键时触发搜索
+      // onlyin按 Enter 键时triggerSearch
       if (e.key === 'Enter' && onSubmit) {
         e.preventDefault();
         onSubmit(e as any);
@@ -56,7 +56,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         )}
       </form>
       {showClearButton && value && (
-        <button className="clear-button" onClick={onClear} title="清除搜索">
+        <button className="clear-button" onClick={onClear} title="Clear search">
           <FaTimes />
         </button>
       )}

@@ -9,7 +9,7 @@ interface EventCardProps {
 }
 
 /**
- * 格式化相对时间
+ * format化relativetime
  */
 const formatRelativeTime = (dateString: string) => {
   const date = new Date(dateString);
@@ -27,7 +27,7 @@ const formatRelativeTime = (dateString: string) => {
 };
 
 /**
- * 事件列表卡片组件
+ * Event listCardComponent
  */
 export const EventCard: React.FC<EventCardProps> = ({
   events = [],

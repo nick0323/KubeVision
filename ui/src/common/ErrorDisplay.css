@@ -1,7 +1,7 @@
-/* ErrorDisplay 组件样式 */
+/* ErrorDisplay ComponentStyle */
 .error-display {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-radius: var(--radius-lg);
   box-shadow: 0 4px 12px var(--bg-overlay);
   display: flex;
@@ -65,7 +65,7 @@
   background: var(--primary);
   border: none;
   border-radius: var(--radius-sm);
-  color: var(--bg-secondary);
+  color: var(--bg-surface);
   cursor: pointer;
   font-family: var(--font-main);
   font-size: var(--font-size-base);

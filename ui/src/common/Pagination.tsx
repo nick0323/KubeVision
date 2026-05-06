@@ -1,11 +1,11 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { PaginationProps } from '../types';
 import { PAGE_SIZE_OPTIONS } from '../constants';
 import './Pagination.css';
 
 /**
- * 分页组件
- * 保持与 Pagination.jsx 完全一致的功能
+ * PaginationComponent
+ * Keep with Pagination.jsx exactly the same functionality
  */
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
@@ -19,13 +19,13 @@ export const Pagination: React.FC<PaginationProps> = ({
 }) => {
   const totalPages = Math.ceil(total / pageSize);
 
-  // 键盘快捷键支持（仅在固定模式下启用）
+  // 键盘快捷键Support（仅in固定Modeunder启use）
   useEffect(() => {
-    // 只在固定模式下启用快捷键
+    // onlyin固定Modeunder启use快捷键
     if (!fixedBottom && !fixed) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 只在没有聚焦输入框时启用快捷键
+      // onlyin没has聚焦Input field时启use快捷键
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
@@ -42,10 +42,10 @@ export const Pagination: React.FC<PaginationProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [fixedBottom, fixed, currentPage, totalPages, onPageChange]);
 
-  // 如果总数小于每页数量，不显示分页
+  // if总数小forevery页数量，notDisplayPagination
   if (total <= pageSize) return null;
 
-  // 构建 CSS 类名
+  // Build CSS 类名
   let className = 'table-pagination-area';
   if (fixedBottom) {
     className += ' fixed-bottom';
@@ -55,7 +55,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div className={className}>
-      {/* 左侧：总行数和每页行数选择器 */}
+      {/* Left: Total rows and rows per page selector */}
       <div className="pagination-total">
         <span>{total} row(s) total</span>
         <span className="pagination-separator">|</span>
@@ -81,7 +81,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         </span>
       </div>
 
-      {/* 右侧：页码信息和导航按钮 */}
+      {/* Right: Page info and navigation buttons */}
       <div className="pagination-controls">
         <span className="pagination-info">
           Page {currentPage} of {totalPages}

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import './StatusBadge.css';
 
 interface StatusBadgeProps {
@@ -7,8 +7,8 @@ interface StatusBadgeProps {
 }
 
 /**
- * 状态标识组件
- * 根据 K8s 资源状态显示不同颜色和图标
+ * Status标识Component
+ * according to K8s resourceStatusDisplaynot同颜色andicon
  */
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, resourceType }) => {
   const statusInfo = getStatusInfo(status, resourceType);
@@ -22,10 +22,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, resourceType }
 };
 
 /**
- * 获取状态信息（颜色和图标）
+ * GetStatusinfo（颜色andicon）
  */
 function getStatusInfo(status: string, resourceType?: string): { className: string; icon: string } {
-  // Pod 状态
+  // Pod Status
   if (resourceType === 'pod') {
     switch (status) {
       case 'Running':
@@ -49,7 +49,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // Workload 状态（Deployment/StatefulSet/DaemonSet）
+  // Workload Status（Deployment/StatefulSet/DaemonSet）
   if (['deployment', 'statefulset', 'daemonset'].includes(resourceType || '')) {
     switch (status) {
       case 'Available':
@@ -67,7 +67,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // Job 状态
+  // Job Status
   if (resourceType === 'job') {
     switch (status) {
       case 'Running':
@@ -83,7 +83,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // CronJob 状态
+  // CronJob Status
   if (resourceType === 'cronjob') {
     switch (status) {
       case 'Active':
@@ -97,7 +97,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // Node 状态
+  // Node Status
   if (resourceType === 'node') {
     switch (status) {
       case 'Ready':
@@ -113,7 +113,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // PVC 状态
+  // PVC Status
   if (resourceType === 'pvc') {
     switch (status) {
       case 'Bound':
@@ -127,7 +127,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // PV 状态
+  // PV Status
   if (resourceType === 'pv') {
     switch (status) {
       case 'Available':
@@ -143,7 +143,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // Namespace 状态
+  // Namespace Status
   if (resourceType === 'namespace') {
     switch (status) {
       case 'Active':
@@ -155,7 +155,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // Event 类型
+  // Event Type
   if (resourceType === 'event') {
     switch (status) {
       case 'Normal':
@@ -167,7 +167,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // Service 类型
+  // Service Type
   if (resourceType === 'service') {
     switch (status) {
       case 'ClusterIP':
@@ -183,7 +183,7 @@ function getStatusInfo(status: string, resourceType?: string): { className: stri
     }
   }
 
-  // 默认状态
+  // defaultStatus
   return { className: '', icon: '⚪' };
 }
 

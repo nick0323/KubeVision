@@ -1,6 +1,6 @@
-/* App.css - 仅保留无法提取的样式 */
+/* App.css - Only keep styles that cannot be extracted */
 
-/* 页面折叠按钮 */
+/* Page collapse button */
 .page-collapse-btn {
   width: 32px;
   height: 32px;
@@ -40,7 +40,7 @@
   box-shadow: none;
 }
 
-/* 分页固定底部布局 */
+/* Pagination fixed bottom layout */
 .layout-root:has(.sider-menu.collapsed) .table-pagination-area.fixed-bottom,
 .layout-root[data-sider-collapsed='true'] .table-pagination-area.fixed-bottom {
   left: 64px;
@@ -81,7 +81,7 @@
   border-color: var(--text-disabled);
 }
 
-/* 错误页面标题 */
+/* Error page title */
 .error-fallback .error-title,
 .error-boundary .error-title {
   font-weight: var(--font-weight-normal);

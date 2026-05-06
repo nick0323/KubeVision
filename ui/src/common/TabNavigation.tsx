@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import './TabNavigation.css';
 
 export interface TabItem {
@@ -13,7 +13,7 @@ export interface TabNavigationProps {
 }
 
 /**
- * Tab 导航组件 - 通用版本
+ * Tab navigationComponent - Common版本
  */
 export const TabNavigation: React.FC<TabNavigationProps> = ({ tabs, activeTab, onTabChange }) => {
   return (

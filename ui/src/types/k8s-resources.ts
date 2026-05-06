@@ -1,11 +1,12 @@
-﻿/**
- * Kubernetes 资源类型定义
- * 提供完整的类型安全支持
+/**
+ * Kubernetes Resource Type Definitions
+ * 提供完整'sType安全Support
  */
 
 import React from 'react';
+import type { APIResponse as APIResponseType, PageMeta as PageMetaType, ListQueryParams as ListQueryParamsType } from './index';
 
-// ==================== 基础类型 ====================
+// ==================== Basic Types ====================
 
 export interface K8sMetadata {
   name: string;
@@ -51,22 +52,7 @@ export interface K8sResourceList<T extends K8sResource> {
   items: T[];
 }
 
-// ==================== API 响应类型 ====================
-
-export interface PageMeta {
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-export interface APIResponse<T = any> {
-  code: number;
-  message: string;
-  data: T;
-  traceId?: string;
-  timestamp?: number;
-  page?: PageMeta;
-}
+// ==================== API response types ====================
 
 export interface APIErrorResponse {
   code: number;
@@ -76,23 +62,12 @@ export interface APIErrorResponse {
   timestamp?: number;
 }
 
-export interface ListQueryParams {
-  namespace?: string;
-  search?: string;
-  limit: number;
-  offset: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  labelSelector?: string;
-  fieldSelector?: string;
-}
-
 export interface PaginatedResponse<T> {
   data: T[];
-  page?: PageMeta;
+  page?: PageMetaType;
 }
 
-// ==================== 表格列定义 ====================
+// ==================== TableColumn definition ====================
 
 export interface ColumnDef<T> {
   title: string;
@@ -112,10 +87,10 @@ export interface StatusColumnDef<T> extends ColumnDef<T> {
   >;
 }
 
-// 兼容旧代码的 Column 别名
-export type Column<T = any> = ColumnDef<T>;
+// 兼容旧code's Column 别名
+export type Column<T = unknown> = ColumnDef<T>;
 
-// ==================== 容器相关类型 ====================
+// ==================== ContainerRelated types ====================
 
 export interface ContainerPort {
   name?: string;
@@ -215,7 +190,7 @@ export interface Container {
   tty?: boolean;
 }
 
-// ==================== 卷相关类型 ====================
+// ==================== 卷Related types ====================
 
 export interface Volume {
   name: string;
@@ -251,7 +226,7 @@ export interface Volume {
   vsphereVolume?: any;
 }
 
-// ==================== Pod 相关类型 ====================
+// ==================== Pod Related types ====================
 
 export type PodPhase = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
 
@@ -359,7 +334,7 @@ export interface PodListItem {
   _origin?: Pod;
 }
 
-// ==================== Deployment 相关类型 ====================
+// ==================== Deployment Related types ====================
 
 export interface Deployment extends K8sResource {
   metadata: K8sMetadata & { namespace: string };
@@ -396,7 +371,7 @@ export interface DeploymentListItem {
   _origin?: Deployment;
 }
 
-// ==================== StatefulSet 相关类型 ====================
+// ==================== StatefulSet Related types ====================
 
 export interface StatefulSet extends K8sResource {
   metadata: K8sMetadata & { namespace: string };
@@ -431,7 +406,7 @@ export interface StatefulSetListItem {
   _origin?: StatefulSet;
 }
 
-// ==================== DaemonSet 相关类型 ====================
+// ==================== DaemonSet Related types ====================
 
 export interface DaemonSet extends K8sResource {
   metadata: K8sMetadata & { namespace: string };
@@ -464,7 +439,7 @@ export interface DaemonSetListItem {
   _origin?: DaemonSet;
 }
 
-// ==================== Service 相关类型 ====================
+// ==================== Service Related types ====================
 
 export type ServiceType = 'ClusterIP' | 'NodePort' | 'LoadBalancer' | 'ExternalName';
 
@@ -507,7 +482,7 @@ export interface ServiceListItem {
   _origin?: Service;
 }
 
-// ==================== Node 相关类型 ====================
+// ==================== Node Related types ====================
 
 export interface Node extends K8sResource {
   spec: {
@@ -560,7 +535,7 @@ export interface NodeListItem {
   _origin?: Node;
 }
 
-// ==================== K8s 事件类型 ====================
+// ==================== K8s 事 componentType ====================
 
 export interface K8sEvent extends K8sResource {
   involvedObject: ObjectReference;
@@ -599,14 +574,14 @@ export interface EventSeries {
   lastObservedTime: string;
 }
 
-// ==================== 通用类型 ====================
+// ==================== CommonType ====================
 
 export interface GenericResourceItem {
   name: string;
   namespace?: string;
   status?: string;
   age: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 export interface ResourceListItem {
@@ -614,20 +589,20 @@ export interface ResourceListItem {
   namespace?: string;
   status?: string;
   age?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
-export interface ActionButton {
+export interface ActionButton<T = Record<string, unknown>> {
   label: string;
   icon?: React.ReactNode;
-  onClick: (record: any) => void;
+  onClick: (record: T) => void;
   confirm?: boolean;
   confirmMessage?: string;
   disabled?: boolean;
   danger?: boolean;
 }
 
-// ==================== 类型映射 ====================
+// ==================== TypeMapping ====================
 
 export type ResourceListItemMap = {
   pods: PodListItem;
@@ -653,7 +628,7 @@ export type ResourceType = keyof ResourceMap;
 export type GetListItem<T extends ResourceType> = ResourceListItemMap[T];
 export type GetResource<T extends ResourceType> = ResourceMap[T];
 
-// ==================== 辅助类型 ====================
+// ==================== helperType ====================
 
 export interface LabelSelector {
   matchLabels?: Record<string, string>;

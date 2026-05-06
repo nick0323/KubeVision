@@ -1,7 +1,7 @@
-﻿import { createRoot } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App';
 
-/* 全局样式 - 统一导入 */
+/* Global styles - Unified imports */
 import './styles/fonts.css';
 import './styles/variables.css';
 import './styles/layout.css';

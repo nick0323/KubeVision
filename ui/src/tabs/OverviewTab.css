@@ -1,4 +1,4 @@
-/* Overview Tab 样式 */
+/* Overview Tab Style */
 .overview-tab {
   display: flex;
   flex-direction: column;
@@ -16,7 +16,7 @@
   padding: 60px;
 }
 
-/* 统计卡片 */
+/* Stats card */
 .stats-grid {
   display: grid;
   gap: var(--spacing-md);
@@ -31,7 +31,7 @@
 }
 
 .stat-card {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: none;
   border-radius: var(--radius-sm);
   min-width: 0;
@@ -58,7 +58,7 @@
   color: var(--danger);
 }
 
-/* 信息区块 */
+/* info区块 */
 .info-section {
   border-top: 1px solid var(--border-light);
   margin-top: 16px;
@@ -71,7 +71,7 @@
   margin-bottom: 8px;
 }
 
-/* 网格布局 */
+/* 网格layout */
 .info-grid {
   display: grid;
   gap: var(--spacing-md);
@@ -118,14 +118,14 @@
   margin-top: 2px;
 }
 
-/* Labels 和 Annotations 单独成行 */
+/* Labels and Annotations 单独成row */
 .info-section {
   border-top: 1px solid var(--border-secondary);
   margin-top: 16px;
   padding-top: 16px;
 }
 
-/* 2 列布局 - Labels 和 Annotations 平分宽度 */
+/* 2 列layout - Labels and Annotations 平分宽度 */
 .info-grid-2col {
   display: grid;
   gap: 24px;
@@ -136,7 +136,7 @@
   grid-column: span 1;
 }
 
-/* 标签和注解容器 */
+/* labeland注解Container */
 .labels-item,
 .annotations-item {
   border-top: 1px solid var(--border-secondary);
@@ -145,13 +145,13 @@
   padding-top: var(--spacing-md);
 }
 
-/* 标签和注解在 info-grid 中平分宽度 */
+/* labeland注解in info-grid in平分宽度 */
 .info-grid .labels-item,
 .info-grid .annotations-item {
   grid-column: span 1;
 }
 
-/* 标签列表 */
+/* labelList */
 .label-list,
 .annotation-list {
   display: flex;
@@ -184,7 +184,7 @@
 
 .label-tag.label-more,
 .annotation-tag.label-more {
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border-color: var(--border-primary);
   color: var(--text-light);
   cursor: default;
@@ -192,7 +192,7 @@
 
 .label-tag:hover.label-more,
 .annotation-tag:hover.label-more {
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border-color: var(--border-primary);
 }
 
@@ -220,7 +220,7 @@
   white-space: nowrap;
 }
 
-/* 状态徽章增强 */
+/* Status徽章增强 */
 .status-badge {
   align-items: center;
   border-radius: var(--radius-lg);
@@ -237,13 +237,13 @@
 }
 
 .status-badge.warning {
-  background: var(--bg-secondary)be6;
+  background: var(--bg-surface)be6;
   border: 1px solid var(--warning-border);
   color: var(--warning);
 }
 
 .status-badge.error {
-  background: var(--bg-secondary)2f0;
+  background: var(--bg-surface)2f0;
   border: 1px solid var(--danger-border);
   color: var(--danger);
 }
@@ -255,12 +255,12 @@
 }
 
 .status-badge.default {
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border: 1px solid var(--border-primary);
   color: var(--text-secondary);
 }
 
-/* 条件列表 */
+/* bar componentList */
 .condition-list {
   display: flex;
   flex-direction: column;
@@ -285,7 +285,7 @@
   margin-left: auto;
 }
 
-/* 数据预览 */
+/* data预览 */
 .data-preview {
   display: flex;
   flex-direction: column;
@@ -293,7 +293,7 @@
 }
 
 .data-item {
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xs);
   display: flex;
@@ -308,7 +308,7 @@
 }
 
 .data-value {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xs);
   color: var(--text-message);
@@ -320,7 +320,7 @@
   padding: var(--spacing-sm);
 }
 
-/* 状态徽章增强 */
+/* Status徽章增强 */
 .status-badge {
   align-items: center;
   border-radius: var(--radius-lg);
@@ -337,13 +337,13 @@
 }
 
 .status-badge.warning {
-  background: var(--bg-secondary)be6;
+  background: var(--bg-surface)be6;
   border: 1px solid var(--warning-border);
   color: var(--warning);
 }
 
 .status-badge.error {
-  background: var(--bg-secondary)2f0;
+  background: var(--bg-surface)2f0;
   border: 1px solid var(--danger-border);
   color: var(--danger);
 }
@@ -355,7 +355,7 @@
 }
 
 .status-badge.default {
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border: 1px solid var(--border-primary);
   color: var(--text-secondary);
 }

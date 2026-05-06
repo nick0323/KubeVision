@@ -1,7 +1,7 @@
-/* 表格卡片 */
+/* TableCard */
 .table-card {
   margin-bottom: 8px;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
@@ -20,7 +20,7 @@
   min-height: auto;
 }
 
-/* 表格基础样式 */
+/* Table base style */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -75,7 +75,7 @@
   border-bottom-right-radius: 14px;
 }
 
-/* 资源名称链接 */
+/* Resource nameLink */
 .resource-name-link {
   color: var(--primary);
   cursor: pointer;
@@ -83,7 +83,7 @@
   transition: var(--transition-fast);
 }
 
-/* 滚动条样式 */
+/* ScrollbarStyle */
 .table-content-area::-webkit-scrollbar {
   width: 6px;
   height: 6px;

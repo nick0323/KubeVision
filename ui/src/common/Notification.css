@@ -1,4 +1,4 @@
-/* Notification 通知样式 */
+/* Notification NotificationStyle */
 
 .notification-container {
   display: flex;
@@ -14,7 +14,7 @@
 .notification {
   align-items: center;
   animation: slideInRight 0.3s ease-out;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-left: 4px solid;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);

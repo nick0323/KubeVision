@@ -1,25 +1,34 @@
-﻿import { authFetch } from './auth';
+import { authFetch } from './auth';
 import { APIResponse, PageMeta } from '../types';
+import { API_CONFIG, CACHE_CONFIG } from '../constants';
 
 export interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
   timeout?: number;
+  retry?: number;
+  retryDelay?: number;
 }
 
 export interface ApiError extends Error {
   code?: number;
   status?: number;
-  details?: any;
+  details?: unknown;
 }
 
 export const apiClient = {
   /**
-   * 通用请求方法
+   * CommonRequest方法，支持自动重试（指数退避）
    */
   async request<T>(endpoint: string, options: ApiOptions = {}): Promise<APIResponse<T>> {
-    const { params, timeout = 30000, ...fetchOptions } = options;
+    const {
+      params,
+      timeout = API_CONFIG.TIMEOUT,
+      retry = CACHE_CONFIG.RETRY_COUNT,
+      retryDelay = CACHE_CONFIG.RETRY_DELAY,
+      ...fetchOptions
+    } = options;
 
-    // 构建 URL
+    // Build URL
     let url = endpoint;
     if (params) {
       const queryString = new URLSearchParams(
@@ -30,17 +39,20 @@ export const apiClient = {
       url = queryString ? `${endpoint}?${queryString}` : endpoint;
     }
 
-    // 创建带超时的请求
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    let lastError: Error = new Error('Request failed');
 
-    try {
-      const response = await authFetch(url, {
-        ...fetchOptions,
-        signal: controller.signal,
-      });
+    for (let attempt = 0; attempt <= retry; attempt++) {
+      // Create带超时'sRequest
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      clearTimeout(timeoutId);
+      try {
+        const response = await authFetch(url, {
+          ...fetchOptions,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -50,31 +62,44 @@ export const apiClient = {
         error.code = errorData.code;
         error.status = response.status;
         error.details = errorData.details;
+        error.traceId = errorData.traceId;
         throw error;
       }
 
       const result: APIResponse<T> = await response.json();
-
-      // 后端使用 HTTP 状态码表示状态，code 字段可能为 0 或 HTTP 状态码
-      // 只要 HTTP 状态码是 200，就认为是成功
       return result;
-    } catch (error) {
-      clearTimeout(timeoutId);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        lastError = error instanceof Error ? error : new Error(String(error));
 
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          const timeoutError: ApiError = new Error('请求超时');
+        // 不重试主动取消的请求
+        if (error instanceof Error && error.name === 'AbortError') {
+          const timeoutError: ApiError = new Error('Request timeout');
           timeoutError.code = 408;
           throw timeoutError;
         }
-      }
 
-      throw error;
+        // 不重试 HTTP 错误（只重试网络错误）
+        if (error instanceof Error && 'status' in error) {
+          throw error;
+        }
+
+        // 最后一次尝试，直接抛出
+        if (attempt === retry) {
+          throw lastError;
+        }
+
+        // 指数退避等待
+        const delay = retryDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
+
+    throw lastError;
   },
 
   /**
-   * GET 请求
+   * GET Request
    */
   async get<T>(
     endpoint: string,
@@ -84,7 +109,7 @@ export const apiClient = {
   },
 
   /**
-   * POST 请求
+   * POST Request
    */
   async post<T>(endpoint: string, body?: unknown): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, {
@@ -94,7 +119,7 @@ export const apiClient = {
   },
 
   /**
-   * PUT 请求
+   * PUT Request
    */
   async put<T>(endpoint: string, body?: unknown): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, {
@@ -104,27 +129,27 @@ export const apiClient = {
   },
 
   /**
-   * DELETE 请求
+   * DELETE Request
    */
   async delete<T>(endpoint: string): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   },
 
-  async getDetail(resourceType: string, namespace: string, name: string): Promise<any> {
+  async getDetail<T = unknown>(resourceType: string, namespace: string, name: string): Promise<T> {
     const endpoint = `/api/${resourceType}/${namespace}/${name}`;
-    const result = await this.request<any>(endpoint);
+    const result = await this.request<T>(endpoint);
     return result.data;
   },
 
-  async deleteResource(resourceType: string, namespace: string, name: string): Promise<any> {
+  async deleteResource<T = unknown>(resourceType: string, namespace: string, name: string): Promise<T> {
     const endpoint = `/api/${resourceType}/${namespace}/${name}`;
-    const result = await this.request<any>(endpoint, { method: 'DELETE' });
+    const result = await this.request<T>(endpoint, { method: 'DELETE' });
     return result.data;
   },
 };
 
 /**
- * 分页查询参数
+ * Paginationquery参数
  */
 export interface PaginationQueryOptions {
   page: number;
@@ -134,7 +159,7 @@ export interface PaginationQueryOptions {
 }
 
 /**
- * 分页查询
+ * Paginationquery
  */
 export async function createPaginatedQuery<T>(
   endpoint: string,
@@ -149,8 +174,8 @@ export async function createPaginatedQuery<T>(
     ...(search && { search }),
   });
 
-  // 后端返回格式：{ code: 200, message: "xxx", data: { data: [...], page: {...} }, page: {...} }
-  // 或者：{ code: 200, message: "xxx", data: [...], page: {...} }
+  // backendBackformat：{ code: 200, message: "xxx", data: { data: [...], page: {...} }, page: {...} }
+  // or者：{ code: 200, message: "xxx", data: [...], page: {...} }
   const responseData = result.data;
 
   return {

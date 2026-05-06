@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
@@ -23,14 +23,14 @@ interface EndpointsTabProps {
 }
 
 /**
- * Endpoints Tab - 显示 Service 的 Endpoints
+ * Endpoints Tab - Display Service 's Endpoints
  */
 export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceName }) => {
   const [endpoints, setEndpoints] = useState<Endpoints | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 加载 Endpoints
+  // Loading...dpoints
   const loadEndpoints = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -42,10 +42,10 @@ export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceNa
       if (result.code === 0 && result.data) {
         setEndpoints(result.data);
       } else {
-        setError(result.message || '加载失败');
+        setError(result.message || 'Load Failed');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '网络错误');
+      setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceNa
   }, [loadEndpoints]);
 
   if (loading) {
-    return <LoadingSpinner text="加载 Endpoints..." size="lg" />;
+    return <LoadingSpinner text="Loading...dpoints..." size="lg" />;
   }
 
   if (error) {
@@ -67,7 +67,7 @@ export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceNa
     return (
       <div className="endpoints-tab">
         <div className="empty-state">
-          <span className="empty-state-text">暂无 Endpoints 信息</span>
+          <span className="empty-state-text">No Endpoints info</span>
         </div>
       </div>
     );
@@ -108,7 +108,7 @@ export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceNa
             ))
           ) : (
             <div className="empty-state">
-              <span className="empty-state-text">没有配置 Endpoints</span>
+              <span className="empty-state-text">No Endpoints configured</span>
             </div>
           )}
         </div>

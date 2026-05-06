@@ -1,4 +1,4 @@
-/* ResourceListPage 组件样式 */
+/* ResourceListPage ComponentStyle */
 .resource-list-page {
   background: transparent;
   display: flex;
@@ -7,7 +7,7 @@
   width: 100%;
 }
 
-/* 表格容器 */
+/* TableContainer */
 .table-container {
   background: var(--bg-surface);
   border: 1px solid var(--bg-active-solid);
@@ -17,17 +17,17 @@
   flex: 1;
 }
 
-/* PageHeader 和表格之间的间距 */
+/* PageHeader andTable之间's间距 */
 .resource-list-page > .page-header {
   margin-bottom: 16px;
 }
 
-/* 表格和分页之间的间距 */
+/* TableandPagination之间's间距 */
 .resource-list-page > .table-container {
   margin-bottom: 16px;
 }
 
-/* 表格样式 */
+/* TableStyle */
 .resource-table {
   border-collapse: collapse;
   font-size: var(--font-size-base);
@@ -82,7 +82,7 @@ th.sorted .sort-icon {
   color: var(--primary);
 }
 
-/* 表格行 */
+/* Tablerow */
 .resource-table tbody tr {
   border-bottom: 1px solid var(--bg-surface-alt);
   transition: background-color var(--transition-fast);
@@ -103,7 +103,7 @@ th.sorted .sort-icon {
   padding: 10px 16px;
 }
 
-/* 单元格文本 */
+/* 单元格text */
 .table-cell-text {
   cursor: default;
   display: block;
@@ -113,7 +113,7 @@ th.sorted .sort-icon {
   white-space: nowrap;
 }
 
-/* 资源名称链接样式 */
+/* Resource nameLinkStyle */
 .resource-name-link {
   color: var(--primary);
   cursor: pointer;
@@ -129,7 +129,7 @@ th.sorted .sort-icon {
   color: var(--primary-dark);
 }
 
-/* Tippy Tooltip 样式 */
+/* Tippy Tooltip Style */
 .tippy-box[data-theme~='light'] {
   background: var(--bg-active);
   border: var(--border-width) solid var(--bg-active-solid);
@@ -149,7 +149,7 @@ th.sorted .sort-icon {
   color: var(--bg-active);
 }
 
-/* 骨架屏样式 */
+/* Skeleton screenStyle */
 .skeleton-row {
   pointer-events: none;
 }
@@ -172,7 +172,7 @@ th.sorted .sort-icon {
   }
 }
 
-/* 空状态 */
+/* Empty state */
 .empty-row td {
   padding: 60px 16px;
   text-align: center;
@@ -221,7 +221,7 @@ th.sorted .sort-icon {
   border-color: var(--primary-hover);
 }
 
-/* 错误状态 */
+/* Error status */
 .error-row td {
   padding: 60px 16px;
   text-align: center;
@@ -244,7 +244,7 @@ th.sorted .sort-icon {
   margin: 0;
 }
 
-/* 操作按钮 */
+/* Action button */
 .table-actions {
   display: flex;
   gap: var(--spacing-sm);
@@ -284,7 +284,7 @@ th.sorted .sort-icon {
   color: var(--danger);
 }
 
-/* 确认对话框 */
+/* Confirm dialog */
 .confirm-modal-overlay {
   align-items: center;
   animation: fade-in 0.2s ease;
@@ -415,7 +415,7 @@ th.sorted .sort-icon {
   background: var(--danger);
 }
 
-/* 刷新状态指示器 */
+/* 刷新Status指示器 */
 .refreshing-indicator {
   animation: refresh-loading 1s infinite linear;
   background: linear-gradient(90deg, transparent, var(--primary), transparent);

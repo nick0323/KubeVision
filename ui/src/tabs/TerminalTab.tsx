@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { TerminalTabProps } from '../pages/ResourceDetailPage.types';
 import { FaPlug, FaTimes, FaEraser, FaChevronDown } from 'react-icons/fa';
 import { useNotification } from '../common/Notification';
@@ -85,27 +85,27 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
       }
     });
 
-    // 初次 fit - 使用 requestAnimationFrame 确保在下一帧渲染后调用
+    // 初次 fit - Use requestAnimationFrame ensureinunder一帧Renderafter调use
     requestAnimationFrame(() => {
-      // 检查容器是否可见
+      // 检查Containeris否可见
       if (terminalRef.current && terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
         fitAddon.fit();
       }
       term.focus();
     });
 
-    // Handle resize using ResizeObserver - 监听整个 tab 容器
+    // Handle resize using ResizeObserver - 监听整个 tab Container
     const tabContainer = terminalRef.current?.closest('.terminal-tab');
     const resizeObserver = new ResizeObserver(() => {
       if (fitAddonRef.current && xtermRef.current && terminalRef.current) {
-        // 防抖处理
+        // debounceProcess
         clearTimeout((fitAddonRef.current as any).fitTimeout);
         (fitAddonRef.current as any).fitTimeout = setTimeout(() => {
-          // 检查容器是否可见（不为 0）
+          // 检查Containeris否可见（notfor 0）
           if (terminalRef.current && terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
             fitAddonRef.current?.fit();
 
-            // 发送 resize 消息给后端（只在已连接时发送）
+            // 发送 resize 消息givebackend（onlyinalready连接时发送）
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && connected) {
               wsRef.current.send(
                 JSON.stringify({
@@ -126,7 +126,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
 
     return () => {
       resizeObserver.disconnect();
-      // 清理 WebSocket 和心跳
+      // 清理 WebSocket and心跳
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -162,14 +162,14 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     const containerToUse = selectedContainer || (containers.length > 0 ? containers[0].name : '');
 
     if (!containerToUse) {
-      notify.error('请先选择容器');
+      notify.error('Please select a container first');
       return;
     }
 
     // Clear terminal
     xtermRef.current?.clear();
 
-    // 清理旧的心跳定时器
+    // 清理旧's心跳定时器
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;
@@ -190,10 +190,10 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
       setConnected(true);
       setSessionStart(new Date());
 
-      // 浏览器会自动处理 WebSocket 协议层的心跳 (Ping/Pong)，无需应用层手动发送。
-      // 发送应用层数据反而可能导致连接异常。
+      // 浏览器willAutoProcess WebSocket 协议层's心跳 (Ping/Pong)，no需应use层manual发送。
+      // 发送应use层data反whilemay导致连接异常。
       
-      // 连接成功后重新计算终端尺寸
+      // 连接成功after重新计算终端尺寸
       setTimeout(() => {
         if (fitAddonRef.current && terminalRef.current && xtermRef.current) {
           const width = terminalRef.current.offsetWidth;
@@ -228,7 +228,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     };
 
     ws.onmessage = event => {
-      // 处理 Blob 数据（后端发送的是 BinaryMessage）
+      // Process Blob data（backend发送'sis BinaryMessage）
       if (event.data instanceof Blob) {
         const reader = new FileReader();
         reader.onload = () => {
@@ -268,7 +268,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     };
 
     ws.onerror = error => {
-      // 清除心跳
+      // Clear heartbeat
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -278,9 +278,9 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     };
 
     ws.onclose = event => {
-      // 提示超时或 Shell 退出问题
+      // Info超时or Shell 退出问题
       if (event.code === 1005 || event.code === 1006) {
-        // 如果连接时间很短（< 10s），通常是 Shell 启动失败或容器不支持交互
+        // if连接time很短（< 10s），通常is Shell 启动失败orContainernotSupport交互
         if (sessionStart && (new Date().getTime() - sessionStart.getTime()) < 10000) {
            xtermRef.current?.writeln('\r\n\x1b[31mConnection closed immediately. Possible reasons:\x1b[0m\r\n');
            xtermRef.current?.writeln('\x1b[33m1. Container does not support TTY/Stdin.\x1b[0m\r\n');
@@ -291,7 +291,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
         }
       }
       
-      // 清除心跳
+      // Clear heartbeat
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);
         heartbeatIntervalRef.current = null;
@@ -303,7 +303,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
 
   // Disconnect
   const handleDisconnect = useCallback(() => {
-    // 清除心跳
+    // Clear heartbeat
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;

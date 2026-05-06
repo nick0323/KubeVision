@@ -1,12 +1,12 @@
-﻿/**
- * 通用资源详情页类型定义
+/**
+ * CommonResource detail pageType definitions
  * Type definitions for Resource Detail Page
  */
 
 import { K8sOwnerReference, Container as K8sContainer } from '../types/k8s-resources';
 
 // ============================================================================
-// 通用 Tab Props
+// Common Tab Props
 // ============================================================================
 
 /**
@@ -34,7 +34,7 @@ export interface YamlTabProps {
  */
 export interface EventsTabProps {
   namespace: string;
-  podName?: string; // 兼容旧版 Pod 详情页
+  podName?: string; // Compatible with old Pod detail page
   name: string;
   resourceKind?: string;
   onRefresh?: () => void;
@@ -80,11 +80,11 @@ export interface PodsTabProps {
 }
 
 // ============================================================================
-// 页面级 Props
+// page级 Props
 // ============================================================================
 
 /**
- * 通用资源详情页 Props
+ * CommonResource detail page Props
  */
 export interface ResourceDetailPageProps {
   resourceType: string;
@@ -95,14 +95,14 @@ export interface ResourceDetailPageProps {
 }
 
 /**
- * YAML Tab Props (扩展版，兼容旧代码)
+ * YAML Tab Props (扩展版，兼容旧code)
  */
 export interface YamlTabPropsExtended extends YamlTabProps {
-  pod?: unknown | null; // 兼容旧版 Pod 详情页
+  pod?: unknown | null; // Compatible with old Pod detail page
 }
 
 /**
- * 资源类型配置
+ * Resource type config
  */
 export interface ResourceConfig {
   title: string;
@@ -111,19 +111,19 @@ export interface ResourceConfig {
   hasTerminal?: boolean;
   hasPods?: boolean;
   hasEndpoints?: boolean;
-  [key: string]: unknown; // 支持动态属性访问
+  [key: string]: unknown; // Supports dynamic property access
 }
 
 // ============================================================================
-// 资源配置工厂函数
-// 用于减少重复配置代码
+// Resource config factoryfunction
+// forreduceduplicateConfigcode
 // ============================================================================
 
 /**
- * 创建资源配置
- * @param title 资源标题
- * @param tabs Tab 列表
- * @param options 额外选项
+ * CreateresourceConfig
+ * @param title resource标题
+ * @param tabs Tab List
+ * @param options 额outside选项
  */
 export function createResourceConfig(
   title: string,
@@ -137,7 +137,7 @@ export function createResourceConfig(
   };
 }
 
-// 通用 Tab 配置常量
+// Common Tab Config常量
 const COMMON_TABS = {
   BASIC: ['overview', 'yaml', 'related', 'events'] as const,
   WITH_PODS: ['overview', 'yaml', 'pods', 'related', 'events'] as const,
@@ -145,27 +145,27 @@ const COMMON_TABS = {
 } as const;
 
 // ============================================================================
-// 资源配置映射
-// 定义每种 K8s 资源的显示配置
+// resourceConfigMapping
+// 定义every种 K8s resource'sDisplayConfig
 // ============================================================================
 
 export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
-  // Pod - 完整功能
+  // Pod - 完整functionality
   pod: createResourceConfig('Pod', COMMON_TABS.POD_FULL, {
     hasLogs: true,
     hasTerminal: true,
   }),
 
-  // Workloads - 支持 Pods
+  // Workloads - Support Pods
   deployment: createResourceConfig('Deployment', COMMON_TABS.WITH_PODS, { hasPods: true }),
   statefulset: createResourceConfig('StatefulSet', COMMON_TABS.WITH_PODS, { hasPods: true }),
   daemonset: createResourceConfig('DaemonSet', COMMON_TABS.WITH_PODS, { hasPods: true }),
   job: createResourceConfig('Job', COMMON_TABS.WITH_PODS, { hasPods: true }),
 
-  // CronJob - 不支持 Pods
+  // CronJob - notSupport Pods
   cronjob: createResourceConfig('CronJob', COMMON_TABS.BASIC),
 
-  // Service - 支持 Endpoints
+  // Service - Support Endpoints
   service: createResourceConfig('Service', ['overview', 'yaml', 'endpoints', 'related', 'events'], {
     hasEndpoints: true,
   }),
@@ -188,11 +188,11 @@ export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
 } as const;
 
 // ============================================================================
-// 辅助类型
+// helperType
 // ============================================================================
 
 /**
- * 关联资源
+ * 关联resource
  */
 export interface RelatedResource {
   kind: string;
@@ -202,12 +202,12 @@ export interface RelatedResource {
 }
 
 /**
- * 资源类型键名
+ * resourceType键名
  */
 export type ResourceTypeKey = keyof typeof RESOURCE_CONFIGS;
 
 /**
- * Tab 键名类型
+ * Tab 键名Type
  */
 export type TabKey =
   | 'overview'
@@ -220,7 +220,7 @@ export type TabKey =
   | 'endpoints';
 
 /**
- * 获取资源的 Tab 列表
+ * Getresource's Tab List
  */
 export function getResourceTabs(resourceType: string): string[] {
   const config = RESOURCE_CONFIGS[resourceType as keyof typeof RESOURCE_CONFIGS];
@@ -228,7 +228,7 @@ export function getResourceTabs(resourceType: string): string[] {
 }
 
 /**
- * 检查资源是否支持特定功能
+ * 检查resourceis否Support特定functionality
  */
 export function hasResourceFeature(
   resourceType: string,

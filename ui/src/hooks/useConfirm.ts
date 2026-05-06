@@ -1,7 +1,7 @@
-﻿import { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 /**
- * 确认对话框配置
+ * Confirm dialogConfig
  */
 export interface ConfirmOptions {
   title?: string;
@@ -12,7 +12,7 @@ export interface ConfirmOptions {
 }
 
 /**
- * 确认结果
+ * confirm结果
  */
 export interface ConfirmResult {
   confirmed: boolean;
@@ -20,20 +20,20 @@ export interface ConfirmResult {
 }
 
 /**
- * 操作确认 Hook
+ * Actionconfirm Hook
  *
- * 用法：
+ * use法：
  * const { confirm, confirming, confirmConfig } = useConfirm();
  *
  * const handleDelete = async (record) => {
  *   const result = await confirm({
- *     title: '删除确认',
- *     message: `确定要删除 ${record.name} 吗？`,
+ *     title: 'Deleteconfirm',
+ *     message: `确定wantDelete ${record.name} 吗？`,
  *     danger: true,
  *   });
  *
  *   if (result.confirmed) {
- *     // 执行删除
+ *     // 执rowDelete
  *   }
  * };
  */
@@ -43,7 +43,7 @@ export function useConfirm() {
   const [resolver, setResolver] = useState<((result: ConfirmResult) => void) | null>(null);
 
   /**
-   * 显示确认对话框
+   * DisplayConfirm dialog
    */
   const confirm = useCallback((options: ConfirmOptions): Promise<ConfirmResult> => {
     return new Promise(resolve => {
@@ -54,7 +54,7 @@ export function useConfirm() {
   }, []);
 
   /**
-   * 确认操作
+   * Confirm Operation
    */
   const handleConfirm = useCallback(() => {
     if (resolver) {
@@ -66,7 +66,7 @@ export function useConfirm() {
   }, [resolver]);
 
   /**
-   * 取消操作
+   * CancelAction
    */
   const handleCancel = useCallback(() => {
     if (resolver) {
@@ -87,14 +87,14 @@ export function useConfirm() {
 }
 
 /**
- * 简单的浏览器确认对话框（备用方案）
+ * 简单's浏览器Confirm dialog（备use方案）
  */
 export function browserConfirm(message: string): boolean {
   return window.confirm(message);
 }
 
 /**
- * 权限检查工具
+ * permission检查工具
  */
 export interface PermissionCheck {
   hasPermission: (permission: string) => boolean;
@@ -102,9 +102,9 @@ export interface PermissionCheck {
 }
 
 /**
- * 创建权限检查器
+ * Createpermission检查器
  *
- * @param userPermissions 用户拥有的权限列表
+ * @param userPermissions user拥has'spermissionList
  */
 export function createPermissionChecker(userPermissions: string[] = []): PermissionCheck {
   return {
@@ -112,16 +112,16 @@ export function createPermissionChecker(userPermissions: string[] = []): Permiss
       return userPermissions.includes(permission) || userPermissions.includes('*');
     },
     checkPermissions: (permissions: string[]) => {
-      // 所有权限都需要满足（AND 逻辑）
+      // 所haspermissionallneed满足（AND logic）
       return permissions.every(p => userPermissions.includes(p) || userPermissions.includes('*'));
     },
   };
 }
 
 /**
- * 权限检查 Hook
+ * permission检查 Hook
  *
- * @param userPermissions 用户拥有的权限列表
+ * @param userPermissions user拥has'spermissionList
  */
 export function usePermission(userPermissions: string[] = []) {
   const checker = createPermissionChecker(userPermissions);

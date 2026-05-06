@@ -1,5 +1,5 @@
-﻿import React, { useState, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, Suspense, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import './App.css';
 import LoadingSpinner from './common/LoadingSpinner.tsx';
 import ErrorBoundary from './common/ErrorBoundary.tsx';
@@ -7,13 +7,35 @@ import { NotificationProvider } from './common/NotificationContext';
 import { NotificationContainerWrapper } from './common/NotificationContainerWrapper';
 import { SidebarLayout } from './common/SidebarLayout';
 import LoginPage from './pages/LoginPage.tsx';
-import { authUtils } from './utils/auth.ts';
+import { authUtils } from './utils/auth';
 import { PAGE_COMPONENTS } from './constants/page-components.tsx';
 import { ResourceDetailPage as ImportedResourceDetail } from './pages/ResourceDetailPage';
 import { useLocalStorage } from './hooks/useLocalStorage';
 
 /**
- * Page Renderer Component (替代 IIFE)
+ * 路由守卫组件：未登录时重定向到登录页
+ */
+const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!authUtils.isLoggedIn()) {
+      navigate('/login', { replace: true });
+    } else {
+      setReady(true);
+    }
+  }, [navigate]);
+
+  if (!ready) {
+    return null;
+  }
+
+  return <>{children}</>;
+};
+
+/**
+ * Page Renderer Component (Alternative IIFE)
  */
 const PageRenderer: React.FC<{ tab: string; collapsed: boolean; onToggleCollapsed: () => void }> = ({ tab, collapsed, onToggleCollapsed }) => {
   const PageComponent = PAGE_COMPONENTS[tab as keyof typeof PAGE_COMPONENTS];
@@ -115,44 +137,167 @@ const AppWithNotification: React.FC = () => {
     return () => window.removeEventListener('storage', checkLogin);
   }, []);
 
-  if (!login) {
-    return (
-      <NotificationProvider>
-        <>
-          <LoginPage onLogin={() => setLogin(true)} />
-          <NotificationContainerWrapper />
-        </>
-      </NotificationProvider>
-    );
-  }
-
   return (
     <NotificationProvider>
       <>
         <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<ListPage />} />
-          <Route path="/pod/:namespace/:name" element={<GenericResourceDetail resourceType="pod" />} />
-          <Route path="/deployment/:namespace/:name" element={<GenericResourceDetail resourceType="deployment" />} />
-          <Route path="/statefulset/:namespace/:name" element={<GenericResourceDetail resourceType="statefulset" />} />
-          <Route path="/daemonset/:namespace/:name" element={<GenericResourceDetail resourceType="daemonset" />} />
-          <Route path="/service/:namespace/:name" element={<GenericResourceDetail resourceType="service" />} />
-          <Route path="/configmap/:namespace/:name" element={<GenericResourceDetail resourceType="configmap" />} />
-          <Route path="/secret/:namespace/:name" element={<GenericResourceDetail resourceType="secret" />} />
-          <Route path="/ingress/:namespace/:name" element={<GenericResourceDetail resourceType="ingress" />} />
-          <Route path="/job/:namespace/:name" element={<GenericResourceDetail resourceType="job" />} />
-          <Route path="/cronjob/:namespace/:name" element={<GenericResourceDetail resourceType="cronjob" />} />
-          <Route path="/pvc/:namespace/:name" element={<GenericResourceDetail resourceType="pvc" />} />
-          <Route path="/pv/:namespace/:name" element={<GenericResourceDetail resourceType="pv" />} />
-          <Route path="/storageclass/:namespace/:name" element={<GenericResourceDetail resourceType="storageclass" />} />
-          <Route path="/namespace/:namespace/:name" element={<GenericResourceDetail resourceType="namespace" />} />
-          <Route path="/node/:namespace/:name" element={<GenericResourceDetail resourceType="node" />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-      <NotificationContainerWrapper />
-    </>
-  </NotificationProvider>
+          <Routes>
+            {/* 登录页 */}
+            <Route
+              path="/login"
+              element={
+                login ? (
+                  <Navigate to="/" replace />
+                ) : (
+                  <>
+                    <LoginPage onLogin={() => setLogin(true)} />
+                    <NotificationContainerWrapper />
+                  </>
+                )
+              }
+            />
+
+            {/* 受保护路由 */}
+            <Route
+              path="/*"
+              element={
+                <RequireAuth>
+                  <ListPage />
+                </RequireAuth>
+              }
+            />
+
+            {/* 详情页路由 */}
+            <Route
+              path="/pod/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="pod" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/deployment/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="deployment" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/statefulset/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="statefulset" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/daemonset/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="daemonset" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/service/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="service" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/configmap/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="configmap" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/secret/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="secret" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/ingress/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="ingress" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/job/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="job" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/cronjob/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="cronjob" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/pvc/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="pvc" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/pv/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="pv" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/storageclass/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="storageclass" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/namespace/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="namespace" />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/node/:namespace/:name"
+              element={
+                <RequireAuth>
+                  <GenericResourceDetail resourceType="node" />
+                </RequireAuth>
+              }
+            />
+
+            {/* 根路径重定向 */}
+            <Route path="/" element={<ListPage />} />
+
+            {/* 未匹配重定向 */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </>
+    </NotificationProvider>
   );
 };
 

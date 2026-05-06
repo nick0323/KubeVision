@@ -1,4 +1,4 @@
-/* 登录页面整体居中背景 */
+/* Login page整体居in背景 */
 .login-bg {
   align-items: center;
   background: var(--gradient-page);
@@ -7,7 +7,7 @@
   min-height: 100vh;
 }
 
-/* 登录卡片 */
+/* Login card */
 .login-form-card {
   align-items: center;
   background: var(--bg-surface);

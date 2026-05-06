@@ -35,8 +35,8 @@ const LINES_OPTIONS = [
 ];
 
 /**
- * LogsFilterBar 日志过滤工具栏
- * 包含：容器选择、Tail Lines、时间戳、设置、搜索、操作按钮
+ * LogsFilterBar 日志filterToolbar
+ * include：Container选择、Tail Lines、Timestamp、settings、Search、Action button
  */
 export const LogsFilterBar: React.FC<LogsFilterBarProps> = ({
   namespace,

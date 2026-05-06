@@ -1,4 +1,5 @@
-﻿import React, { Component, ReactNode } from 'react';
+import React, { Component, ReactNode } from 'react';
+import { logError } from '../utils/errorHandler';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -30,7 +31,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error) {
-    console.error('ErrorBoundary caught an error:', error);
+    logError(error, 'ErrorBoundary');
   }
 
   handleRetry = () => {
@@ -56,21 +57,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="error-boundary">
           <div className="error-content">
-            <h3 className="error-title">⚠️ 应用程序出现错误</h3>
-            <p>抱歉，应用程序遇到了一个意外错误。</p>
+             <h3 className="error-title">⚠️ Application Error</h3>
+             <p>Sorry, the application encountered an unexpected error.</p>
 
             <div className="error-actions">
               <button onClick={this.handleRetry} className="retry-btn">
-                🔄 重试
+                🔄 Retry
               </button>
               <button onClick={this.handleReload} className="reload-btn">
-                🔄 重新加载
+                🔄 Reload
               </button>
             </div>
 
             {error && (
               <details className="error-details">
-                <summary>错误详情</summary>
+                <summary>Error Details</summary>
                 <pre>{error.toString()}</pre>
               </details>
             )}

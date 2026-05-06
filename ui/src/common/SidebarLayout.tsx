@@ -2,7 +2,7 @@ import React from 'react';
 import { Sidebar } from './Sidebar';
 
 /**
- * 侧边栏布局 Props
+ * Sidebarlayout Props
  */
 export interface SidebarLayoutProps {
   children: React.ReactNode | ((props: { collapsed: boolean; onToggleCollapsed: () => void }) => React.ReactNode);
@@ -12,9 +12,9 @@ export interface SidebarLayoutProps {
 }
 
 /**
- * 侧边栏布局组件
+ * SidebarlayoutComponent
  *
- * 统一替代 App.tsx 中的 3 处 layout 代码
+ * UnifiedAlternative App.tsx 's 3 处 layout code
  */
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({
   children,
@@ -32,7 +32,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({
     });
   }, []);
 
-  // 支持 Render Props 模式
+  // Support Render Props Mode
   const content = typeof children === 'function'
     ? children({ collapsed, onToggleCollapsed })
     : children;

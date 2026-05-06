@@ -1,4 +1,4 @@
-/* InfoCard 组件样式 */
+/* InfoCard ComponentStyle */
 .overview-card {
   display: flex;
   flex-direction: row;
@@ -46,14 +46,14 @@
   margin-top: 8px;
 }
 
-/* InfoCard 图标列 */
+/* InfoCard icon列 */
 .overview-card-icon-col {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* InfoCard 内容列 */
+/* InfoCard inside容列 */
 .overview-card-content-col {
   display: flex;
   flex-direction: column;

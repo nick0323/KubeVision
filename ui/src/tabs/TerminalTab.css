@@ -1,4 +1,4 @@
-/* Terminal Tab 样式 */
+/* Terminal Tab Style */
 .terminal-tab {
   box-sizing: border-box;
   display: flex;
@@ -10,10 +10,10 @@
   height: 100%;
 }
 
-/* ========== 工具栏 ========== */
+/* ========== Toolbar ========== */
 .terminal-toolbar {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: 1px solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xs);
@@ -46,7 +46,7 @@
   gap: var(--spacing-md);
 }
 
-/* Container 选择 */
+/* Container selection */
 .terminal-container-select {
   flex-shrink: 0;
 }
@@ -58,7 +58,7 @@
 
 .terminal-container-select .namespace-select-value {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
@@ -79,7 +79,7 @@
 }
 
 .terminal-container-select .namespace-select-value.open {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-color: var(--primary);
   box-shadow: var(--shadow-primary);
 }
@@ -92,7 +92,7 @@
 
 .shell-select {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
@@ -114,7 +114,7 @@
 }
 
 .shell-select.active {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-color: var(--primary);
   box-shadow: var(--shadow-primary);
 }
@@ -136,7 +136,7 @@
 }
 
 .shell-menu {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-primary-lg);
@@ -149,7 +149,7 @@
 }
 
 .shell-option {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: none;
   color: var(--text-main);
   cursor: pointer;
@@ -168,7 +168,7 @@
 
 .shell-option.selected {
   background: var(--primary);
-  color: var(--bg-secondary);
+  color: var(--bg-surface);
 }
 
 .shell-option:first-child {
@@ -179,10 +179,10 @@
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
-/* ========== 工具栏按钮 ========== */
+/* ========== Toolbar按钮 ========== */
 .toolbar-btn {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
@@ -220,7 +220,7 @@
 .toolbar-btn.primary {
   background: var(--primary);
   border-color: var(--primary);
-  color: var(--bg-secondary);
+  color: var(--bg-surface);
 }
 
 .toolbar-btn.primary:hover {
@@ -240,19 +240,19 @@
 }
 
 .toolbar-btn.danger:hover {
-  background: var(--bg-secondary)1f0;
+  background: var(--bg-surface)1f0;
   border-color: var(--danger);
   color: var(--danger);
 }
 
-/* 操作按钮 */
+/* Action button */
 .terminal-actions {
   align-items: center;
   display: flex;
   gap: var(--spacing-sm);
 }
 
-/* 状态显示 */
+/* StatusDisplay */
 .terminal-status {
   align-items: center;
   color: var(--text-border-light);
@@ -282,9 +282,9 @@
   margin: 0 4px;
 }
 
-/* ========== 终端容器 ========== */
+/* ========== Terminal container ========== */
 .xterm-wrapper {
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border: 1px solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xs);
@@ -296,19 +296,19 @@
   width: 100%;
 }
 
-/* xterm 挂载的容器 */
+/* xterm 挂载'sContainer */
 .xterm-wrapper .terminal-container {
   inset: 0;
   height: 100%;
   min-height: 100%;
 
-  /* 关键：确保容器在 display: block 后有明确尺寸 */
+  /* 关键：ensureContainerin display: block afterhas明确尺寸 */
   min-width: 100%;
   position: absolute;
   width: 100%;
 }
 
-/* 确保 xterm 终端占满容器 */
+/* ensure xterm 终端占满Container */
 .xterm-wrapper .xterm {
   height: 100% !important;
   margin: 0 !important;
@@ -317,7 +317,7 @@
 }
 
 .xterm-wrapper .xterm-viewport {
-  background-color: var(--bg-tertiary) !important;
+  background-color: var(----bg-surface-alt) !important;
   height: 100% !important;
   overflow: auto !important;
   width: 100% !important;
@@ -333,15 +333,15 @@
   padding: 0 !important;
 }
 
-/* 强制 xterm 在 fit 后正确更新 DOM */
+/* 强制 xterm in fit after正确Update DOM */
 .xterm-wrapper .xterm .xterm-grid {
   width: 100% !important;
 }
 
-/* 终端操作指引 */
+/* 终端Action指引 */
 .terminal-guide {
   align-items: center;
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -377,7 +377,7 @@
   align-items: center;
   background: var(--primary);
   border-radius: 50%;
-  color: var(--bg-secondary);
+  color: var(--bg-surface);
   display: flex;
   flex-shrink: 0;
   font-size: var(--font-size-sm);
@@ -402,7 +402,7 @@
   background: var(--primary);
   border: none;
   border-radius: var(--radius-sm);
-  color: var(--bg-secondary);
+  color: var(--bg-surface);
   cursor: pointer;
   display: flex;
   font-family: var(--font-main);

@@ -27,7 +27,7 @@ import {
 import { FiLogOut } from 'react-icons/fi';
 
 /**
- * 图标映射
+ * iconMapping
  */
 const ICON_MAP: Record<string, React.ReactNode> = {
   FaChartPie: <FaChartPie />,
@@ -52,7 +52,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 /**
- * 侧边栏 Props
+ * Sidebar Props
  */
 export interface SidebarProps {
   activeTab?: string;
@@ -63,9 +63,9 @@ export interface SidebarProps {
 }
 
 /**
- * 侧边栏组件
+ * SidebarComponent
  *
- * 统一替代 App.tsx 中的 3 处侧边栏代码
+ * UnifiedAlternative App.tsx 's 3 处Sidebarcode
  */
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
@@ -84,22 +84,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   });
 
   /**
-   * 切换分组展开/收起
+   * toggle分组展开/收起
    */
   const toggleGroup = useCallback((group: string) => {
     setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }));
   }, []);
 
   /**
-   * 处理菜单点击
+   * ProcessMenuClick
    */
   const handleMenuClick = useCallback(
     (key: string) => {
-      // 先设置 current_tab
+      // 先settings current_tab
       localStorage.setItem('current_tab', JSON.stringify(key));
-      // 触发事件（通知已挂载的组件）
+      // Trigger event component（Notificationalready挂载'sComponent）
       window.dispatchEvent(new CustomEvent('tab-change', { detail: key }));
-      // 跳转到列表页（ListPage 挂载时会读取最新的 current_tab）
+      // jump totoList页（ListPage 挂载时will读取最新's current_tab）
       navigate('/');
       onMenuClick?.(key);
     },
@@ -107,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   /**
-   * 处理登出
+   * Process登出
    */
   const handleLogout = useCallback(() => {
     authUtils.clearToken();
@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <img src="/src/assets/kubernetes-logo.svg" alt="Kubernetes" className="logo-compact" />
       </div>
 
-      {/* 菜单 */}
+      {/* Menu */}
       <div className="sider-scroll">
         <ul>
           {/* Overview */}
@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </li>
           ))}
 
-          {/* 分组菜单 */}
+          {/* Menu Group */}
           {MENU_LIST.slice(1).map(group => (
             <React.Fragment key={group.group}>
               {!collapsed && (
@@ -178,7 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </div>
 
-      {/* 退出按钮 */}
+      {/* Logout button */}
       <div className="sider-bottom">
         <button className="logout-btn" onClick={handleLogout}>
           <span className="icon">

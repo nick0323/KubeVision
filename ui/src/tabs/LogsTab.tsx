@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { LogsTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
@@ -34,7 +34,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
 
-  // 过滤选项
+  // filter选项
   const [selectedContainer, setSelectedContainer] = useState<string>(
     containers.length > 0 ? containers[0].name : ''
   );
@@ -43,21 +43,21 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const [timestamps, setTimestamps] = useState(false);
   const [wrapLines, setWrapLines] = useState(true);
 
-  // 搜索
+  // Search
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
 
   // WebSocket ref
   const wsRef = useRef<WebSocket | null>(null);
 
-  // 设置面板
+  // Settings panel
   const [showSettings, setShowSettings] = useState(false);
 
-  // Tail Lines 下拉
+  // Tail Lines under拉
   const [showLinesDropdown, setShowLinesDropdown] = useState(false);
   const linesRef = useRef<HTMLDivElement>(null);
 
-  // 点击外部关闭 Tail Lines 下拉
+  // Clickoutside部关闭 Tail Lines under拉
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (linesRef.current && !linesRef.current.contains(event.target as Node)) {
@@ -76,7 +76,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const containerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
-  // 点击外部关闭设置面板
+  // Clickoutside部关闭Settings panel
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
@@ -154,7 +154,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
     ws.onerror = error => {
       console.error('WebSocket error:', error);
-      setError('WebSocket 连接失败，请检查 Pod 是否存在');
+      setError('WebSocket connection failed, please check if Pod exists');
       setLoading(false);
       setConnected(false);
     };
@@ -210,7 +210,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     const searchLower = searchTerm.toLowerCase().trim();
     limitedLogs.forEach((line, index) => {
       if (line.toLowerCase().includes(searchLower)) {
-        // 存储实际索引（与 DOM id 一致）
+        // 存储实际索引（with DOM id consistent）
         results.push(index + offset);
       }
     });
@@ -228,9 +228,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
     const nextIndex = (currentSearchIndex + 1) % searchResults.length;
     setCurrentSearchIndex(nextIndex);
 
-    // 使用 setTimeout 确保状态更新后再滚动
+    // Use setTimeout ensureStatusUpdateafter再scroll
     setTimeout(() => {
-      // searchResults 现在存储的是实际索引（与 DOM id 一致）
+      // searchResults 现in存储'sis实际索引（with DOM id consistent）
       const actualIndex = searchResults[nextIndex];
       const element = document.getElementById(`log-line-${actualIndex}`);
       if (element) {
@@ -357,7 +357,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
         </div>
 
         <div className="filter-options-right">
-          {/* Container 选择 */}
+          {/* Container selection */}
           {containers.length > 1 && (
             <NamespaceSelect
               value={selectedContainer}

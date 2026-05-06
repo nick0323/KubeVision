@@ -2,7 +2,7 @@
    Overview Page Styles
    ======================== */
 
-/* 页面容器 - 组件之间16px */
+/* Page container - Component之间16px */
 .overview-page {
   display: flex;
   flex-direction: column;
@@ -11,7 +11,7 @@
   background: transparent;
 }
 
-/* 页面加载状态 */
+/* pageLoadStatus */
 .overview-loading,
 .overview-error {
   display: flex;
@@ -29,7 +29,7 @@
   color: var(--danger);
 }
 
-/* ===== 统计卡片网格 ===== */
+/* ===== Stats card网格 ===== */
 .overview-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -48,7 +48,7 @@
   }
 }
 
-/* ===== 资源使用情况区域 ===== */
+/* ===== Resource usage area ===== */
 .overview-resources-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -61,7 +61,7 @@
   }
 }
 
-/* ===== 状态标签统一样式 ===== */
+/* ===== StatuslabelUnifiedStyle ===== */
 .status-success {
   background: var(--bg-success);
   color: var(--success);

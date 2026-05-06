@@ -1,4 +1,4 @@
-/* Logs Tab 样式 */
+/* Logs Tab Style */
 .logs-tab {
   display: flex;
   flex-direction: column;
@@ -6,10 +6,10 @@
   padding-bottom: 10px;
 }
 
-/* 过滤选项容器 */
+/* filter选项Container */
 .filter-options {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: 1px solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xs);
@@ -54,7 +54,7 @@
   margin-left: auto;
 }
 
-/* Container 选择 */
+/* Container selection */
 .logs-container-select {
   flex-shrink: 0;
 }
@@ -66,7 +66,7 @@
 
 .logs-container-select .namespace-select-value {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
@@ -87,20 +87,20 @@
 }
 
 .logs-container-select .namespace-select-value.open {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-color: var(--primary);
   box-shadow: var(--shadow-primary);
 }
 
 .logs-container-select .namespace-select-dropdown {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-primary-lg);
 }
 
 .logs-container-select .namespace-select-option {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-bottom: 1px solid rgb(186 231 255 / 0.2);
   color: var(--text-main);
   cursor: pointer;
@@ -119,13 +119,13 @@
 
 .logs-container-select .namespace-select-option.selected {
   background: var(--primary);
-  color: var(--bg-secondary);
+  color: var(--bg-surface);
 }
 
-/* Tail Lines 下拉框 */
+/* Tail Lines under拉框 */
 .setting-item-select {
   position: relative;
-  z-index: var(--z-index-toast); /* 确保下拉框容器层级最高 */
+  z-index: var(--z-index-toast); /* Ensure dropdown container has highest z-index */
 }
 
 .custom-dropdown {
@@ -188,7 +188,7 @@
   position: absolute;
   right: 0;
   top: calc(100% + var(--spacing-xs));
-  z-index: var(--z-index-toast); /* 高于 settings-panel 的 1000 */
+  z-index: var(--z-index-toast); /* Higher than settings-panel's 1000 */
 }
 
 .dropdown-option {
@@ -222,7 +222,7 @@
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
-/* 搜索输入框区域 */
+/* SearchInput field区域 */
 .filter-options .search-input-wrapper {
   align-items: center;
   display: flex;
@@ -232,7 +232,7 @@
 }
 
 .filter-options .search-input {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
@@ -257,7 +257,7 @@
 
 .filter-options .search-btn {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
@@ -291,7 +291,7 @@
   color: var(--danger);
 }
 
-/* 设置下拉菜单 */
+/* settingsunder拉Menu */
 .settings-dropdown {
   align-items: center;
   display: flex;
@@ -301,7 +301,7 @@
 
 .settings-btn {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
@@ -329,14 +329,14 @@
 }
 
 .settings-panel {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-logs-lg);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  overflow: visible; /* 允许下拉框溢出 */
+  overflow: visible; /* Allow dropdown to overflow */
   padding: var(--spacing-md);
   position: absolute;
   right: 0;
@@ -360,7 +360,7 @@
 }
 
 .setting-item-select select {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
@@ -382,18 +382,18 @@
 }
 
 .setting-item-select select:focus {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-surface);
   border-color: var(--primary);
   box-shadow: var(--shadow-primary);
 }
 
-/* Toggle Switch 样式 */
+/* Toggle Switch Style */
 .setting-item-toggle {
   justify-content: space-between;
 }
 
 .toggle-btn {
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   cursor: pointer;
@@ -406,7 +406,7 @@
 }
 
 .toggle-btn::after {
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border-radius: 50%;
   box-shadow: var(--shadow-logs-sm);
   content: '';
@@ -431,7 +431,7 @@
   box-shadow: var(--shadow-logs-md);
 }
 
-/* 操作按钮 */
+/* Action button */
 .filter-actions {
   align-items: center;
   display: flex;
@@ -442,7 +442,7 @@
 
 .action-btn {
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-surface);
   border: var(--border-width) solid var(--primary-lighter);
   border-radius: var(--radius-sm);
   box-sizing: border-box;
@@ -468,13 +468,13 @@
   color: var(--primary);
 }
 
-/* 滚动条样式 */
+/* ScrollbarStyle */
 .filter-options::-webkit-scrollbar {
   height: 6px;
 }
 
 .filter-options::-webkit-scrollbar-track {
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border-radius: var(--radius-xs);
 }
 
@@ -490,7 +490,7 @@
 /* Status Display */
 .filter-status {
   align-items: center;
-  background: var(--bg-tertiary);
+  background: var(----bg-surface-alt);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xs);
   color: var(--text-border-light);
@@ -508,7 +508,7 @@
 }
 
 .filter-status.disconnected {
-  background: var(--bg-secondary)1f0;
+  background: var(--bg-surface)1f0;
   border-color: var(--danger-border);
   color: var(--danger);
 }

@@ -1,4 +1,4 @@
-/* Breadcrumb 样式 */
+/* Breadcrumb Style */
 
 .breadcrumb-list {
   align-items: center;
@@ -61,7 +61,7 @@
   margin: 0 2px;
 }
 
-/* 当前项样式 */
+/* Current itemStyle */
 .breadcrumb-item:last-child .breadcrumb-link,
 .breadcrumb-item:last-child .breadcrumb-text {
   color: var(--text-primary);
@@ -76,7 +76,7 @@
   color: var(--text-primary);
 }
 
-/* 响应式设计 */
+/* Responsive design */
 @media (width <= 768px) {
   .breadcrumb {
     padding: 10px 16px;

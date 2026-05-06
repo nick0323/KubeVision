@@ -1,9 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { ErrorDisplayProps } from '../types';
 import './ErrorDisplay.css';
 
 /**
- * 错误显示组件
+ * Error display component
  */
 export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   message,
@@ -18,12 +18,12 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       </div>
       <div className="error-display-content">
         <div className="error-display-title">
-          {type === 'warning' ? '警告' : type === 'info' ? '提示' : '错误'}
+           {type === 'warning' ? 'Warning' : type === 'info' ? 'Info' : 'Error'}
         </div>
         <div className="error-display-message">{message}</div>
         {showRetry && onRetry && (
           <button className="error-display-retry" onClick={onRetry}>
-            重试
+            Retry
           </button>
         )}
       </div>

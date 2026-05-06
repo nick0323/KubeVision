@@ -1,6 +1,6 @@
-﻿/**
+/**
  * Authentication Utilities
- * Token 管理和认证请求处理
+ * Token 管理and认证RequestProcess
  */
 
 import { STORAGE_KEYS, CUSTOM_EVENTS, API_CONFIG } from '../constants';
@@ -13,17 +13,17 @@ export interface TokenInfo {
 
 export const authUtils = {
   /**
-   * 检查是否已登录
+   * 检查is否already登录
    */
   isLoggedIn: (): boolean => {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     if (!token) return false;
 
-    // 验证 token 格式（JWT 有 3 个部分）
+    // 验证 token format（JWT has 3 个部分）
     const parts = token.split('.');
     if (parts.length !== 3) return false;
 
-    // 检查是否过期
+    // 检查is否过期
     try {
       const payload = JSON.parse(atob(parts[1]));
       if (payload.exp && payload.exp < Date.now() / 1000) {
@@ -38,19 +38,19 @@ export const authUtils = {
   },
 
   /**
-   * 获取 Token（每次从 localStorage 读取最新值）
+   * Get Token（every次from localStorage 读取最新值）
    */
   getToken: (): string | null => {
     return localStorage.getItem(STORAGE_KEYS.TOKEN);
   },
 
   /**
-   * 设置 Token
+   * settings Token
    */
   setToken: (token: string): void => {
     localStorage.setItem(STORAGE_KEYS.TOKEN, token);
 
-    // 解析 token 获取过期时间
+    // 解析 token Get过期time
     try {
       const parts = token.split('.');
       if (parts.length === 3) {
@@ -63,7 +63,7 @@ export const authUtils = {
         }
       }
     } catch {
-      // 忽略解析错误
+      // 忽略解析Error
     }
   },
 
@@ -77,14 +77,14 @@ export const authUtils = {
   },
 
   /**
-   * 获取用户名
+   * Getuser名
    */
   getUsername: (): string | null => {
     return localStorage.getItem(STORAGE_KEYS.TOKEN_USERNAME);
   },
 
   /**
-   * 检查 Token 是否即将过期（5 分钟内）
+   * 检查 Token is否即will过期（5 分钟inside）
    */
   isTokenExpiringSoon: (minutes = 5): boolean => {
     const expiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
@@ -98,7 +98,7 @@ export const authUtils = {
   },
 
   /**
-   * 获取 Token 过期时间
+   * Get Token 过期time
    */
   getTokenExpiry: (): number | null => {
     const expiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
@@ -107,8 +107,8 @@ export const authUtils = {
 };
 
 /**
- * 创建带认证的 fetch 包装器
- * 每次请求都从 localStorage 读取最新 token
+ * Create带认证's fetch 包装器
+ * every次Requestallfrom localStorage 读取最新 token
  */
 export function createAuthFetch() {
   return async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
@@ -125,10 +125,10 @@ export function createAuthFetch() {
       headers,
     });
 
-    // 处理 401 未授权
+    // Process 401 not yet授权
     if (response.status === 401) {
       authUtils.clearToken();
-      // 触发自定义事件，通知其他组件
+      // triggerCustom事 component，Notification其他Component
       window.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.AUTH_UNAUTHORIZED));
     }
 
@@ -137,33 +137,23 @@ export function createAuthFetch() {
 }
 
 /**
- * 创建带认证的 WebSocket 连接
- * 使用 Authorization 头传递 token（通过 cookie 或子协议）
+ * Create带认证's WebSocket 连接
+ * Token 通过 URL query 参数传递（避免子协议暴露）
  */
-export function createAuthWebSocket(url: string, protocols?: string | string[]): WebSocket {
+export function createAuthWebSocket(url: string, _protocols?: string | string[]): WebSocket {
   const token = authUtils.getToken();
 
-  const requestedProtocols = protocols === undefined
-    ? []
-    : Array.isArray(protocols)
-      ? [...protocols]
-      : [protocols];
+  // 将 token 附加到 URL query 参数，后端需支持从 query 读取
+  const separator = url.includes('?') ? '&' : '?';
+  const urlWithToken = token ? `${url}${separator}token=${encodeURIComponent(token)}` : url;
 
-  if (token) {
-    requestedProtocols.unshift('k8svision.auth', token);
-  }
-
-  if (requestedProtocols.length === 0) {
-    return new WebSocket(url);
-  }
-
-  return new WebSocket(url, requestedProtocols);
+  return new WebSocket(urlWithToken);
 }
 
-// 创建全局 authFetch 实例
+// Createglobal authFetch 实例
 export const authFetch = createAuthFetch();
 
-// WebSocket URL 配置
+// WebSocket URL Config
 export const getWsUrl = (endpoint: string): string => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const baseUrl = `${protocol}//${window.location.host}${API_CONFIG.BASE_URL}/ws${endpoint}`;

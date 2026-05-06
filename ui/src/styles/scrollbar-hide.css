@@ -1,6 +1,6 @@
-/* 滚动条隐藏统一管理文件 */
+/* ScrollbarhideUnified管理文 component */
 
-/* 全局滚动条隐藏 */
+/* globalScrollbarhide */
 * {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
@@ -33,7 +33,7 @@
   display: none !important;
 }
 
-/* 详情页面专用滚动条隐藏 */
+/* 详情pagededicatedScrollbarhide */
 .detail-card,
 .detail-card-content,
 .detail-item,
@@ -50,7 +50,7 @@
   scrollbar-width: none !important;
 }
 
-/* 模态框专用滚动条隐藏 */
+/* 模态框dedicatedScrollbarhide */
 .resource-detail-modal,
 .modal-content,
 .modal-header,
@@ -60,7 +60,7 @@
   scrollbar-width: none !important;
 }
 
-/* 资源摘要专用滚动条隐藏 */
+/* Resource summarydedicatedScrollbarhide */
 .resource-summary-card,
 .resource-summary-title,
 .resource-summary-info,
@@ -77,7 +77,7 @@
   scrollbar-width: none !important;
 }
 
-/* 概览页面专用滚动条隐藏 */
+/* Overview pagededicatedScrollbarhide */
 .overview-event-card,
 .overview-card,
 .overview-event-item,
@@ -91,7 +91,7 @@
   scrollbar-width: none !important;
 }
 
-/* 表格专用滚动条隐藏 */
+/* TablededicatedScrollbarhide */
 .table-content-area,
 .table-card,
 .table-header,
@@ -100,14 +100,14 @@
   scrollbar-width: none !important;
 }
 
-/* 侧边栏专用滚动条隐藏 */
+/* SidebardedicatedScrollbarhide */
 .sider-menu,
 .sider-scroll {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
 
-/* 命名空间选择器专用滚动条隐藏 */
+/* Namespace selection器dedicatedScrollbarhide */
 .namespace-select select {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;

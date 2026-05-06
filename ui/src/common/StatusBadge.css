@@ -1,4 +1,4 @@
-/* StatusBadge 样式 */
+/* StatusBadge Style */
 .status-badge {
   align-items: center;
   border-radius: var(--radius-xs);
@@ -14,22 +14,22 @@
 }
 
 .status-badge:hover {
-  opacity: 0.8; /* 悬停时略微透明 */
-  transform: scale(1.02); /* 悬停时略微放大 */
+  opacity: 0.8; /* Slightly transparent on hover */
+  transform: scale(1.02); /* Slightly larger on hover */
 }
 
-/* 状态图标 */
+/* Statusicon */
 .status-icon {
   font-size: var(--font-size-xs);
   line-height: 1;
 }
 
-/* 状态文本 */
+/* Statustext */
 .status-text {
   line-height: 1.4;
 }
 
-/* 🟢 绿色状态 - 健康/成功 */
+/* 🟢 绿色Status - 健康/成功 */
 .status-running,
 .status-healthy,
 .status-succeeded,
@@ -43,7 +43,7 @@
   color: var(--success);
 }
 
-/* 🔵 蓝色状态 - 正常/信息 */
+/* 🔵 蓝色Status - 正常/info */
 .status-scaled,
 .status-normal,
 .status-clusterip {
@@ -52,7 +52,7 @@
   color: var(--primary);
 }
 
-/* 🟡 黄色状态 - 警告/等待 */
+/* 🟡 黄色Status - Warning/etc待 */
 .status-pending,
 .status-partial,
 .status-progressing,
@@ -66,7 +66,7 @@
   color: var(--warning);
 }
 
-/* 🔴 红色状态 - 错误/失败 */
+/* 🔴 红色Status - Error/失败 */
 .status-failed,
 .status-unavailable,
 .status-lost,
@@ -78,14 +78,14 @@
   color: var(--danger);
 }
 
-/* 🟣 紫色状态 - 特殊类型 */
+/* 🟣 紫色Status - 特殊Type */
 .status-loadbalancer {
   background-color: var(--bg-info);
   border: 1px solid var(--primary-dark);
   color: var(--primary-dark);
 }
 
-/* ⚪ 灰色状态 - 未知/默认 */
+/* ⚪ 灰色Status - not yet知/default */
 .status-unknown,
 .status-suspended {
   background-color: var(--bg-surface-alt);
@@ -100,7 +100,7 @@
   transition: var(--transition-fast);
 }
 
-/* 紧凑模式 */
+/* 紧凑Mode */
 .status-badge.compact {
   font-size: var(--font-size-xs);
   padding: 2px 6px;

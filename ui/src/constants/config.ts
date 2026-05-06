@@ -1,18 +1,16 @@
 /**
  * Application Configuration Constants
- * 集中管理应用配置和魔法数字
+ * 集in管理App configand魔法数字
  */
 
-// ==================== API 配置 ====================
+// ==================== API Config ====================
 
 export const API_CONFIG = {
   BASE_URL: '/api',
-  WS_URL: 'ws://localhost:8080/api/ws',
-  WSS_URL: 'wss://localhost:8080/api/ws',
-  TIMEOUT: 30000, // 30 秒请求超时
+  TIMEOUT: 30000, // 30 seconds request timeout
 } as const;
 
-// ==================== 分页配置 ====================
+// ==================== PaginationConfig ====================
 
 export const PAGINATION_CONFIG = {
   DEFAULT_PAGE_SIZE: 20,
@@ -21,18 +19,18 @@ export const PAGINATION_CONFIG = {
   MAX_PAGE_SIZE: 1000,
 } as const;
 
-// ==================== 缓存配置 ====================
+// ==================== Cache config ====================
 
 export const CACHE_CONFIG = {
-  STALE_TIME: 30000, // 30 秒缓存过期时间
+  STALE_TIME: 30000, // 30 seconds cache expiration time
   RETRY_COUNT: 3,
   RETRY_DELAY: 1000,
 } as const;
 
-// ==================== 集群资源类型 ====================
+// ==================== clusterresourceType ====================
 
 /**
- * 集群级资源（不需要 namespace）
+ * cluster级resource（not needed namespace）
  */
 export const CLUSTER_SCOPE_RESOURCES = new Set([
   'node',
@@ -48,16 +46,16 @@ export const CLUSTER_SCOPE_RESOURCES = new Set([
 ]) as ReadonlySet<string>;
 
 /**
- * 判断是否为集群级资源
+ * Determine if cluster-level resource
  */
 export function isClusterResource(resourceType: string): boolean {
   return CLUSTER_SCOPE_RESOURCES.has(resourceType.toLowerCase());
 }
 
-// ==================== 资源类型映射 ====================
+// ==================== resourceTypeMapping ====================
 
 /**
- * 资源类型单复数映射
+ * resourceType单复数Mapping
  */
 export const RESOURCE_TYPE_MAP = {
   // Workloads
@@ -85,7 +83,7 @@ export const RESOURCE_TYPE_MAP = {
 } as const;
 
 /**
- * 资源类型显示名称
+ * resourceTypeDisplay名称
  */
 export const RESOURCE_DISPLAY_NAMES: Record<string, string> = {
   pods: 'Pods',
@@ -106,7 +104,7 @@ export const RESOURCE_DISPLAY_NAMES: Record<string, string> = {
   events: 'Events',
 } as const;
 
-// ==================== 日志配置 ====================
+// ==================== 日志Config ====================
 
 export const LOG_CONFIG = {
   MAX_LOG_LINES: 1000,
@@ -116,25 +114,25 @@ export const LOG_CONFIG = {
   TAIL_LINES_OPTIONS: [100, 200, 500],
 } as const;
 
-// ==================== Shell 配置 ====================
+// ==================== Shell Config ====================
 
 export const SHELL_CONFIG = {
   OPTIONS: ['bash', 'sh', 'zsh'],
   DEFAULT: 'bash',
 } as const;
 
-// ==================== 时间配置 ====================
+// ==================== Time config ====================
 
 export const TIME_CONFIG = {
-  REFRESH_INTERVAL: 30000, // 30 秒自动刷新
-  HEARTBEAT_INTERVAL: 15000, // 15 秒心跳
-  TOAST_DURATION: 3000, // 提示持续时间
+  REFRESH_INTERVAL: 30000, // 30 seconds auto refresh
+  HEARTBEAT_INTERVAL: 15000, // 15 seconds heartbeat
+  TOAST_DURATION: 3000, // Toast duration
 } as const;
 
-// ==================== 状态配置 ====================
+// ==================== StatusConfig ====================
 
 /**
- * Pod 状态映射
+ * Pod StatusMapping
  */
 export const POD_STATUS_MAP = {
   Running: { color: 'success' as const, icon: '🟢' },
@@ -148,7 +146,7 @@ export const POD_STATUS_MAP = {
 } as const;
 
 /**
- * Node 状态映射
+ * Node StatusMapping
  */
 export const NODE_STATUS_MAP = {
   Ready: { color: 'success' as const, icon: '🟢' },
@@ -157,7 +155,7 @@ export const NODE_STATUS_MAP = {
   Unknown: { color: 'default' as const, icon: '⚪' },
 } as const;
 
-// ==================== 本地存储键名 ====================
+// ==================== 本地Storage keys名 ====================
 
 export const STORAGE_KEYS = {
   TOKEN: 'token',
@@ -168,7 +166,7 @@ export const STORAGE_KEYS = {
   CURRENT_TAB: 'current_tab',
 } as const;
 
-// ==================== 事件类型 ====================
+// ==================== 事 componentType ====================
 
 export const CUSTOM_EVENTS = {
   TAB_CHANGE: 'tab-change',

@@ -17,7 +17,7 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// 全局通知函数引用（用于在非组件中使用）
+// globalNotificationfunction引use（forin非ComponentinUse）
 let globalAddNotification: ((type: NotificationType, message: string, duration?: number) => void) | null = null;
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
@@ -36,14 +36,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const id = `${Date.now()}-${Math.random()}`;
     setNotifications(prev => [...prev, { id, type, message, duration }]);
     
-    // 自动移除通知
+    // Auto移除Notification
     const autoRemoveDuration = duration || 5000;
     timeoutRef.current[id] = window.setTimeout(() => {
       removeNotification(id);
     }, autoRemoveDuration);
   }, [removeNotification]);
 
-  // 设置全局引用
+  // settingsglobal引use
   useState(() => {
     globalAddNotification = addNotification;
     return undefined;
@@ -64,34 +64,26 @@ export function useNotificationContext() {
   return context;
 }
 
-// 兼容旧代码的工具函数 - 全局通知接口
+// 兼容旧code's工具function - globalNotification接口
 export const notification = {
   success: (message: string, duration?: number) => {
     if (globalAddNotification) {
       globalAddNotification('success', message, duration);
-    } else {
-      console.warn('Notification system not initialized');
     }
   },
   error: (message: string, duration?: number) => {
     if (globalAddNotification) {
       globalAddNotification('error', message, duration);
-    } else {
-      console.warn('Notification system not initialized');
     }
   },
   info: (message: string, duration?: number) => {
     if (globalAddNotification) {
       globalAddNotification('info', message, duration);
-    } else {
-      console.warn('Notification system not initialized');
     }
   },
   warning: (message: string, duration?: number) => {
     if (globalAddNotification) {
       globalAddNotification('warning', message, duration);
-    } else {
-      console.warn('Notification system not initialized');
     }
   },
 };

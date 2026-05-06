@@ -1,9 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { ResourceSummaryProps } from '../types';
 import './ResourceSummary.css';
 
 /**
- * 资源概览组件
+ * resource概览Component
  */
 export const ResourceSummary: React.FC<ResourceSummaryProps> = ({
   title = '',

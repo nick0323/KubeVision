@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { FaChevronRight } from 'react-icons/fa';
 import './Breadcrumb.css';
 
@@ -23,11 +23,11 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
   resourceName,
   onNavigate,
 }) => {
-  // 构建面包屑项
+  // Build breadcrumb items
   const buildBreadcrumbItems = (): BreadcrumbItem[] => {
     const builtItems: BreadcrumbItem[] = [];
 
-    // 添加命名空间
+    // Add namespace
     if (namespace && namespace !== '_all') {
       builtItems.push({
         label: namespace,
@@ -35,7 +35,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
       });
     }
 
-    // 添加资源类型
+    // Add resource type
     if (resourceType) {
       builtItems.push({
         label: formatResourceType(resourceType),
@@ -43,14 +43,14 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
       });
     }
 
-    // 添加资源名称（最后一项，不可点击）
+    // AddResource name(last item, not clickable)
     if (resourceName && resourceName !== '_all') {
       builtItems.push({
         label: resourceName,
       });
     }
 
-    // 合并自定义项
+    // Merge custom items
     if (items && items.length > 0) {
       return [...builtItems, ...items];
     }
@@ -60,7 +60,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
 
   const breadcrumbItems = buildBreadcrumbItems();
 
-  // 格式化资源类型名称
+  // Format resource type name
   function formatResourceType(type: string): string {
     const typeMap: Record<string, string> = {
       pods: 'Pods',

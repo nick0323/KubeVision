@@ -1,9 +1,9 @@
 /**
  * Error Handler Utilities
- * 统一的错误处理机制
+ * Unified'sErrorProcess机制
  */
 
-// ==================== 错误类型定义 ====================
+// ==================== ErrorType definitions ====================
 
 export interface ApiError extends Error {
   code?: number;
@@ -19,46 +19,49 @@ export interface ErrorResponse {
   traceId?: string;
 }
 
-// ==================== 错误消息映射 ====================
+// ==================== Error messageMapping ====================
 
 const ERROR_MESSAGES: Record<number, string> = {
-  400: 'Bad Request - 请求参数错误',
-  401: 'Unauthorized - 未授权，请重新登录',
-  403: 'Forbidden - 禁止访问',
-  404: 'Not Found - 资源不存在',
-  408: 'Request Timeout - 请求超时',
-  409: 'Conflict - 资源冲突',
-  422: 'Unprocessable Entity - 请求参数验证失败',
-  429: 'Too Many Requests - 请求过于频繁',
-  500: 'Internal Server Error - 服务器内部错误',
-  502: 'Bad Gateway - 网关错误',
-  503: 'Service Unavailable - 服务不可用',
-  504: 'Gateway Timeout - 网关超时',
+  400: 'Bad Request - Invalid request parameters',
+  401: 'Unauthorized - Unauthorized, please login again',
+  403: 'Forbidden - Access forbidden',
+  404: 'Not Found - Resource not found',
+  408: 'Request Timeout - Request timeout',
+  409: 'Conflict - Resource conflict',
+  422: 'Unprocessable Entity - Request validation failed',
+  429: 'Too Many Requests - Too many requests',
+  500: 'Internal Server Error - Internal server error',
+  502: 'Bad Gateway - Gateway error',
+  503: 'Service Unavailable - Service unavailable',
+  504: 'Gateway Timeout - Gateway timeout',
 } as const;
 
-// ==================== 错误处理函数 ====================
+// ==================== ErrorProcessfunction ====================
 
 /**
- * 获取友好的错误消息
+ * Get友好'sError message，附带 traceId
  */
-export function getErrorMessage(error: unknown, defaultMsg = '操作失败'): string {
+export function getErrorMessage(error: unknown, defaultMsg = 'Operation failed'): string {
   if (error instanceof Error) {
-    // 自定义 ApiError
+    // Custom ApiError
     if (isApiError(error)) {
+      const traceInfo = (error as ApiError).traceId
+        ? ` (traceId: ${(error as ApiError).traceId})`
+        : '';
       if (error.code && ERROR_MESSAGES[error.code as keyof typeof ERROR_MESSAGES]) {
-        return ERROR_MESSAGES[error.code as keyof typeof ERROR_MESSAGES];
+        return ERROR_MESSAGES[error.code as keyof typeof ERROR_MESSAGES] + traceInfo;
       }
-      return error.message || defaultMsg;
+      return (error.message || defaultMsg) + traceInfo;
     }
 
-    // 网络错误
+    // 网络Error
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      return '网络错误，请检查网络连接';
+      return 'Network error, please check network connection';
     }
 
-    // 超时错误
+    // 超时Error
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-      return '请求超时，请重试';
+      return 'Request timeout, please retry';
     }
 
     return error.message || defaultMsg;
@@ -72,14 +75,14 @@ export function getErrorMessage(error: unknown, defaultMsg = '操作失败'): st
 }
 
 /**
- * 判断是否为 ApiError
+ * determineis否for ApiError
  */
 function isApiError(error: Error): error is ApiError {
   return 'code' in error || 'status' in error;
 }
 
 /**
- * 从响应中解析错误
+ * from响应in解析Error
  */
 export async function parseResponseError(response: Response): Promise<ApiError> {
   let errorData: ErrorResponse | null = null;
@@ -90,7 +93,7 @@ export async function parseResponseError(response: Response): Promise<ApiError> 
       errorData = await response.json();
     }
   } catch {
-    // 忽略解析错误
+    // 忽略解析Error
   }
 
   const errorMessage =
@@ -108,13 +111,13 @@ export async function parseResponseError(response: Response): Promise<ApiError> 
 }
 
 /**
- * 处理 API 响应错误
+ * Process API 响应Error
  */
 export function handleApiResponse<T>(response: T): { success: boolean; error?: ApiError } {
   const res = response as { code?: number; message?: string };
 
   if (res.code !== undefined && res.code !== 0 && res.code !== 200) {
-    const error: ApiError = new Error(res.message || '操作失败');
+    const error: ApiError = new Error(res.message || 'Operation failed');
     error.code = res.code;
     return { success: false, error };
   }
@@ -123,18 +126,22 @@ export function handleApiResponse<T>(response: T): { success: boolean; error?: A
 }
 
 /**
- * 日志记录错误（开发环境）
+ * 日志记录Error（开发环境），包含 traceId
  */
 export function logError(error: unknown, context?: string): void {
   if (process.env.NODE_ENV === 'development') {
-    console.error('[Error]', context || '', error);
+    const traceId = error instanceof Error && 'traceId' in error
+      ? (error as ApiError).traceId
+      : undefined;
+    const traceInfo = traceId ? ` [traceId: ${traceId}]` : '';
+    console.error('[Error]', context || '', error, traceInfo);
   }
 }
 
-// ==================== 错误边界辅助 ====================
+// ==================== Error边界helper ====================
 
 /**
- * 重试错误处理
+ * RetryErrorProcess
  */
 export interface RetryableError {
   onRetry: () => void | Promise<void>;
@@ -143,14 +150,14 @@ export interface RetryableError {
 }
 
 /**
- * 创建带重试的错误处理器
+ * Create带Retry'sErrorProcess器
  */
 export function createRetryHandler(options: RetryableError): () => Promise<void> {
   const { onRetry, maxRetries = 3, currentRetry = 0 } = options;
 
   return async () => {
     if (currentRetry >= maxRetries) {
-      throw new Error('超过最大重试次数');
+      throw new Error('Exceeded max retry count');
     }
 
     try {
@@ -162,7 +169,7 @@ export function createRetryHandler(options: RetryableError): () => Promise<void>
   };
 }
 
-// ==================== 导出默认工具对象 ====================
+// ==================== Exportdefault工具object ====================
 
 export const errorHandler = {
   getErrorMessage,

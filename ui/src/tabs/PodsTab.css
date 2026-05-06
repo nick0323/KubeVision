@@ -1,4 +1,4 @@
-/* Pods Tab 样式 */
+/* Pods Tab Style */
 .pods-tab {
   display: flex;
   flex-direction: column;
@@ -6,7 +6,7 @@
   padding-bottom: 10px;
 }
 
-/* 表格样式 */
+/* TableStyle */
 .pods-tab .detail-table {
   width: 100%;
 }
@@ -22,7 +22,7 @@
   padding: var(--spacing-md) 16px;
 }
 
-/* 资源名称链接样式 */
+/* Resource nameLinkStyle */
 .pods-tab .resource-name-link {
   color: var(--primary);
   cursor: pointer;
@@ -35,7 +35,7 @@
   text-decoration: underline;
 }
 
-/* 可点击的行样式 */
+/* 可Click'srowStyle */
 .pods-tab .clickable-row {
   cursor: pointer;
   transition: background-color var(--transition-fast);
@@ -46,10 +46,10 @@
 }
 
 .pods-tab .clickable-row .resource-name-link {
-  /* 继承行的点击样式 */
+  /* 继承row'sClickStyle */
 }
 
-/* 空状态 */
+/* Empty state */
 .pods-tab .empty-state {
   color: var(--text-tertiary);
   padding: 60px 20px;

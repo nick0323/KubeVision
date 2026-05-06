@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
@@ -8,7 +8,7 @@ import './OverviewTab.css';
 import '../styles/detail-page.css';
 
 /**
- * 资源类型配置
+ * Resource type config
  */
 const RESOURCE_CONFIG: Record<
   string,
@@ -32,7 +32,7 @@ const RESOURCE_CONFIG: Record<
 };
 
 /**
- * 各资源类型特有字段配置
+ * eachresourceType特has字段Config
  */
 const RESOURCE_FIELDS: Record<
   string,
@@ -296,15 +296,15 @@ const RESOURCE_FIELDS: Record<
 };
 
 /**
- * 获取节点角色
- * K8s 节点角色标签格式：node-role.kubernetes.io/<role>: "" (空字符串)
+ * Get节点角色
+ * K8s 节点角色labelformat：node-role.kubernetes.io/<role>: "" (空字符串)
  */
 function getNodeRoles(labels?: Record<string, string>): string[] {
   if (!labels) return [];
 
   const roles: string[] = [];
 
-  // 提取所有 node-role.kubernetes.io/ 开头的标签
+  // 提取所has node-role.kubernetes.io/ 开头'slabel
   Object.keys(labels).forEach(key => {
     if (key.startsWith('node-role.kubernetes.io/')) {
       const role = key.replace('node-role.kubernetes.io/', '');
@@ -314,7 +314,7 @@ function getNodeRoles(labels?: Record<string, string>): string[] {
     }
   });
 
-  // 兼容旧版本标签（空值标签）
+  // 兼容旧版本label（空值label）
   if (labels['node-role.kubernetes.io/control-plane']) roles.push('control-plane');
   if (labels['node-role.kubernetes.io/master']) roles.push('master');
   if (labels['node-role.kubernetes.io/worker']) roles.push('worker');
@@ -327,7 +327,7 @@ function getNodeRoles(labels?: Record<string, string>): string[] {
 }
 
 /**
- * 渲染内联标签（用于 Selector 展示，格式：key: value）
+ * Renderinside联label（for Selector 展示，format：key: value）
  */
 function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
   if (!labels || Object.keys(labels).length === 0) return null;
@@ -339,7 +339,7 @@ function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
         const displayKey = truncateText(key as string, 20);
         const displayValue = truncateText(value as string, 20);
 
-        // 只有当文本被截断时才显示 tooltip
+        // Only show when text is truncated tooltip
         const isTruncated = displayKey !== key || displayValue !== value;
 
         const labelElement = (
@@ -372,7 +372,7 @@ function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
 }
 
 /**
- * 截断文本
+ * 截断text
  */
 const truncateText = (text: string, maxLength: number) => {
   if (!text) return '';
@@ -381,7 +381,7 @@ const truncateText = (text: string, maxLength: number) => {
 };
 
 /**
- * 格式化相对时间
+ * format化relativetime
  */
 const formatRelativeTime = (timestamp?: string) => {
   if (!timestamp) return '-';
@@ -399,7 +399,7 @@ const formatRelativeTime = (timestamp?: string) => {
 };
 
 /**
- * 通用资源概览 Tab
+ * Commonresource概览 Tab
  */
 export const OverviewTab: React.FC<OverviewTabProps> = ({
   data,
@@ -416,7 +416,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const spec = typedData?.spec || {};
   const status = typedData?.status || {};
 
-  // Pod 特有的容器状态
+  // Pod 特has'sContainerStatus
   const containerStatuses = useMemo(() => {
     if (resourceType !== 'pod' || !typedData?.status?.containerStatuses) return [];
     return typedData.status.containerStatuses.map((cs: any) => ({
@@ -428,11 +428,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     }));
   }, [data, resourceType]);
 
-  // Workload 资源的容器信息（从 Pod Template 中提取）
+  // Workload resource'sContainerinfo（from Pod Template in提取）
   const workloadContainers = useMemo(() => {
     if (!resourceInfo.hasContainers) return [];
 
-    // 从 spec.template.spec.containers 中提取（适用于 Deployment、StatefulSet、DaemonSet、Job）
+    // from spec.template.spec.containers in提取（适for Deployment、StatefulSet、DaemonSet、Job）
     const podSpec = spec?.template?.spec || spec;
     const containers = podSpec?.containers || [];
 
@@ -468,7 +468,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     return status?.conditions || [];
   }, [status]);
 
-  // 渲染容器详情
+  // RenderContainer详情
   const renderContainerDetails = (container: any) => {
     return (
       <div className="container-card-body">
@@ -577,25 +577,25 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     );
   };
 
-  // 判断是否需要显示 Status Overview
+  // determineis否needDisplay Status Overview
   const hasStatusOverview = useMemo(() => {
-    // 只有 Pod、Deployment、StatefulSet 显示状态概览
+    // onlyhas Pod、Deployment、StatefulSet DisplayStatus概览
     return ['pod', 'deployment', 'statefulset'].includes(resourceType);
   }, [resourceType]);
 
   if (loading || !data) {
-    return <div className="overview-tab-loading">加载中...</div>;
+    return <div className="overview-tab-loading">Loading....</div>;
   }
 
   return (
     <div className="overview-tab">
-      {/* STATUS OVERVIEW - 只有有状态的资源才显示 */}
+      {/* STATUS OVERVIEW - Only shown for stateful resources */}
       {hasStatusOverview && (
         <div className="detail-card">
           <h3 className="detail-card-title">Status Overview</h3>
           <div className="detail-card-body">
             <div className="stats-grid">
-              {/* Pod 特有的状态 */}
+              {/* Pod-specific status */}
               {resourceType === 'pod' ? (
                 <>
                   <div className="stat-card">
@@ -622,7 +622,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </div>
                 </>
               ) : (
-                /* Workload 资源的状态 */
+                /* Workload resource'sStatus */
                 <>
                   <div className="stat-card">
                     <div className="stat-value">
@@ -674,7 +674,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       <div className="detail-card">
         <h3 className="detail-card-title">{resourceInfo.title} Information</h3>
         <div className="detail-card-body">
-          {/* 通用字段 */}
+          {/* Common fields */}
           <div className="info-grid">
             <div className="info-item">
               <span className="info-label">Created</span>
@@ -708,16 +708,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </div>
             )}
 
-            {/* 资源特有字段 */}
+            {/* Resource-specific fields */}
             {RESOURCE_FIELDS[resourceType]?.map(field => {
-              // 检查条件
+              // 检查bar component
               if (field.condition && !field.condition(data)) return null;
 
-              // 获取值
+              // Get值
               const value = field.getValue(data);
               if (value === null || value === undefined || value === '') return null;
 
-              // 渲染
+              // Render
               return (
                 <div key={field.key} className="info-item">
                   <span className="info-label">{field.label}</span>
@@ -729,12 +729,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             })}
           </div>
 
-          {/* Labels 和 Annotations - 同一行平分宽度，最多显示 5 行 */}
+          {/* Labels and Annotations - same row, split width, max 5 lines */}
           {(metadata.labels && Object.keys(metadata.labels).length > 0) ||
           (metadata.annotations && Object.keys(metadata.annotations).length > 0) ? (
             <div className="info-section">
               <div className="info-grid info-grid-2col">
-                {/* Labels - 最多显示 5 个 */}
+                {/* Labels - max 5 shown */}
                 {metadata.labels && Object.keys(metadata.labels).length > 0 && (
                   <div className="info-item">
                     <span className="info-label">Labels</span>
@@ -746,7 +746,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                           const displayKey = truncateText(key as string, 30);
                           const displayValue = truncateText(value as string, 30);
 
-                          // 只有当文本被截断时才显示 tooltip
+                          // Only show when text is truncated tooltip
                           const isTruncated = displayKey !== key || displayValue !== value;
 
                           const labelElement = (
@@ -774,7 +774,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
                           return <span key={key}>{labelElement}</span>;
                         })}
-                      {/* 显示更多提示 */}
+                      {/* Show more hint */}
                       {Object.keys(metadata.labels).length > 5 && (
                         <Tippy
                           content={
@@ -801,7 +801,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </div>
                 )}
 
-                {/* Annotations - 最多显示 5 个 */}
+                {/* Annotations - max 5 shown */}
                 {metadata.annotations && Object.keys(metadata.annotations).length > 0 && (
                   <div className="info-item">
                     <span className="info-label">Annotations</span>
@@ -813,7 +813,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                           const displayKey = truncateText(key as string, 30);
                           const displayValue = truncateText(value as string, 30);
 
-                          // 只有当文本被截断时才显示 tooltip
+                          // Only show when text is truncated tooltip
                           const isTruncated = displayKey !== key || displayValue !== value;
 
                           const labelElement = (
@@ -841,7 +841,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
                           return <span key={key}>{labelElement}</span>;
                         })}
-                      {/* 显示更多提示 */}
+                      {/* Show more hint */}
                       {Object.keys(metadata.annotations).length > 5 && (
                         <Tippy
                           content={

@@ -1,12 +1,13 @@
-﻿import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { authFetch } from '../utils/auth';
 import {
   PAGINATION_CONFIG,
   CACHE_CONFIG,
 } from '../constants';
 import type { UseListReturn, ListQueryParams, APIResponse } from '../types';
+import { logError } from '../utils/errorHandler';
 
-// 常量定义
+// Constants definition
 const API_ENDPOINTS = {
   NAMESPACE_LIST: '/api/namespace',
 } as const;
@@ -15,7 +16,7 @@ const DEFAULT_LIMIT = 1000;
 const DEFAULT_OFFSET = 0;
 
 /**
- * 资源列表 Hook 配置
+ * Resource list hook Config
  */
 export interface UseResourceListConfig {
   apiEndpoint: string;
@@ -29,7 +30,7 @@ export interface UseResourceListConfig {
 }
 
 /**
- * 简单的内存缓存（SWR 模式）
+ * 简单'sinside存缓存（SWR Mode）
  */
 interface CacheEntry<T> {
   data: T;
@@ -39,7 +40,7 @@ interface CacheEntry<T> {
 const cache = new Map<string, CacheEntry<unknown>>();
 
 /**
- * 从缓存获取数据
+ * from缓存Getdata
  */
 function getCached<T>(key: string, staleTime: number): T | null {
   const entry = cache.get(key);
@@ -54,7 +55,7 @@ function getCached<T>(key: string, staleTime: number): T | null {
 }
 
 /**
- * 设置缓存
+ * settings缓存
  */
 function setCache<T>(key: string, data: T): void {
   cache.set(key, { data, timestamp: Date.now() });
@@ -76,14 +77,14 @@ function getCacheKey(endpoint: string, params: ListQueryParams): string {
 }
 
 /**
- * 通用资源列表 Hook
+ * CommonResource list hook
  *
  * 特性：
- * - SWR 缓存模式，避免重复请求
- * - 搜索防抖
- * - 自动刷新
- * - 请求取消
- * - 乐观更新
+ * - SWR 缓存Mode，避免duplicateRequest
+ * - Searchdebounce
+ * - AutoRefresh
+ * - RequestCancel
+ * - optimisticUpdate
  */
 export function useResourceList<T = unknown>(config: UseResourceListConfig): UseListReturn<T> {
   const {
@@ -94,45 +95,45 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     staleTime = CACHE_CONFIG.STALE_TIME,
   } = config;
 
-  // 状态管理
+  // Status管理
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
 
-  // 分页状态
+  // PaginationStatus
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
 
-  // 过滤状态（使用 ref 避免防抖期间的额外渲染）
+  // filterStatus（Use ref 避免debounce期间's额outsideRender）
   const [namespace, setNamespace] = useState('');
   const [search, setSearch] = useState('');
   const searchRef = useRef(search);
   const namespaceRef = useRef(namespace);
 
-  // 排序状态（使用 ref 保存最新值）
+  // sortStatus（Use ref Save最新值）
   const [sortField, setSortField] = useState(defaultSort?.field || 'name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(defaultSort?.order || 'asc');
   const sortFieldRef = useRef(sortField);
   const sortOrderRef = useRef(sortOrder);
 
-  // 更新 ref
+  // Update ref
   useEffect(() => {
     sortFieldRef.current = sortField;
     sortOrderRef.current = sortOrder;
   }, [sortField, sortOrder]);
 
-  // 命名空间列表
+  // Namespace list
   const [namespaces, setNamespaces] = useState<string[]>([]);
   const [namespacesLoading, setNamespacesLoading] = useState(false);
 
-  // 请求控制
+  // Requestcontrol
   const abortControllerRef = useRef<AbortController | null>(null);
   const namespacesLoadedRef = useRef(false);
   const mountedRef = useRef(true);
 
-  // 更新 ref
+  // Update ref
   useEffect(() => {
     searchRef.current = search;
   }, [search]);
@@ -141,7 +142,7 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     namespaceRef.current = namespace;
   }, [namespace]);
 
-  // 构建查询参数
+  // Buildquery参数
   const queryParams = useMemo<ListQueryParams>(
     () => ({
       limit: pageSize,
@@ -155,7 +156,7 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
   );
 
   /**
-   * 加载命名空间列表（只加载一次）
+   * Loading...间List（onlyLoading...
    */
   const loadNamespaces = useCallback(async () => {
     if (!namespaceFilter || namespacesLoadedRef.current) return;
@@ -170,19 +171,19 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
         namespacesLoadedRef.current = true;
       }
     } catch (err) {
-      console.error('Failed to load namespaces:', err);
+      logError(err, 'loadNamespaces');
     } finally {
       setNamespacesLoading(false);
     }
   }, [namespaceFilter]);
 
-  // 加载命名空间（只一次）
+  // Loading...间（only一次）
   useEffect(() => {
     loadNamespaces();
   }, [loadNamespaces]);
 
   /**
-   * 处理排序（使用 ref 避免闭包问题）
+   * Processsort（Use ref 避免闭包问题）
    */
   const handleSort = useCallback((field: string) => {
     const currentField = sortFieldRef.current;
@@ -191,29 +192,29 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     let newOrder: 'asc' | 'desc' = 'asc';
 
     if (field === currentField) {
-      // 同一字段，切换顺序
+      // 同一字段，toggle顺序
       newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
     }
 
-    // 立即更新 ref
+    // 立即Update ref
     sortFieldRef.current = field;
     sortOrderRef.current = newOrder;
 
-    // 更新状态触发渲染
+    // UpdateStatustriggerRender
     setSortField(field);
     setSortOrder(newOrder);
     setPage(1);
   }, []);
 
   /**
-   * 提交搜索（重置页码）
+   * 提交Search（重置页码）
    */
   const handleSubmit = useCallback(() => {
     setPage(1);
   }, []);
 
   /**
-   * 清空搜索
+   * Clear search
    */
   const clearSearch = useCallback(() => {
     setSearch('');
@@ -221,7 +222,7 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
   }, []);
 
   /**
-   * 刷新数据
+   * Refreshdata
    */
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -244,11 +245,19 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
       const response = await authFetch(`${apiEndpoint}?${params}`, {
         signal: controller.signal,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
       const result = (await response.json()) as APIResponse<T[]>;
       
       if (mountedRef.current && result.code === 0 && result.data) {
         setData(result.data || []);
         setTotal(result.page?.total || result.data?.length || 0);
+      } else if (mountedRef.current && result.code !== 0) {
+        throw new Error(result.message || 'Request failed');
       }
     } catch (err) {
       if (mountedRef.current && err instanceof Error && err.name !== 'AbortError') {
@@ -263,7 +272,7 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
   }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint]);
 
   /**
-   * 手动更新数据（乐观更新）
+   * manualUpdatedata（optimisticUpdate）
    */
   const mutate = useCallback(
     (newData?: T[]) => {
@@ -276,12 +285,12 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     [refresh]
   );
 
-// 设置搜索防抖（只更新 searchRef，不触发加载）
+// settingsSearchdebounce（onlyUpdate searchRef，nottriggerLoad）
   useEffect(() => {
     searchRef.current = search;
   }, [search]);
 
-  // 统一的数据加载逻辑（监听所有需要触发加载的状态）
+  // Unified'sdataLoading...监听所hasneedtriggerLoading...）
   useEffect(() => {
     refresh();
 

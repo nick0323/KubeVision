@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
@@ -21,13 +21,13 @@ interface PodsTabProps {
   namespace: string;
   resourceName: string;
   resourceKind: string;
-  resourceLabels?: Record<string, string>; // 资源的 Labels
+  resourceLabels?: Record<string, string>; // Resource Labels
   ownerReferences?: any[];
 }
 
 /**
- * Pods Tab - 显示资源关联的 Pods
- * 使用资源的 Label Selector 查询关联的 Pod
+ * Pods Tab - Displayresource关联's Pods
+ * Useresource's Label Selector query关联's Pod
  */
 export const PodsTab: React.FC<PodsTabProps> = ({
   namespace,
@@ -41,19 +41,19 @@ export const PodsTab: React.FC<PodsTabProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 跳转到 Pod 详情页
+  // jump toto Pod detail page
   const handlePodClick = useCallback((podNamespace: string, podName: string) => {
     navigate(`/pod/${podNamespace}/${podName}`);
   }, [navigate]);
 
-  // 从资源 Labels 构建 Label Selector
+  // fromresource Labels Build Label Selector
   const buildLabelSelector = useCallback(() => {
     if (!resourceLabels || Object.keys(resourceLabels).length === 0) {
       return null;
     }
 
-    // 将 resourceLabels 转换为 label selector 格式
-    // 例如：{ app: 'nginx', tier: 'frontend' } => "app=nginx,tier=frontend"
+    // will resourceLabels 转换for label selector format
+    // 例like：{ app: 'nginx', tier: 'frontend' } => "app=nginx,tier=frontend"
     const selectors = Object.entries(resourceLabels)
       .filter(([key, value]) => value !== undefined && value !== null)
       .map(([key, value]) => `${key}=${value}`);
@@ -61,24 +61,24 @@ export const PodsTab: React.FC<PodsTabProps> = ({
     return selectors.length > 0 ? selectors.join(',') : null;
   }, [resourceLabels]);
 
-  // 加载 Pods
+  // Loading...ds
   const loadPods = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // 优先使用 Label Selector 查询
+      // preferUse Label Selector query
       const labelSelector = buildLabelSelector();
 
-      // 构建 URL - namespace 作为 query 参数传递
+      // Build URL - namespace 作for query 参数传递
       let url = `/api/pod?limit=1000`;
 
-      // Node 页面：使用 fieldSelector=spec.nodeName=node1
+      // Node page：Use fieldSelector=spec.nodeName=node1
       if (resourceKind === 'Node' || resourceKind === 'node') {
         url += `&fieldSelector=spec.nodeName=${encodeURIComponent(resourceName)}`;
       } else if (labelSelector) {
-        // Workload (Deployment/StatefulSet/DaemonSet/Job) 和 Service:
-        // 使用 labelSelector 参数查询（支持多个 selector，逗号分隔）
+        // Workload (Deployment/StatefulSet/DaemonSet/Job) and Service:
+        // Use labelSelector 参数query（Support多个 selector，逗号分隔）
         url += `&namespace=${namespace}&labelSelector=${encodeURIComponent(labelSelector)}`;
       }
 
@@ -86,11 +86,11 @@ export const PodsTab: React.FC<PodsTabProps> = ({
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        // 后端返回格式：{ code: 0, data: [...], page: {...} }
-        // result.data 直接是数组
+        // backendBackformat：{ code: 0, data: [...], page: {...} }
+        // result.data 直接is数组
         let allPods = Array.isArray(result.data) ? result.data : result.data.data || [];
 
-        // 如果没有 label selector，使用 ownerReferences 二次过滤
+        // if没has label selector，Use ownerReferences 二次filter
         if (!labelSelector && ownerReferences && ownerReferences.length > 0) {
           allPods = allPods.filter((pod: any) => {
             const owners = pod.metadata?.ownerReferences || [];
@@ -102,10 +102,10 @@ export const PodsTab: React.FC<PodsTabProps> = ({
 
         setPods(allPods);
       } else {
-        setError(result.message || '加载失败');
+        setError(result.message || 'Load Failed');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '网络错误');
+      setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
   }, [loadPods]);
 
   if (loading) {
-    return <LoadingSpinner text="加载 Pods..." size="lg" />;
+    return <LoadingSpinner text="Loading...ds..." size="lg" />;
   }
 
   if (error && pods.length === 0) {
@@ -129,7 +129,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
         <h3 className="detail-card-title">Pods</h3>
         {pods.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-state-text">暂无 Pods</span>
+            <span className="empty-state-text">No Pods</span>
           </div>
         ) : (
           <table className="detail-table">

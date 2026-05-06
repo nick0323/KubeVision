@@ -1,11 +1,11 @@
-/* SearchInput 组件样式 - 与 Namespace/状态选择框统一 */
+/* SearchInput ComponentStyle - with Namespace/Status选择框Unified */
 .search-input-wrapper {
   align-items: center;
   display: flex;
   gap: var(--spacing-sm);
   min-width: 220px !important;
   position: relative;
-  width: 220px !important; /* 与 Namespace/状态选择框一致的宽度 */
+  width: 220px !important; /* Same width as Namespace/status selector */
 }
 
 .search-input-form {
@@ -14,9 +14,9 @@
 }
 
 .search-input {
-  background: var(--bg-surface) !important; /* 白色背景 */
-  border: var(--border-width) solid var(--bg-active-solid) !important; /* 淡蓝色边框 */
-  border-radius: var(--radius-sm) !important; /* 圆角 */
+  background: var(--bg-surface) !important; /* White background */
+  border: var(--border-width) solid var(--bg-active-solid) !important; /* Light blue border */
+  border-radius: var(--radius-sm) !important; /* Rounded corners */
   box-sizing: border-box !important;
   color: var(--text-primary);
   font-family: var(--font-main) !important;
@@ -29,7 +29,7 @@
 }
 
 .search-input:hover {
-  background: var(--bg-hover); /* 极淡蓝色悬停 */
+  background: var(--bg-hover); /* Very light blue hover */
   border-color: var(--primary-hover);
 }
 
@@ -47,7 +47,7 @@
   align-items: center;
   background: var(--primary);
   border: none;
-  border-radius: var(--radius-sm); /* 圆角 */
+  border-radius: var(--radius-sm); /* Rounded corners */
   color: var(--bg-surface);
   cursor: pointer;
   display: flex;
@@ -72,7 +72,7 @@
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm); /* 圆角 */
+  border-radius: var(--radius-sm); /* Rounded corners */
   color: var(--text-quaternary);
   cursor: pointer;
   display: flex;

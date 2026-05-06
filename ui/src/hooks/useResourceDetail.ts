@@ -1,10 +1,10 @@
-﻿import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { authFetch } from '../utils/auth';
 import { TIME_CONFIG } from '../constants';
 import type { UseDetailReturn } from '../types';
 
 /**
- * 详情查询 Hook 配置
+ * Detail Query Hook Config
  */
 export interface UseResourceDetailOptions {
   resourceType: string;
@@ -15,7 +15,7 @@ export interface UseResourceDetailOptions {
 }
 
 /**
- * 通用资源详情数据 Hook
+ * Commonresource详情data Hook
  */
 export function useResourceDetail<T = unknown>(
   options: UseResourceDetailOptions
@@ -30,10 +30,10 @@ export function useResourceDetail<T = unknown>(
   const mountedRef = useRef(true);
 
   /**
-   * 加载资源详情
+   * Loading...情
    */
   const loadDetail = useCallback(async () => {
-    // 取消之前的请求
+    // Cancelbefore'sRequest
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -75,20 +75,20 @@ export function useResourceDetail<T = unknown>(
   }, [resourceType, namespace, name]);
 
   /**
-   * 手动刷新
+   * manualRefresh
    */
   const refresh = useCallback(async () => {
     await loadDetail();
   }, [loadDetail]);
 
   /**
-   * 手动更新数据
+   * manualUpdatedata
    */
   const mutate = useCallback((newData: T) => {
     setData(newData);
   }, []);
 
-  // 初始加载
+  // initialLoad
   useEffect(() => {
     mountedRef.current = true;
     loadDetail();
@@ -101,7 +101,7 @@ export function useResourceDetail<T = unknown>(
     };
   }, [resourceType, namespace, name, loadDetail]);
 
-  // 自动刷新
+  // AutoRefresh
   useEffect(() => {
     if (!autoRefresh || loading) return;
 

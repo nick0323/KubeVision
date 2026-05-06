@@ -11,7 +11,7 @@ export interface NotificationProps {
   onClose: () => void;
 }
 
-// 全局通知状态
+// globalNotificationStatus
 let notificationListeners: Array<(notifications: NotificationState[]) => void> = [];
 let notifications: NotificationState[] = [];
 
@@ -29,7 +29,7 @@ function addNotification(type: NotificationType, message: string, duration?: num
 }
 
 /**
- * 使用通知的工具函数
+ * UseNotification's工具function
  */
 export const notification = {
   success: (message: string, duration?: number) => {
@@ -72,8 +72,8 @@ export function useNotification() {
 }
 
 /**
- * Notification 通知组件
- * 用于替代 alert() 提供友好的用户提示
+ * Notification NotificationComponent
+ * forAlternative alert() 提供友好'suserInfo
  */
 export const Notification: React.FC<NotificationProps> = ({
   type,
@@ -118,8 +118,8 @@ export interface NotificationContainerProps {
 }
 
 /**
- * NotificationContainer 通知容器
- * 管理多个通知的显示
+ * NotificationContainer Notification container
+ * 管理多个Notification'sDisplay
  */
 export const NotificationContainer: React.FC<NotificationContainerProps> = ({
   notifications,

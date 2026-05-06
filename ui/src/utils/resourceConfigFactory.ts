@@ -1,6 +1,6 @@
 /**
  * Resource Configuration Factory
- * 用于生成资源列表页面配置，减少重复代码
+ * for生成resourceListPage config，reduceduplicatecode
  */
 
 import type { ColumnDef } from '../types/k8s-resources';
@@ -22,7 +22,7 @@ interface ResourcePageConfig {
 }
 
 /**
- * 创建通用的 Name 列
+ * CreateCommon's Name 列
  */
 export function createNameColumn(width: string = '25%'): ExtendedColumn {
   return {
@@ -34,7 +34,7 @@ export function createNameColumn(width: string = '25%'): ExtendedColumn {
 }
 
 /**
- * 创建 Namespace 列
+ * Create Namespace 列
  */
 export function createNamespaceColumn(width: string = '15%'): ExtendedColumn {
   return {
@@ -46,7 +46,7 @@ export function createNamespaceColumn(width: string = '15%'): ExtendedColumn {
 }
 
 /**
- * 创建 Status 列
+ * Create Status 列
  */
 export function createStatusColumn(width: string = '15%'): ExtendedColumn {
   return {
@@ -58,7 +58,7 @@ export function createStatusColumn(width: string = '15%'): ExtendedColumn {
 }
 
 /**
- * 创建 Age 列
+ * Create Age 列
  */
 export function createAgeColumn(width: string = '8%'): ExtendedColumn {
   return {
@@ -70,7 +70,7 @@ export function createAgeColumn(width: string = '8%'): ExtendedColumn {
 }
 
 /**
- * 创建 Ready 列（用于 Workload 资源）
+ * Create Ready 列（for Workload resource）
  */
 export function createReadyColumn(options?: {
   width?: string;
@@ -90,7 +90,7 @@ export function createReadyColumn(options?: {
 }
 
 /**
- * 创建基础配置（包含通用列）
+ * Create基础Config（includeCommon列）
  */
 export function createBaseConfig(options: {
   title: string;
@@ -118,7 +118,7 @@ export function createBaseConfig(options: {
 }
 
 /**
- * 完成配置（添加默认值和排序）
+ * 完成Config（Adddefault值andsort）
  */
 export function finalizeConfig(
   base: Partial<ResourcePageConfig>,
@@ -133,7 +133,7 @@ export function finalizeConfig(
     base.columns = [];
   }
   
-  // 添加 Age 列作为最后一列
+  // Add Age 列作for最after一列
   if (!base.columns.some(col => col.dataIndex === 'age')) {
     base.columns.push(createAgeColumn());
   }
@@ -149,7 +149,7 @@ export function finalizeConfig(
 }
 
 /**
- * 创建工作负载类资源配置（Deployment, StatefulSet, DaemonSet 等）
+ * Create工作负载类resourceConfig（Deployment, StatefulSet, DaemonSet etc）
  */
 export function createWorkloadConfig(options: {
   title: string;
@@ -171,7 +171,7 @@ export function createWorkloadConfig(options: {
 }
 
 /**
- * 创建 Pod 资源配置
+ * Create Pod resourceConfig
  */
 export function createPodConfig(): ResourcePageConfig {
   const columns: ExtendedColumn[] = [
@@ -196,7 +196,7 @@ export function createPodConfig(): ResourcePageConfig {
 }
 
 /**
- * 创建 Service 资源配置
+ * Create Service resourceConfig
  */
 export function createServiceConfig(): ResourcePageConfig {
   const columns: ExtendedColumn[] = [
@@ -218,7 +218,7 @@ export function createServiceConfig(): ResourcePageConfig {
 }
 
 /**
- * 创建 Node 资源配置（集群资源）
+ * Create Node resourceConfig（clusterresource）
  */
 export function createNodeConfig(): ResourcePageConfig {
   const columns: ExtendedColumn[] = [
@@ -258,7 +258,7 @@ export function createNodeConfig(): ResourcePageConfig {
 }
 
 /**
- * 创建集群级资源配置（PV, StorageClass, Namespace 等）
+ * Createcluster级resourceConfig（PV, StorageClass, Namespace etc）
  */
 export function createClusterResourceConfig(options: {
   title: string;
