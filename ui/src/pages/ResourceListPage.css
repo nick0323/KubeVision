@@ -14,7 +14,6 @@
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-xs);
   overflow: auto;
-  flex: 1;
 }
 
 /* PageHeader andTable之间's间距 */
@@ -70,6 +69,11 @@
 
 .table-header-cell.sortable:hover {
   color: var(--primary-dark);
+}
+
+.table-header-cell:not(.sortable) {
+  cursor: default;
+  opacity: 0.8;
 }
 
 .sort-icon {
@@ -187,6 +191,10 @@ th.sorted .sort-icon {
 
 .empty-icon {
   font-size: var(--font-size-icon-lg);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-message {
@@ -415,7 +423,7 @@ th.sorted .sort-icon {
   background: var(--danger);
 }
 
-/* 刷新Status指示器 */
+/* 刷新Status指示�?*/
 .refreshing-indicator {
   animation: refresh-loading 1s infinite linear;
   background: linear-gradient(90deg, transparent, var(--primary), transparent);
@@ -434,4 +442,60 @@ th.sorted .sort-icon {
   100% {
     transform: translateX(100%);
   }
+}
+
+/* 创建按钮样式 - 与项目规范一�?*/
+.create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--primary);
+  color: white;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+  font-family: var(--font-main);
+}
+
+.create-btn:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.create-btn:active {
+  transform: scale(0.98);
+}
+
+/* Create Resource Button */
+.create-resource-btn {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: var(--border-width) solid var(--bg-active-solid);
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  height: 32px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+  font-family: var(--font-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.create-resource-btn:hover {
+  background: var(--bg-active);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.create-resource-btn:active {
+  transform: scale(0.98);
 }

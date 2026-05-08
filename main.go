@@ -78,8 +78,9 @@ func main() {
 
 	app := NewApplication(logger, configMgr, lruCacheMgr, k8sClientMgr)
 
-	// 优化：调整 defer 顺序
-	// 执行顺序：先 cancel() (停止 Informer) -> 后 app.Close() (关闭资源)
+	// 资源清理顺序（defer LIFO）：
+	// 1. cancel() 先执行：停止 Pod Informer 等后台任务
+	// 2. app.Close() 后执行：关闭缓存、K8s 客户端、配置管理器
 	defer app.Close()
 	defer cancel()
 

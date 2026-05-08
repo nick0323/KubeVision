@@ -237,6 +237,7 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
       offset: ((page - 1) * pageSize).toString(),
       sortBy: sortField,
       sortOrder,
+      force: 'true', // 强制刷新，绕过后端缓存
       ...(namespace ? { namespace } : {}),
       ...(search ? { search } : {}),
     });
@@ -285,10 +286,29 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     [refresh]
   );
 
-// settingsSearchdebounce（onlyUpdate searchRef，nottriggerLoad）
+  // Searchdebounce（300ms）
+  const debouncedSearchRef = useRef('');
+  const searchDebounceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const setDebouncedSearch = useCallback((value: string) => {
+    if (searchDebounceTimerRef.current) {
+      clearTimeout(searchDebounceTimerRef.current);
+    }
+    searchDebounceTimerRef.current = setTimeout(() => {
+      debouncedSearchRef.current = value;
+      setSearch(value);
+      setPage(1);
+    }, 300);
+  }, []);
+
+  // Cleanupdebounce timer
   useEffect(() => {
-    searchRef.current = search;
-  }, [search]);
+    return () => {
+      if (searchDebounceTimerRef.current) {
+        clearTimeout(searchDebounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Unified'sdataLoading...监听所hasneedtriggerLoading...）
   useEffect(() => {
@@ -313,6 +333,7 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     search,
     setNamespace,
     setSearch,
+    setDebouncedSearch,
     sortField,
     sortOrder,
     handleSort,

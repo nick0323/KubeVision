@@ -22,10 +22,12 @@ import (
 )
 
 type Server struct {
-	logger       *zap.Logger
-	configMgr    *config.Manager
-	lruCacheMgr  *cache.MemoryCache[interface{}]
-	k8sClientMgr *service.ClientManager
+	logger        *zap.Logger
+	configMgr     *config.Manager
+	lruCacheMgr   *cache.MemoryCache[interface{}]
+	k8sClientMgr  *service.ClientManager
+	httpServer    *http.Server
+	jwtMiddleware *middleware.JWTMiddleware
 }
 
 func NewServer(
@@ -51,14 +53,17 @@ func (s *Server) Run() error {
 		zap.Bool("cacheEnabled", cfg.Cache.Enabled),
 	)
 
-	srv := &http.Server{
-		Addr:    serverAddr,
-		Handler: s.SetupRouter(),
+	s.httpServer = &http.Server{
+		Addr:         serverAddr,
+		Handler:      s.SetupRouter(),
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	go func() {
 		s.logger.Info("HTTP server starting", zap.String("address", serverAddr))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.logger.Error("Server failed", zap.Error(err))
 		}
 	}()
@@ -68,6 +73,12 @@ func (s *Server) Run() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("Gracefully shutting down server...")
+	if s.jwtMiddleware != nil {
+		s.jwtMiddleware.Close()
+	}
+	if s.httpServer != nil {
+		return s.httpServer.Shutdown(ctx)
+	}
 	return nil
 }
 
@@ -104,8 +115,12 @@ func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	r.GET(model.HealthCheckPath, s.healthCheckHandler)
 
 	apiGroup := r.Group(model.APIPrefix)
-	jwtMiddleware := middleware.NewJWTMiddleware(s.configMgr.GetJWTSecret(), s.logger)
-	apiGroup.Use(jwtMiddleware.AuthMiddleware(s.configMgr))
+	s.jwtMiddleware = middleware.NewJWTMiddleware(s.configMgr.GetJWTSecret(), s.logger)
+	apiGroup.Use(s.jwtMiddleware.AuthMiddleware(s.configMgr))
+
+	// 注册 logout 路由（需要认证）
+	// apiGroup.POST("/logout", loginHandler.Logout(jwtMiddleware.GetBlacklist()))
+
 	s.registerAPIRoutes(apiGroup)
 }
 
@@ -119,7 +134,10 @@ func (s *Server) healthCheckHandler(c *gin.Context) {
 	if s.k8sClientMgr != nil {
 		clientset, err := s.k8sClientMgr.GetDefaultClient()
 		if err == nil {
-			_, err = clientset.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{Limit: 1})
+			// 添加 5 秒超时控制，防止 K8s API Server 无响应时阻塞
+			ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+			defer cancel()
+			_, err = clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{Limit: 1})
 			health["k8sConnected"] = (err == nil)
 		} else {
 			health["k8sConnected"] = false
@@ -133,7 +151,11 @@ func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	cfg := s.configMgr.GetConfig()
 	api.InitWebSocketManager(cfg.Server.MaxWsConnections)
 
-	clientset, _, _ := s.getK8sClient()
+	clientset, _, err := s.getK8sClient()
+	if err != nil {
+		s.logger.Warn("Failed to get K8s client for overview service", zap.Error(err))
+		clientset = nil
+	}
 	overviewService := service.NewOverviewService(clientset)
 	api.RegisterOverview(apiGroup, s.logger, func() (*model.OverviewStatus, error) {
 		return overviewService.GetOverview(context.Background())
@@ -142,8 +164,9 @@ func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	api.RegisterOperations(apiGroup, s.logger, s.getK8sClient)
 	api.RegisterExecWS(apiGroup, s.logger, &serverClientProvider{mgr: s.k8sClientMgr}, s.configMgr)
 	api.RegisterLogStream(apiGroup, s.logger, s.getK8sClient, s.configMgr)
-	api.RegisterRoutes(apiGroup, s.logger, s.getK8sClient)
+	api.RegisterRoutes(apiGroup, s.logger, s.getK8sClient, s.lruCacheMgr)
 	api.RegisterPasswordAdmin(apiGroup, s.configMgr, s.logger)
+	api.RegisterArgoCDRoutes(apiGroup, s.logger, s.k8sClientMgr)
 }
 
 type serverClientProvider struct {

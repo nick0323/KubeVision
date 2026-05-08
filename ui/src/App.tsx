@@ -123,6 +123,27 @@ function GenericResourceDetail({ resourceType }: { resourceType: string }) {
 }
 
 /**
+ * Resource detail route config（simplify重复定义）
+ */
+const RESOURCE_DETAIL_ROUTES = [
+  { path: '/pod', resourceType: 'pod' },
+  { path: '/deployment', resourceType: 'deployment' },
+  { path: '/statefulset', resourceType: 'statefulset' },
+  { path: '/daemonset', resourceType: 'daemonset' },
+  { path: '/service', resourceType: 'service' },
+  { path: '/configmap', resourceType: 'configmap' },
+  { path: '/secret', resourceType: 'secret' },
+  { path: '/ingress', resourceType: 'ingress' },
+  { path: '/job', resourceType: 'job' },
+  { path: '/cronjob', resourceType: 'cronjob' },
+  { path: '/pvc', resourceType: 'pvc' },
+  { path: '/pv', resourceType: 'pv' },
+  { path: '/storageclass', resourceType: 'storageclass' },
+  { path: '/namespace', resourceType: 'namespace' },
+  { path: '/node', resourceType: 'node' },
+] as const;
+
+/**
  * Main App Component with Notification support
  */
 const AppWithNotification: React.FC = () => {
@@ -133,8 +154,16 @@ const AppWithNotification: React.FC = () => {
       setLogin(authUtils.isLoggedIn());
     };
 
+    const handleLogout = () => {
+      setLogin(false);
+    };
+
     window.addEventListener('storage', checkLogin);
-    return () => window.removeEventListener('storage', checkLogin);
+    window.addEventListener('logout', handleLogout);
+    return () => {
+      window.removeEventListener('storage', checkLogin);
+      window.removeEventListener('logout', handleLogout);
+    };
   }, []);
 
   return (
@@ -167,127 +196,18 @@ const AppWithNotification: React.FC = () => {
               }
             />
 
-            {/* 详情页路由 */}
-            <Route
-              path="/pod/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="pod" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/deployment/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="deployment" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/statefulset/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="statefulset" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/daemonset/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="daemonset" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/service/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="service" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/configmap/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="configmap" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/secret/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="secret" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/ingress/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="ingress" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/job/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="job" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/cronjob/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="cronjob" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/pvc/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="pvc" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/pv/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="pv" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/storageclass/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="storageclass" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/namespace/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="namespace" />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/node/:namespace/:name"
-              element={
-                <RequireAuth>
-                  <GenericResourceDetail resourceType="node" />
-                </RequireAuth>
-              }
-            />
+            {/* 详情页路由（动态生成） */}
+            {RESOURCE_DETAIL_ROUTES.map(({ path, resourceType }) => (
+              <Route
+                key={resourceType}
+                path={`${path}/:namespace/:name`}
+                element={
+                  <RequireAuth>
+                    <GenericResourceDetail resourceType={resourceType} />
+                  </RequireAuth>
+                }
+              />
+            ))}
 
             {/* 根路径重定向 */}
             <Route path="/" element={<ListPage />} />

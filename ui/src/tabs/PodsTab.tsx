@@ -21,8 +21,8 @@ interface PodsTabProps {
   namespace: string;
   resourceName: string;
   resourceKind: string;
-  resourceLabels?: Record<string, string>; // Resource Labels
-  ownerReferences?: any[];
+  resourceLabels?: Record<string, string>;
+  resourceUid?: string;
 }
 
 /**
@@ -34,7 +34,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
   resourceName,
   resourceKind,
   resourceLabels,
-  ownerReferences,
+  resourceUid,
 }) => {
   const navigate = useNavigate();
   const [pods, setPods] = useState<Pod[]>([]);
@@ -77,29 +77,19 @@ export const PodsTab: React.FC<PodsTabProps> = ({
       if (resourceKind === 'Node' || resourceKind === 'node') {
         url += `&fieldSelector=spec.nodeName=${encodeURIComponent(resourceName)}`;
       } else if (labelSelector) {
-        // Workload (Deployment/StatefulSet/DaemonSet/Job) and Service:
-        // Use labelSelector 参数query（Support多个 selector，逗号分隔）
         url += `&namespace=${namespace}&labelSelector=${encodeURIComponent(labelSelector)}`;
+      }
+
+      // 后端按 owner UID 精确过滤，避免不同资源相同 label 导致误匹配
+      if (resourceUid) {
+        url += `&ownerUid=${encodeURIComponent(resourceUid)}`;
       }
 
       const response = await authFetch(url);
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        // backendBackformat：{ code: 0, data: [...], page: {...} }
-        // result.data 直接is数组
         let allPods = Array.isArray(result.data) ? result.data : result.data.data || [];
-
-        // if没has label selector，Use ownerReferences 二次filter
-        if (!labelSelector && ownerReferences && ownerReferences.length > 0) {
-          allPods = allPods.filter((pod: any) => {
-            const owners = pod.metadata?.ownerReferences || [];
-            return owners.some(
-              (owner: any) => owner.kind === resourceKind && owner.name === resourceName
-            );
-          });
-        }
-
         setPods(allPods);
       } else {
         setError(result.message || 'Load Failed');
@@ -109,7 +99,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [namespace, resourceName, resourceKind, ownerReferences, buildLabelSelector]);
+  }, [namespace, resourceName, resourceKind, resourceUid, buildLabelSelector]);
 
   useEffect(() => {
     loadPods();

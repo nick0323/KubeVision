@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/nick0323/K8sVision/model"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
@@ -37,6 +39,40 @@ func (o *ListOptions) Apply() metav1.ListOptions {
 
 func DefaultListOptions() *ListOptions {
 	return &ListOptions{Limit: 1000}
+}
+
+func FilterPodsByOwner(ctx context.Context, clientset kubernetes.Interface, logger *zap.Logger, pods []model.Pod, ownerUid, namespace string) []model.Pod {
+	if ownerUid == "" || len(pods) == 0 {
+		return pods
+	}
+
+	ownerUID := types.UID(ownerUid)
+	validUids := map[types.UID]bool{ownerUID: true}
+
+	rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		logger.Warn("Failed to list ReplicaSets for owner filter", zap.String("ownerUid", ownerUid), zap.Error(err))
+	} else {
+		for _, rs := range rsList.Items {
+			for _, ownerRef := range rs.OwnerReferences {
+				if ownerRef.UID == ownerUID {
+					validUids[rs.UID] = true
+					break
+				}
+			}
+		}
+	}
+
+	filtered := make([]model.Pod, 0, len(pods))
+	for _, pod := range pods {
+		for _, ownerRef := range pod.OwnerReferences {
+			if validUids[ownerRef.UID] {
+				filtered = append(filtered, pod)
+				break
+			}
+		}
+	}
+	return filtered
 }
 
 func ListPods(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Pod, error) {

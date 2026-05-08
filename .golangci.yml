@@ -1,0 +1,61 @@
+run:
+  timeout: 5m
+  go: '1.24.4'
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck          # 检查未处理的错误
+    - gosimple          # 简化代码
+    - govet             # 检查潜在错误
+    - ineffassign       # 检查无效的赋值
+    - staticcheck       # 综合静态分析
+    - unused            # 检查未使用的代码
+    - gofmt             # 代码格式
+    - goimports         # 导入格式
+    - unconvert         # 检查不必要的类型转换
+    - usestdlibvars     # 使用标准库变量
+    - wastedassign      # 检查浪费的赋值
+  disable:
+    - depguard          # 不限制包导入
+    - exhaustruct       # 不要求结构体所有字段
+    - varnamelen        # 不限制变量名长度
+    - tagliatelle       # 不检查 struct tag 命名
+
+linters-settings:
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment  # 不检查字段对齐（可能影响可读性）
+      - shadow          # 不检查变量遮蔽（太严格）
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/nick0323/K8sVision
+
+issues:
+  exclude-rules:
+    # 测试文件允许一些宽松规则
+    - path: _test\.go
+      linters:
+        - errcheck
+        - govet
+    # 允许 main.go 中的错误忽略
+    - path: main\.go
+      linters:
+        - errcheck
+    # 允许打印（日志记录）
+    - path: '.*'
+      text: 'SA9004:'  # staticcheck: 建议将第一个元素放在第一行
+  exclude-dirs:
+    - vendor
+  max-issues-per-linter: 50
+  max-same-issues: 10
+
+severity:
+  default-severity: error
+  rules:
+    - linters:
+        - gofmt
+        - goimports
+      severity: warning

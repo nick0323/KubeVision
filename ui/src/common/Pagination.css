@@ -32,7 +32,7 @@
   color: var(--text-secondary);
   display: flex;
   font-size: var(--font-size-base);
-  gap: 8px;
+  gap: 12px;
 }
 
 .pagination-separator {
@@ -46,24 +46,95 @@
   gap: var(--spacing-sm);
 }
 
-.page-size-select {
-  background: var(--bg-surface);
-  border: 1px solid var(--text-disabled);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  font-family: var(--font-main); /* Using Maple Mono font, consistent with left nav */
-  font-size: var(--font-size-base);
-  outline: none;
-  padding: var(--spacing-sm) 8px;
+.page-size-select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 80px;
 }
 
-.page-size-select:hover {
+.page-size-select-value {
+  align-items: center;
+  background: var(--bg-surface);
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-main);
+  font-size: var(--font-size-base);
+  height: 32px;
+  justify-content: space-between;
+  padding: 6px 12px;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.page-size-select-value:hover {
+  background: var(--primary-light);
   border-color: var(--primary-hover);
 }
 
-.page-size-select:focus {
+.page-size-select-value.open {
+  background: var(--bg-surface);
   border-color: var(--primary);
   box-shadow: 0 0 0 2px var(--bg-info);
+}
+
+.page-size-select-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-size-select-arrow {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  margin-left: 8px;
+  transition: transform var(--transition-fast);
+}
+
+.page-size-select-value.open .page-size-select-arrow {
+  color: var(--primary);
+}
+
+.page-size-select-dropdown {
+  background: var(--bg-surface);
+  border: var(--border-width) solid var(--primary-lighter);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px var(--bg-info);
+  left: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 4px;
+  z-index: var(--z-index-dropdown);
+}
+
+.page-size-option {
+  align-items: center;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-main);
+  font-size: var(--font-size-base);
+  padding: 8px 12px;
+  transition: var(--transition-fast);
+}
+
+.page-size-option:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.page-size-option.selected {
+  background: var(--bg-info);
+  color: var(--primary);
+  font-weight: var(--font-weight-semibold);
 }
 
 .pagination-controls {

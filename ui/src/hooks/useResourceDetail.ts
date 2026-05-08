@@ -32,7 +32,7 @@ export function useResourceDetail<T = unknown>(
   /**
    * Loading...情
    */
-  const loadDetail = useCallback(async () => {
+  const loadDetail = useCallback(async (forceRefresh = false) => {
     // Cancelbefore'sRequest
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -45,7 +45,8 @@ export function useResourceDetail<T = unknown>(
     setError(null);
 
     try {
-      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}`, {
+      const params = forceRefresh ? '?force=true' : '';
+      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}${params}`, {
         signal: controller.signal,
       });
       const result = await response.json();
@@ -78,7 +79,7 @@ export function useResourceDetail<T = unknown>(
    * manualRefresh
    */
   const refresh = useCallback(async () => {
-    await loadDetail();
+    await loadDetail(true); // 强制刷新，绕过后端缓存
   }, [loadDetail]);
 
   /**

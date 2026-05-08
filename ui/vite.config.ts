@@ -41,6 +41,30 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // 生产环境生成 sourcemap，开发环境不生成
+    sourcemap: process.env.NODE_ENV === 'production',
+    // 代码压缩配置
+    minify: 'esbuild',
+    // 资源内联限制（4KB 以下内联为 base64）
+    assetsInlineLimit: 4096,
+    // 代码分割配置
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // React 核心库
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // 终端模拟器
+          'xterm': ['xterm', 'xterm-addon-fit'],
+          // YAML 处理
+          'yaml': ['js-yaml'],
+          // 图标库
+          'react-icons': ['react-icons/fa', 'react-icons/fi', 'react-icons/hi', 'react-icons/md', 'react-icons/ri'],
+        },
+      },
+    },
+    // 构建报告
+    reportCompressedSize: true,
+    // 警告阈值（KB）
+    chunkSizeWarningLimit: 1000,
   },
 });

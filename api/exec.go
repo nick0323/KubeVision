@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,7 +32,9 @@ const (
 
 var activeExecConnections atomic.Int32
 
-var namespaceRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+var (
+	namespaceRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
+)
 
 type ExecClientProvider interface {
 	GetClientset() (*kubernetes.Clientset, error)
@@ -169,7 +172,12 @@ func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider Exe
 	}
 	defer ws.Close()
 
-	executeRemoteCommand(ws, clientset, config, pod, container, parseExecCommand(commandStr), logger)
+	command, err := parseExecCommand(commandStr)
+	if err != nil {
+		middleware.ResponseError(c, logger, err, http.StatusBadRequest)
+		return
+	}
+	executeRemoteCommand(ws, clientset, config, pod, container, command, logger)
 }
 
 func validateExecParams(namespace, podName string) error {
@@ -191,11 +199,20 @@ func checkExecConnectionLimit(logger *zap.Logger, username string) error {
 	return nil
 }
 
-func parseExecCommand(commandStr string) []string {
+func parseExecCommand(commandStr string) ([]string, error) {
 	if commandStr == "" {
-		return []string{ExecDefaultCommand}
+		return []string{ExecDefaultCommand}, nil
 	}
-	return []string{ExecDefaultCommand, "-c", commandStr}
+
+	if len(commandStr) > 512 {
+		return nil, fmt.Errorf("command too long (max 512 characters)")
+	}
+
+	args := strings.Fields(commandStr)
+	if len(args) == 0 {
+		return []string{ExecDefaultCommand}, nil
+	}
+	return args, nil
 }
 
 func getExecClient(provider ExecClientProvider) (*kubernetes.Clientset, *rest.Config, error) {

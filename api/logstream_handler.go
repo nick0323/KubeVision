@@ -83,7 +83,6 @@ func streamPodLog(
 			})
 			return
 		}
-		defer decrementConnection()
 
 		// 构建日志选项
 		opts := buildPodLogOptions(container, timestamps, previous, tailLines)
@@ -91,7 +90,7 @@ func streamPodLog(
 		// WebSocket 升级
 		ws, err := upgradeWebSocket(c, logger)
 		if err != nil {
-			wsConnectionCount.Add(-1) // 升级失败时递减连接计数
+			decrementConnection()
 			return
 		}
 		defer ws.Close()

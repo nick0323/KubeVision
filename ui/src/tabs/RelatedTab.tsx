@@ -3,7 +3,6 @@ import { RelatedTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
-import { useNavigate } from 'react-router-dom';
 
 interface RelatedResource {
   kind: string;
@@ -46,7 +45,6 @@ const CLUSTER_SCOPE_RESOURCES = ['persistentvolume', 'pv', 'storageclass', 'name
  * Related Tab - 关联resource
  */
 export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourceType, ownerReferences }) => {
-  const navigate = useNavigate();
   const [relatedResources, setRelatedResources] = useState<RelatedResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,15 +91,6 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
     loadRelated();
   }, [namespace, name, resourceType, ownerReferences, isClusterResource]);
 
-  // jump totoresource详情
-  const handleResourceClick = useCallback(
-    (kind: string, name: string) => {
-      const resourceType = kind.toLowerCase() + 's';
-      navigate(`/${resourceType}/${namespace}/${name}`);
-    },
-    [namespace, navigate]
-  );
-
   // Get关系labeltext
   const getRelationLabel = (relation?: string) => {
     if (!relation) return '';
@@ -147,10 +136,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
                     <span className="kind-badge">{resource.kind}</span>
                   </td>
                   <td>
-                    <span
-                      className="related-resource-name"
-                      onClick={() => handleResourceClick(resource.kind, resource.name)}
-                    >
+                    <span className="related-resource-name">
                       {resource.name}
                     </span>
                   </td>

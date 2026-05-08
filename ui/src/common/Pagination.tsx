@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { PaginationProps } from '../types';
 import { PAGE_SIZE_OPTIONS } from '../constants';
 import './Pagination.css';
 
 /**
- * PaginationComponent
- * Keep with Pagination.jsx exactly the same functionality
+ * Pagination Component
  */
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
@@ -18,14 +18,14 @@ export const Pagination: React.FC<PaginationProps> = ({
   fixedBottom = false,
 }) => {
   const totalPages = Math.ceil(total / pageSize);
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // 键盘快捷键Support（仅in固定Modeunder启use）
+  // 键盘快捷键 Support
   useEffect(() => {
-    // onlyin固定Modeunder启use快捷键
     if (!fixedBottom && !fixed) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // onlyin没has聚焦Input field时启use快捷键
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
@@ -42,10 +42,20 @@ export const Pagination: React.FC<PaginationProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [fixedBottom, fixed, currentPage, totalPages, onPageChange]);
 
-  // if总数小forevery页数量，notDisplayPagination
+  // Click outside 关闭 dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   if (total <= pageSize) return null;
 
-  // Build CSS 类名
   let className = 'table-pagination-area';
   if (fixedBottom) {
     className += ' fixed-bottom';
@@ -53,35 +63,48 @@ export const Pagination: React.FC<PaginationProps> = ({
     className += ' fixed';
   }
 
+  const handlePageSizeSelect = (newPageSize: number) => {
+    if (onPageSizeChange) {
+      onPageSizeChange(newPageSize);
+    }
+    setIsOpen(false);
+  };
+
   return (
     <div className={className}>
-      {/* Left: Total rows and rows per page selector */}
       <div className="pagination-total">
         <span>{total} row(s) total</span>
         <span className="pagination-separator">|</span>
         <span className="page-size-selector">
           <span>Show </span>
-          <select
-            value={pageSize}
-            onChange={e => {
-              const newPageSize = Number(e.target.value);
-              if (onPageSizeChange) {
-                onPageSizeChange(newPageSize);
-              }
-            }}
-            className="page-size-select"
-          >
-            {pageSizeOptions.map(size => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+          <div className="page-size-select-wrapper" ref={containerRef}>
+            <div
+              className={`page-size-select-value ${isOpen ? 'open' : ''}`}
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              <span className="page-size-select-text">{pageSize}</span>
+              <span className="page-size-select-arrow">
+                {isOpen ? <FaChevronUp /> : <FaChevronDown />}
+              </span>
+            </div>
+            {isOpen && (
+              <div className="page-size-select-dropdown">
+                {pageSizeOptions.map(size => (
+                  <div
+                    key={size}
+                    className={`page-size-option ${pageSize === size ? 'selected' : ''}`}
+                    onClick={() => handlePageSizeSelect(size)}
+                  >
+                    {size}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <span> per page</span>
         </span>
       </div>
 
-      {/* Right: Page info and navigation buttons */}
       <div className="pagination-controls">
         <span className="pagination-info">
           Page {currentPage} of {totalPages}

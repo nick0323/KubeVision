@@ -60,6 +60,12 @@ export const MENU_LIST: MenuGroup[] = [
       { key: 'events', label: 'Events', icon: 'FaBell' },
     ],
   },
+  {
+    group: 'GitOps',
+    items: [
+      { key: 'argocd', label: 'ArgoCD', icon: 'FaGitAlt' },
+    ],
+  },
 ];
 
 // Pagination Configuration

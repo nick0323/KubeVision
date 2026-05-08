@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+﻿import React, { useMemo, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageConfig } from '../types';
 import { StatusBadge } from '../common/StatusBadge';
@@ -15,6 +15,8 @@ import SearchInput from '../common/SearchInput.tsx';
 import NamespaceSelect from '../common/NamespaceSelect.tsx';
 import RefreshButton from '../common/RefreshButton.tsx';
 import Pagination from '../common/Pagination.tsx';
+import CreateResourceModal from '../common/CreateResourceModal';
+import { getTemplateByResourceType } from '../constants/templates';
 import { useResourceList } from '../hooks/useResourceList';
 import { useConfirm } from '../hooks/useConfirm';
 import { logError } from '../utils/errorHandler';
@@ -54,7 +56,15 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  // Use增强版 hook 管理所hasListlogic
+  // Create resource modal state
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+
+  // Check if current resource type has a template
+  const hasTemplate = useMemo(() => {
+    return !!getTemplateByResourceType(config.resourceType);
+  }, [config.resourceType]);
+
+  // Use enhanced hook to manage resource list logic
   const {
     // dataStatus
     data,
@@ -159,7 +169,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
 
         return {
           ...col,
-          sortable: col.sortable ?? true,
+          sortable: col.sortable ?? false,
           render:
             col.render ||
             (isNameColumn
@@ -250,7 +260,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
     [confirm, refresh]
   );
 
-  // 事 componentProcess器
+  // Handle namespace change
   const handleNamespaceChange = useCallback(
     (value: string) => {
       setNamespace(value);
@@ -385,6 +395,17 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
     <div className="resource-list-page">
       {/* Page header */}
       <PageHeader title={config.title} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed}>
+        {/* Create button - only shown for resource types with templates */}
+        {hasTemplate && (
+          <button
+            className="create-resource-btn"
+            onClick={() => setCreateModalVisible(true)}
+            title={`Create ${config.title}`}
+          >
+            + Create
+          </button>
+        )}
+
         {/* Namespace selection */}
         {config.namespaceFilter && (
           <NamespaceSelect
@@ -504,6 +525,18 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* Create resource modal */}
+      <CreateResourceModal
+        visible={createModalVisible}
+        resourceType={config.resourceType}
+        namespace={namespace}
+        onClose={() => setCreateModalVisible(false)}
+        onSuccess={() => {
+          refresh();
+          setCreateModalVisible(false);
+        }}
+      />
     </div>
   );
 };

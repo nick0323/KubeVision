@@ -393,7 +393,7 @@
 }
 
 .toggle-btn {
-  background: var(----bg-surface-alt);
+  background: var(--bg-surface-alt);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   cursor: pointer;

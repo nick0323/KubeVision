@@ -8,17 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/nick0323/K8sVision/api/middleware"
+	"github.com/nick0323/K8sVision/pkg/k8s"
 	"go.uber.org/zap"
 )
-
-// ClusterScopeResources 集群级资源列表（不需要 namespace）
-var ClusterScopeResources = map[string]bool{
-	"persistentvolume": true,
-	"pv":               true,
-	"storageclass":     true,
-	"namespace":        true,
-	"node":             true,
-}
 
 // isValidDNSName 检查 DNS 名称格式
 func isValidDNSName(name string) bool {
@@ -56,14 +48,9 @@ func isValidResourceName(name string) bool {
 
 // validateResourceParams 验证资源类型和 namespace 参数
 func validateResourceParams(resourceType, namespace string) error {
-	normalizedType := strings.ToLower(strings.TrimSpace(resourceType))
-	if strings.HasSuffix(normalizedType, "ses") {
-		normalizedType = resourceType
-	} else if strings.HasSuffix(normalizedType, "s") && !strings.HasSuffix(normalizedType, "ss") {
-		normalizedType = normalizedType[:len(normalizedType)-1]
-	}
+	rt := k8s.ResourceType(strings.ToLower(resourceType)).Normalize()
 
-	if ClusterScopeResources[normalizedType] {
+	if rt.IsClusterScoped() {
 		if namespace != "" {
 			return fmt.Errorf("resource type %s is cluster-scoped, namespace should not be specified", resourceType)
 		}
@@ -99,14 +86,7 @@ func validateResourceIdentity(resourceType, namespace, name string, objData inte
 		return fmt.Errorf("metadata.name does not match request path")
 	}
 
-	normalizedType := strings.ToLower(strings.TrimSpace(resourceType))
-	if strings.HasSuffix(normalizedType, "ses") {
-		normalizedType = resourceType
-	} else if strings.HasSuffix(normalizedType, "s") && !strings.HasSuffix(normalizedType, "ss") {
-		normalizedType = normalizedType[:len(normalizedType)-1]
-	}
-
-	if ClusterScopeResources[normalizedType] {
+	if k8s.ResourceType(strings.ToLower(resourceType)).Normalize().IsClusterScoped() {
 		if payload.Metadata.Namespace != "" {
 			return fmt.Errorf("cluster-scoped resource must not include metadata.namespace")
 		}

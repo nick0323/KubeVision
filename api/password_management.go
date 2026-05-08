@@ -60,6 +60,11 @@ func (pm *PasswordManager) VerifyPassword(password, hashedPassword string) bool 
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)) == nil
 }
 
+// Compare 实现 PasswordManagerInterface
+func (pm *PasswordManager) Compare(password, hash string) bool {
+	return pm.VerifyPassword(password, hash)
+}
+
 func (pm *PasswordManager) GeneratePassword(length int) (string, error) {
 	if length <= 0 {
 		length = model.DefaultPasswordLen

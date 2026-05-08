@@ -27,3 +27,10 @@ log:
 server:
     host: 0.0.0.0
     port: "8080"
+
+argocd:
+  enabled: true
+  serverAddr: "argo-cd-argocd-server.argo.svc.cluster.local:443"
+  token: ""  # 留空，使用 dynamic client 直接操作 CRD
+  insecure: true
+  plaintext: false

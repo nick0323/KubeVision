@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, memo, useCallback, ReactElement } from 'react';
 import Tippy from '@tippyjs/react';
+import { FaInbox } from 'react-icons/fa';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
 
@@ -293,12 +294,12 @@ interface EmptyStateProps {
  * Empty stateComponent
  */
 export const EmptyState: React.FC<EmptyStateProps> = memo(
-  ({ message = 'No data yet', description, icon = '📭', colSpan, action }) => {
+  ({ message = 'No data yet', description, icon, colSpan, action }) => {
     return (
       <tr className="empty-row">
         <td colSpan={colSpan}>
           <div className="empty-state">
-            <span className="empty-icon">{icon}</span>
+            <span className="empty-icon">{icon || <FaInbox />}</span>
             <p className="empty-message">{message}</p>
             {description && <p className="empty-description">{description}</p>}
             {action && <div className="empty-action">{action}</div>}

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { YamlTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
+import { notification } from '../common/Notification';
 import { authFetch } from '../utils/auth';
 import { FaCopy, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
 import jsyaml from 'js-yaml';
@@ -216,7 +217,7 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch {
-      alert('Copy failed');
+      notification.error('Copy failed');
     }
   }, [yamlContent]);
 
@@ -255,14 +256,14 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       const result = await response.json();
 
       if (result.code === 0) {
-        alert('YAML saved');
+        notification.success('YAML saved');
         setEditing(false);
         setOriginalYaml(yamlContent);
       } else {
-        alert(`Save failed: ${result.message}`);
+        notification.error(`Save failed: ${result.message}`);
       }
     } catch (err) {
-      alert(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      notification.error(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -270,8 +271,6 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
 
   // 应use更改
   const handleApply = useCallback(async () => {
-    if (!window.confirm('Are you sure to apply this YAML config to the cluster?')) return;
-
     setLoading(true);
     try {
       const parsed = jsyaml.load(yamlContent);
@@ -285,14 +284,14 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       const result = await response.json();
 
       if (result.code === 0) {
-        alert('Config applied');
+        notification.success('Config applied');
         setEditing(false);
         setOriginalYaml(yamlContent);
       } else {
-        alert(`Apply failed: ${result.message}`);
+        notification.error(`Apply failed: ${result.message}`);
       }
     } catch (err) {
-      alert(`Apply failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      notification.error(`Apply failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

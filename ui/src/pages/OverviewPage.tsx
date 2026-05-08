@@ -35,6 +35,7 @@ function useFetch<T>(url: string) {
 
   const refresh = React.useCallback(() => {
     setLoading(true);
+    // Overview API 无后端缓存，直接刷新即可
     setRefreshKey(prev => prev + 1);
   }, []);
 

@@ -1,0 +1,280 @@
+/* Modal 基础样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-index-modal);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  width: 90%;
+  max-width: 1000px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--bg-active-solid);
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: var(--bg-active-solid);
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--bg-active-solid);
+  flex-shrink: 0;
+}
+
+/* 按钮样式 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border-color: var(--bg-active-solid);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.create-btn {
+  min-width: 100px;
+  justify-content: center;
+  gap: 6px;
+}
+
+.create-btn svg {
+  font-size: 14px;
+}
+
+/* 创建资源 Modal 特定样式 */
+.create-resource-modal {
+  width: 95%;
+  max-width: 1000px;
+}
+
+/* YAML 编辑器区域 */
+.yaml-editor-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.yaml-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-surface-alt);
+  border-bottom: 1px solid var(--bg-active-solid);
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+.back-btn {
+  background: var(--bg-active);
+  border: 1px solid var(--primary-lighter);
+  color: var(--primary);
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.back-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary-hover);
+}
+
+.back-btn::before {
+  content: '←';
+  font-family: var(--font-main);
+  font-size: var(--font-size-base);
+  line-height: 1;
+  margin-right: 4px;
+}
+
+.yaml-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.clear-btn {
+  background: var(--bg-surface);
+  color: var(--text-tertiary);
+  border: 1px solid var(--bg-active-solid);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: var(--font-weight-normal);
+  transition: var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.clear-btn:hover {
+  background: var(--bg-danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.clear-btn svg {
+  font-size: 14px;
+}
+
+.yaml-textarea {
+  flex: 1;
+  min-height: 300px;
+  padding: var(--spacing-md);
+  font-family: var(--font-main);
+  font-size: var(--font-size-sm);
+  line-height: 1.8;
+  color: var(--text-primary);
+  background: var(--bg-code);
+  border: none;
+  outline: none;
+  resize: none;
+  tab-size: 2;
+  overflow-y: auto;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.yaml-textarea::placeholder {
+  color: var(--text-light);
+}
+
+/* 错误消息 */
+.error-message {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-danger);
+  color: var(--danger);
+  border-top: 1px solid var(--bg-active-solid);
+  font-size: var(--font-size-sm);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .yaml-textarea {
+    min-height: 300px;
+  }
+}

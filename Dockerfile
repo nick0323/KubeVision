@@ -3,7 +3,7 @@
 # ------------------------------
 # Builder stage
 # ------------------------------
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /workspace
 
@@ -43,7 +43,7 @@ COPY --from=builder /workspace/config.yaml /app/config.yaml
 
 # Environment (can be overridden at runtime)
 ENV K8SVISION_LOG_LEVEL=info \
-    K8SVISION_JWT_SECRET="k8svision-default-jwt-secret-key-32-chars" \
+    K8SVISION_JWT_SECRET="" \
     K8SVISION_AUTH_USERNAME=admin \
     K8SVISION_AUTH_PASSWORD="" \
     K8SVISION_SERVER_HOST=0.0.0.0 \

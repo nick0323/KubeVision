@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -29,167 +30,226 @@ func UpdateResourceByType(ctx context.Context, clientset kubernetes.Interface, r
 		ns = ""
 	}
 
-	obj, err := unmarshalResource(resourceType, jsonBytes)
+	// 先获取最新资源，确保使用最新的 resourceVersion
+	latestObj, err := GetResourceByName(ctx, clientset, resourceType, ns, name)
+	if err != nil {
+		return fmt.Errorf("failed to get latest resource: %w", err)
+	}
+
+	// 解析用户提交的更新
+	obj, err := resourceFactory(resourceType)
 	if err != nil {
 		return err
 	}
 
+	if err := json.Unmarshal(jsonBytes, obj); err != nil {
+		return fmt.Errorf("invalid %s object: %v", resourceType, err)
+	}
+
+	// 将最新资源的 resourceVersion 应用到更新对象上
+	copyResourceVersion(latestObj, obj)
+
 	return updater.Update(ctx, ns, name, obj)
 }
 
-func unmarshalResource(resourceType string, jsonBytes []byte) (interface{}, error) {
+// CreateResourceByType 创建资源
+func CreateResourceByType(ctx context.Context, clientset kubernetes.Interface, resourceType string, jsonBytes []byte) error {
+	rt := k8s.ResourceType(resourceType).Normalize()
+	creators := k8s.NewCreators(clientset)
+
+	creator, ok := creators[rt]
+	if !ok {
+		return fmt.Errorf("unsupported resource type: %s", resourceType)
+	}
+
+	// 创建资源时不需要 resourceVersion，使用专门的解析函数
+	obj, err := unmarshalResourceForCreate(resourceType, jsonBytes)
+	if err != nil {
+		return err
+	}
+
+	// 获取 namespace（如果是集群资源则为空）
+	ns := ""
+	if !rt.IsClusterScoped() {
+		// 从 obj 中获取 namespace
+		val := reflect.ValueOf(obj)
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
+		}
+		if val.Kind() == reflect.Struct {
+			field := val.FieldByName("ObjectMeta")
+			if field.IsValid() {
+				nsField := field.FieldByName("Namespace")
+				if nsField.IsValid() {
+					ns = nsField.String()
+				}
+			}
+		}
+	}
+
+	return creator.Create(ctx, ns, obj)
+}
+
+// resourceFactory creates a new instance of the specified resource type
+func resourceFactory(resourceType string) (interface{}, error) {
 	switch resourceType {
 	case "pod":
-		obj := &v1.Pod{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid Pod object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &v1.Pod{}, nil
 	case "deployment":
-		obj := &appsv1.Deployment{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid Deployment object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &appsv1.Deployment{}, nil
 	case "statefulset":
-		obj := &appsv1.StatefulSet{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid StatefulSet object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &appsv1.StatefulSet{}, nil
 	case "daemonset":
-		obj := &appsv1.DaemonSet{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid DaemonSet object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &appsv1.DaemonSet{}, nil
 	case "service":
-		obj := &v1.Service{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid Service object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &v1.Service{}, nil
 	case "configmap":
-		obj := &v1.ConfigMap{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid ConfigMap object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &v1.ConfigMap{}, nil
 	case "secret":
-		obj := &v1.Secret{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid Secret object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &v1.Secret{}, nil
 	case "ingress":
-		obj := &networkingv1.Ingress{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid Ingress object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &networkingv1.Ingress{}, nil
 	case "job":
-		obj := &batchv1.Job{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid Job object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &batchv1.Job{}, nil
 	case "cronjob":
-		obj := &batchv1.CronJob{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid CronJob object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &batchv1.CronJob{}, nil
 	case "persistentvolumeclaim", "pvc":
-		obj := &v1.PersistentVolumeClaim{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid PVC object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &v1.PersistentVolumeClaim{}, nil
 	case "persistentvolume", "pv":
-		obj := &v1.PersistentVolume{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid PV object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &v1.PersistentVolume{}, nil
 	case "storageclass":
-		obj := &storagev1.StorageClass{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid StorageClass object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &storagev1.StorageClass{}, nil
 	case "namespace":
-		obj := &v1.Namespace{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid Namespace object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &v1.Namespace{}, nil
 	case "node":
-		obj := &v1.Node{}
-		if err := json.Unmarshal(jsonBytes, obj); err != nil {
-			return nil, fmt.Errorf("invalid Node object: %v", err)
-		}
-		if obj.ResourceVersion == "" {
-			return nil, fmt.Errorf("missing required field: resourceVersion")
-		}
-		return obj, nil
-
+		return &v1.Node{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
+	}
+}
+
+// getResourceVersion extracts ResourceVersion from any K8s object
+func getResourceVersion(obj interface{}) string {
+	val := reflect.ValueOf(obj)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return ""
+	}
+	field := val.FieldByName("ObjectMeta")
+	if !field.IsValid() {
+		return ""
+	}
+	rv := field.FieldByName("ResourceVersion")
+	if !rv.IsValid() {
+		return ""
+	}
+	return rv.String()
+}
+
+func unmarshalResource(resourceType string, jsonBytes []byte) (interface{}, error) {
+	obj, err := resourceFactory(resourceType)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(jsonBytes, obj); err != nil {
+		return nil, fmt.Errorf("invalid %s object: %v", resourceType, err)
+	}
+
+	resourceVersion := getResourceVersion(obj)
+	if resourceVersion == "" {
+		return nil, fmt.Errorf("missing required field: resourceVersion")
+	}
+
+	return obj, nil
+}
+
+// unmarshalResourceForCreate 解析资源用于创建（不需要 resourceVersion）
+func unmarshalResourceForCreate(resourceType string, jsonBytes []byte) (interface{}, error) {
+	obj, err := resourceFactory(resourceType)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(jsonBytes, obj); err != nil {
+		return nil, fmt.Errorf("invalid %s object: %v", resourceType, err)
+	}
+
+	// 创建资源时清除 resourceVersion（Kubernetes 会自动分配）
+	clearResourceVersion(obj)
+
+	return obj, nil
+}
+
+// clearResourceVersion 清除资源的 resourceVersion（用于创建新资源）
+func clearResourceVersion(obj interface{}) {
+	val := reflect.ValueOf(obj)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return
+	}
+	field := val.FieldByName("ObjectMeta")
+	if !field.IsValid() {
+		return
+	}
+	rv := field.FieldByName("ResourceVersion")
+	if rv.IsValid() && rv.CanSet() {
+		rv.SetString("")
+	}
+	// 也清除 UID 和 creationTimestamp（创建时不应包含）
+	uid := field.FieldByName("UID")
+	if uid.IsValid() && uid.CanSet() {
+		uid.SetString("")
+	}
+	creationTimestamp := field.FieldByName("CreationTimestamp")
+	if creationTimestamp.IsValid() && creationTimestamp.CanSet() {
+		creationTimestamp.Set(reflect.Zero(creationTimestamp.Type()))
+	}
+}
+
+// copyResourceVersion 将源资源的 resourceVersion 复制到目标资源（用于更新操作）
+func copyResourceVersion(src, dst interface{}) {
+	srcVal := reflect.ValueOf(src)
+	if srcVal.Kind() == reflect.Ptr {
+		srcVal = srcVal.Elem()
+	}
+	if srcVal.Kind() != reflect.Struct {
+		return
+	}
+
+	dstVal := reflect.ValueOf(dst)
+	if dstVal.Kind() == reflect.Ptr {
+		dstVal = dstVal.Elem()
+	}
+	if dstVal.Kind() != reflect.Struct {
+		return
+	}
+
+	srcField := srcVal.FieldByName("ObjectMeta")
+	if !srcField.IsValid() {
+		return
+	}
+
+	dstField := dstVal.FieldByName("ObjectMeta")
+	if !dstField.IsValid() {
+		return
+	}
+
+	// 复制 resourceVersion
+	srcRV := srcField.FieldByName("ResourceVersion")
+	dstRV := dstField.FieldByName("ResourceVersion")
+	if srcRV.IsValid() && dstRV.IsValid() && dstRV.CanSet() {
+		dstRV.Set(srcRV)
+	}
+
+	// 复制 UID
+	srcUID := srcField.FieldByName("UID")
+	dstUID := dstField.FieldByName("UID")
+	if srcUID.IsValid() && dstUID.IsValid() && dstUID.CanSet() {
+		dstUID.Set(srcUID)
 	}
 }

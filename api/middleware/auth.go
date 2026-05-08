@@ -21,14 +21,28 @@ type ConfigProvider interface {
 }
 
 type JWTMiddleware struct {
-	secret []byte
-	logger *zap.Logger
+	secret    []byte
+	logger    *zap.Logger
+	blacklist *TokenBlacklist
 }
 
 func NewJWTMiddleware(secret []byte, logger *zap.Logger) *JWTMiddleware {
 	return &JWTMiddleware{
-		secret: secret,
-		logger: logger,
+		secret:    secret,
+		logger:    logger,
+		blacklist: NewTokenBlacklist(10000), // 最多存储 10000 个黑名单 token
+	}
+}
+
+// GetBlacklist 返回 token 黑名单实例（用于 logout 接口）
+func (m *JWTMiddleware) GetBlacklist() *TokenBlacklist {
+	return m.blacklist
+}
+
+// Close 关闭中间件，释放后台资源（黑名单清理 goroutine）
+func (m *JWTMiddleware) Close() {
+	if m.blacklist != nil {
+		m.blacklist.Close()
 	}
 }
 
@@ -61,7 +75,7 @@ func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.Handle
 			return
 		}
 
-		username, err := m.verifyAndSetClaims(c, tokenStr, configProvider)
+		username, jti, err := m.verifyAndSetClaims(c, tokenStr, configProvider)
 		if err != nil {
 			m.logger.Warn("token verification failed",
 				zap.String("traceId", traceId),
@@ -75,6 +89,20 @@ func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.Handle
 			return
 		}
 
+		// 检查 token 是否在黑名单中
+		if jti != "" && m.blacklist.IsBlacklisted(jti) {
+			m.logger.Warn("token is blacklisted",
+				zap.String("traceId", traceId),
+				zap.String("jti", jti),
+			)
+			ResponseError(c, m.logger, &model.APIError{
+				Code:    http.StatusUnauthorized,
+				Message: "Token has been revoked",
+			}, http.StatusUnauthorized)
+			c.Abort()
+			return
+		}
+
 		m.logger.Info("authentication successful",
 			zap.String("traceId", traceId),
 			zap.String("username", username),
@@ -83,23 +111,26 @@ func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.Handle
 	}
 }
 
-func (m *JWTMiddleware) verifyAndSetClaims(c *gin.Context, tokenStr string, configProvider ConfigProvider) (string, error) {
+func (m *JWTMiddleware) verifyAndSetClaims(c *gin.Context, tokenStr string, configProvider ConfigProvider) (string, string, error) {
 	claims, err := verifyToken(tokenStr, configProvider)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	username, ok := claims["username"].(string)
 	if !ok || username == "" {
-		return "", errors.New("token missing username")
+		return "", "", errors.New("token missing username")
 	}
 
 	c.Set("username", username)
-	if jti, ok := claims["jti"].(string); ok && jti != "" {
+
+	var jti string
+	if jtiClaim, ok := claims["jti"].(string); ok && jtiClaim != "" {
+		jti = jtiClaim
 		c.Set("jti", jti)
 	}
 
-	return username, nil
+	return username, jti, nil
 }
 
 func getTokenFromRequest(c *gin.Context) string {
@@ -120,8 +151,11 @@ func extractTokenFromWebSocket(headerValue string) string {
 	for i := range parts {
 		parts[i] = strings.TrimSpace(parts[i])
 	}
-	if len(parts) >= 2 && parts[0] == "k8svision.auth" && parts[1] != "" {
-		return parts[1]
+	if parts[0] == "k8svision.auth" {
+		if len(parts) >= 2 && parts[1] != "" {
+			return parts[1]
+		}
+		return ""
 	}
 	return strings.TrimSpace(headerValue)
 }

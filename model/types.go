@@ -74,14 +74,15 @@ type Node struct {
 }
 
 type Pod struct {
-	Namespace string `json:"namespace"`
-	Name      string `json:"name"`
-	Status    string `json:"status"`
-	Ready     string `json:"ready"`
-	Restarts  int32  `json:"restarts"`
-	Age       string `json:"age"`
-	PodIP     string `json:"podIP"`
-	NodeName  string `json:"nodeName"`
+	Namespace        string                   `json:"namespace"`
+	Name             string                   `json:"name"`
+	Status           string                   `json:"status"`
+	Ready            string                   `json:"ready"`
+	Restarts         int32                    `json:"restarts"`
+	Age              string                   `json:"age"`
+	PodIP            string                   `json:"podIP"`
+	NodeName         string                   `json:"nodeName"`
+	OwnerReferences  []metav1.OwnerReference  `json:"ownerReferences,omitempty"`
 }
 
 type Deployment struct {

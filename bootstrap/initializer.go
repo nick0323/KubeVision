@@ -94,23 +94,15 @@ func InitLogger(cfg *model.Config) (*zap.Logger, error) {
 		encoder = zapcore.NewJSONEncoder(encoderConfig)
 	}
 
-	// 3. 配置输出目标 (分级输出)
-	// 开发环境：全部输出到控制台
+	// 3. 构建 Core（分级输出）
+	// 开发环境：全部输出到 stdout
 	// 生产环境：Info+ 到 stdout，Error+ 到 stderr
-	var writeSyncers []zapcore.WriteSyncer
-	writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
+	var core zapcore.Core
 
-	if !cfg.IsDevelopment() {
-		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stderr))
-	}
-
-	// 4. 构建 Core
-	core := zapcore.NewTee(
-		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel),
-	)
-
-	if !cfg.IsDevelopment() {
-		// 生产环境额外将 Error 级别输出到 stderr
+	if cfg.IsDevelopment() {
+		core = zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel)
+	} else {
+		// 生产环境：stdout 输出所有级别，stderr 只输出 Error+
 		core = zapcore.NewTee(
 			zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel),
 			zapcore.NewCore(encoder, zapcore.AddSync(os.Stderr), zapcore.ErrorLevel),
@@ -150,10 +142,7 @@ func InitK8sCache(ctx context.Context, k8sClientMgr *service.ClientManager, logg
 		return
 	}
 
-	podInformer := service.NewPodInformer(clientset, "")
-	service.SetPodInformer(podInformer)
-	go podInformer.Start(ctx)
-	logger.Info("Pod Informer started")
+	logger.Debug("K8s client available, cache initialization skipped (PodInformer removed)")
 }
 
 // InitServices 预留服务初始化扩展点

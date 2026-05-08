@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Resource Configuration Factory
  * for生成resourceListPage config，reduceduplicatecode
  */

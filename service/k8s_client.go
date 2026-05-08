@@ -39,6 +39,7 @@ type ClientManager struct {
 	clientPool     sync.Map
 	healthInterval time.Duration
 	stopCh         chan struct{}
+	argocdManager  *ArgoCDManager
 }
 
 func NewClientHolder(cfg *rest.Config, logger *zap.Logger) (*ClientHolder, error) {
@@ -126,12 +127,22 @@ func NewClientManager(configMgr *config.Manager, logger *zap.Logger) (*ClientMan
 		return nil, err
 	}
 
+	// 初始化 ArgoCD Manager
+	var argocdMgr *ArgoCDManager
+	if defaultHolder.config != nil {
+		argocdMgr, err = NewArgoCDManager(defaultHolder.config, logger)
+		if err != nil {
+			logger.Warn("Failed to initialize ArgoCD manager", zap.Error(err))
+		}
+	}
+
 	manager := &ClientManager{
 		configMgr:      configMgr,
 		logger:         logger,
 		defaultClient:  defaultHolder,
 		healthInterval: HealthCheckInterval,
 		stopCh:         make(chan struct{}),
+		argocdManager:  argocdMgr,
 	}
 
 	go manager.startHealthMonitor()
@@ -211,6 +222,10 @@ func (m *ClientManager) GetDefaultClient() (*kubernetes.Clientset, error) {
 
 func (m *ClientManager) GetDefaultRESTConfig() *rest.Config {
 	return m.defaultClient.config
+}
+
+func (m *ClientManager) GetArgoCDManager() *ArgoCDManager {
+	return m.argocdManager
 }
 
 func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, error) {

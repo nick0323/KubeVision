@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Server     ServerConfig     `mapstructure:"server" json:"server"`
 	Kubernetes KubernetesConfig `mapstructure:"kubernetes" json:"kubernetes"`
+	ArgoCD     ArgoCDConfig     `mapstructure:"argocd" json:"argocd"`
 	JWT        JWTConfig        `mapstructure:"jwt" json:"jwt"`
 	Log        LogConfig        `mapstructure:"log" json:"log"`
 	Auth       AuthConfig       `mapstructure:"auth" json:"auth"`
@@ -32,6 +33,14 @@ type KubernetesConfig struct {
 	KeyFile    string        `mapstructure:"keyFile" json:"keyFile"`
 	Token      string        `mapstructure:"token" json:"-"`
 	APIServer  string        `mapstructure:"apiServer" json:"apiServer"`
+}
+
+type ArgoCDConfig struct {
+	Enabled    bool   `mapstructure:"enabled" json:"enabled"`
+	ServerAddr string `mapstructure:"serverAddr" json:"serverAddr"`
+	Token      string `mapstructure:"token" json:"-"`
+	Insecure   bool   `mapstructure:"insecure" json:"insecure"`
+	Plaintext  bool   `mapstructure:"plaintext" json:"plaintext"`
 }
 
 type JWTConfig struct {
@@ -76,6 +85,12 @@ func DefaultConfig() *Config {
 			QPS:      100,
 			Burst:    200,
 			Insecure: false,
+		},
+		ArgoCD: ArgoCDConfig{
+			Enabled:    false,
+			ServerAddr: "argocd-server.argocd.svc.cluster.local:443",
+			Insecure:   true,
+			Plaintext:  false,
 		},
 		JWT: JWTConfig{
 			Secret:     "",

@@ -30,7 +30,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
 
       // only传 resourceName，letbackendfilter
       const response = await authFetch(
-        `/api/event?namespace=${namespace}&involvedObject=${resourceName}`
+        `/api/event?namespace=${namespace}&involvedObject=${resourceName}&force=true`
       );
       const result = await response.json();
 

@@ -1,0 +1,235 @@
+/* ArgoCD 应用管理页面样式 - 严格遵循项目设计规范 */
+
+.argocd-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: transparent;
+}
+
+.argocd-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  flex: 1;
+}
+
+/* Header 操作区域 */
+.argocd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.empty-state-text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-state-hint {
+  font-size: var(--font-size-base);
+  color: var(--text-tertiary);
+  text-align: center;
+  max-width: 400px;
+}
+
+/* 应用卡片网格 */
+.apps-grid {
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+}
+
+/* 应用卡片 - 对齐 .overview-card 风格 */
+.app-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  transition: var(--transition-normal);
+}
+
+.app-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* 卡片头部 */
+.app-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.app-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.app-status-badges {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* 状态徽章 - 使用项目语义色 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  min-width: 20px;
+  min-height: 20px;
+  justify-content: center;
+}
+
+.status-badge svg {
+  font-size: 12px;
+}
+
+.status-badge .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 卡片内容 */
+.app-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.app-info-label {
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-normal);
+}
+
+.app-info-value {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-normal);
+  text-align: right;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 卡片操作按钮 */
+.app-card-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  margin-top: 4px;
+  border-top: 1px solid var(--bg-active-solid);
+}
+
+.action-btn {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  color: white;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 同步按钮 - 使用主色 */
+.sync-btn {
+  background-color: var(--primary);
+}
+.sync-btn:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+/* 刷新按钮 - 使用警告色 */
+.refresh-btn {
+  background-color: var(--warning);
+  color: #333;
+}
+.refresh-btn:hover:not(:disabled) {
+  background-color: #ffc53d;
+}
+
+/* 删除按钮 - 使用危险色 */
+.delete-btn {
+  background-color: var(--danger);
+}
+.delete-btn:hover:not(:disabled) {
+  background-color: #ff7875;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .apps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-card-actions {
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    flex: 1 1 calc(50% - 4px);
+  }
+}

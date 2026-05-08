@@ -167,19 +167,16 @@ func (h *LoginHandler) handleLoginFailure(c *gin.Context, username, clientIP str
 		zap.String("clientIP", clientIP),
 	)
 
-	details := map[string]interface{}{
-		"maxFailCount": authConfig.MaxLoginFail,
-	}
-
 	if h.authManager != nil {
 		h.authManager.RecordFailure(username, clientIP)
-		details["remainingAttempts"] = h.authManager.GetRemainingAttempts(username, clientIP)
 	}
 
 	middleware.ResponseError(c, h.logger, &model.APIError{
 		Code:    http.StatusUnauthorized,
 		Message: "Invalid username or password",
-		Details: details,
+		Details: map[string]interface{}{
+			"maxFailCount": authConfig.MaxLoginFail,
+		},
 	}, http.StatusUnauthorized)
 }
 

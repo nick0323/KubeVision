@@ -21,14 +21,15 @@ func MapPods(pods []corev1.Pod) []model.Pod {
 	result := make([]model.Pod, len(pods))
 	for i, pod := range pods {
 		result[i] = model.Pod{
-			Namespace: pod.Namespace,
-			Name:      pod.Name,
-			Status:    getPodPhaseDisplay(pod.Status.Phase),
-			Ready:     CalculatePodReady(pod),
-			Restarts:  CalculatePodRestarts(pod),
-			Age:       CalculateAge(pod.CreationTimestamp),
-			PodIP:     pod.Status.PodIP,
-			NodeName:  pod.Spec.NodeName,
+			Namespace:        pod.Namespace,
+			Name:             pod.Name,
+			Status:           getPodPhaseDisplay(pod.Status.Phase),
+			Ready:            CalculatePodReady(pod),
+			Restarts:         CalculatePodRestarts(pod),
+			Age:              CalculateAge(pod.CreationTimestamp),
+			PodIP:            pod.Status.PodIP,
+			NodeName:         pod.Spec.NodeName,
+			OwnerReferences:  pod.OwnerReferences,
 		}
 	}
 	return result
@@ -124,16 +125,13 @@ func MapConfigMaps(cms []corev1.ConfigMap) []model.ConfigMap {
 func MapSecrets(secrets []corev1.Secret) []model.Secret {
 	result := make([]model.Secret, len(secrets))
 	for i, s := range secrets {
-		keys := make([]string, 0, len(s.Data))
-		for k := range s.Data {
-			keys = append(keys, k)
-		}
+		// 安全考虑：不返回 Keys 字段，防止泄露敏感信息（如 tls.key、password 等）
 		result[i] = model.Secret{
 			Namespace: s.Namespace,
 			Name:      s.Name,
 			Type:      string(s.Type),
 			DataCount: len(s.Data),
-			Keys:      keys,
+			Keys:      nil, // 不返回密钥键名，防止信息泄露
 			Age:       CalculateAge(s.CreationTimestamp),
 		}
 	}

@@ -2,6 +2,7 @@ import React from 'react';
 
 // LazyLoading...
 const LazyOverview = React.lazy(() => import('../pages/OverviewPage.tsx'));
+const LazyArgoCD = React.lazy(() => import('../pages/ArgoCDPage.tsx'));
 
 // 导入 ResourceListPage（notLazyLoading...need传递 props）
 import { ResourceListPage } from '../pages/ResourceListPage.tsx';
@@ -92,6 +93,9 @@ export const PAGE_COMPONENTS = {
 
   // Events
   events: createResourcePage(EVENTS_CONFIG),
+
+  // ArgoCD (GitOps)
+  argocd: LazyArgoCD,
 };
 
 export default PAGE_COMPONENTS;

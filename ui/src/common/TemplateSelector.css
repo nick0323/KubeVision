@@ -1,0 +1,101 @@
+.template-selector {
+  padding: var(--spacing-md);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.template-selector::-webkit-scrollbar {
+  width: 8px;
+}
+
+.template-selector::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+
+.template-selector::-webkit-scrollbar-thumb {
+  background: var(--bg-active-solid);
+  border-radius: 4px;
+}
+
+.template-selector::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.template-selector-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.template-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.template-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-primary);
+}
+
+.template-card.selected {
+  border-color: var(--primary);
+  background: var(--bg-active);
+  box-shadow: var(--shadow-primary);
+}
+
+.template-icon {
+  font-size: var(--font-size-icon-sm);
+  color: var(--primary);
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-active);
+  border-radius: var(--radius-sm);
+}
+
+.template-card.selected .template-icon {
+  background: var(--primary);
+  color: white;
+}
+
+.template-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.template-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.template-description {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .template-grid {
+    grid-template-columns: 1fr;
+  }
+}

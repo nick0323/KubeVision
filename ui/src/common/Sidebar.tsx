@@ -23,6 +23,8 @@ import {
   FaThLarge,
   FaChevronDown,
   FaChevronRight,
+  FaSync,
+  FaGitAlt,
 } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
 
@@ -49,6 +51,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   FaThLarge: <FaThLarge />,
   FaChevronDown: <FaChevronDown />,
   FaChevronRight: <FaChevronRight />,
+  FaSync: <FaSync />,
+  FaGitAlt: <FaGitAlt />,
 };
 
 /**
@@ -113,8 +117,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     authUtils.clearToken();
     localStorage.removeItem('sider_collapsed');
     localStorage.removeItem('current_tab');
-    window.location.reload();
-  }, []);
+    window.dispatchEvent(new CustomEvent('logout'));
+    navigate('/login', { replace: true });
+  }, [navigate]);
 
   return (
     <div className={`sider-menu ${collapsed ? 'collapsed' : ''}`} data-testid="sidebar">

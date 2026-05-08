@@ -60,29 +60,16 @@ func (rt ResourceType) IsClusterScoped() bool {
 }
 
 func (rt ResourceType) Normalize() ResourceType {
-	normalized := string(rt)
-	switch normalized {
+	switch string(rt) {
 	case "pvc":
-		normalized = "persistentvolumeclaim"
+		return ResourcePVC
 	case "pv":
-		normalized = "persistentvolume"
+		return ResourcePV
 	case "sc":
-		normalized = "storageclass"
+		return ResourceStorageClass
 	default:
-		normalized = rt.normalizeSingular()
+		return rt
 	}
-	return ResourceType(normalized)
-}
-
-func (rt ResourceType) normalizeSingular() string {
-	s := string(rt)
-	if len(s) > 3 && s[len(s)-3:] == "ies" {
-		return s[:len(s)-3] + "y"
-	}
-	if len(s) > 1 && s[len(s)-1:] == "s" && s[len(s)-2:] != "ss" {
-		return s[:len(s)-1]
-	}
-	return s
 }
 
 type Getter interface {
@@ -100,6 +87,10 @@ type Updater interface {
 
 type Deleter interface {
 	Delete(ctx context.Context, namespace, name string) error
+}
+
+type Creator interface {
+	Create(ctx context.Context, namespace string, obj interface{}) error
 }
 
 type podsGetter struct{ client kubernetes.Interface }
@@ -557,4 +548,233 @@ func NewDeleters(client kubernetes.Interface) map[ResourceType]Deleter {
 		ResourceNamespace:    &namespacesUpdater{client},
 		ResourceNode:         &nodesUpdater{client},
 	}
+}
+
+// GetKindByResourceType 根据资源类型返回对应的 Kind
+func GetKindByResourceType(resourceType string) string {
+	switch resourceType {
+	case "pod":
+		return "Pod"
+	case "deployment":
+		return "Deployment"
+	case "statefulset":
+		return "StatefulSet"
+	case "daemonset":
+		return "DaemonSet"
+	case "service":
+		return "Service"
+	case "configmap":
+		return "ConfigMap"
+	case "secret":
+		return "Secret"
+	case "ingress":
+		return "Ingress"
+	case "job":
+		return "Job"
+	case "cronjob":
+		return "CronJob"
+	case "persistentvolumeclaim", "pvc":
+		return "PersistentVolumeClaim"
+	case "persistentvolume", "pv":
+		return "PersistentVolume"
+	case "storageclass", "sc":
+		return "StorageClass"
+	case "namespace":
+		return "Namespace"
+	case "node":
+		return "Node"
+	case "endpoint":
+		return "Endpoint"
+	case "event":
+		return "Event"
+	default:
+		return ""
+	}
+}
+
+// NewCreators 创建资源创建器映射
+func NewCreators(client kubernetes.Interface) map[ResourceType]Creator {
+	return map[ResourceType]Creator{
+		ResourcePod:          &podsCreator{client},
+		ResourceDeployment:   &deploymentsCreator{client},
+		ResourceStatefulSet:  &statefulSetsCreator{client},
+		ResourceDaemonSet:    &daemonSetsCreator{client},
+		ResourceService:      &servicesCreator{client},
+		ResourceConfigMap:    &configMapsCreator{client},
+		ResourceSecret:       &secretsCreator{client},
+		ResourceIngress:      &ingressesCreator{client},
+		ResourceJob:          &jobsCreator{client},
+		ResourceCronJob:      &cronJobsCreator{client},
+		ResourcePVC:          &pvcsCreator{client},
+		ResourcePV:           &pvsCreator{client},
+		ResourceStorageClass: &storageClassesCreator{client},
+		ResourceNamespace:    &namespacesCreator{client},
+		ResourceNode:         &nodesCreator{client},
+	}
+}
+
+// Creator 实现
+type podsCreator struct{ client kubernetes.Interface }
+
+func (c *podsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	pod, ok := obj.(*v1.Pod)
+	if !ok {
+		return fmt.Errorf("invalid Pod object")
+	}
+	_, err := c.client.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+	return err
+}
+
+type deploymentsCreator struct{ client kubernetes.Interface }
+
+func (c *deploymentsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	dep, ok := obj.(*appsv1.Deployment)
+	if !ok {
+		return fmt.Errorf("invalid Deployment object")
+	}
+	_, err := c.client.AppsV1().Deployments(namespace).Create(ctx, dep, metav1.CreateOptions{})
+	return err
+}
+
+type statefulSetsCreator struct{ client kubernetes.Interface }
+
+func (c *statefulSetsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	sts, ok := obj.(*appsv1.StatefulSet)
+	if !ok {
+		return fmt.Errorf("invalid StatefulSet object")
+	}
+	_, err := c.client.AppsV1().StatefulSets(namespace).Create(ctx, sts, metav1.CreateOptions{})
+	return err
+}
+
+type daemonSetsCreator struct{ client kubernetes.Interface }
+
+func (c *daemonSetsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	ds, ok := obj.(*appsv1.DaemonSet)
+	if !ok {
+		return fmt.Errorf("invalid DaemonSet object")
+	}
+	_, err := c.client.AppsV1().DaemonSets(namespace).Create(ctx, ds, metav1.CreateOptions{})
+	return err
+}
+
+type servicesCreator struct{ client kubernetes.Interface }
+
+func (c *servicesCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	svc, ok := obj.(*v1.Service)
+	if !ok {
+		return fmt.Errorf("invalid Service object")
+	}
+	_, err := c.client.CoreV1().Services(namespace).Create(ctx, svc, metav1.CreateOptions{})
+	return err
+}
+
+type configMapsCreator struct{ client kubernetes.Interface }
+
+func (c *configMapsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	cm, ok := obj.(*v1.ConfigMap)
+	if !ok {
+		return fmt.Errorf("invalid ConfigMap object")
+	}
+	_, err := c.client.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
+	return err
+}
+
+type secretsCreator struct{ client kubernetes.Interface }
+
+func (c *secretsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	s, ok := obj.(*v1.Secret)
+	if !ok {
+		return fmt.Errorf("invalid Secret object")
+	}
+	_, err := c.client.CoreV1().Secrets(namespace).Create(ctx, s, metav1.CreateOptions{})
+	return err
+}
+
+type ingressesCreator struct{ client kubernetes.Interface }
+
+func (c *ingressesCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	ing, ok := obj.(*networkingv1.Ingress)
+	if !ok {
+		return fmt.Errorf("invalid Ingress object")
+	}
+	_, err := c.client.NetworkingV1().Ingresses(namespace).Create(ctx, ing, metav1.CreateOptions{})
+	return err
+}
+
+type jobsCreator struct{ client kubernetes.Interface }
+
+func (c *jobsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	job, ok := obj.(*batchv1.Job)
+	if !ok {
+		return fmt.Errorf("invalid Job object")
+	}
+	_, err := c.client.BatchV1().Jobs(namespace).Create(ctx, job, metav1.CreateOptions{})
+	return err
+}
+
+type cronJobsCreator struct{ client kubernetes.Interface }
+
+func (c *cronJobsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	cj, ok := obj.(*batchv1.CronJob)
+	if !ok {
+		return fmt.Errorf("invalid CronJob object")
+	}
+	_, err := c.client.BatchV1().CronJobs(namespace).Create(ctx, cj, metav1.CreateOptions{})
+	return err
+}
+
+type pvcsCreator struct{ client kubernetes.Interface }
+
+func (c *pvcsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	pvc, ok := obj.(*v1.PersistentVolumeClaim)
+	if !ok {
+		return fmt.Errorf("invalid PVC object")
+	}
+	_, err := c.client.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, pvc, metav1.CreateOptions{})
+	return err
+}
+
+type pvsCreator struct{ client kubernetes.Interface }
+
+func (c *pvsCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	pv, ok := obj.(*v1.PersistentVolume)
+	if !ok {
+		return fmt.Errorf("invalid PV object")
+	}
+	_, err := c.client.CoreV1().PersistentVolumes().Create(ctx, pv, metav1.CreateOptions{})
+	return err
+}
+
+type storageClassesCreator struct{ client kubernetes.Interface }
+
+func (c *storageClassesCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	sc, ok := obj.(*storagev1.StorageClass)
+	if !ok {
+		return fmt.Errorf("invalid StorageClass object")
+	}
+	_, err := c.client.StorageV1().StorageClasses().Create(ctx, sc, metav1.CreateOptions{})
+	return err
+}
+
+type namespacesCreator struct{ client kubernetes.Interface }
+
+func (c *namespacesCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	ns, ok := obj.(*v1.Namespace)
+	if !ok {
+		return fmt.Errorf("invalid Namespace object")
+	}
+	_, err := c.client.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+	return err
+}
+
+type nodesCreator struct{ client kubernetes.Interface }
+
+func (c *nodesCreator) Create(ctx context.Context, namespace string, obj interface{}) error {
+	node, ok := obj.(*v1.Node)
+	if !ok {
+		return fmt.Errorf("invalid Node object")
+	}
+	_, err := c.client.CoreV1().Nodes().Create(ctx, node, metav1.CreateOptions{})
+	return err
 }

@@ -13,6 +13,7 @@ import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './ResourceDetailPage.
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
+import { notification } from '../common/Notification';
 import '../styles/detail-page.css';
 
 // 导入resource特定 Tabs
@@ -75,23 +76,21 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
    * ProcessDelete
    */
   const handleDelete = useCallback(async () => {
-    if (window.confirm(`Are you sure to delete ${config.title} "${resourceName}"? This operation cannot be undone.`)) {
-      try {
-        const response = await authFetch(`/api/${resourceType}/${namespace}/${resourceName}`, {
-          method: 'DELETE',
-        });
-        const result = await response.json();
+    try {
+      const response = await authFetch(`/api/${resourceType}/${namespace}/${resourceName}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
 
-        if (result.code === 0) {
-          alert(`${config.title} deleted`);
-          // BackList页
-          navigate(`/${resourceType}s`);
-        } else {
-          alert(`Delete failed: ${result.message}`);
-        }
-      } catch (err) {
-        alert(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      if (result.code === 0) {
+        notification.success(`${config.title} deleted`);
+        // BackList页
+        navigate(`/${resourceType}s`);
+      } else {
+        notification.error(`Delete failed: ${result.message}`);
       }
+    } catch (err) {
+      notification.error(`Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }, [resourceType, namespace, resourceName, config.title, navigate]);
 
@@ -239,11 +238,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
             resourceLabels={
               resourceData?.spec?.selector?.matchLabels || resourceData?.metadata?.labels || {}
             }
-            ownerReferences={
-              resourceData?.metadata?.uid
-                ? [{ uid: resourceData.metadata.uid, kind: config.title, name: resourceName }]
-                : []
-            }
+            resourceUid={resourceData?.metadata?.uid}
           />
         );
 
