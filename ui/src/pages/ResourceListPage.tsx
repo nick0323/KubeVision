@@ -507,7 +507,6 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
         <div className="confirm-modal-overlay">
           <div className={`confirm-modal ${confirmConfig.danger ? 'danger' : ''}`}>
             <div className="confirm-modal-header">
-              <span className="confirm-icon">{confirmConfig.danger ? '⚠️' : 'ℹ️'}</span>
               <h4>{confirmConfig.title || 'Confirm Operation'}</h4>
             </div>
             <div className="confirm-modal-body">{confirmConfig.message}</div>

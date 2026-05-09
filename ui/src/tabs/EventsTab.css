@@ -18,13 +18,11 @@
 
 .event-type.normal {
   background: var(--bg-success);
-  border: 1px solid var(--success);
   color: var(--success);
 }
 
 .event-type.warning {
   background: var(--bg-warning);
-  border: 1px solid var(--warning);
   color: var(--warning);
 }
 

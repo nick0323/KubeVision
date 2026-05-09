@@ -42,37 +42,16 @@
   border-left-color: var(--success);
 }
 
-.notification-success .notification-icon {
-  color: var(--success);
-}
-
 .notification-error {
   border-left-color: var(--danger);
-}
-
-.notification-error .notification-icon {
-  color: var(--danger);
 }
 
 .notification-info {
   border-left-color: var(--primary);
 }
 
-.notification-info .notification-icon {
-  color: var(--primary);
-}
-
 .notification-warning {
   border-left-color: var(--warning);
-}
-
-.notification-warning .notification-icon {
-  color: var(--warning);
-}
-
-.notification-icon {
-  flex-shrink: 0;
-  font-size: var(--font-size-2xl);
 }
 
 .notification-message {

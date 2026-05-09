@@ -106,7 +106,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
                     <span
                       className={`event-type ${event.type === 'Warning' ? 'warning' : 'normal'}`}
                     >
-                      {event.type === 'Warning' ? '⚠️' : '✓'} {event.type}
+                      {event.type}
                     </span>
                   </td>
                   <td className="event-reason">{event.reason || '-'}</td>

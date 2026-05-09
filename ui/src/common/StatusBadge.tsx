@@ -6,185 +6,166 @@ interface StatusBadgeProps {
   resourceType?: string;
 }
 
-/**
- * Status标识Component
- * according to K8s resourceStatusDisplaynot同颜色andicon
- */
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, resourceType }) => {
-  const statusInfo = getStatusInfo(status, resourceType);
+  const className = getStatusClass(status, resourceType);
 
   return (
-    <span className={`status-badge ${statusInfo.className}`}>
-      <span className="status-icon">{statusInfo.icon}</span>
+    <span className={`status-badge ${className}`}>
       <span className="status-text">{status}</span>
     </span>
   );
 };
 
-/**
- * GetStatusinfo（颜色andicon）
- */
-function getStatusInfo(status: string, resourceType?: string): { className: string; icon: string } {
-  // Pod Status
+function getStatusClass(status: string, resourceType?: string): string {
   if (resourceType === 'pod') {
     switch (status) {
       case 'Running':
-        return { className: 'status-running', icon: '🟢' };
+        return 'status-running';
       case 'Pending':
-        return { className: 'status-pending', icon: '🟡' };
+        return 'status-pending';
       case 'Failed':
-        return { className: 'status-failed', icon: '🔴' };
+        return 'status-failed';
       case 'Succeeded':
-        return { className: 'status-succeeded', icon: '🔵' };
+        return 'status-succeeded';
       case 'Unknown':
-        return { className: 'status-unknown', icon: '⚪' };
+        return 'status-unknown';
       case 'CrashLoopBackOff':
-        return { className: 'status-crashloop', icon: '🔴' };
+        return 'status-crashloop';
       case 'Error':
-        return { className: 'status-error', icon: '🔴' };
+        return 'status-error';
       case 'Terminating':
-        return { className: 'status-terminating', icon: '🟡' };
+        return 'status-terminating';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // Workload Status（Deployment/StatefulSet/DaemonSet）
   if (['deployment', 'statefulset', 'daemonset'].includes(resourceType || '')) {
     switch (status) {
       case 'Available':
-        return { className: 'status-healthy', icon: '🟢' };
+        return 'status-healthy';
       case 'Partial':
-        return { className: 'status-partial', icon: '🟡' };
+        return 'status-partial';
       case 'Unavailable':
-        return { className: 'status-unavailable', icon: '🔴' };
+        return 'status-unavailable';
       case 'ScaledToZero':
-        return { className: 'status-scaled', icon: '🔵' };
+        return 'status-scaled';
       case 'Progressing':
-        return { className: 'status-progressing', icon: '🟡' };
+        return 'status-progressing';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // Job Status
   if (resourceType === 'job') {
     switch (status) {
       case 'Running':
-        return { className: 'status-running', icon: '🟡' };
+        return 'status-running';
       case 'Completed':
-        return { className: 'status-succeeded', icon: '🟢' };
+        return 'status-succeeded';
       case 'Failed':
-        return { className: 'status-failed', icon: '🔴' };
+        return 'status-failed';
       case 'Pending':
-        return { className: 'status-pending', icon: '⚪' };
+        return 'status-pending';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // CronJob Status
   if (resourceType === 'cronjob') {
     switch (status) {
       case 'Active':
-        return { className: 'status-running', icon: '🟢' };
+        return 'status-running';
       case 'Succeeded':
       case 'Suspended':
-        return { className: 'status-succeeded', icon: '🔵' };
+        return 'status-succeeded';
       case 'Pending':
       default:
-        return { className: 'status-pending', icon: '🟡' };
+        return 'status-pending';
     }
   }
 
-  // Node Status
   if (resourceType === 'node') {
     switch (status) {
       case 'Ready':
-        return { className: 'status-ready', icon: '🟢' };
+        return 'status-ready';
       case 'NotReady':
-        return { className: 'status-notready', icon: '🔴' };
+        return 'status-notready';
       case 'SchedulingDisabled':
-        return { className: 'status-disabled', icon: '🟡' };
+        return 'status-disabled';
       case 'Unknown':
-        return { className: 'status-unknown', icon: '⚪' };
+        return 'status-unknown';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // PVC Status
   if (resourceType === 'pvc') {
     switch (status) {
       case 'Bound':
-        return { className: 'status-bound', icon: '🟢' };
+        return 'status-bound';
       case 'Pending':
-        return { className: 'status-pending', icon: '🟡' };
+        return 'status-pending';
       case 'Lost':
-        return { className: 'status-lost', icon: '🔴' };
+        return 'status-lost';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // PV Status
   if (resourceType === 'pv') {
     switch (status) {
       case 'Available':
-        return { className: 'status-available', icon: '🟢' };
+        return 'status-available';
       case 'Bound':
-        return { className: 'status-bound', icon: '🟢' };
+        return 'status-bound';
       case 'Released':
-        return { className: 'status-released', icon: '🟡' };
+        return 'status-released';
       case 'Failed':
-        return { className: 'status-failed', icon: '🔴' };
+        return 'status-failed';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // Namespace Status
   if (resourceType === 'namespace') {
     switch (status) {
       case 'Active':
-        return { className: 'status-active', icon: '🟢' };
+        return 'status-active';
       case 'Terminating':
-        return { className: 'status-terminating', icon: '🟡' };
+        return 'status-terminating';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // Event Type
   if (resourceType === 'event') {
     switch (status) {
       case 'Normal':
-        return { className: 'status-normal', icon: '🔵' };
+        return 'status-normal';
       case 'Warning':
-        return { className: 'status-warning', icon: '🟡' };
+        return 'status-warning';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // Service Type
   if (resourceType === 'service') {
     switch (status) {
       case 'ClusterIP':
-        return { className: 'status-clusterip', icon: '🔵' };
+        return 'status-clusterip';
       case 'NodePort':
-        return { className: 'status-nodeport', icon: '🟢' };
+        return 'status-nodeport';
       case 'LoadBalancer':
-        return { className: 'status-loadbalancer', icon: '🟣' };
+        return 'status-loadbalancer';
       case 'ExternalName':
-        return { className: 'status-external', icon: '🟡' };
+        return 'status-external';
       default:
-        return { className: '', icon: '⚪' };
+        return '';
     }
   }
 
-  // defaultStatus
-  return { className: '', icon: '⚪' };
+  return '';
 }
 
 export default StatusBadge;

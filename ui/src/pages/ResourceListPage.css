@@ -242,10 +242,6 @@ th.sorted .sort-icon {
   gap: var(--spacing-md);
 }
 
-.error-icon {
-  font-size: var(--font-size-icon-lg);
-}
-
 .error-message {
   color: var(--danger);
   font-size: var(--font-size-base);
@@ -341,10 +337,6 @@ th.sorted .sort-icon {
   border-bottom-color: var(--bg-danger);
 }
 
-.confirm-modal.danger .confirm-icon {
-  background: var(--bg-danger);
-}
-
 .confirm-modal-header {
   align-items: center;
   background: var(--bg-surface-alt);
@@ -352,17 +344,6 @@ th.sorted .sort-icon {
   display: flex;
   gap: var(--spacing-md);
   padding: var(--spacing-md) 20px;
-}
-
-.confirm-icon {
-  align-items: center;
-  background: var(--bg-active-solid);
-  border-radius: 50%;
-  display: flex;
-  font-size: var(--font-size-2xl);
-  height: 32px;
-  justify-content: center;
-  width: 32px;
 }
 
 .confirm-modal-header h4 {

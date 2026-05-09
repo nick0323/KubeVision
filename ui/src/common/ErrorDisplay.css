@@ -24,12 +24,6 @@
   border-top: 4px solid var(--primary);
 }
 
-.error-display-icon {
-  flex-shrink: 0;
-  font-size: var(--font-size-icon-lg);
-  line-height: 1;
-}
-
 .error-display-content {
   text-align: center;
   width: 100%;

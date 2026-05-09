@@ -13,9 +13,6 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 }) => {
   return (
     <div className={`error-display ${type}`}>
-      <div className="error-display-icon">
-        {type === 'warning' ? '⚠' : type === 'info' ? 'ℹ' : '✕'}
-      </div>
       <div className="error-display-content">
         <div className="error-display-title">
            {type === 'warning' ? 'Warning' : type === 'info' ? 'Info' : 'Error'}

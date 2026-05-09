@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTimes } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
 import './Notification.css';
 
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
@@ -90,16 +90,8 @@ export const Notification: React.FC<NotificationProps> = ({
     }
   }, [duration, onClose]);
 
-  const icons = {
-    success: <FaCheckCircle />,
-    error: <FaExclamationCircle />,
-    info: <FaInfoCircle />,
-    warning: <FaExclamationCircle />,
-  };
-
   return (
     <div className={`notification notification-${type}`}>
-      <span className="notification-icon">{icons[type]}</span>
       <span className="notification-message">{message}</span>
       <button className="notification-close" onClick={onClose}>
         <FaTimes />

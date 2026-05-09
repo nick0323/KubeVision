@@ -232,31 +232,26 @@
 
 .status-badge.success {
   background: var(--success-bg);
-  border: 1px solid var(--success-border);
   color: var(--success);
 }
 
 .status-badge.warning {
   background: var(--bg-surface)be6;
-  border: 1px solid var(--warning-border);
   color: var(--warning);
 }
 
 .status-badge.error {
   background: var(--bg-surface)2f0;
-  border: 1px solid var(--danger-border);
   color: var(--danger);
 }
 
 .status-badge.info {
   background: var(--primary-light);
-  border: 1px solid var(--primary-light-mid);
   color: var(--primary);
 }
 
 .status-badge.default {
   background: var(----bg-surface-alt);
-  border: 1px solid var(--border-primary);
   color: var(--text-secondary);
 }
 
@@ -332,30 +327,25 @@
 
 .status-badge.success {
   background: var(--success-bg);
-  border: 1px solid var(--success-border);
   color: var(--success);
 }
 
 .status-badge.warning {
   background: var(--bg-surface)be6;
-  border: 1px solid var(--warning-border);
   color: var(--warning);
 }
 
 .status-badge.error {
   background: var(--bg-surface)2f0;
-  border: 1px solid var(--danger-border);
   color: var(--danger);
 }
 
 .status-badge.info {
   background: var(--primary-light);
-  border: 1px solid var(--primary-light-mid);
   color: var(--primary);
 }
 
 .status-badge.default {
   background: var(----bg-surface-alt);
-  border: 1px solid var(--border-primary);
   color: var(--text-secondary);
 }

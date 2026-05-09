@@ -41,7 +41,6 @@
 
 .relation-badge {
   background: var(--bg-success);
-  border: 1px solid var(--success);
   border-radius: var(--radius-xs);
   color: var(--success);
   display: inline-block;

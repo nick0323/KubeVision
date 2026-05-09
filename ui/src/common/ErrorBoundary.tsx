@@ -57,15 +57,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="error-boundary">
           <div className="error-content">
-             <h3 className="error-title">⚠️ Application Error</h3>
+             <h3 className="error-title">Application Error</h3>
              <p>Sorry, the application encountered an unexpected error.</p>
 
             <div className="error-actions">
               <button onClick={this.handleRetry} className="retry-btn">
-                🔄 Retry
+                Retry
               </button>
               <button onClick={this.handleReload} className="reload-btn">
-                🔄 Reload
+                Reload
               </button>
             </div>
 

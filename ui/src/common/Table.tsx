@@ -330,7 +330,6 @@ export const ErrorState: React.FC<ErrorStateProps> = memo(
       <tr className="error-row">
         <td colSpan={colSpan}>
           <div className="error-state">
-            <span className="error-icon">⚠️</span>
             <p className="error-message">{message}</p>
             {onRetry && (
               <button onClick={onRetry} className="retry-btn">

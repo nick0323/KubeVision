@@ -18,12 +18,6 @@
   transform: scale(1.02); /* Slightly larger on hover */
 }
 
-/* Statusicon */
-.status-icon {
-  font-size: var(--font-size-xs);
-  line-height: 1;
-}
-
 /* Statustext */
 .status-text {
   line-height: 1.4;
@@ -39,7 +33,6 @@
 .status-available,
 .status-nodeport {
   background-color: var(--bg-success);
-  border: 1px solid var(--success);
   color: var(--success);
 }
 
@@ -48,7 +41,6 @@
 .status-normal,
 .status-clusterip {
   background-color: var(--bg-info);
-  border: 1px solid var(--primary);
   color: var(--primary);
 }
 
@@ -62,7 +54,6 @@
 .status-disabled,
 .status-external {
   background-color: var(--bg-warning);
-  border: 1px solid var(--warning);
   color: var(--warning);
 }
 
@@ -74,14 +65,12 @@
 .status-crashloop,
 .status-error {
   background-color: var(--bg-danger);
-  border: 1px solid var(--danger);
   color: var(--danger);
 }
 
 /* 🟣 紫色Status - 特殊Type */
 .status-loadbalancer {
   background-color: var(--bg-info);
-  border: 1px solid var(--primary-dark);
   color: var(--primary-dark);
 }
 
@@ -89,15 +78,7 @@
 .status-unknown,
 .status-suspended {
   background-color: var(--bg-surface-alt);
-  border: 1px solid var(--text-tertiary);
   color: var(--text-tertiary);
-}
-
-/* 悬停效果 */
-.status-badge:hover {
-  opacity: 0.8;
-  transform: translateY(-1px);
-  transition: var(--transition-fast);
 }
 
 /* 紧凑Mode */
@@ -110,6 +91,4 @@
   display: none;
 }
 
-.status-badge.compact .status-icon {
-  font-size: var(--font-size-sm);
-}
+

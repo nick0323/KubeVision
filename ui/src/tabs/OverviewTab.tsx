@@ -966,7 +966,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                           : 'warning'
                     }`}
                   >
-                    {condition.status === 'True' ? '✓' : condition.status === 'False' ? '✗' : '?'}{' '}
                     {condition.status}
                   </span>
                   {condition.lastTransitionTime && (
