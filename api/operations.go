@@ -13,4 +13,7 @@ func RegisterOperations(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8s
 
 	// 2. 注册关联资源路由
 	RegisterRelatedRoutes(r, logger, getK8sClient)
+
+	// 3. 注册扩缩容和滚动重启路由
+	RegisterScaleAndRestartRoutes(r, logger, getK8sClient)
 }

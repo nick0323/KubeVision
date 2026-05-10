@@ -26,8 +26,23 @@
 }
 
 .resource-actions {
+  align-items: center;
   display: flex;
   gap: var(--spacing-sm);
+}
+
+.scale-controls {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+}
+
+.scale-value {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+  color: var(--text-primary);
 }
 
 .action-btn {

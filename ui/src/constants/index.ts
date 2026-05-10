@@ -53,6 +53,21 @@ export const MENU_LIST: MenuGroup[] = [
     ],
   },
   {
+    group: 'Others',
+    items: [
+      { key: 'horizontalpodautoscalers', label: 'HPA', icon: 'FaArrowsAltV' },
+      { key: 'networkpolicies', label: 'NetworkPolicies', icon: 'FaShieldAlt' },
+      { key: 'serviceaccounts', label: 'ServiceAccounts', icon: 'FaUserSecret' },
+      { key: 'roles', label: 'Roles', icon: 'FaUserTag' },
+      { key: 'rolebindings', label: 'RoleBindings', icon: 'FaUserCheck' },
+      { key: 'clusterroles', label: 'ClusterRoles', icon: 'FaUserTag' },
+      { key: 'clusterrolebindings', label: 'ClusterRoleBindings', icon: 'FaUserCheck' },
+      { key: 'resourcequotas', label: 'ResourceQuotas', icon: 'FaTachometerAlt' },
+      { key: 'limitranges', label: 'LimitRanges', icon: 'FaSlidersH' },
+      { key: 'poddisruptionbudgets', label: 'PDBs', icon: 'FaBalanceScale' },
+    ],
+  },
+  {
     group: 'Cluster',
     items: [
       { key: 'nodes', label: 'Nodes', icon: 'FaServer' },

@@ -141,6 +141,16 @@ const RESOURCE_DETAIL_ROUTES = [
   { path: '/storageclass', resourceType: 'storageclass' },
   { path: '/namespace', resourceType: 'namespace' },
   { path: '/node', resourceType: 'node' },
+  { path: '/horizontalpodautoscaler', resourceType: 'horizontalpodautoscaler' },
+  { path: '/networkpolicy', resourceType: 'networkpolicy' },
+  { path: '/serviceaccount', resourceType: 'serviceaccount' },
+  { path: '/role', resourceType: 'role' },
+  { path: '/rolebinding', resourceType: 'rolebinding' },
+  { path: '/resourcequota', resourceType: 'resourcequota' },
+  { path: '/limitrange', resourceType: 'limitrange' },
+  { path: '/poddisruptionbudget', resourceType: 'poddisruptionbudget' },
+  { path: '/clusterrole', resourceType: 'clusterrole' },
+  { path: '/clusterrolebinding', resourceType: 'clusterrolebinding' },
 ] as const;
 
 /**

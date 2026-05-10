@@ -65,7 +65,7 @@ func TestIsClusterResource_CaseInsensitive(t *testing.T) {
 
 func TestIsClusterResource_AllClusterResources(t *testing.T) {
 	clusterResources := []string{"node", "pv", "persistentvolume", "storageclass", "namespace"}
-	
+
 	for _, resource := range clusterResources {
 		t.Run(resource, func(t *testing.T) {
 			assert.True(t, isClusterResource(resource))
@@ -80,7 +80,7 @@ func TestIsClusterResource_NonClusterResources(t *testing.T) {
 		"service", "ingress", "configmap", "secret",
 		"job", "cronjob", "pvc", "endpoints",
 	}
-	
+
 	for _, resource := range nonClusterResources {
 		t.Run(resource, func(t *testing.T) {
 			assert.False(t, isClusterResource(resource))

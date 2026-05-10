@@ -44,8 +44,8 @@ func TestBuildPodLogOptions(t *testing.T) {
 			previous:   "true",
 			tailLines:  "100",
 			expected: &corev1.PodLogOptions{
-				Follow:   true,
-				Previous: true,
+				Follow:    true,
+				Previous:  true,
 				TailLines: int64Ptr(100),
 			},
 		},

@@ -102,10 +102,10 @@ func TestHasContainer(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		pod      *v1.Pod
+		name      string
+		pod       *v1.Pod
 		container string
-		exists   bool
+		exists    bool
 	}{
 		{"regular container", pod, "nginx", true},
 		{"second container", pod, "sidecar", true},

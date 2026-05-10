@@ -4,7 +4,7 @@ import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { notification } from '../common/Notification';
 import { authFetch } from '../utils/auth';
-import { FaCopy, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
+import { FaCopy, FaDownload, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
 import jsyaml from 'js-yaml';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-yaml';
@@ -221,6 +221,17 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
     }
   }, [yamlContent]);
 
+  // 下载 YAML
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([yamlContent], { type: 'text/yaml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name}.yaml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [yamlContent, name]);
+
   // 进入EditMode
   const handleEdit = useCallback(() => {
     setEditing(true);
@@ -347,6 +358,9 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
                 title="Copy to clipboard"
               >
                 <FaCopy />
+              </button>
+              <button className="toolbar-btn" onClick={handleDownload} title="Download YAML">
+                <FaDownload />
               </button>
               <button className="toolbar-btn" onClick={handleEdit} title="Edit YAML">
                 <FaEdit />

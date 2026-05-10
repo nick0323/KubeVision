@@ -28,9 +28,9 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       // preferUse resourceKind and name，兼容旧's podName
       const resourceName = name || podName;
 
-      // only传 resourceName，letbackendfilter
+      const involvedObject = resourceKind ? `${resourceKind}/${resourceName}` : resourceName;
       const response = await authFetch(
-        `/api/event?namespace=${namespace}&involvedObject=${resourceName}&force=true`
+        `/api/event?namespace=${namespace}&involvedObject=${involvedObject}&force=true`
       );
       const result = await response.json();
 
@@ -45,7 +45,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [namespace, name, podName]);
+  }, [namespace, name, podName, resourceKind]);
 
   useEffect(() => {
     loadEvents();

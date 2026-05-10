@@ -37,8 +37,8 @@ func TestOverviewService_GetOverview(t *testing.T) {
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"},
-		Spec: corev1.PodSpec{NodeName: "test-node"},
-		Status: corev1.PodStatus{Phase: corev1.PodRunning},
+		Spec:       corev1.PodSpec{NodeName: "test-node"},
+		Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 	}
 	_, err = clientset.CoreV1().Pods("default").Create(context.Background(), pod, metav1.CreateOptions{})
 	assert.NoError(t, err)
@@ -71,11 +71,11 @@ func TestOverviewService_GetRecentEvents(t *testing.T) {
 
 	// 创建测试事件
 	event := &corev1.Event{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-event", Namespace: "default"},
+		ObjectMeta:     metav1.ObjectMeta{Name: "test-event", Namespace: "default"},
 		InvolvedObject: corev1.ObjectReference{Kind: "Pod", Name: "test-pod"},
-		Reason:        "Created",
-		Message:       "Pod was created",
-		LastTimestamp: metav1.NewTime(time.Now()),
+		Reason:         "Created",
+		Message:        "Pod was created",
+		LastTimestamp:  metav1.NewTime(time.Now()),
 	}
 	_, err := clientset.CoreV1().Events("default").Create(context.Background(), event, metav1.CreateOptions{})
 	assert.NoError(t, err)

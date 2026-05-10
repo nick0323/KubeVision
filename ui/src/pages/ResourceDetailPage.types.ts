@@ -185,6 +185,26 @@ export const RESOURCE_CONFIGS: Record<string, ResourceConfig> = {
   // Cluster
   namespace: createResourceConfig('Namespace', COMMON_TABS.BASIC),
   node: createResourceConfig('Node', ['overview', 'yaml', 'pods', 'events'], { hasPods: true }),
+
+  // Auto Scaling
+  horizontalpodautoscaler: createResourceConfig('HorizontalPodAutoscaler', COMMON_TABS.BASIC),
+
+  // Network
+  networkpolicy: createResourceConfig('NetworkPolicy', COMMON_TABS.BASIC),
+  serviceaccount: createResourceConfig('ServiceAccount', COMMON_TABS.BASIC),
+
+  // RBAC
+  role: createResourceConfig('Role', COMMON_TABS.BASIC),
+  rolebinding: createResourceConfig('RoleBinding', COMMON_TABS.BASIC),
+  clusterrole: createResourceConfig('ClusterRole', COMMON_TABS.BASIC),
+  clusterrolebinding: createResourceConfig('ClusterRoleBinding', COMMON_TABS.BASIC),
+
+  // Resource Management
+  resourcequota: createResourceConfig('ResourceQuota', COMMON_TABS.BASIC),
+  limitrange: createResourceConfig('LimitRange', COMMON_TABS.BASIC),
+
+  // Availability
+  poddisruptionbudget: createResourceConfig('PodDisruptionBudget', COMMON_TABS.BASIC),
 } as const;
 
 // ============================================================================

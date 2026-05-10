@@ -10,9 +10,12 @@ import (
 	"github.com/nick0323/K8sVision/model"
 	"github.com/nick0323/K8sVision/pkg/k8s"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -72,7 +75,15 @@ func ListResourcesByType(ctx context.Context, clientset kubernetes.Interface, re
 	}
 
 	if rt == k8s.ResourceEvent && involvedObject != "" {
-		fieldSelectors = append(fieldSelectors, "involvedObject.name="+involvedObject)
+		parts := strings.SplitN(involvedObject, "/", 2)
+		if len(parts) == 2 {
+			fieldSelectors = append(fieldSelectors,
+				fmt.Sprintf("involvedObject.kind=%s", parts[0]),
+				fmt.Sprintf("involvedObject.name=%s", parts[1]),
+			)
+		} else {
+			fieldSelectors = append(fieldSelectors, "involvedObject.name="+involvedObject)
+		}
 	}
 
 	if len(fieldSelectors) > 0 {
@@ -296,6 +307,126 @@ func convertToSearchableItems(result interface{}, resourceType string, rt k8s.Re
 		res := make([]model.SearchableItem, len(events))
 		for i := range events {
 			res[i] = &events[i]
+		}
+		return res, nil
+
+	case k8s.ResourceNetworkPolicy:
+		items, ok := result.(*networkingv1.NetworkPolicyList)
+		if !ok {
+			return nil, fmt.Errorf("invalid networkpolicy list")
+		}
+		nps := MapNetworkPolicies(items.Items)
+		res := make([]model.SearchableItem, len(nps))
+		for i := range nps {
+			res[i] = &nps[i]
+		}
+		return res, nil
+
+	case k8s.ResourceServiceAccount:
+		items, ok := result.(*v1.ServiceAccountList)
+		if !ok {
+			return nil, fmt.Errorf("invalid serviceaccount list")
+		}
+		sas := MapServiceAccounts(items.Items)
+		res := make([]model.SearchableItem, len(sas))
+		for i := range sas {
+			res[i] = &sas[i]
+		}
+		return res, nil
+
+	case k8s.ResourceRole:
+		items, ok := result.(*rbacv1.RoleList)
+		if !ok {
+			return nil, fmt.Errorf("invalid role list")
+		}
+		roles := MapRoles(items.Items)
+		res := make([]model.SearchableItem, len(roles))
+		for i := range roles {
+			res[i] = &roles[i]
+		}
+		return res, nil
+
+	case k8s.ResourceRoleBinding:
+		items, ok := result.(*rbacv1.RoleBindingList)
+		if !ok {
+			return nil, fmt.Errorf("invalid rolebinding list")
+		}
+		rbs := MapRoleBindings(items.Items)
+		res := make([]model.SearchableItem, len(rbs))
+		for i := range rbs {
+			res[i] = &rbs[i]
+		}
+		return res, nil
+
+	case k8s.ResourceClusterRole:
+		items, ok := result.(*rbacv1.ClusterRoleList)
+		if !ok {
+			return nil, fmt.Errorf("invalid clusterrole list")
+		}
+		crs := MapClusterRoles(items.Items)
+		res := make([]model.SearchableItem, len(crs))
+		for i := range crs {
+			res[i] = &crs[i]
+		}
+		return res, nil
+
+	case k8s.ResourceClusterRoleBinding:
+		items, ok := result.(*rbacv1.ClusterRoleBindingList)
+		if !ok {
+			return nil, fmt.Errorf("invalid clusterrolebinding list")
+		}
+		crbs := MapClusterRoleBindings(items.Items)
+		res := make([]model.SearchableItem, len(crbs))
+		for i := range crbs {
+			res[i] = &crbs[i]
+		}
+		return res, nil
+
+	case k8s.ResourceResourceQuota:
+		items, ok := result.(*v1.ResourceQuotaList)
+		if !ok {
+			return nil, fmt.Errorf("invalid resourcequota list")
+		}
+		rqs := MapResourceQuotas(items.Items)
+		res := make([]model.SearchableItem, len(rqs))
+		for i := range rqs {
+			res[i] = &rqs[i]
+		}
+		return res, nil
+
+	case k8s.ResourceLimitRange:
+		items, ok := result.(*v1.LimitRangeList)
+		if !ok {
+			return nil, fmt.Errorf("invalid limitrange list")
+		}
+		lrs := MapLimitRanges(items.Items)
+		res := make([]model.SearchableItem, len(lrs))
+		for i := range lrs {
+			res[i] = &lrs[i]
+		}
+		return res, nil
+
+	case k8s.ResourcePodDisruptionBudget:
+		items, ok := result.(*policyv1.PodDisruptionBudgetList)
+		if !ok {
+			return nil, fmt.Errorf("invalid poddisruptionbudget list")
+		}
+		pdbs := MapPodDisruptionBudgets(items.Items)
+		res := make([]model.SearchableItem, len(pdbs))
+		for i := range pdbs {
+			res[i] = &pdbs[i]
+		}
+		return res, nil
+
+	case k8s.ResourceHorizontalPodAutoscaler:
+		items, ok := result.(*autoscalingv2.HorizontalPodAutoscalerList)
+		if !ok {
+			return nil, fmt.Errorf("invalid hpa list")
+		}
+		hpas := MapHPAs(items.Items)
+		res := make([]model.SearchableItem, len(hpas))
+		for i := range hpas {
+			res[i] = &hpas[i]
 		}
 		return res, nil
 

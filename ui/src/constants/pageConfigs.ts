@@ -195,6 +195,165 @@ export const SECRETS_CONFIG = finalizeConfig({
   ],
 });
 
+// ==================== Auto Scaling ====================
+
+export const HPAS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'HPA',
+    apiEndpoint: '/api/horizontalpodautoscaler',
+    resourceType: 'horizontalpodautoscaler',
+  }),
+  columns: [
+    createNameColumn('22%'),
+    createNamespaceColumn('12%'),
+    { title: 'Min', dataIndex: 'minReplicas', width: '6%', sortable: true },
+    { title: 'Max', dataIndex: 'maxReplicas', width: '6%', sortable: true },
+    { title: 'Current', dataIndex: 'currentReplicas', width: '8%', sortable: true },
+    { title: 'Desired', dataIndex: 'desiredReplicas', width: '8%', sortable: true },
+    { title: 'Metrics', dataIndex: 'metrics', width: '33%', sortable: false },
+    createAgeColumn('5%'),
+  ],
+});
+
+// ==================== Network Policies ====================
+
+export const NETWORKPOLICIES_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'NetworkPolicies',
+    apiEndpoint: '/api/networkpolicy',
+    resourceType: 'networkpolicy',
+  }),
+  columns: [
+    createNameColumn('22%'),
+    createNamespaceColumn('12%'),
+    { title: 'PodSelector', dataIndex: 'podSelector', width: '25%', sortable: false },
+    { title: 'PolicyTypes', dataIndex: 'policyTypes', width: '18%', sortable: false, render: (v: any) => (Array.isArray(v) ? v.join(', ') : v || '-') },
+    createAgeColumn('5%'),
+  ],
+});
+
+// ==================== Service Accounts ====================
+
+export const SERVICEACCOUNTS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'ServiceAccounts',
+    apiEndpoint: '/api/serviceaccount',
+    resourceType: 'serviceaccount',
+  }),
+  columns: [
+    createNameColumn('30%'),
+    createNamespaceColumn('20%'),
+    { title: 'Secrets', dataIndex: 'secrets', width: '15%', sortable: true },
+    createAgeColumn('15%'),
+  ],
+});
+
+// ==================== RBAC - Roles ====================
+
+export const ROLES_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'Roles',
+    apiEndpoint: '/api/role',
+    resourceType: 'role',
+  }),
+  columns: [
+    createNameColumn('30%'),
+    createNamespaceColumn('20%'),
+    { title: 'Rules', dataIndex: 'rules', width: '15%', sortable: true },
+    createAgeColumn('15%'),
+  ],
+});
+
+export const ROLEBINDINGS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'RoleBindings',
+    apiEndpoint: '/api/rolebinding',
+    resourceType: 'rolebinding',
+  }),
+  columns: [
+    createNameColumn('22%'),
+    createNamespaceColumn('12%'),
+    { title: 'RoleRef', dataIndex: 'roleRef', width: '22%', sortable: false },
+    { title: 'Subjects', dataIndex: 'subjects', width: '22%', sortable: false },
+    createAgeColumn('5%'),
+  ],
+});
+
+export const CLUSTERROLES_CONFIG = createClusterResourceConfig({
+  title: 'ClusterRoles',
+  apiEndpoint: '/api/clusterrole',
+  resourceType: 'clusterrole',
+  columns: [
+    createNameColumn('40%'),
+    { title: 'Rules', dataIndex: 'rules', width: '20%', sortable: true },
+    createAgeColumn('15%'),
+  ],
+});
+
+export const CLUSTERROLEBINDINGS_CONFIG = createClusterResourceConfig({
+  title: 'ClusterRoleBindings',
+  apiEndpoint: '/api/clusterrolebinding',
+  resourceType: 'clusterrolebinding',
+  columns: [
+    createNameColumn('30%'),
+    { title: 'RoleRef', dataIndex: 'roleRef', width: '25%', sortable: false },
+    { title: 'Subjects', dataIndex: 'subjects', width: '25%', sortable: false },
+    createAgeColumn('10%'),
+  ],
+});
+
+// ==================== Resource Quotas ====================
+
+export const RESOURCEQUOTAS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'ResourceQuotas',
+    apiEndpoint: '/api/resourcequota',
+    resourceType: 'resourcequota',
+  }),
+  columns: [
+    createNameColumn('25%'),
+    createNamespaceColumn('15%'),
+    { title: 'Requests', dataIndex: 'requests', width: '20%', sortable: false },
+    { title: 'Limits', dataIndex: 'limits', width: '20%', sortable: false },
+    createAgeColumn('10%'),
+  ],
+});
+
+// ==================== Limit Ranges ====================
+
+export const LIMITRANGES_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'LimitRanges',
+    apiEndpoint: '/api/limitrange',
+    resourceType: 'limitrange',
+  }),
+  columns: [
+    createNameColumn('30%'),
+    createNamespaceColumn('20%'),
+    { title: 'Limits', dataIndex: 'limits', width: '30%', sortable: false },
+    createAgeColumn('10%'),
+  ],
+});
+
+// ==================== Pod Disruption Budgets ====================
+
+export const PODDISRUPTIONBUDGETS_CONFIG = finalizeConfig({
+  ...createBaseConfig({
+    title: 'PodDisruptionBudgets',
+    apiEndpoint: '/api/poddisruptionbudget',
+    resourceType: 'poddisruptionbudget',
+  }),
+  columns: [
+    createNameColumn('18%'),
+    createNamespaceColumn('12%'),
+    { title: 'MinAvailable', dataIndex: 'minAvailable', width: '12%', sortable: false },
+    { title: 'MaxUnavailable', dataIndex: 'maxUnavailable', width: '14%', sortable: false },
+    { title: 'Current', dataIndex: 'currentHealthy', width: '8%', sortable: true },
+    { title: 'Desired', dataIndex: 'desiredHealthy', width: '8%', sortable: true },
+    createAgeColumn('5%'),
+  ],
+});
+
 // ==================== Cluster ====================
 
 export const NAMESPACES_CONFIG = createClusterResourceConfig({
@@ -239,6 +398,15 @@ export const PAGE_CONFIGS = {
   cronjobs: CRONJOBS_CONFIG,
   services: SERVICES_CONFIG,
   ingress: INGRESS_CONFIG,
+  networkpolicies: NETWORKPOLICIES_CONFIG,
+  serviceaccounts: SERVICEACCOUNTS_CONFIG,
+  roles: ROLES_CONFIG,
+  rolebindings: ROLEBINDINGS_CONFIG,
+  clusterroles: CLUSTERROLES_CONFIG,
+  clusterrolebindings: CLUSTERROLEBINDINGS_CONFIG,
+  resourcequotas: RESOURCEQUOTAS_CONFIG,
+  limitranges: LIMITRANGES_CONFIG,
+  poddisruptionbudgets: PODDISRUPTIONBUDGETS_CONFIG,
   pvcs: PVCS_CONFIG,
   pvs: PVS_CONFIG,
   storageclasses: STORAGECLASSES_CONFIG,
@@ -247,4 +415,5 @@ export const PAGE_CONFIGS = {
   namespaces: NAMESPACES_CONFIG,
   nodes: NODES_CONFIG,
   events: EVENTS_CONFIG,
+  horizontalpodautoscalers: HPAS_CONFIG,
 };

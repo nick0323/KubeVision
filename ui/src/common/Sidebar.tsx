@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { authUtils } from '../utils/auth';
+import { authUtils, authFetch } from '../utils/auth';
 import { MENU_LIST } from '../constants';
 import {
   FaChartPie,
@@ -14,6 +14,13 @@ import {
   FaClock,
   FaNetworkWired,
   FaDoorOpen,
+  FaShieldAlt,
+  FaUserSecret,
+  FaUserTag,
+  FaUserCheck,
+  FaTachometerAlt,
+  FaSlidersH,
+  FaBalanceScale,
   FaHdd,
   FaDatabase,
   FaListAlt,
@@ -25,6 +32,7 @@ import {
   FaChevronRight,
   FaSync,
   FaGitAlt,
+  FaArrowsAltV,
 } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
 
@@ -53,6 +61,14 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   FaChevronRight: <FaChevronRight />,
   FaSync: <FaSync />,
   FaGitAlt: <FaGitAlt />,
+  FaArrowsAltV: <FaArrowsAltV />,
+  FaShieldAlt: <FaShieldAlt />,
+  FaUserSecret: <FaUserSecret />,
+  FaUserTag: <FaUserTag />,
+  FaUserCheck: <FaUserCheck />,
+  FaTachometerAlt: <FaTachometerAlt />,
+  FaSlidersH: <FaSlidersH />,
+  FaBalanceScale: <FaBalanceScale />,
 };
 
 /**
@@ -113,7 +129,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   /**
    * Process登出
    */
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    try {
+      await authFetch('/api/logout', { method: 'POST' });
+    } catch {
+      // ignore server errors, still logout locally
+    }
     authUtils.clearToken();
     localStorage.removeItem('sider_collapsed');
     localStorage.removeItem('current_tab');

@@ -7,9 +7,12 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,15 +24,15 @@ func MapPods(pods []corev1.Pod) []model.Pod {
 	result := make([]model.Pod, len(pods))
 	for i, pod := range pods {
 		result[i] = model.Pod{
-			Namespace:        pod.Namespace,
-			Name:             pod.Name,
-			Status:           getPodPhaseDisplay(pod.Status.Phase),
-			Ready:            CalculatePodReady(pod),
-			Restarts:         CalculatePodRestarts(pod),
-			Age:              CalculateAge(pod.CreationTimestamp),
-			PodIP:            pod.Status.PodIP,
-			NodeName:         pod.Spec.NodeName,
-			OwnerReferences:  pod.OwnerReferences,
+			Namespace:       pod.Namespace,
+			Name:            pod.Name,
+			Status:          getPodPhaseDisplay(pod.Status.Phase),
+			Ready:           CalculatePodReady(pod),
+			Restarts:        CalculatePodRestarts(pod),
+			Age:             CalculateAge(pod.CreationTimestamp),
+			PodIP:           pod.Status.PodIP,
+			NodeName:        pod.Spec.NodeName,
+			OwnerReferences: pod.OwnerReferences,
 		}
 	}
 	return result
@@ -309,6 +312,245 @@ func MapEndpoints(endpoints []corev1.Endpoints) []model.Endpoints {
 		}
 	}
 	return result
+}
+
+func MapHPAs(hpas []autoscalingv2.HorizontalPodAutoscaler) []model.HorizontalPodAutoscaler {
+	result := make([]model.HorizontalPodAutoscaler, len(hpas))
+	for i, h := range hpas {
+		minReplicas := int32(1)
+		if h.Spec.MinReplicas != nil {
+			minReplicas = *h.Spec.MinReplicas
+		}
+		metrics := formatHPAMetrics(h.Spec.Metrics, h.Status.CurrentMetrics)
+		result[i] = model.HorizontalPodAutoscaler{
+			Namespace:       h.Namespace,
+			Name:            h.Name,
+			MinReplicas:     minReplicas,
+			MaxReplicas:     h.Spec.MaxReplicas,
+			CurrentReplicas: h.Status.CurrentReplicas,
+			DesiredReplicas: h.Status.DesiredReplicas,
+			Metrics:         metrics,
+			Age:             CalculateAge(h.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapNetworkPolicies(policies []networkingv1.NetworkPolicy) []model.NetworkPolicy {
+	result := make([]model.NetworkPolicy, len(policies))
+	for i, np := range policies {
+		result[i] = model.NetworkPolicy{
+			Namespace:   np.Namespace,
+			Name:        np.Name,
+			PodSelector: formatLabelSelector(&np.Spec.PodSelector),
+			PolicyTypes: policyTypesToStrings(np.Spec.PolicyTypes),
+			Age:         CalculateAge(np.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapServiceAccounts(sas []corev1.ServiceAccount) []model.ServiceAccount {
+	result := make([]model.ServiceAccount, len(sas))
+	for i, sa := range sas {
+		result[i] = model.ServiceAccount{
+			Namespace: sa.Namespace,
+			Name:      sa.Name,
+			Secrets:   len(sa.Secrets),
+			Age:       CalculateAge(sa.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapRoles(roles []rbacv1.Role) []model.Role {
+	result := make([]model.Role, len(roles))
+	for i, r := range roles {
+		result[i] = model.Role{
+			Namespace: r.Namespace,
+			Name:      r.Name,
+			Rules:     len(r.Rules),
+			Age:       CalculateAge(r.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapRoleBindings(rbs []rbacv1.RoleBinding) []model.RoleBinding {
+	result := make([]model.RoleBinding, len(rbs))
+	for i, rb := range rbs {
+		result[i] = model.RoleBinding{
+			Namespace: rb.Namespace,
+			Name:      rb.Name,
+			RoleRef:   rb.RoleRef.Name,
+			Subjects:  len(rb.Subjects),
+			Age:       CalculateAge(rb.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapClusterRoles(crs []rbacv1.ClusterRole) []model.ClusterRole {
+	result := make([]model.ClusterRole, len(crs))
+	for i, cr := range crs {
+		result[i] = model.ClusterRole{
+			Name:  cr.Name,
+			Rules: len(cr.Rules),
+			Age:   CalculateAge(cr.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapClusterRoleBindings(crbs []rbacv1.ClusterRoleBinding) []model.ClusterRoleBinding {
+	result := make([]model.ClusterRoleBinding, len(crbs))
+	for i, crb := range crbs {
+		result[i] = model.ClusterRoleBinding{
+			Name:     crb.Name,
+			RoleRef:  crb.RoleRef.Name,
+			Subjects: len(crb.Subjects),
+			Age:      CalculateAge(crb.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapResourceQuotas(rqs []corev1.ResourceQuota) []model.ResourceQuota {
+	result := make([]model.ResourceQuota, len(rqs))
+	for i, rq := range rqs {
+		result[i] = model.ResourceQuota{
+			Namespace: rq.Namespace,
+			Name:      rq.Name,
+			Requests:  formatResourceQuotaHard(rq.Status.Hard),
+			Limits:    formatResourceQuotaHard(rq.Status.Hard),
+			Age:       CalculateAge(rq.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapLimitRanges(lrs []corev1.LimitRange) []model.LimitRange {
+	result := make([]model.LimitRange, len(lrs))
+	for i, lr := range lrs {
+		result[i] = model.LimitRange{
+			Namespace: lr.Namespace,
+			Name:      lr.Name,
+			Limits:    formatLimitRangeLimits(lr.Spec.Limits),
+			Age:       CalculateAge(lr.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func MapPodDisruptionBudgets(pdbs []policyv1.PodDisruptionBudget) []model.PodDisruptionBudget {
+	result := make([]model.PodDisruptionBudget, len(pdbs))
+	for i, pdb := range pdbs {
+		minAvailable := "-"
+		if pdb.Spec.MinAvailable != nil {
+			minAvailable = pdb.Spec.MinAvailable.String()
+		}
+		maxUnavailable := "-"
+		if pdb.Spec.MaxUnavailable != nil {
+			maxUnavailable = pdb.Spec.MaxUnavailable.String()
+		}
+		result[i] = model.PodDisruptionBudget{
+			Namespace:      pdb.Namespace,
+			Name:           pdb.Name,
+			MinAvailable:   minAvailable,
+			MaxUnavailable: maxUnavailable,
+			CurrentHealthy: pdb.Status.CurrentHealthy,
+			DesiredHealthy: pdb.Status.DesiredHealthy,
+			Age:            CalculateAge(pdb.CreationTimestamp),
+		}
+	}
+	return result
+}
+
+func formatHPAMetrics(specMetrics []autoscalingv2.MetricSpec, statusMetrics []autoscalingv2.MetricStatus) string {
+	if len(specMetrics) == 0 {
+		return "-"
+	}
+	parts := make([]string, 0, len(specMetrics))
+	for _, sm := range specMetrics {
+		metricName := string(sm.Type)
+		target := "-"
+		current := "-"
+
+		switch sm.Type {
+		case autoscalingv2.ResourceMetricSourceType:
+			if sm.Resource != nil {
+				metricName = string(sm.Resource.Name)
+				if sm.Resource.Target.AverageUtilization != nil {
+					target = fmt.Sprintf("%d%%", *sm.Resource.Target.AverageUtilization)
+				} else if sm.Resource.Target.AverageValue != nil {
+					target = sm.Resource.Target.AverageValue.String()
+				}
+				// find matching status
+				for _, cm := range statusMetrics {
+					if cm.Type == autoscalingv2.ResourceMetricSourceType && cm.Resource != nil && cm.Resource.Name == sm.Resource.Name {
+						if cm.Resource.Current.AverageUtilization != nil {
+							current = fmt.Sprintf("%d%%", *cm.Resource.Current.AverageUtilization)
+						} else if cm.Resource.Current.AverageValue != nil {
+							current = cm.Resource.Current.AverageValue.String()
+						}
+						break
+					}
+				}
+			}
+		case autoscalingv2.PodsMetricSourceType:
+			if sm.Pods != nil {
+				metricName = sm.Pods.Metric.Name
+				target = sm.Pods.Target.AverageValue.String()
+				for _, cm := range statusMetrics {
+					if cm.Type == autoscalingv2.PodsMetricSourceType && cm.Pods != nil && cm.Pods.Metric.Name == sm.Pods.Metric.Name {
+						current = cm.Pods.Current.AverageValue.String()
+						break
+					}
+				}
+			}
+		case autoscalingv2.ObjectMetricSourceType:
+			if sm.Object != nil {
+				metricName = sm.Object.Metric.Name
+				if sm.Object.Target.Value != nil {
+					target = sm.Object.Target.Value.String()
+				} else if sm.Object.Target.AverageValue != nil {
+					target = sm.Object.Target.AverageValue.String()
+				}
+				for _, cm := range statusMetrics {
+					if cm.Type == autoscalingv2.ObjectMetricSourceType && cm.Object != nil && cm.Object.Metric.Name == sm.Object.Metric.Name {
+						if cm.Object.Current.Value != nil {
+							current = cm.Object.Current.Value.String()
+						} else if cm.Object.Current.AverageValue != nil {
+							current = cm.Object.Current.AverageValue.String()
+						}
+						break
+					}
+				}
+			}
+		case autoscalingv2.ExternalMetricSourceType:
+			if sm.External != nil {
+				metricName = sm.External.Metric.Name
+				if sm.External.Target.Value != nil {
+					target = sm.External.Target.Value.String()
+				} else if sm.External.Target.AverageValue != nil {
+					target = sm.External.Target.AverageValue.String()
+				}
+				for _, cm := range statusMetrics {
+					if cm.Type == autoscalingv2.ExternalMetricSourceType && cm.External != nil && cm.External.Metric.Name == sm.External.Metric.Name {
+						if cm.External.Current.Value != nil {
+							current = cm.External.Current.Value.String()
+						} else if cm.External.Current.AverageValue != nil {
+							current = cm.External.Current.AverageValue.String()
+						}
+						break
+					}
+				}
+			}
+		}
+
+		parts = append(parts, fmt.Sprintf("%s: %s/%s", metricName, current, target))
+	}
+	return strings.Join(parts, ", ")
 }
 
 func MapEvents(events []corev1.Event) []model.Event {
@@ -714,4 +956,64 @@ func countEndpointAddresses(ep corev1.Endpoints) int {
 		count += len(subset.Addresses)
 	}
 	return count
+}
+
+func formatLabelSelector(selector *metav1.LabelSelector) string {
+	if selector == nil {
+		return "<none>"
+	}
+	parts := make([]string, 0, len(selector.MatchLabels))
+	for k, v := range selector.MatchLabels {
+		parts = append(parts, fmt.Sprintf("%s=%s", k, v))
+	}
+	for _, expr := range selector.MatchExpressions {
+		parts = append(parts, fmt.Sprintf("%s %s %s", expr.Key, expr.Operator, strings.Join(expr.Values, ",")))
+	}
+	if len(parts) == 0 {
+		return "<none>"
+	}
+	return strings.Join(parts, ", ")
+}
+
+func policyTypesToStrings(pts []networkingv1.PolicyType) []string {
+	result := make([]string, len(pts))
+	for i, pt := range pts {
+		result[i] = string(pt)
+	}
+	return result
+}
+
+func formatResourceQuotaHard(hard corev1.ResourceList) string {
+	if len(hard) == 0 {
+		return "-"
+	}
+	parts := make([]string, 0, len(hard))
+	for k, v := range hard {
+		parts = append(parts, fmt.Sprintf("%s=%s", k, v.String()))
+	}
+	return strings.Join(parts, ", ")
+}
+
+func formatLimitRangeLimits(limits []corev1.LimitRangeItem) string {
+	if len(limits) == 0 {
+		return "-"
+	}
+	parts := make([]string, 0, len(limits))
+	for _, item := range limits {
+		itemStr := string(item.Type)
+		for k, v := range item.Max {
+			itemStr += fmt.Sprintf(" max-%s=%s", k, v.String())
+		}
+		for k, v := range item.Min {
+			itemStr += fmt.Sprintf(" min-%s=%s", k, v.String())
+		}
+		for k, v := range item.Default {
+			itemStr += fmt.Sprintf(" default-%s=%s", k, v.String())
+		}
+		for k, v := range item.DefaultRequest {
+			itemStr += fmt.Sprintf(" defaultRequest-%s=%s", k, v.String())
+		}
+		parts = append(parts, itemStr)
+	}
+	return strings.Join(parts, "; ")
 }

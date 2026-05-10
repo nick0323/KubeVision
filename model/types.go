@@ -74,15 +74,15 @@ type Node struct {
 }
 
 type Pod struct {
-	Namespace        string                   `json:"namespace"`
-	Name             string                   `json:"name"`
-	Status           string                   `json:"status"`
-	Ready            string                   `json:"ready"`
-	Restarts         int32                    `json:"restarts"`
-	Age              string                   `json:"age"`
-	PodIP            string                   `json:"podIP"`
-	NodeName         string                   `json:"nodeName"`
-	OwnerReferences  []metav1.OwnerReference  `json:"ownerReferences,omitempty"`
+	Namespace       string                  `json:"namespace"`
+	Name            string                  `json:"name"`
+	Status          string                  `json:"status"`
+	Ready           string                  `json:"ready"`
+	Restarts        int32                   `json:"restarts"`
+	Age             string                  `json:"age"`
+	PodIP           string                  `json:"podIP"`
+	NodeName        string                  `json:"nodeName"`
+	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty"`
 }
 
 type Deployment struct {
@@ -242,6 +242,85 @@ type NodeMetrics struct {
 	Memory string `json:"memory"`
 }
 
+type NetworkPolicy struct {
+	Namespace   string   `json:"namespace"`
+	Name        string   `json:"name"`
+	PodSelector string   `json:"podSelector"`
+	PolicyTypes []string `json:"policyTypes"`
+	Age         string   `json:"age"`
+}
+
+type ServiceAccount struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Secrets   int    `json:"secrets"`
+	Age       string `json:"age"`
+}
+
+type Role struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Rules     int    `json:"rules"`
+	Age       string `json:"age"`
+}
+
+type RoleBinding struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	RoleRef   string `json:"roleRef"`
+	Subjects  int    `json:"subjects"`
+	Age       string `json:"age"`
+}
+
+type ClusterRole struct {
+	Name  string `json:"name"`
+	Rules int    `json:"rules"`
+	Age   string `json:"age"`
+}
+
+type ClusterRoleBinding struct {
+	Name     string `json:"name"`
+	RoleRef  string `json:"roleRef"`
+	Subjects int    `json:"subjects"`
+	Age      string `json:"age"`
+}
+
+type ResourceQuota struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Requests  string `json:"requests"`
+	Limits    string `json:"limits"`
+	Age       string `json:"age"`
+}
+
+type LimitRange struct {
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	Limits    string `json:"limits"`
+	Age       string `json:"age"`
+}
+
+type PodDisruptionBudget struct {
+	Namespace      string `json:"namespace"`
+	Name           string `json:"name"`
+	MinAvailable   string `json:"minAvailable"`
+	MaxUnavailable string `json:"maxUnavailable"`
+	CurrentHealthy int32  `json:"currentHealthy"`
+	DesiredHealthy int32  `json:"desiredHealthy"`
+	Age            string `json:"age"`
+}
+
+type HorizontalPodAutoscaler struct {
+	Namespace       string `json:"namespace"`
+	Name            string `json:"name"`
+	MinReplicas     int32  `json:"minReplicas"`
+	MaxReplicas     int32  `json:"maxReplicas"`
+	CurrentReplicas int32  `json:"currentReplicas"`
+	DesiredReplicas int32  `json:"desiredReplicas"`
+	Metrics         string `json:"metrics"`
+	Age             string `json:"age"`
+}
+
 // ==================== 接口 ====================
 
 type SearchableItem interface {
@@ -314,6 +393,46 @@ func (n Namespace) GetSearchableFields() map[string]string {
 
 func (e Endpoints) GetSearchableFields() map[string]string {
 	return map[string]string{"Name": e.Name, "Namespace": e.Namespace}
+}
+
+func (n NetworkPolicy) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": n.Name, "Namespace": n.Namespace}
+}
+
+func (s ServiceAccount) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": s.Name, "Namespace": s.Namespace}
+}
+
+func (r Role) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": r.Name, "Namespace": r.Namespace}
+}
+
+func (r RoleBinding) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": r.Name, "Namespace": r.Namespace, "RoleRef": r.RoleRef}
+}
+
+func (c ClusterRole) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": c.Name}
+}
+
+func (c ClusterRoleBinding) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": c.Name, "RoleRef": c.RoleRef}
+}
+
+func (r ResourceQuota) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": r.Name, "Namespace": r.Namespace}
+}
+
+func (l LimitRange) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": l.Name, "Namespace": l.Namespace}
+}
+
+func (p PodDisruptionBudget) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": p.Name, "Namespace": p.Namespace}
+}
+
+func (h HorizontalPodAutoscaler) GetSearchableFields() map[string]string {
+	return map[string]string{"Name": h.Name, "Namespace": h.Namespace}
 }
 
 // ==================== 工具函数 ====================

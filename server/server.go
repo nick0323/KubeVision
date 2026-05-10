@@ -118,8 +118,7 @@ func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	s.jwtMiddleware = middleware.NewJWTMiddleware(s.configMgr.GetJWTSecret(), s.logger)
 	apiGroup.Use(s.jwtMiddleware.AuthMiddleware(s.configMgr))
 
-	// 注册 logout 路由（需要认证）
-	// apiGroup.POST("/logout", loginHandler.Logout(jwtMiddleware.GetBlacklist()))
+	apiGroup.POST("/logout", loginHandler.Logout(s.jwtMiddleware.GetBlacklist()))
 
 	s.registerAPIRoutes(apiGroup)
 }

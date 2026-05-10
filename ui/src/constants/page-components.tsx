@@ -15,6 +15,15 @@ import {
   CRONJOBS_CONFIG,
   SERVICES_CONFIG,
   INGRESS_CONFIG,
+  NETWORKPOLICIES_CONFIG,
+  SERVICEACCOUNTS_CONFIG,
+  ROLES_CONFIG,
+  ROLEBINDINGS_CONFIG,
+  CLUSTERROLES_CONFIG,
+  CLUSTERROLEBINDINGS_CONFIG,
+  RESOURCEQUOTAS_CONFIG,
+  LIMITRANGES_CONFIG,
+  PODDISRUPTIONBUDGETS_CONFIG,
   PVCS_CONFIG,
   PVS_CONFIG,
   STORAGECLASSES_CONFIG,
@@ -23,6 +32,7 @@ import {
   NAMESPACES_CONFIG,
   NODES_CONFIG,
   EVENTS_CONFIG,
+  HPAS_CONFIG,
 } from './pageConfigs';
 
 interface PageComponentProps {
@@ -93,6 +103,36 @@ export const PAGE_COMPONENTS = {
 
   // Events
   events: createResourcePage(EVENTS_CONFIG),
+
+  // NetworkPolicies
+  networkpolicies: createResourcePage(NETWORKPOLICIES_CONFIG),
+
+  // ServiceAccounts
+  serviceaccounts: createResourcePage(SERVICEACCOUNTS_CONFIG),
+
+  // Roles
+  roles: createResourcePage(ROLES_CONFIG),
+
+  // RoleBindings
+  rolebindings: createResourcePage(ROLEBINDINGS_CONFIG),
+
+  // ClusterRoles
+  clusterroles: createResourcePage(CLUSTERROLES_CONFIG),
+
+  // ClusterRoleBindings
+  clusterrolebindings: createResourcePage(CLUSTERROLEBINDINGS_CONFIG),
+
+  // ResourceQuotas
+  resourcequotas: createResourcePage(RESOURCEQUOTAS_CONFIG),
+
+  // LimitRanges
+  limitranges: createResourcePage(LIMITRANGES_CONFIG),
+
+  // PodDisruptionBudgets
+  poddisruptionbudgets: createResourcePage(PODDISRUPTIONBUDGETS_CONFIG),
+
+  // HPA
+  horizontalpodautoscalers: createResourcePage(HPAS_CONFIG),
 
   // ArgoCD (GitOps)
   argocd: LazyArgoCD,

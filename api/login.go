@@ -234,6 +234,41 @@ func generateJTI() string {
 	return base64.URLEncoding.EncodeToString(bytes)
 }
 
+func (h *LoginHandler) Logout(blacklist *middleware.TokenBlacklist) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenStr := c.GetHeader("Authorization")
+		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
+		if tokenStr == "" {
+			middleware.ResponseSuccess(c, nil, "Already logged out", nil)
+			return
+		}
+
+		if h.configManager == nil {
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "Server configuration not available",
+			}, http.StatusInternalServerError)
+			return
+		}
+		claims, err := middleware.VerifyToken(tokenStr, h.configManager.GetJWTSecret())
+		if err != nil {
+			middleware.ResponseSuccess(c, nil, "Already logged out", nil)
+			return
+		}
+
+		if jti, ok := claims["jti"].(string); ok && jti != "" {
+			if exp, ok := claims["exp"].(float64); ok {
+				blacklist.Add(jti, time.Unix(int64(exp), 0))
+			}
+		}
+
+		h.logger.Info("User logged out",
+			zap.String("username", GetUsernameFromContext(c)),
+		)
+		middleware.ResponseSuccess(c, nil, "Logged out successfully", nil)
+	}
+}
+
 func GetUsernameFromContext(c *gin.Context) string {
 	username, exists := c.Get("username")
 	if !exists {

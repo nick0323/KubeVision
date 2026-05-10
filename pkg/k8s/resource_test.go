@@ -27,7 +27,6 @@ func TestResourceTypeNormalize(t *testing.T) {
 		{"node", ResourceNode},
 		{"endpoint", ResourceEndpoint},
 		{"event", ResourceEvent},
-
 	}
 
 	for _, tt := range tests {
@@ -180,5 +179,3 @@ func TestNewCreators(t *testing.T) {
 		})
 	}
 }
-
-

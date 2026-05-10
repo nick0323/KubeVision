@@ -72,6 +72,51 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
     setActiveTab(tabKey);
   }, []);
 
+  const scalableTypes = ['deployment', 'statefulset'];
+  const restartableTypes = ['deployment', 'statefulset', 'daemonset'];
+  const canScale = scalableTypes.includes(resourceType);
+  const canRestart = restartableTypes.includes(resourceType);
+  const currentReplicas = canScale ? (data as any)?.spec?.replicas ?? 0 : undefined;
+
+  const scaleReplicas = useCallback(async (delta: number) => {
+    const current = (data as any)?.spec?.replicas ?? 0;
+    const replicas = Math.max(0, current + delta);
+    try {
+      const response = await authFetch(`/api/${resourceType}/${namespace}/${resourceName}/scale`, {
+        method: 'PUT',
+        body: JSON.stringify({ replicas }),
+      });
+      const result = await response.json();
+      if (result.code === 0) {
+        notification.success(`Scaled to ${replicas} replicas`);
+        refresh();
+      } else {
+        notification.error(`Scale failed: ${result.message}`);
+      }
+    } catch (err) {
+      notification.error(`Scale failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  }, [resourceType, namespace, resourceName, data, refresh]);
+
+  const handleScaleUp = useCallback(() => scaleReplicas(1), [scaleReplicas]);
+  const handleScaleDown = useCallback(() => scaleReplicas(-1), [scaleReplicas]);
+
+  const handleRestart = useCallback(async () => {
+    try {
+      const response = await authFetch(`/api/${resourceType}/${namespace}/${resourceName}/restart`, {
+        method: 'POST',
+      });
+      const result = await response.json();
+      if (result.code === 0) {
+        notification.success('Rolling restart initiated');
+      } else {
+        notification.error(`Restart failed: ${result.message}`);
+      }
+    } catch (err) {
+      notification.error(`Restart failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  }, [resourceType, namespace, resourceName]);
+
   /**
    * ProcessDelete
    */
@@ -85,7 +130,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
       if (result.code === 0) {
         notification.success(`${config.title} deleted`);
         // BackList页
-        navigate(`/${resourceType}s`);
+        navigate(`/${getResourceListPath(resourceType)}`);
       } else {
         notification.error(`Delete failed: ${result.message}`);
       }
@@ -117,7 +162,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
   );
 
   // determineis否forclusterresource
-  const isClusterResource = ['node', 'pv', 'storageclass', 'namespace'].includes(resourceType);
+  const isClusterResource = ['node', 'pv', 'storageclass', 'namespace', 'clusterrole', 'clusterrolebinding'].includes(resourceType);
 
   // 面包屑Config - with Pod detail pagekeepconsistent：resourceType > namespace(not可Click) > name
   const breadcrumbs = useMemo(
@@ -149,6 +194,16 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
       storageclass: 'storageclasses',
       namespace: 'namespaces',
       node: 'nodes',
+      horizontalpodautoscaler: 'horizontalpodautoscalers',
+      networkpolicy: 'networkpolicies',
+      serviceaccount: 'serviceaccounts',
+      role: 'roles',
+      rolebinding: 'rolebindings',
+      clusterrole: 'clusterroles',
+      clusterrolebinding: 'clusterrolebindings',
+      resourcequota: 'resourcequotas',
+      limitrange: 'limitranges',
+      poddisruptionbudget: 'poddisruptionbudgets',
     };
     return typeToPath[type] || 'overview';
   }
@@ -299,6 +354,10 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
         namespace={isClusterResource ? undefined : namespace}
         onRefresh={refresh}
         onDelete={handleDelete}
+        onScaleUp={canScale ? handleScaleUp : undefined}
+        onScaleDown={canScale ? handleScaleDown : undefined}
+        currentReplicas={currentReplicas}
+        onRestart={canRestart ? handleRestart : undefined}
       />
 
       {/* Tab navigation */}

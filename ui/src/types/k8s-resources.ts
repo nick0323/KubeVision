@@ -604,6 +604,278 @@ export interface ActionButton<T = Record<string, unknown>> {
 
 // ==================== TypeMapping ====================
 
+export interface HPAListItem {
+  name: string;
+  namespace: string;
+  minReplicas: number;
+  maxReplicas: number;
+  currentReplicas: number;
+  desiredReplicas: number;
+  metrics: string;
+  age: string;
+  _origin?: HorizontalPodAutoscaler;
+}
+
+export interface MetricTarget {
+  type: 'Utilization' | 'Value' | 'AverageValue';
+  averageUtilization?: number;
+  averageValue?: string;
+  value?: string;
+}
+
+export interface MetricValueStatus {
+  averageUtilization?: number;
+  averageValue?: string;
+  value?: string;
+}
+
+export interface ResourceMetricSource {
+  name: string;
+  target: MetricTarget;
+}
+
+export interface ResourceMetricStatus {
+  name: string;
+  current: MetricValueStatus;
+}
+
+export interface MetricSpec {
+  type: 'Resource' | 'Pods' | 'Object' | 'External';
+  resource?: ResourceMetricSource;
+  pods?: { metric: { name: string }; target: MetricTarget };
+  object?: { metric: { name: string }; target: MetricTarget };
+  external?: { metric: { name: string }; target: MetricTarget };
+}
+
+export interface MetricStatus {
+  type: 'Resource' | 'Pods' | 'Object' | 'External';
+  resource?: ResourceMetricStatus;
+  pods?: { metric: { name: string }; current: MetricValueStatus };
+  object?: { metric: { name: string }; current: { value?: string; averageValue?: string } };
+  external?: { metric: { name: string }; current: { value?: string; averageValue?: string } };
+}
+
+export interface HorizontalPodAutoscaler extends K8sResource {
+  metadata: K8sMetadata & { namespace: string };
+  spec: {
+    scaleTargetRef: {
+      apiVersion: string;
+      kind: string;
+      name: string;
+    };
+    minReplicas?: number;
+    maxReplicas: number;
+    metrics: MetricSpec[];
+  };
+  status: {
+    currentReplicas: number;
+    desiredReplicas: number;
+    currentMetrics?: MetricStatus[];
+    lastScaleTime?: string;
+    conditions?: {
+      type: string;
+      status: string;
+      lastTransitionTime: string;
+      reason: string;
+      message: string;
+    }[];
+  };
+}
+
+// ==================== NetworkPolicy Related types ====================
+
+export interface NetworkPolicyListItem {
+  name: string;
+  namespace: string;
+  podSelector: string;
+  policyTypes: string[];
+  age: string;
+  _origin?: NetworkPolicy;
+}
+
+export interface NetworkPolicy extends K8sResource {
+  metadata: K8sMetadata & { namespace: string };
+  spec: {
+    podSelector: { matchLabels?: Record<string, string> };
+    policyTypes?: string[];
+    ingress?: any[];
+    egress?: any[];
+  };
+}
+
+// ==================== ServiceAccount Related types ====================
+
+export interface ServiceAccountListItem {
+  name: string;
+  namespace: string;
+  secrets: number;
+  age: string;
+  _origin?: ServiceAccount;
+}
+
+export interface ServiceAccount extends K8sResource {
+  metadata: K8sMetadata & { namespace: string };
+  secrets?: K8sLocalObjectReference[];
+  automountServiceAccountToken?: boolean;
+  imagePullSecrets?: K8sLocalObjectReference[];
+}
+
+// ==================== RBAC Related types ====================
+
+export interface PolicyRule {
+  verbs: string[];
+  apiGroups?: string[];
+  resources?: string[];
+  resourceNames?: string[];
+  nonResourceURLs?: string[];
+}
+
+export interface Subject {
+  kind: string;
+  apiGroup?: string;
+  name: string;
+  namespace?: string;
+}
+
+export interface RoleRef {
+  apiGroup: string;
+  kind: string;
+  name: string;
+}
+
+export interface RoleListItem {
+  name: string;
+  namespace: string;
+  rules: number;
+  age: string;
+  _origin?: Role;
+}
+
+export interface Role extends K8sResource {
+  metadata: K8sMetadata & { namespace: string };
+  rules?: PolicyRule[];
+}
+
+export interface RoleBindingListItem {
+  name: string;
+  namespace: string;
+  roleRef: string;
+  subjects: string;
+  age: string;
+  _origin?: RoleBinding;
+}
+
+export interface RoleBinding extends K8sResource {
+  metadata: K8sMetadata & { namespace: string };
+  subjects?: Subject[];
+  roleRef: RoleRef;
+}
+
+export interface ClusterRoleListItem {
+  name: string;
+  rules: number;
+  age: string;
+  _origin?: ClusterRole;
+}
+
+export interface ClusterRole extends K8sResource {
+  metadata: K8sMetadata;
+  rules?: PolicyRule[];
+}
+
+export interface ClusterRoleBindingListItem {
+  name: string;
+  roleRef: string;
+  subjects: string;
+  age: string;
+  _origin?: ClusterRoleBinding;
+}
+
+export interface ClusterRoleBinding extends K8sResource {
+  metadata: K8sMetadata;
+  subjects?: Subject[];
+  roleRef: RoleRef;
+}
+
+// ==================== ResourceQuota Related types ====================
+
+export interface ResourceQuotaListItem {
+  name: string;
+  namespace: string;
+  requests: string;
+  limits: string;
+  age: string;
+  _origin?: ResourceQuota;
+}
+
+export interface ResourceQuota extends K8sResource {
+  metadata: K8sMetadata & { namespace: string };
+  spec: {
+    hard?: Record<string, string>;
+    scopeSelector?: any;
+    scopes?: string[];
+  };
+  status: {
+    hard?: Record<string, string>;
+    used?: Record<string, string>;
+  };
+}
+
+// ==================== LimitRange Related types ====================
+
+export interface LimitRangeItem {
+  type: string;
+  max?: Record<string, string>;
+  min?: Record<string, string>;
+  default?: Record<string, string>;
+  defaultRequest?: Record<string, string>;
+  maxLimitRequestRatio?: Record<string, string>;
+}
+
+export interface LimitRangeListItem {
+  name: string;
+  namespace: string;
+  limits: string;
+  age: string;
+  _origin?: LimitRange;
+}
+
+export interface LimitRange extends K8sResource {
+  metadata: K8sMetadata & { namespace: string };
+  spec: {
+    limits: LimitRangeItem[];
+  };
+}
+
+// ==================== PodDisruptionBudget Related types ====================
+
+export interface PodDisruptionBudgetListItem {
+  name: string;
+  namespace: string;
+  minAvailable: string;
+  maxUnavailable: string;
+  currentHealthy: number;
+  desiredHealthy: number;
+  age: string;
+  _origin?: PodDisruptionBudget;
+}
+
+export interface PodDisruptionBudget extends K8sResource {
+  metadata: K8sMetadata & { namespace: string };
+  spec: {
+    minAvailable?: string | number;
+    maxUnavailable?: string | number;
+    selector?: { matchLabels?: Record<string, string>; matchExpressions?: any[] };
+  };
+  status: {
+    currentHealthy: number;
+    desiredHealthy: number;
+    expectedPods: number;
+    conditions?: any[];
+    observedGeneration?: number;
+  };
+}
+
 export type ResourceListItemMap = {
   pods: PodListItem;
   deployments: DeploymentListItem;
@@ -611,6 +883,16 @@ export type ResourceListItemMap = {
   daemonsets: DaemonSetListItem;
   services: ServiceListItem;
   nodes: NodeListItem;
+  horizontalpodautoscalers: HPAListItem;
+  networkpolicies: NetworkPolicyListItem;
+  serviceaccounts: ServiceAccountListItem;
+  roles: RoleListItem;
+  rolebindings: RoleBindingListItem;
+  clusterroles: ClusterRoleListItem;
+  clusterrolebindings: ClusterRoleBindingListItem;
+  resourcequotas: ResourceQuotaListItem;
+  limitranges: LimitRangeListItem;
+  poddisruptionbudgets: PodDisruptionBudgetListItem;
   generic: GenericResourceItem;
 };
 
@@ -621,6 +903,16 @@ export type ResourceMap = {
   daemonsets: DaemonSet;
   services: Service;
   nodes: Node;
+  horizontalpodautoscalers: HorizontalPodAutoscaler;
+  networkpolicies: NetworkPolicy;
+  serviceaccounts: ServiceAccount;
+  roles: Role;
+  rolebindings: RoleBinding;
+  clusterroles: ClusterRole;
+  clusterrolebindings: ClusterRoleBinding;
+  resourcequotas: ResourceQuota;
+  limitranges: LimitRange;
+  poddisruptionbudgets: PodDisruptionBudget;
   generic: K8sResource;
 };
 

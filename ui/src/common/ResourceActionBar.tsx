@@ -1,24 +1,29 @@
 import React, { useState } from 'react';
-import { FaSync, FaClipboardList, FaTrash } from 'react-icons/fa';
+import { FaSync, FaClipboardList, FaTrash, FaPowerOff, FaMinus, FaPlus } from 'react-icons/fa';
 import './ResourceActionBar.css';
 
 export interface ResourceActionBarProps {
   name: string;
-  namespace?: string; // Optional, cluster resources have no namespace
+  namespace?: string;
   onRefresh: () => void;
   onDelete: () => void;
-  onDescribe?: () => void; // Optional, needed for Pod detail page
+  onDescribe?: () => void;
+  onScaleUp?: () => void;
+  onScaleDown?: () => void;
+  currentReplicas?: number;
+  onRestart?: () => void;
 }
 
-/**
- * Resource action bar - CommonComponent
- */
 export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
   name,
   namespace,
   onRefresh,
   onDelete,
   onDescribe,
+  onScaleUp,
+  onScaleDown,
+  currentReplicas,
+  onRestart,
 }) => {
   const [refreshing, setRefreshing] = useState(false);
 
@@ -37,6 +42,27 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
         <div className="resource-name-row">
           <h2 className="resource-name">{name}</h2>
           <div className="resource-actions">
+            {onDescribe && (
+              <button className="action-btn" onClick={onDescribe} title="View details">
+                <FaClipboardList />
+              </button>
+            )}
+            {onScaleUp && onScaleDown && currentReplicas !== undefined && (
+              <span className="scale-controls">
+                <button className="action-btn" onClick={onScaleDown} title="Scale down">
+                  <FaMinus />
+                </button>
+                <span className="scale-value">{currentReplicas}</span>
+                <button className="action-btn" onClick={onScaleUp} title="Scale up">
+                  <FaPlus />
+                </button>
+              </span>
+            )}
+            {onRestart && (
+              <button className="action-btn" onClick={onRestart} title="Rolling Restart">
+                <FaPowerOff />
+              </button>
+            )}
             <button
               className={`action-btn ${refreshing ? 'spinning' : ''}`}
               onClick={handleRefresh}
@@ -45,11 +71,6 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
             >
               <FaSync />
             </button>
-            {onDescribe && (
-              <button className="action-btn" onClick={onDescribe} title="View details">
-                <FaClipboardList />
-              </button>
-            )}
             <button className="action-btn danger" onClick={onDelete} title="Delete">
               <FaTrash />
             </button>

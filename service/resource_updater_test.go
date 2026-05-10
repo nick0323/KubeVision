@@ -82,7 +82,7 @@ func TestUpdateResourceByType_UnsupportedType(t *testing.T) {
 
 func TestResourceFactory(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		resourceType string
 		expectedType interface{}
 		expectErr    bool

@@ -12,10 +12,10 @@ import (
 
 func TestAllowedOrigin(t *testing.T) {
 	tests := []struct {
-		name          string
+		name           string
 		allowedOrigins []string
-		origin        string
-		expected      bool
+		origin         string
+		expected       bool
 	}{
 		{"exact match", []string{"http://localhost:8080"}, "http://localhost:8080", true},
 		{"no match", []string{"http://localhost:8080"}, "http://evil.com", false},
@@ -40,7 +40,7 @@ func TestParsePaginationParams(t *testing.T) {
 		query    map[string]string
 		expected PaginationParams
 	}{
-	{"default values", map[string]string{}, PaginationParams{Offset: 0, Limit: 15, SortBy: "name", SortOrder: "asc"}},
+		{"default values", map[string]string{}, PaginationParams{Offset: 0, Limit: 15, SortBy: "name", SortOrder: "asc"}},
 		{"custom values", map[string]string{"offset": "5", "limit": "20"}, PaginationParams{Offset: 5, Limit: 20, SortBy: "name", SortOrder: "asc"}},
 		{"invalid offset", map[string]string{"offset": "abc", "limit": "10"}, PaginationParams{Offset: 0, Limit: 10, SortBy: "name", SortOrder: "asc"}},
 		{"invalid limit", map[string]string{"offset": "0", "limit": "abc"}, PaginationParams{Offset: 0, Limit: 15, SortBy: "name", SortOrder: "asc"}},

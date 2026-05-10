@@ -5,9 +5,12 @@ import (
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -16,43 +19,63 @@ import (
 type ResourceType string
 
 const (
-	ResourcePod          ResourceType = "pod"
-	ResourceDeployment   ResourceType = "deployment"
-	ResourceStatefulSet  ResourceType = "statefulset"
-	ResourceDaemonSet    ResourceType = "daemonset"
-	ResourceService      ResourceType = "service"
-	ResourceConfigMap    ResourceType = "configmap"
-	ResourceSecret       ResourceType = "secret"
-	ResourceIngress      ResourceType = "ingress"
-	ResourceJob          ResourceType = "job"
-	ResourceCronJob      ResourceType = "cronjob"
-	ResourcePVC          ResourceType = "persistentvolumeclaim"
-	ResourcePV           ResourceType = "persistentvolume"
-	ResourceStorageClass ResourceType = "storageclass"
-	ResourceNamespace    ResourceType = "namespace"
-	ResourceNode         ResourceType = "node"
-	ResourceEndpoint     ResourceType = "endpoint"
-	ResourceEvent        ResourceType = "event"
+	ResourcePod                     ResourceType = "pod"
+	ResourceDeployment              ResourceType = "deployment"
+	ResourceStatefulSet             ResourceType = "statefulset"
+	ResourceDaemonSet               ResourceType = "daemonset"
+	ResourceService                 ResourceType = "service"
+	ResourceConfigMap               ResourceType = "configmap"
+	ResourceSecret                  ResourceType = "secret"
+	ResourceIngress                 ResourceType = "ingress"
+	ResourceJob                     ResourceType = "job"
+	ResourceCronJob                 ResourceType = "cronjob"
+	ResourcePVC                     ResourceType = "persistentvolumeclaim"
+	ResourcePV                      ResourceType = "persistentvolume"
+	ResourceStorageClass            ResourceType = "storageclass"
+	ResourceNamespace               ResourceType = "namespace"
+	ResourceNode                    ResourceType = "node"
+	ResourceEndpoint                ResourceType = "endpoint"
+	ResourceEvent                   ResourceType = "event"
+	ResourceHorizontalPodAutoscaler ResourceType = "horizontalpodautoscaler"
+	ResourceNetworkPolicy           ResourceType = "networkpolicy"
+	ResourceServiceAccount          ResourceType = "serviceaccount"
+	ResourceRole                    ResourceType = "role"
+	ResourceRoleBinding             ResourceType = "rolebinding"
+	ResourceClusterRole             ResourceType = "clusterrole"
+	ResourceClusterRoleBinding      ResourceType = "clusterrolebinding"
+	ResourceResourceQuota           ResourceType = "resourcequota"
+	ResourceLimitRange              ResourceType = "limitrange"
+	ResourcePodDisruptionBudget     ResourceType = "poddisruptionbudget"
 )
 
 var clusterScopedResources = map[ResourceType]bool{
-	ResourcePod:          false,
-	ResourceDeployment:   false,
-	ResourceStatefulSet:  false,
-	ResourceDaemonSet:    false,
-	ResourceService:      false,
-	ResourceConfigMap:    false,
-	ResourceSecret:       false,
-	ResourceIngress:      false,
-	ResourceJob:          false,
-	ResourceCronJob:      false,
-	ResourcePVC:          false,
-	ResourcePV:           true,
-	ResourceStorageClass: true,
-	ResourceNamespace:    true,
-	ResourceNode:         true,
-	ResourceEndpoint:     false,
-	ResourceEvent:        false,
+	ResourcePod:                     false,
+	ResourceDeployment:              false,
+	ResourceStatefulSet:             false,
+	ResourceDaemonSet:               false,
+	ResourceService:                 false,
+	ResourceConfigMap:               false,
+	ResourceSecret:                  false,
+	ResourceIngress:                 false,
+	ResourceJob:                     false,
+	ResourceCronJob:                 false,
+	ResourcePVC:                     false,
+	ResourcePV:                      true,
+	ResourceStorageClass:            true,
+	ResourceNamespace:               true,
+	ResourceNode:                    true,
+	ResourceEndpoint:                false,
+	ResourceEvent:                   false,
+	ResourceHorizontalPodAutoscaler: false,
+	ResourceNetworkPolicy:           false,
+	ResourceServiceAccount:          false,
+	ResourceRole:                    false,
+	ResourceRoleBinding:             false,
+	ResourceClusterRole:             true,
+	ResourceClusterRoleBinding:      true,
+	ResourceResourceQuota:           false,
+	ResourceLimitRange:              false,
+	ResourcePodDisruptionBudget:     false,
 }
 
 func (rt ResourceType) IsClusterScoped() bool {
@@ -67,6 +90,16 @@ func (rt ResourceType) Normalize() ResourceType {
 		return ResourcePV
 	case "sc":
 		return ResourceStorageClass
+	case "hpa":
+		return ResourceHorizontalPodAutoscaler
+	case "netpol":
+		return ResourceNetworkPolicy
+	case "sa":
+		return ResourceServiceAccount
+	case "quota":
+		return ResourceResourceQuota
+	case "pdb":
+		return ResourcePodDisruptionBudget
 	default:
 		return rt
 	}
@@ -251,6 +284,346 @@ func (g *endpointsGetter) Get(ctx context.Context, namespace, name string) (inte
 
 func (g *endpointsGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
 	return g.client.CoreV1().Endpoints(namespace).List(ctx, opts)
+}
+
+type hpasGetter struct{ client kubernetes.Interface }
+
+func (g *hpasGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *hpasGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(ctx, opts)
+}
+
+type networkPoliciesGetter struct{ client kubernetes.Interface }
+
+func (g *networkPoliciesGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.NetworkingV1().NetworkPolicies(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *networkPoliciesGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.NetworkingV1().NetworkPolicies(namespace).List(ctx, opts)
+}
+
+type serviceAccountsGetter struct{ client kubernetes.Interface }
+
+func (g *serviceAccountsGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.CoreV1().ServiceAccounts(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *serviceAccountsGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.CoreV1().ServiceAccounts(namespace).List(ctx, opts)
+}
+
+type rolesGetter struct{ client kubernetes.Interface }
+
+func (g *rolesGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.RbacV1().Roles(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *rolesGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.RbacV1().Roles(namespace).List(ctx, opts)
+}
+
+type roleBindingsGetter struct{ client kubernetes.Interface }
+
+func (g *roleBindingsGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.RbacV1().RoleBindings(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *roleBindingsGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.RbacV1().RoleBindings(namespace).List(ctx, opts)
+}
+
+type clusterRolesGetter struct{ client kubernetes.Interface }
+
+func (g *clusterRolesGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.RbacV1().ClusterRoles().Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *clusterRolesGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.RbacV1().ClusterRoles().List(ctx, opts)
+}
+
+type clusterRoleBindingsGetter struct{ client kubernetes.Interface }
+
+func (g *clusterRoleBindingsGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.RbacV1().ClusterRoleBindings().Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *clusterRoleBindingsGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.RbacV1().ClusterRoleBindings().List(ctx, opts)
+}
+
+type resourceQuotasGetter struct{ client kubernetes.Interface }
+
+func (g *resourceQuotasGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.CoreV1().ResourceQuotas(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *resourceQuotasGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.CoreV1().ResourceQuotas(namespace).List(ctx, opts)
+}
+
+type limitRangesGetter struct{ client kubernetes.Interface }
+
+func (g *limitRangesGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.CoreV1().LimitRanges(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *limitRangesGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.CoreV1().LimitRanges(namespace).List(ctx, opts)
+}
+
+type podDisruptionBudgetsGetter struct{ client kubernetes.Interface }
+
+func (g *podDisruptionBudgetsGetter) Get(ctx context.Context, namespace, name string) (interface{}, error) {
+	return g.client.PolicyV1().PodDisruptionBudgets(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (g *podDisruptionBudgetsGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (interface{}, error) {
+	return g.client.PolicyV1().PodDisruptionBudgets(namespace).List(ctx, opts)
+}
+
+type hpasUpdater struct{ client kubernetes.Interface }
+
+func (u *hpasUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	hpa, ok := obj.(*autoscalingv2.HorizontalPodAutoscaler)
+	if !ok {
+		return fmt.Errorf("invalid HorizontalPodAutoscaler object")
+	}
+	_, err := u.client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Update(ctx, hpa, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *hpasUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *hpasUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	hpa, ok := obj.(*autoscalingv2.HorizontalPodAutoscaler)
+	if !ok {
+		return fmt.Errorf("invalid HorizontalPodAutoscaler object")
+	}
+	_, err := u.client.AutoscalingV2().HorizontalPodAutoscalers(namespace).Create(ctx, hpa, metav1.CreateOptions{})
+	return err
+}
+
+type networkPoliciesUpdater struct{ client kubernetes.Interface }
+
+func (u *networkPoliciesUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	np, ok := obj.(*networkingv1.NetworkPolicy)
+	if !ok {
+		return fmt.Errorf("invalid NetworkPolicy object")
+	}
+	_, err := u.client.NetworkingV1().NetworkPolicies(namespace).Update(ctx, np, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *networkPoliciesUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.NetworkingV1().NetworkPolicies(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *networkPoliciesUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	np, ok := obj.(*networkingv1.NetworkPolicy)
+	if !ok {
+		return fmt.Errorf("invalid NetworkPolicy object")
+	}
+	_, err := u.client.NetworkingV1().NetworkPolicies(namespace).Create(ctx, np, metav1.CreateOptions{})
+	return err
+}
+
+type serviceAccountsUpdater struct{ client kubernetes.Interface }
+
+func (u *serviceAccountsUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	sa, ok := obj.(*v1.ServiceAccount)
+	if !ok {
+		return fmt.Errorf("invalid ServiceAccount object")
+	}
+	_, err := u.client.CoreV1().ServiceAccounts(namespace).Update(ctx, sa, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *serviceAccountsUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.CoreV1().ServiceAccounts(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *serviceAccountsUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	sa, ok := obj.(*v1.ServiceAccount)
+	if !ok {
+		return fmt.Errorf("invalid ServiceAccount object")
+	}
+	_, err := u.client.CoreV1().ServiceAccounts(namespace).Create(ctx, sa, metav1.CreateOptions{})
+	return err
+}
+
+type rolesUpdater struct{ client kubernetes.Interface }
+
+func (u *rolesUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	role, ok := obj.(*rbacv1.Role)
+	if !ok {
+		return fmt.Errorf("invalid Role object")
+	}
+	_, err := u.client.RbacV1().Roles(namespace).Update(ctx, role, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *rolesUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.RbacV1().Roles(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *rolesUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	role, ok := obj.(*rbacv1.Role)
+	if !ok {
+		return fmt.Errorf("invalid Role object")
+	}
+	_, err := u.client.RbacV1().Roles(namespace).Create(ctx, role, metav1.CreateOptions{})
+	return err
+}
+
+type roleBindingsUpdater struct{ client kubernetes.Interface }
+
+func (u *roleBindingsUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	rb, ok := obj.(*rbacv1.RoleBinding)
+	if !ok {
+		return fmt.Errorf("invalid RoleBinding object")
+	}
+	_, err := u.client.RbacV1().RoleBindings(namespace).Update(ctx, rb, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *roleBindingsUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.RbacV1().RoleBindings(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *roleBindingsUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	rb, ok := obj.(*rbacv1.RoleBinding)
+	if !ok {
+		return fmt.Errorf("invalid RoleBinding object")
+	}
+	_, err := u.client.RbacV1().RoleBindings(namespace).Create(ctx, rb, metav1.CreateOptions{})
+	return err
+}
+
+type clusterRolesUpdater struct{ client kubernetes.Interface }
+
+func (u *clusterRolesUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	cr, ok := obj.(*rbacv1.ClusterRole)
+	if !ok {
+		return fmt.Errorf("invalid ClusterRole object")
+	}
+	_, err := u.client.RbacV1().ClusterRoles().Update(ctx, cr, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *clusterRolesUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.RbacV1().ClusterRoles().Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *clusterRolesUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	cr, ok := obj.(*rbacv1.ClusterRole)
+	if !ok {
+		return fmt.Errorf("invalid ClusterRole object")
+	}
+	_, err := u.client.RbacV1().ClusterRoles().Create(ctx, cr, metav1.CreateOptions{})
+	return err
+}
+
+type clusterRoleBindingsUpdater struct{ client kubernetes.Interface }
+
+func (u *clusterRoleBindingsUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	crb, ok := obj.(*rbacv1.ClusterRoleBinding)
+	if !ok {
+		return fmt.Errorf("invalid ClusterRoleBinding object")
+	}
+	_, err := u.client.RbacV1().ClusterRoleBindings().Update(ctx, crb, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *clusterRoleBindingsUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.RbacV1().ClusterRoleBindings().Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *clusterRoleBindingsUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	crb, ok := obj.(*rbacv1.ClusterRoleBinding)
+	if !ok {
+		return fmt.Errorf("invalid ClusterRoleBinding object")
+	}
+	_, err := u.client.RbacV1().ClusterRoleBindings().Create(ctx, crb, metav1.CreateOptions{})
+	return err
+}
+
+type resourceQuotasUpdater struct{ client kubernetes.Interface }
+
+func (u *resourceQuotasUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	rq, ok := obj.(*v1.ResourceQuota)
+	if !ok {
+		return fmt.Errorf("invalid ResourceQuota object")
+	}
+	_, err := u.client.CoreV1().ResourceQuotas(namespace).Update(ctx, rq, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *resourceQuotasUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.CoreV1().ResourceQuotas(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *resourceQuotasUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	rq, ok := obj.(*v1.ResourceQuota)
+	if !ok {
+		return fmt.Errorf("invalid ResourceQuota object")
+	}
+	_, err := u.client.CoreV1().ResourceQuotas(namespace).Create(ctx, rq, metav1.CreateOptions{})
+	return err
+}
+
+type limitRangesUpdater struct{ client kubernetes.Interface }
+
+func (u *limitRangesUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	lr, ok := obj.(*v1.LimitRange)
+	if !ok {
+		return fmt.Errorf("invalid LimitRange object")
+	}
+	_, err := u.client.CoreV1().LimitRanges(namespace).Update(ctx, lr, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *limitRangesUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.CoreV1().LimitRanges(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *limitRangesUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	lr, ok := obj.(*v1.LimitRange)
+	if !ok {
+		return fmt.Errorf("invalid LimitRange object")
+	}
+	_, err := u.client.CoreV1().LimitRanges(namespace).Create(ctx, lr, metav1.CreateOptions{})
+	return err
+}
+
+type podDisruptionBudgetsUpdater struct{ client kubernetes.Interface }
+
+func (u *podDisruptionBudgetsUpdater) Update(ctx context.Context, namespace, name string, obj interface{}) error {
+	pdb, ok := obj.(*policyv1.PodDisruptionBudget)
+	if !ok {
+		return fmt.Errorf("invalid PodDisruptionBudget object")
+	}
+	_, err := u.client.PolicyV1().PodDisruptionBudgets(namespace).Update(ctx, pdb, metav1.UpdateOptions{})
+	return err
+}
+
+func (u *podDisruptionBudgetsUpdater) Delete(ctx context.Context, namespace, name string) error {
+	return u.client.PolicyV1().PodDisruptionBudgets(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+func (u *podDisruptionBudgetsUpdater) Create(ctx context.Context, namespace string, obj interface{}) error {
+	pdb, ok := obj.(*policyv1.PodDisruptionBudget)
+	if !ok {
+		return fmt.Errorf("invalid PodDisruptionBudget object")
+	}
+	_, err := u.client.PolicyV1().PodDisruptionBudgets(namespace).Create(ctx, pdb, metav1.CreateOptions{})
+	return err
 }
 
 type eventsGetter struct{ client kubernetes.Interface }
@@ -490,63 +863,93 @@ func (u *nodesUpdater) Delete(ctx context.Context, namespace, name string) error
 
 func NewGetters(client kubernetes.Interface) map[ResourceType]Getter {
 	return map[ResourceType]Getter{
-		ResourcePod:          &podsGetter{client},
-		ResourceDeployment:   &deploymentsGetter{client},
-		ResourceStatefulSet:  &statefulSetsGetter{client},
-		ResourceDaemonSet:    &daemonSetsGetter{client},
-		ResourceService:      &servicesGetter{client},
-		ResourceConfigMap:    &configMapsGetter{client},
-		ResourceSecret:       &secretsGetter{client},
-		ResourceIngress:      &ingressesGetter{client},
-		ResourceJob:          &jobsGetter{client},
-		ResourceCronJob:      &cronJobsGetter{client},
-		ResourcePVC:          &pvcsGetter{client},
-		ResourcePV:           &pvsGetter{client},
-		ResourceStorageClass: &storageClassesGetter{client},
-		ResourceNamespace:    &namespacesGetter{client},
-		ResourceNode:         &nodesGetter{client},
-		ResourceEndpoint:     &endpointsGetter{client},
-		ResourceEvent:        &eventsGetter{client},
+		ResourcePod:                     &podsGetter{client},
+		ResourceDeployment:              &deploymentsGetter{client},
+		ResourceStatefulSet:             &statefulSetsGetter{client},
+		ResourceDaemonSet:               &daemonSetsGetter{client},
+		ResourceService:                 &servicesGetter{client},
+		ResourceConfigMap:               &configMapsGetter{client},
+		ResourceSecret:                  &secretsGetter{client},
+		ResourceIngress:                 &ingressesGetter{client},
+		ResourceJob:                     &jobsGetter{client},
+		ResourceCronJob:                 &cronJobsGetter{client},
+		ResourcePVC:                     &pvcsGetter{client},
+		ResourcePV:                      &pvsGetter{client},
+		ResourceStorageClass:            &storageClassesGetter{client},
+		ResourceNamespace:               &namespacesGetter{client},
+		ResourceNode:                    &nodesGetter{client},
+		ResourceEndpoint:                &endpointsGetter{client},
+		ResourceEvent:                   &eventsGetter{client},
+		ResourceHorizontalPodAutoscaler: &hpasGetter{client},
+		ResourceNetworkPolicy:           &networkPoliciesGetter{client},
+		ResourceServiceAccount:          &serviceAccountsGetter{client},
+		ResourceRole:                    &rolesGetter{client},
+		ResourceRoleBinding:             &roleBindingsGetter{client},
+		ResourceClusterRole:             &clusterRolesGetter{client},
+		ResourceClusterRoleBinding:      &clusterRoleBindingsGetter{client},
+		ResourceResourceQuota:           &resourceQuotasGetter{client},
+		ResourceLimitRange:              &limitRangesGetter{client},
+		ResourcePodDisruptionBudget:     &podDisruptionBudgetsGetter{client},
 	}
 }
 
 func NewUpdaters(client kubernetes.Interface) map[ResourceType]Updater {
 	return map[ResourceType]Updater{
-		ResourcePod:          &podsUpdater{client},
-		ResourceDeployment:   &deploymentsUpdater{client},
-		ResourceStatefulSet:  &statefulSetsUpdater{client},
-		ResourceDaemonSet:    &daemonSetsUpdater{client},
-		ResourceService:      &servicesUpdater{client},
-		ResourceConfigMap:    &configMapsUpdater{client},
-		ResourceSecret:       &secretsUpdater{client},
-		ResourceIngress:      &ingressesUpdater{client},
-		ResourceJob:          &jobsUpdater{client},
-		ResourceCronJob:      &cronJobsUpdater{client},
-		ResourcePVC:          &pvcsUpdater{client},
-		ResourcePV:           &pvsUpdater{client},
-		ResourceStorageClass: &storageClassesUpdater{client},
-		ResourceNamespace:    &namespacesUpdater{client},
-		ResourceNode:         &nodesUpdater{client},
+		ResourcePod:                     &podsUpdater{client},
+		ResourceDeployment:              &deploymentsUpdater{client},
+		ResourceStatefulSet:             &statefulSetsUpdater{client},
+		ResourceDaemonSet:               &daemonSetsUpdater{client},
+		ResourceService:                 &servicesUpdater{client},
+		ResourceConfigMap:               &configMapsUpdater{client},
+		ResourceSecret:                  &secretsUpdater{client},
+		ResourceIngress:                 &ingressesUpdater{client},
+		ResourceJob:                     &jobsUpdater{client},
+		ResourceCronJob:                 &cronJobsUpdater{client},
+		ResourcePVC:                     &pvcsUpdater{client},
+		ResourcePV:                      &pvsUpdater{client},
+		ResourceStorageClass:            &storageClassesUpdater{client},
+		ResourceNamespace:               &namespacesUpdater{client},
+		ResourceNode:                    &nodesUpdater{client},
+		ResourceHorizontalPodAutoscaler: &hpasUpdater{client},
+		ResourceNetworkPolicy:           &networkPoliciesUpdater{client},
+		ResourceServiceAccount:          &serviceAccountsUpdater{client},
+		ResourceRole:                    &rolesUpdater{client},
+		ResourceRoleBinding:             &roleBindingsUpdater{client},
+		ResourceClusterRole:             &clusterRolesUpdater{client},
+		ResourceClusterRoleBinding:      &clusterRoleBindingsUpdater{client},
+		ResourceResourceQuota:           &resourceQuotasUpdater{client},
+		ResourceLimitRange:              &limitRangesUpdater{client},
+		ResourcePodDisruptionBudget:     &podDisruptionBudgetsUpdater{client},
 	}
 }
 
 func NewDeleters(client kubernetes.Interface) map[ResourceType]Deleter {
 	return map[ResourceType]Deleter{
-		ResourcePod:          &podsUpdater{client},
-		ResourceDeployment:   &deploymentsUpdater{client},
-		ResourceStatefulSet:  &statefulSetsUpdater{client},
-		ResourceDaemonSet:    &daemonSetsUpdater{client},
-		ResourceService:      &servicesUpdater{client},
-		ResourceConfigMap:    &configMapsUpdater{client},
-		ResourceSecret:       &secretsUpdater{client},
-		ResourceIngress:      &ingressesUpdater{client},
-		ResourceJob:          &jobsUpdater{client},
-		ResourceCronJob:      &cronJobsUpdater{client},
-		ResourcePVC:          &pvcsUpdater{client},
-		ResourcePV:           &pvsUpdater{client},
-		ResourceStorageClass: &storageClassesUpdater{client},
-		ResourceNamespace:    &namespacesUpdater{client},
-		ResourceNode:         &nodesUpdater{client},
+		ResourcePod:                     &podsUpdater{client},
+		ResourceDeployment:              &deploymentsUpdater{client},
+		ResourceStatefulSet:             &statefulSetsUpdater{client},
+		ResourceDaemonSet:               &daemonSetsUpdater{client},
+		ResourceService:                 &servicesUpdater{client},
+		ResourceConfigMap:               &configMapsUpdater{client},
+		ResourceSecret:                  &secretsUpdater{client},
+		ResourceIngress:                 &ingressesUpdater{client},
+		ResourceJob:                     &jobsUpdater{client},
+		ResourceCronJob:                 &cronJobsUpdater{client},
+		ResourcePVC:                     &pvcsUpdater{client},
+		ResourcePV:                      &pvsUpdater{client},
+		ResourceStorageClass:            &storageClassesUpdater{client},
+		ResourceNamespace:               &namespacesUpdater{client},
+		ResourceNode:                    &nodesUpdater{client},
+		ResourceHorizontalPodAutoscaler: &hpasUpdater{client},
+		ResourceNetworkPolicy:           &networkPoliciesUpdater{client},
+		ResourceServiceAccount:          &serviceAccountsUpdater{client},
+		ResourceRole:                    &rolesUpdater{client},
+		ResourceRoleBinding:             &roleBindingsUpdater{client},
+		ResourceClusterRole:             &clusterRolesUpdater{client},
+		ResourceClusterRoleBinding:      &clusterRoleBindingsUpdater{client},
+		ResourceResourceQuota:           &resourceQuotasUpdater{client},
+		ResourceLimitRange:              &limitRangesUpdater{client},
+		ResourcePodDisruptionBudget:     &podDisruptionBudgetsUpdater{client},
 	}
 }
 
@@ -587,6 +990,26 @@ func GetKindByResourceType(resourceType string) string {
 		return "Endpoint"
 	case "event":
 		return "Event"
+	case "horizontalpodautoscaler", "hpa":
+		return "HorizontalPodAutoscaler"
+	case "networkpolicy", "netpol":
+		return "NetworkPolicy"
+	case "serviceaccount", "sa":
+		return "ServiceAccount"
+	case "role":
+		return "Role"
+	case "rolebinding":
+		return "RoleBinding"
+	case "clusterrole":
+		return "ClusterRole"
+	case "clusterrolebinding":
+		return "ClusterRoleBinding"
+	case "resourcequota", "quota":
+		return "ResourceQuota"
+	case "limitrange":
+		return "LimitRange"
+	case "poddisruptionbudget", "pdb":
+		return "PodDisruptionBudget"
 	default:
 		return ""
 	}
@@ -595,21 +1018,31 @@ func GetKindByResourceType(resourceType string) string {
 // NewCreators 创建资源创建器映射
 func NewCreators(client kubernetes.Interface) map[ResourceType]Creator {
 	return map[ResourceType]Creator{
-		ResourcePod:          &podsCreator{client},
-		ResourceDeployment:   &deploymentsCreator{client},
-		ResourceStatefulSet:  &statefulSetsCreator{client},
-		ResourceDaemonSet:    &daemonSetsCreator{client},
-		ResourceService:      &servicesCreator{client},
-		ResourceConfigMap:    &configMapsCreator{client},
-		ResourceSecret:       &secretsCreator{client},
-		ResourceIngress:      &ingressesCreator{client},
-		ResourceJob:          &jobsCreator{client},
-		ResourceCronJob:      &cronJobsCreator{client},
-		ResourcePVC:          &pvcsCreator{client},
-		ResourcePV:           &pvsCreator{client},
-		ResourceStorageClass: &storageClassesCreator{client},
-		ResourceNamespace:    &namespacesCreator{client},
-		ResourceNode:         &nodesCreator{client},
+		ResourcePod:                     &podsCreator{client},
+		ResourceDeployment:              &deploymentsCreator{client},
+		ResourceStatefulSet:             &statefulSetsCreator{client},
+		ResourceDaemonSet:               &daemonSetsCreator{client},
+		ResourceService:                 &servicesCreator{client},
+		ResourceConfigMap:               &configMapsCreator{client},
+		ResourceSecret:                  &secretsCreator{client},
+		ResourceIngress:                 &ingressesCreator{client},
+		ResourceJob:                     &jobsCreator{client},
+		ResourceCronJob:                 &cronJobsCreator{client},
+		ResourcePVC:                     &pvcsCreator{client},
+		ResourcePV:                      &pvsCreator{client},
+		ResourceStorageClass:            &storageClassesCreator{client},
+		ResourceNamespace:               &namespacesCreator{client},
+		ResourceNode:                    &nodesCreator{client},
+		ResourceHorizontalPodAutoscaler: &hpasUpdater{client},
+		ResourceNetworkPolicy:           &networkPoliciesUpdater{client},
+		ResourceServiceAccount:          &serviceAccountsUpdater{client},
+		ResourceRole:                    &rolesUpdater{client},
+		ResourceRoleBinding:             &roleBindingsUpdater{client},
+		ResourceClusterRole:             &clusterRolesUpdater{client},
+		ResourceClusterRoleBinding:      &clusterRoleBindingsUpdater{client},
+		ResourceResourceQuota:           &resourceQuotasUpdater{client},
+		ResourceLimitRange:              &limitRangesUpdater{client},
+		ResourcePodDisruptionBudget:     &podDisruptionBudgetsUpdater{client},
 	}
 }
 

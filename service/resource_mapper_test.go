@@ -10,8 +10,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestMapPods(t *testing.T) {
@@ -244,7 +244,7 @@ func TestMapStorageClasses(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "standard",
 			},
-			Provisioner: "kubernetes.io/aws-ebs",
+			Provisioner:   "kubernetes.io/aws-ebs",
 			ReclaimPolicy: &reclaimDelete,
 		},
 	}
@@ -358,28 +358,28 @@ func TestMapCronJobs(t *testing.T) {
 
 func TestCalculateCPUUsage(t *testing.T) {
 	tests := []struct {
-		name       string
-		capacity    *resource.Quantity
-		usageStr   string
-		expected   float64
+		name     string
+		capacity *resource.Quantity
+		usageStr string
+		expected float64
 	}{
 		{
 			name:     "normal usage",
-			capacity:  resource.NewMilliQuantity(4000, resource.DecimalSI), // 4 cores
-			usageStr: "2000m",                                  // 2 cores
-			expected:  50.0,                                      // 50%
+			capacity: resource.NewMilliQuantity(4000, resource.DecimalSI), // 4 cores
+			usageStr: "2000m",                                             // 2 cores
+			expected: 50.0,                                                // 50%
 		},
 		{
 			name:     "zero capacity",
-			capacity:  resource.NewMilliQuantity(0, resource.DecimalSI),
+			capacity: resource.NewMilliQuantity(0, resource.DecimalSI),
 			usageStr: "1000m",
-			expected:  0.0,
+			expected: 0.0,
 		},
 		{
 			name:     "empty usage",
-			capacity:  resource.NewMilliQuantity(4000, resource.DecimalSI),
+			capacity: resource.NewMilliQuantity(4000, resource.DecimalSI),
 			usageStr: "",
-			expected:  0.0,
+			expected: 0.0,
 		},
 	}
 
@@ -393,28 +393,28 @@ func TestCalculateCPUUsage(t *testing.T) {
 
 func TestCalculateMemoryUsage(t *testing.T) {
 	tests := []struct {
-		name       string
-		capacity    *resource.Quantity
-		usageStr   string
-		expected   float64
+		name     string
+		capacity *resource.Quantity
+		usageStr string
+		expected float64
 	}{
 		{
 			name:     "normal usage",
-			capacity:  resource.NewQuantity(8*1024*1024*1024, resource.BinarySI), // 8Gi
-			usageStr: "4294967296",                                         // 4Gi
-			expected:  50.0,
+			capacity: resource.NewQuantity(8*1024*1024*1024, resource.BinarySI), // 8Gi
+			usageStr: "4294967296",                                              // 4Gi
+			expected: 50.0,
 		},
 		{
 			name:     "zero capacity",
-			capacity:  resource.NewQuantity(0, resource.BinarySI),
+			capacity: resource.NewQuantity(0, resource.BinarySI),
 			usageStr: "1073741824",
-			expected:  0.0,
+			expected: 0.0,
 		},
 		{
 			name:     "empty usage",
-			capacity:  resource.NewQuantity(8*1024*1024*1024, resource.BinarySI),
+			capacity: resource.NewQuantity(8*1024*1024*1024, resource.BinarySI),
 			usageStr: "",
-			expected:  0.0,
+			expected: 0.0,
 		},
 	}
 
@@ -532,8 +532,8 @@ func TestGetIngressClass(t *testing.T) {
 			expected: "nginx",
 		},
 		{
-			name: "without class name",
-			ing: networkingv1.Ingress{},
+			name:     "without class name",
+			ing:      networkingv1.Ingress{},
 			expected: "-",
 		},
 	}
@@ -548,9 +548,9 @@ func TestGetIngressClass(t *testing.T) {
 
 func TestGetStorageClassName(t *testing.T) {
 	tests := []struct {
-		name           string
-		pvc            corev1.PersistentVolumeClaim
-		expected       string
+		name     string
+		pvc      corev1.PersistentVolumeClaim
+		expected string
 	}{
 		{
 			name: "with storage class",
@@ -581,7 +581,7 @@ func TestGetStorageClassName(t *testing.T) {
 func TestGetInternalIP(t *testing.T) {
 	tests := []struct {
 		name     string
-		node      corev1.Node
+		node     corev1.Node
 		expected string
 	}{
 		{
@@ -618,8 +618,8 @@ func TestGetInternalIP(t *testing.T) {
 
 func TestFormatEventLastSeen(t *testing.T) {
 	tests := []struct {
-		name     string
-		event    corev1.Event
+		name  string
+		event corev1.Event
 	}{
 		{
 			name: "with last timestamp",
@@ -685,8 +685,8 @@ func TestGetNodeRoles(t *testing.T) {
 			expected: []string{"control-plane"},
 		},
 		{
-			name: "no roles",
-			node: corev1.Node{},
+			name:     "no roles",
+			node:     corev1.Node{},
 			expected: []string{"worker"},
 		},
 	}
@@ -736,8 +736,8 @@ func TestCountEndpointAddresses(t *testing.T) {
 			expected: 2,
 		},
 		{
-			name: "empty addresses",
-			ep: corev1.Endpoints{},
+			name:     "empty addresses",
+			ep:       corev1.Endpoints{},
 			expected: 0,
 		},
 	}
@@ -1035,8 +1035,8 @@ func TestCalculateJobDuration(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "no start time",
-			job:  batchv1.Job{},
+			name:     "no start time",
+			job:      batchv1.Job{},
 			expected: "-",
 		},
 		{
