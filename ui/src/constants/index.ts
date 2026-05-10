@@ -65,6 +65,7 @@ export const MENU_LIST: MenuGroup[] = [
       { key: 'resourcequotas', label: 'ResourceQuotas', icon: 'FaTachometerAlt' },
       { key: 'limitranges', label: 'LimitRanges', icon: 'FaSlidersH' },
       { key: 'poddisruptionbudgets', label: 'PDBs', icon: 'FaBalanceScale' },
+      { key: 'crds', label: 'CRDs', icon: 'FaPuzzlePiece' },
     ],
   },
   {

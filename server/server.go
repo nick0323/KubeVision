@@ -166,6 +166,7 @@ func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	api.RegisterRoutes(apiGroup, s.logger, s.getK8sClient, s.lruCacheMgr)
 	api.RegisterPasswordAdmin(apiGroup, s.configMgr, s.logger)
 	api.RegisterArgoCDRoutes(apiGroup, s.logger, s.k8sClientMgr)
+	api.RegisterCRDRoutes(apiGroup, s.logger, s.k8sClientMgr)
 }
 
 type serverClientProvider struct {

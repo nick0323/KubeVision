@@ -2,9 +2,6 @@
 
 # 忽略根目录的临时 Markdown 文件
 *.md
-.qwen
-*.exe
-config.yaml
 # 但保留重要的项目文档
 !README.md
 !DEPLOYMENT.md
@@ -16,23 +13,33 @@ config.yaml
 # ==================== 敏感工具（不推送） ====================
 cmd/tools/
 
+# ==================== 配置与密钥 ====================
+config.yaml
+.env
+.env.local
+.env.*.local
+!.env.example
+
 # ==================== 依赖目录 ====================
 node_modules/
 ui/node_modules/
 
-# 构建输出
+# ==================== 构建产物 ====================
 dist/
 ui/dist/
 build/
 ui/build/
+*.exe
+*.out
+*.test
 
-# 日志文件
+# ==================== 日志 ====================
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# 编辑器目录和文件
+# ==================== 编辑器 / IDE ====================
 .idea/
 .vscode/
 *.swp
@@ -40,41 +47,28 @@ yarn-error.log*
 *~
 .DS_Store
 
-# 环境变量
-.env
-.env.local
-.env.*.local
-!.env.example
-
-# 测试覆盖率
+# ==================== 测试覆盖率 ====================
 coverage/
 *.lcov
-
-# TypeScript 缓存
-*.tsbuildinfo
-
-# 临时文件
-tmp/
-temp/
-*.tmp
-
-# 备份文件（可能包含敏感信息）
-*.bak
-*.backup
-
-# ==================== 测试文件 ====================
-# Go 测试二进制文件（编译产物）
-*.test
-
-# 测试覆盖率输出（不推送）
 coverage.out
 coverage_partial.out
 final.out
 
-# 前端测试配置
+# ==================== 前端测试文件（不推送） ====================
+*.test.*
+*.spec.*
 ui/src/setupTests.ts
 ui/jest.config.js
 
-# 前端测试文件（不推送）
-*.test.*
-*.spec.*
+# ==================== 缓存 / 临时文件 ====================
+*.tsbuildinfo
+*.tmp
+tmp/
+temp/
+.qwen
+.vite/
+ui/.vite/
+
+# ==================== 备份文件 ====================
+*.bak
+*.backup

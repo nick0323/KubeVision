@@ -28,11 +28,16 @@
 
 /* TableStyle */
 .resource-table {
+  background: transparent;
   border-collapse: collapse;
   font-size: var(--font-size-base);
   min-width: 100%;
   table-layout: fixed;
   width: 100%;
+}
+
+.resource-table tbody {
+  background: transparent;
 }
 
 .resource-table thead {
@@ -177,7 +182,9 @@ th.sorted .sort-icon {
 }
 
 /* Empty state */
-.empty-row td {
+.resource-table tbody tr.empty-row td {
+  background: transparent;
+  border-bottom: none;
   padding: 60px 16px;
   text-align: center;
 }
@@ -230,7 +237,9 @@ th.sorted .sort-icon {
 }
 
 /* Error status */
-.error-row td {
+.resource-table tbody tr.error-row td {
+  background: transparent;
+  border-bottom: none;
   padding: 60px 16px;
   text-align: center;
 }

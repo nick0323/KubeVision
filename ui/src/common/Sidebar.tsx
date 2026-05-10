@@ -21,6 +21,7 @@ import {
   FaTachometerAlt,
   FaSlidersH,
   FaBalanceScale,
+  FaPuzzlePiece,
   FaHdd,
   FaDatabase,
   FaListAlt,
@@ -69,6 +70,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   FaTachometerAlt: <FaTachometerAlt />,
   FaSlidersH: <FaSlidersH />,
   FaBalanceScale: <FaBalanceScale />,
+  FaPuzzlePiece: <FaPuzzlePiece />,
 };
 
 /**

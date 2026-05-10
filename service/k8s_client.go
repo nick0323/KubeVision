@@ -40,6 +40,7 @@ type ClientManager struct {
 	healthInterval time.Duration
 	stopCh         chan struct{}
 	argocdManager  *ArgoCDManager
+	crdManager     *CRDManager
 }
 
 func NewClientHolder(cfg *rest.Config, logger *zap.Logger) (*ClientHolder, error) {
@@ -136,6 +137,15 @@ func NewClientManager(configMgr *config.Manager, logger *zap.Logger) (*ClientMan
 		}
 	}
 
+	// 初始化 CRD Manager
+	var crdMgr *CRDManager
+	if defaultHolder.config != nil {
+		crdMgr, err = NewCRDManager(defaultHolder.config, logger)
+		if err != nil {
+			logger.Warn("Failed to initialize CRD manager", zap.Error(err))
+		}
+	}
+
 	manager := &ClientManager{
 		configMgr:      configMgr,
 		logger:         logger,
@@ -143,6 +153,7 @@ func NewClientManager(configMgr *config.Manager, logger *zap.Logger) (*ClientMan
 		healthInterval: HealthCheckInterval,
 		stopCh:         make(chan struct{}),
 		argocdManager:  argocdMgr,
+		crdManager:     crdMgr,
 	}
 
 	go manager.startHealthMonitor()
@@ -226,6 +237,10 @@ func (m *ClientManager) GetDefaultRESTConfig() *rest.Config {
 
 func (m *ClientManager) GetArgoCDManager() *ArgoCDManager {
 	return m.argocdManager
+}
+
+func (m *ClientManager) GetCRDManager() *CRDManager {
+	return m.crdManager
 }
 
 func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, error) {

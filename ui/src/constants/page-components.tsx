@@ -3,6 +3,7 @@ import React from 'react';
 // LazyLoading...
 const LazyOverview = React.lazy(() => import('../pages/OverviewPage.tsx'));
 const LazyArgoCD = React.lazy(() => import('../pages/ArgoCDPage.tsx'));
+const LazyCRD = React.lazy(() => import('../pages/CRDPage.tsx'));
 
 // 导入 ResourceListPage（notLazyLoading...need传递 props）
 import { ResourceListPage } from '../pages/ResourceListPage.tsx';
@@ -136,6 +137,9 @@ export const PAGE_COMPONENTS = {
 
   // ArgoCD (GitOps)
   argocd: LazyArgoCD,
+
+  // CRD Browser
+  crds: LazyCRD,
 };
 
 export default PAGE_COMPONENTS;
