@@ -3,6 +3,7 @@ import { EventsTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
+import { isClusterResource } from '../constants/config';
 import './EventsTab.css';
 
 /**
@@ -25,12 +26,14 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     setError(null);
 
     try {
-      // preferUse resourceKind and name，兼容旧's podName
       const resourceName = name || podName;
-
       const involvedObject = resourceKind ? `${resourceKind}/${resourceName}` : resourceName;
+
+      // cluster-scoped resources (Node, PV, etc.) have no namespace
+      const eventNamespace = resourceKind && isClusterResource(resourceKind) ? '' : namespace;
+
       const response = await authFetch(
-        `/api/event?namespace=${namespace}&involvedObject=${involvedObject}&force=true`
+        `/api/event?namespace=${eventNamespace}&involvedObject=${involvedObject}&force=true`
       );
       const result = await response.json();
 

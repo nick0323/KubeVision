@@ -37,8 +37,8 @@ var (
 )
 
 type ExecClientProvider interface {
-	GetClientset() (*kubernetes.Clientset, error)
-	GetRESTConfig() (*rest.Config, error)
+	GetClientset(cluster string) (*kubernetes.Clientset, error)
+	GetRESTConfig(cluster string) (*rest.Config, error)
 }
 
 type wsInput struct {
@@ -154,7 +154,8 @@ func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider Exe
 	}
 	defer activeExecConnections.Add(-1)
 
-	clientset, config, err := getExecClient(execClientProvider)
+	cluster := c.Query("cluster")
+	clientset, config, err := getExecClient(execClientProvider, cluster)
 	if err != nil {
 		middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 		return
@@ -215,12 +216,12 @@ func parseExecCommand(commandStr string) ([]string, error) {
 	return args, nil
 }
 
-func getExecClient(provider ExecClientProvider) (*kubernetes.Clientset, *rest.Config, error) {
-	clientset, err := provider.GetClientset()
+func getExecClient(provider ExecClientProvider, cluster string) (*kubernetes.Clientset, *rest.Config, error) {
+	clientset, err := provider.GetClientset(cluster)
 	if err != nil {
 		return nil, nil, err
 	}
-	config, err := provider.GetRESTConfig()
+	config, err := provider.GetRESTConfig(cluster)
 	if err != nil {
 		return nil, nil, err
 	}

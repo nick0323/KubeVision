@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { authUtils, authFetch } from '../utils/auth';
-import { MENU_LIST } from '../constants';
+import apiClient from '../utils/apiClient';
+import { MENU_LIST, STORAGE_KEYS } from '../constants';
 import {
   FaChartPie,
   FaCube,
@@ -34,6 +35,7 @@ import {
   FaSync,
   FaGitAlt,
   FaArrowsAltV,
+  FaCloud,
 } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
 
@@ -104,6 +106,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
     });
     return state;
   });
+
+  const [clusters, setClusters] = useState<string[]>([]);
+  const [clusterOpen, setClusterOpen] = useState(false);
+  const clusterRef = useRef<HTMLDivElement>(null);
+  const currentCluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER) || 'default';
+
+  useEffect(() => {
+    apiClient.get<string[]>('/api/clusters').then(res => {
+      const list = res.data || [];
+      if (list.length > 1) setClusters(list);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (clusterRef.current && !clusterRef.current.contains(e.target as Node)) {
+        setClusterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleClusterChange = useCallback((name: string) => {
+    if (name === currentCluster) return;
+    localStorage.setItem(STORAGE_KEYS.CURRENT_CLUSTER, name);
+    window.location.reload();
+  }, [currentCluster]);
 
   /**
    * toggle分组展开/收起
@@ -206,8 +236,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </div>
 
-      {/* Logout button */}
+      {/* Bottom: cluster + logout */}
       <div className="sider-bottom">
+        {clusters.length > 0 && !collapsed && (
+          <div className="cluster-selector" ref={clusterRef}>
+            <div className="cluster-selector-trigger" onClick={() => setClusterOpen(o => !o)}>
+              <span className="icon"><FaCloud /></span>
+              <span className="cluster-name">{currentCluster}</span>
+              <span className="cluster-arrow">{clusterOpen ? '▲' : '▼'}</span>
+            </div>
+            {clusterOpen && (
+              <div className="cluster-dropdown">
+                {clusters.map(name => (
+                  <div
+                    key={name}
+                    className={`cluster-option ${name === currentCluster ? 'active' : ''}`}
+                    onClick={() => handleClusterChange(name)}
+                  >
+                    <span className="cluster-check">{name === currentCluster ? '✓' : ''}</span>
+                    {name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <button className="logout-btn" onClick={handleLogout}>
           <span className="icon">
             <FiLogOut />

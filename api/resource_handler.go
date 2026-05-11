@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const cacheVersion = "v2"
+const cacheVersion = "v3"
 
 func isClusterResource(resourceType string) bool {
 	return k8s.ResourceType(strings.ToLower(resourceType)).Normalize().IsClusterScoped()
@@ -38,7 +38,8 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider, cacheMg
 			return
 		}
 
-		clientset, metricsClient, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, metricsClient, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -62,7 +63,7 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider, cacheMg
 
 		// 尝试从缓存获取（除非强制刷新，ownerUid 查询不缓存）
 		if cacheMgr != nil && !forceRefresh && ownerUid == "" {
-			cacheKey := fmt.Sprintf("list:%s:%s:%s:%s:%s:%s:%s", cacheVersion, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
+			cacheKey := fmt.Sprintf("list:%s:%s:%s:%s:%s:%s:%s:%s", cacheVersion, cluster, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
 			if cached, ok := cacheMgr.Get(cacheKey); ok {
 				if result, ok := cached.([]model.SearchableItem); ok {
 					params := ParsePaginationParams(c)
@@ -98,7 +99,7 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider, cacheMg
 
 			// 写入缓存（ownerUid 查询不缓存）
 			if cacheMgr != nil && ownerUid == "" {
-				cacheKey := fmt.Sprintf("list:%s:%s:%s:%s:%s:%s:%s", cacheVersion, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
+				cacheKey := fmt.Sprintf("list:%s:%s:%s:%s:%s:%s:%s:%s", cacheVersion, cluster, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
 				cacheMgr.Set(cacheKey, items)
 			}
 
@@ -126,7 +127,7 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider, cacheMg
 
 		// 写入缓存（ownerUid 查询不缓存）
 		if cacheMgr != nil && ownerUid == "" {
-			cacheKey := fmt.Sprintf("list:%s:%s:%s:%s:%s:%s:%s", cacheVersion, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
+			cacheKey := fmt.Sprintf("list:%s:%s:%s:%s:%s:%s:%s:%s", cacheVersion, cluster, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since)
 			cacheMgr.Set(cacheKey, result)
 		}
 
@@ -186,7 +187,8 @@ func getResourceDetail(
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -208,7 +210,7 @@ func getResourceDetail(
 
 		// 尝试从缓存获取（除非强制刷新）
 		if cacheMgr != nil && !forceRefresh {
-			cacheKey := fmt.Sprintf("detail:%s:%s:%s", resourceType, ns, name)
+			cacheKey := fmt.Sprintf("detail:%s:%s:%s:%s:%s", cacheVersion, cluster, resourceType, ns, name)
 			if cached, ok := cacheMgr.Get(cacheKey); ok {
 				middleware.ResponseSuccess(c, cached, "Resource details retrieved successfully (cached)", nil)
 				return
@@ -225,7 +227,7 @@ func getResourceDetail(
 
 		// 写入缓存（2分钟 TTL）
 		if cacheMgr != nil {
-			cacheKey := fmt.Sprintf("detail:%s:%s:%s", resourceType, ns, name)
+			cacheKey := fmt.Sprintf("detail:%s:%s:%s:%s:%s", cacheVersion, cluster, resourceType, ns, name)
 			cacheMgr.SetWithTTL(cacheKey, obj, 2*time.Minute)
 		}
 
@@ -253,7 +255,8 @@ func deleteResource(
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -281,8 +284,8 @@ func deleteResource(
 
 		// 清除相关缓存
 		if cacheMgr != nil {
-			cacheMgr.Delete(fmt.Sprintf("detail:%s:%s:%s", resourceType, ns, name))
-			cacheMgr.Delete(fmt.Sprintf("list:%s:%s:%s::::", cacheVersion, resourceType, ns))
+			cacheMgr.Delete(fmt.Sprintf("detail:%s:%s:%s:%s:%s", cacheVersion, cluster, resourceType, ns, name))
+			cacheMgr.Delete(fmt.Sprintf("list:%s:%s:%s:%s::::", cacheVersion, cluster, resourceType, ns))
 		}
 
 		middleware.ResponseSuccess(c, nil, "Resource deleted successfully", nil)

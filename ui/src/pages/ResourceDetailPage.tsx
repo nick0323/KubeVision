@@ -13,6 +13,7 @@ import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './ResourceDetailPage.
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
+import { isClusterResource as isClusterScopeResource } from '../constants/config';
 import { notification } from '../common/Notification';
 import '../styles/detail-page.css';
 
@@ -162,7 +163,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
   );
 
   // determineis否forclusterresource
-  const isClusterResource = ['node', 'pv', 'storageclass', 'namespace', 'clusterrole', 'clusterrolebinding'].includes(resourceType);
+  const isClusterResource = isClusterScopeResource(resourceType);
 
   // 面包屑Config - with Pod detail pagekeepconsistent：resourceType > namespace(not可Click) > name
   const breadcrumbs = useMemo(

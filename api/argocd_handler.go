@@ -22,12 +22,24 @@ func RegisterArgoCDRoutes(r *gin.RouterGroup, logger *zap.Logger, k8sClientMgr *
 	}
 }
 
+func getArgoCDManager(c *gin.Context, k8sClientMgr *service.ClientManager) (*service.ArgoCDManager, error) {
+	cluster := c.Query("cluster")
+	mgr, err := k8sClientMgr.GetArgoCDManagerForCluster(cluster)
+	if err != nil {
+		return nil, fmt.Errorf("ArgoCD client not available: %w", err)
+	}
+	if mgr == nil {
+		return nil, fmt.Errorf("ArgoCD client not available")
+	}
+	return mgr, nil
+}
+
 // listArgoCDApps 列出 ArgoCD 应用
 func listArgoCDApps(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		argoCDMgr := k8sClientMgr.GetArgoCDManager()
-		if argoCDMgr == nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("ArgoCD client not available"), http.StatusServiceUnavailable)
+		argoCDMgr, err := getArgoCDManager(c, k8sClientMgr)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusServiceUnavailable)
 			return
 		}
 
@@ -46,9 +58,9 @@ func listArgoCDApps(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin
 // getArgoCDApp 获取单个应用详情
 func getArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		argoCDMgr := k8sClientMgr.GetArgoCDManager()
-		if argoCDMgr == nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("ArgoCD client not available"), http.StatusServiceUnavailable)
+		argoCDMgr, err := getArgoCDManager(c, k8sClientMgr)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusServiceUnavailable)
 			return
 		}
 
@@ -72,9 +84,9 @@ func getArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.H
 // syncArgoCDApp 同步应用
 func syncArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		argoCDMgr := k8sClientMgr.GetArgoCDManager()
-		if argoCDMgr == nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("ArgoCD client not available"), http.StatusServiceUnavailable)
+		argoCDMgr, err := getArgoCDManager(c, k8sClientMgr)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusServiceUnavailable)
 			return
 		}
 
@@ -84,7 +96,7 @@ func syncArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.
 			return
 		}
 
-		err := argoCDMgr.SyncApplicationByName(c.Request.Context(), name)
+		err = argoCDMgr.SyncApplicationByName(c.Request.Context(), name)
 		if err != nil {
 			logger.Error("Failed to sync ArgoCD application", zap.String("name", name), zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
@@ -98,9 +110,9 @@ func syncArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.
 // refreshArgoCDApp 刷新应用状态
 func refreshArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		argoCDMgr := k8sClientMgr.GetArgoCDManager()
-		if argoCDMgr == nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("ArgoCD client not available"), http.StatusServiceUnavailable)
+		argoCDMgr, err := getArgoCDManager(c, k8sClientMgr)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusServiceUnavailable)
 			return
 		}
 
@@ -110,7 +122,7 @@ func refreshArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) g
 			return
 		}
 
-		err := argoCDMgr.RefreshApplicationByName(c.Request.Context(), name)
+		err = argoCDMgr.RefreshApplicationByName(c.Request.Context(), name)
 		if err != nil {
 			logger.Error("Failed to refresh ArgoCD application", zap.String("name", name), zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
@@ -124,9 +136,9 @@ func refreshArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) g
 // deleteArgoCDApp 删除应用
 func deleteArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		argoCDMgr := k8sClientMgr.GetArgoCDManager()
-		if argoCDMgr == nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("ArgoCD client not available"), http.StatusServiceUnavailable)
+		argoCDMgr, err := getArgoCDManager(c, k8sClientMgr)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusServiceUnavailable)
 			return
 		}
 
@@ -136,7 +148,7 @@ func deleteArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gi
 			return
 		}
 
-		err := argoCDMgr.DeleteApplicationByName(c.Request.Context(), name)
+		err = argoCDMgr.DeleteApplicationByName(c.Request.Context(), name)
 		if err != nil {
 			logger.Error("Failed to delete ArgoCD application", zap.String("name", name), zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)

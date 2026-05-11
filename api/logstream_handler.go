@@ -49,7 +49,8 @@ func streamPodLog(
 	configProvider middleware.ConfigProvider,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			logger.Error("Failed to get K8s client", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
@@ -206,7 +207,7 @@ func setupWebSocketCloseHandler(ws *websocket.Conn, logger *zap.Logger, podName 
 }
 
 // getPodLogStream 获取 Pod 日志流
-func getPodLogStream(ctx context.Context, clientset *kubernetes.Clientset, namespace, podName string, opts *corev1.PodLogOptions, logger *zap.Logger) (io.ReadCloser, error) {
+func getPodLogStream(ctx context.Context, clientset kubernetes.Interface, namespace, podName string, opts *corev1.PodLogOptions, logger *zap.Logger) (io.ReadCloser, error) {
 	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, opts)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {

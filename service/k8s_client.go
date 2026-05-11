@@ -33,14 +33,16 @@ type ClientHolder struct {
 }
 
 type ClientManager struct {
-	configMgr      *config.Manager
-	logger         *zap.Logger
-	defaultClient  *ClientHolder
-	clientPool     sync.Map
-	healthInterval time.Duration
-	stopCh         chan struct{}
-	argocdManager  *ArgoCDManager
-	crdManager     *CRDManager
+	configMgr        *config.Manager
+	logger           *zap.Logger
+	defaultClient    *ClientHolder
+	clientPool       sync.Map
+	healthInterval   time.Duration
+	stopCh           chan struct{}
+	argocdManager    *ArgoCDManager
+	crdManager       *CRDManager
+	crdManagerPool   sync.Map
+	argocdManagerPool sync.Map
 }
 
 func NewClientHolder(cfg *rest.Config, logger *zap.Logger) (*ClientHolder, error) {
@@ -156,6 +158,11 @@ func NewClientManager(configMgr *config.Manager, logger *zap.Logger) (*ClientMan
 		crdManager:     crdMgr,
 	}
 
+	// 加载多集群配置
+	if cfg := configMgr.GetConfig(); cfg != nil {
+		manager.loadClustersFromConfig(cfg)
+	}
+
 	go manager.startHealthMonitor()
 	return manager, nil
 }
@@ -170,7 +177,14 @@ func createDefaultClientHolder(configMgr *config.Manager, logger *zap.Logger) (*
 }
 
 func buildK8sConfig(k8sConfig *model.KubernetesConfig) (*rest.Config, error) {
-	kubeconfig := os.Getenv("KUBECONFIG")
+	return buildK8sConfigFrom(k8sConfig, true)
+}
+
+func buildK8sConfigFrom(k8sConfig *model.KubernetesConfig, useEnv bool) (*rest.Config, error) {
+	kubeconfig := ""
+	if useEnv {
+		kubeconfig = os.Getenv("KUBECONFIG")
+	}
 	if kubeconfig == "" {
 		kubeconfig = k8sConfig.Kubeconfig
 	}
@@ -243,6 +257,44 @@ func (m *ClientManager) GetCRDManager() *CRDManager {
 	return m.crdManager
 }
 
+func (m *ClientManager) GetCRDManagerForCluster(cluster string) (*CRDManager, error) {
+	if cluster == "" || cluster == "default" {
+		return m.crdManager, nil
+	}
+	if cached, ok := m.crdManagerPool.Load(cluster); ok {
+		return cached.(*CRDManager), nil
+	}
+	restConfig := m.GetClientRESTConfig(cluster)
+	if restConfig == nil {
+		return nil, fmt.Errorf("no config for cluster: %s", cluster)
+	}
+	mgr, err := NewCRDManager(restConfig, m.logger.With(zap.String("cluster", cluster)))
+	if err != nil {
+		return nil, err
+	}
+	m.crdManagerPool.Store(cluster, mgr)
+	return mgr, nil
+}
+
+func (m *ClientManager) GetArgoCDManagerForCluster(cluster string) (*ArgoCDManager, error) {
+	if cluster == "" || cluster == "default" {
+		return m.argocdManager, nil
+	}
+	if cached, ok := m.argocdManagerPool.Load(cluster); ok {
+		return cached.(*ArgoCDManager), nil
+	}
+	restConfig := m.GetClientRESTConfig(cluster)
+	if restConfig == nil {
+		return nil, fmt.Errorf("no config for cluster: %s", cluster)
+	}
+	mgr, err := NewArgoCDManager(restConfig, m.logger.With(zap.String("cluster", cluster)))
+	if err != nil {
+		return nil, err
+	}
+	m.argocdManagerPool.Store(cluster, mgr)
+	return mgr, nil
+}
+
 func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, error) {
 	if clusterName == "" || clusterName == "default" {
 		return m.GetDefaultClient()
@@ -253,7 +305,60 @@ func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, er
 		return holder.GetClientset()
 	}
 
+	m.logger.Warn("cluster not found, falling back to default", zap.String("cluster", clusterName))
 	return m.GetDefaultClient()
+}
+
+func (m *ClientManager) GetClientRESTConfig(clusterName string) *rest.Config {
+	if clusterName == "" || clusterName == "default" {
+		return m.GetDefaultRESTConfig()
+	}
+	if client, ok := m.clientPool.Load(clusterName); ok {
+		holder := client.(*ClientHolder)
+		return holder.config
+	}
+	return m.GetDefaultRESTConfig()
+}
+
+func (m *ClientManager) AddCluster(name string, k8sConfig *model.KubernetesConfig) error {
+	restConfig, err := buildK8sConfigFrom(k8sConfig, false)
+	if err != nil {
+		return fmt.Errorf("failed to build config for cluster %s: %w", name, err)
+	}
+
+	holder, err := NewClientHolder(restConfig, m.logger.With(zap.String("cluster", name)))
+	if err != nil {
+		return fmt.Errorf("failed to create client for cluster %s: %w", name, err)
+	}
+
+	m.clientPool.Store(name, holder)
+	m.logger.Info("added cluster", zap.String("name", name), zap.String("host", restConfig.Host))
+	return nil
+}
+
+func (m *ClientManager) GetClusterNames() []string {
+	var names []string
+	names = append(names, "default")
+	m.clientPool.Range(func(key, _ interface{}) bool {
+		names = append(names, key.(string))
+		return true
+	})
+	return names
+}
+
+func (m *ClientManager) loadClustersFromConfig(cfg *model.Config) {
+	for _, cluster := range cfg.Clusters {
+		k8sConfig := &model.KubernetesConfig{
+			Kubeconfig: cluster.Kubeconfig,
+			APIServer:  cluster.APIServer,
+			Token:      cluster.Token,
+			Insecure:   cluster.Insecure,
+			CAFile:     cluster.CAFile,
+		}
+		if err := m.AddCluster(cluster.Name, k8sConfig); err != nil {
+			m.logger.Warn("failed to load cluster", zap.String("name", cluster.Name), zap.Error(err))
+		}
+	}
 }
 
 func (m *ClientManager) startHealthMonitor() {

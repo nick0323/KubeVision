@@ -5,6 +5,11 @@
 
 import { STORAGE_KEYS, CUSTOM_EVENTS, API_CONFIG } from '../constants';
 
+function getClusterQuery(): string {
+  const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
+  return cluster && cluster !== 'default' ? `&cluster=${encodeURIComponent(cluster)}` : '';
+}
+
 export interface TokenInfo {
   token: string;
   expiry?: number;
@@ -120,6 +125,12 @@ export function createAuthFetch() {
       ...options.headers,
     };
 
+    const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
+    if (cluster && cluster !== 'default') {
+      const separator = url.includes('?') ? '&' : '?';
+      url = `${url}${separator}cluster=${encodeURIComponent(cluster)}`;
+    }
+
     const response = await fetch(url, {
       ...options,
       headers,
@@ -143,11 +154,11 @@ export function createAuthFetch() {
 export function createAuthWebSocket(url: string, _protocols?: string | string[]): WebSocket {
   const token = authUtils.getToken();
 
-  // 将 token 附加到 URL query 参数，后端需支持从 query 读取
-  const separator = url.includes('?') ? '&' : '?';
-  const urlWithToken = token ? `${url}${separator}token=${encodeURIComponent(token)}` : url;
+  const clusterQS = getClusterQuery();
+  const separator = (url.includes('?') ? '&' : '?');
+  const urlWithAuth = token ? `${url}${separator}token=${encodeURIComponent(token)}${clusterQS}` : url;
 
-  return new WebSocket(urlWithToken);
+  return new WebSocket(urlWithAuth);
 }
 
 // Createglobal authFetch 实例
@@ -157,5 +168,8 @@ export const authFetch = createAuthFetch();
 export const getWsUrl = (endpoint: string): string => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const baseUrl = `${protocol}//${window.location.host}${API_CONFIG.BASE_URL}/ws${endpoint}`;
-  return baseUrl;
+  const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
+  if (!cluster || cluster === 'default') return baseUrl;
+  const separator = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${separator}cluster=${encodeURIComponent(cluster)}`;
 };

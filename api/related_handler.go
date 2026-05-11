@@ -41,7 +41,8 @@ func getResourceRelated(
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -76,7 +77,8 @@ func getResourceRelatedCluster(
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return

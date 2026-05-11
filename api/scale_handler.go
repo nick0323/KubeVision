@@ -32,7 +32,8 @@ func scaleResource(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Handl
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -60,7 +61,8 @@ func restartResource(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Han
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return

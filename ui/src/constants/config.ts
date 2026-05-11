@@ -43,6 +43,10 @@ export const CLUSTER_SCOPE_RESOURCES = new Set([
   'storageclasses',
   'namespace',
   'namespaces',
+  'clusterrole',
+  'clusterroles',
+  'clusterrolebinding',
+  'clusterrolebindings',
 ]) as ReadonlySet<string>;
 
 /**
@@ -164,6 +168,7 @@ export const STORAGE_KEYS = {
   REMEMBERED_USERNAME: 'remembered_username',
   SIDER_COLLAPSED: 'sider_collapsed',
   CURRENT_TAB: 'current_tab',
+  CURRENT_CLUSTER: 'current_cluster',
 } as const;
 
 // ==================== 事 componentType ====================

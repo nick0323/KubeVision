@@ -81,7 +81,8 @@ export const PodsTab: React.FC<PodsTabProps> = ({
       }
 
       // 后端按 owner UID 精确过滤，避免不同资源相同 label 导致误匹配
-      if (resourceUid) {
+      // Node use fieldSelector=spec.nodeName, no ownerUid since pods aren't owned by Node
+      if (resourceUid && !(resourceKind === 'Node' || resourceKind === 'node')) {
         url += `&ownerUid=${encodeURIComponent(resourceUid)}`;
       }
 

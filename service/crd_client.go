@@ -46,11 +46,11 @@ type CRDSummary struct {
 }
 
 type CRDInstance struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace,omitempty"`
-	Kind      string `json:"kind"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace,omitempty"`
+	Kind       string `json:"kind"`
 	APIVersion string `json:"apiVersion"`
-	Age       string `json:"age"`
+	Age        string `json:"age"`
 }
 
 func (m *CRDManager) ListCRDs(ctx context.Context) ([]CRDSummary, error) {

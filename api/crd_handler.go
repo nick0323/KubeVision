@@ -21,7 +21,12 @@ func RegisterCRDRoutes(r *gin.RouterGroup, logger *zap.Logger, k8sClientMgr *ser
 
 func listCRDs(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		crdMgr := k8sClientMgr.GetCRDManager()
+		cluster := c.Query("cluster")
+		crdMgr, err := k8sClientMgr.GetCRDManagerForCluster(cluster)
+		if err != nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("CRD client not available: %w", err), http.StatusServiceUnavailable)
+			return
+		}
 		if crdMgr == nil {
 			middleware.ResponseError(c, logger, fmt.Errorf("CRD client not available"), http.StatusServiceUnavailable)
 			return
@@ -40,7 +45,12 @@ func listCRDs(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.Handl
 
 func listCRDInstances(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		crdMgr := k8sClientMgr.GetCRDManager()
+		cluster := c.Query("cluster")
+		crdMgr, err := k8sClientMgr.GetCRDManagerForCluster(cluster)
+		if err != nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("CRD client not available: %w", err), http.StatusServiceUnavailable)
+			return
+		}
 		if crdMgr == nil {
 			middleware.ResponseError(c, logger, fmt.Errorf("CRD client not available"), http.StatusServiceUnavailable)
 			return
@@ -64,7 +74,12 @@ func listCRDInstances(logger *zap.Logger, k8sClientMgr *service.ClientManager) g
 
 func getCRDInstance(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		crdMgr := k8sClientMgr.GetCRDManager()
+		cluster := c.Query("cluster")
+		crdMgr, err := k8sClientMgr.GetCRDManagerForCluster(cluster)
+		if err != nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("CRD client not available: %w", err), http.StatusServiceUnavailable)
+			return
+		}
 		if crdMgr == nil {
 			middleware.ResponseError(c, logger, fmt.Errorf("CRD client not available"), http.StatusServiceUnavailable)
 			return

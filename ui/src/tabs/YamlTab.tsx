@@ -4,6 +4,7 @@ import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { notification } from '../common/Notification';
 import { authFetch } from '../utils/auth';
+import { isClusterResource } from '../constants/config';
 import { FaCopy, FaDownload, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
 import jsyaml from 'js-yaml';
 import Prism from 'prismjs';
@@ -128,14 +129,18 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
     title: resourceType,
   };
 
+  const isClusterScope = isClusterResource(resourceType);
+
   // Load YAML
   const loadYaml = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // backendUse单数形式：/api/{resourceType}/{namespace}/{name}/yaml
-      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}/yaml`);
+      const yamlPath = isClusterScope
+        ? `/api/${resourceType}/_cluster_/${name}/yaml`
+        : `/api/${resourceType}/${namespace}/${name}/yaml`;
+      const response = await authFetch(yamlPath);
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
@@ -252,7 +257,10 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       const parsed = jsyaml.load(yamlContent);
       // 清理no效字段
       const cleaned = cleanYamlForUpdate(parsed);
-      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}/yaml`, {
+      const yamlPath = isClusterScope
+        ? `/api/${resourceType}/_cluster_/${name}/yaml`
+        : `/api/${resourceType}/${namespace}/${name}/yaml`;
+      const response = await authFetch(yamlPath, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ yaml: cleaned }),
@@ -287,7 +295,10 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       const parsed = jsyaml.load(yamlContent);
       // 清理no效字段
       const cleaned = cleanYamlForUpdate(parsed);
-      const response = await authFetch(`/api/${resourceType}/${namespace}/${name}/yaml`, {
+      const yamlPath = isClusterScope
+        ? `/api/${resourceType}/_cluster_/${name}/yaml`
+        : `/api/${resourceType}/${namespace}/${name}/yaml`;
+      const response = await authFetch(yamlPath, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cleaned),

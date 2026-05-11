@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/nick0323/K8sVision/model"
 	"k8s.io/client-go/kubernetes"
-	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 var upgrader = websocket.Upgrader{
@@ -49,7 +48,7 @@ type PaginationParams struct {
 	SortOrder string
 }
 
-type K8sClientProvider func() (*kubernetes.Clientset, *versioned.Clientset, error)
+type K8sClientProvider func(cluster string) (kubernetes.Interface, interface{}, error)
 
 func ParsePaginationParams(c *gin.Context) PaginationParams {
 	limit := model.DefaultPageSize

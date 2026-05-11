@@ -3,6 +3,7 @@ import { RelatedTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
+import { isClusterResource as isClusterScopeResource } from '../constants/config';
 
 interface RelatedResource {
   kind: string;
@@ -38,9 +39,6 @@ const relationLabels: Record<string, string> = {
   contains: 'Contains',
 };
 
-// cluster级resourceList（not needed namespace）
-const CLUSTER_SCOPE_RESOURCES = ['persistentvolume', 'pv', 'storageclass', 'namespace', 'node'];
-
 /**
  * Related Tab - 关联resource
  */
@@ -50,7 +48,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
   const [error, setError] = useState<string | null>(null);
 
   // Determine if cluster-level resource
-  const isClusterResource = CLUSTER_SCOPE_RESOURCES.includes(resourceType.toLowerCase());
+  const isClusterResource = isClusterScopeResource(resourceType);
 
   // Loading...源
   useEffect(() => {

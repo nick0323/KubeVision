@@ -1,6 +1,6 @@
 import { authFetch } from './auth';
 import { APIResponse, PageMeta } from '../types';
-import { API_CONFIG, CACHE_CONFIG } from '../constants';
+import { API_CONFIG, CACHE_CONFIG, STORAGE_KEYS } from '../constants';
 
 export interface ApiOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
@@ -15,18 +15,25 @@ export interface ApiError extends Error {
   details?: unknown;
 }
 
+function getClusterParam(): Record<string, string> {
+  const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
+  return cluster && cluster !== 'default' ? { cluster } : {};
+}
+
 export const apiClient = {
   /**
    * CommonRequest方法，支持自动重试（指数退避）
    */
   async request<T>(endpoint: string, options: ApiOptions = {}): Promise<APIResponse<T>> {
     const {
-      params,
+      params: rawParams,
       timeout = API_CONFIG.TIMEOUT,
       retry = CACHE_CONFIG.RETRY_COUNT,
       retryDelay = CACHE_CONFIG.RETRY_DELAY,
       ...fetchOptions
     } = options;
+
+    const params = { ...getClusterParam(), ...rawParams };
 
     // Build URL
     let url = endpoint;

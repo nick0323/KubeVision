@@ -13,6 +13,16 @@ type Config struct {
 	Log        LogConfig        `mapstructure:"log" json:"log"`
 	Auth       AuthConfig       `mapstructure:"auth" json:"auth"`
 	Cache      CacheConfig      `mapstructure:"cache" json:"cache"`
+	Clusters   []ClusterConfig  `mapstructure:"clusters" json:"clusters"`
+}
+
+type ClusterConfig struct {
+	Name       string `mapstructure:"name" json:"name"`
+	Kubeconfig string `mapstructure:"kubeconfig" json:"kubeconfig"`
+	APIServer  string `mapstructure:"apiServer" json:"apiServer"`
+	Token      string `mapstructure:"token" json:"-"`
+	Insecure   bool   `mapstructure:"insecure" json:"insecure"`
+	CAFile     string `mapstructure:"caFile" json:"caFile"`
 }
 
 type ServerConfig struct {

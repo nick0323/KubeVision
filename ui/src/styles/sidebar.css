@@ -195,6 +195,82 @@
   color: var(--text-secondary);
 }
 
+/* Cluster Selector */
+.cluster-selector {
+  position: relative;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--bg-active-solid);
+}
+
+.cluster-selector-trigger {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: var(--spacing-sm) 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.cluster-selector-trigger:hover {
+  color: var(--primary);
+}
+
+.cluster-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--font-weight-normal);
+}
+
+.cluster-arrow {
+  font-size: var(--font-size-xs);
+  color: var(--text-disabled);
+}
+
+.cluster-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 12px;
+  right: 12px;
+  margin-bottom: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-sm);
+  z-index: var(--z-index-popover);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.cluster-option {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  transition: background var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cluster-option:hover {
+  background: var(--bg-active);
+  color: var(--primary);
+}
+
+.cluster-option.active {
+  color: var(--primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.cluster-check {
+  width: 16px;
+  color: var(--primary);
+  font-size: var(--font-size-sm);
+}
+
 /* 登出按钮 */
 .logout-btn {
   width: 100%;

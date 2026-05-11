@@ -150,15 +150,7 @@ func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	cfg := s.configMgr.GetConfig()
 	api.InitWebSocketManager(cfg.Server.MaxWsConnections)
 
-	clientset, _, err := s.getK8sClient()
-	if err != nil {
-		s.logger.Warn("Failed to get K8s client for overview service", zap.Error(err))
-		clientset = nil
-	}
-	overviewService := service.NewOverviewService(clientset)
-	api.RegisterOverview(apiGroup, s.logger, func() (*model.OverviewStatus, error) {
-		return overviewService.GetOverview(context.Background())
-	})
+	api.RegisterOverview(apiGroup, s.logger, s.getK8sClient)
 
 	api.RegisterOperations(apiGroup, s.logger, s.getK8sClient)
 	api.RegisterExecWS(apiGroup, s.logger, &serverClientProvider{mgr: s.k8sClientMgr}, s.configMgr)
@@ -167,38 +159,45 @@ func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	api.RegisterPasswordAdmin(apiGroup, s.configMgr, s.logger)
 	api.RegisterArgoCDRoutes(apiGroup, s.logger, s.k8sClientMgr)
 	api.RegisterCRDRoutes(apiGroup, s.logger, s.k8sClientMgr)
+	apiGroup.GET("/clusters", func(c *gin.Context) {
+		names := s.k8sClientMgr.GetClusterNames()
+		c.JSON(200, gin.H{"data": names})
+	})
 }
 
 type serverClientProvider struct {
 	mgr *service.ClientManager
 }
 
-func (s *serverClientProvider) GetClientset() (*kubernetes.Clientset, error) {
-	return s.mgr.GetDefaultClient()
+func (s *serverClientProvider) GetClientset(cluster string) (*kubernetes.Clientset, error) {
+	return s.mgr.GetClient(cluster)
 }
 
-func (s *serverClientProvider) GetRESTConfig() (*rest.Config, error) {
-	return s.mgr.GetDefaultRESTConfig(), nil
+func (s *serverClientProvider) GetRESTConfig(cluster string) (*rest.Config, error) {
+	cfg := s.mgr.GetClientRESTConfig(cluster)
+	if cfg == nil {
+		return nil, fmt.Errorf("rest config not available for cluster %s", cluster)
+	}
+	return cfg, nil
 }
 
-func (s *Server) getK8sClient() (*kubernetes.Clientset, *versioned.Clientset, error) {
+func (s *Server) getK8sClient(cluster string) (kubernetes.Interface, interface{}, error) {
 	if s.k8sClientMgr == nil {
 		return nil, nil, fmt.Errorf("kubernetes client manager unavailable")
 	}
-	clientset, err := s.k8sClientMgr.GetDefaultClient()
+	clientset, err := s.k8sClientMgr.GetClient(cluster)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// 创建 metrics 客户端
-	restConfig := s.k8sClientMgr.GetDefaultRESTConfig()
+	restConfig := s.k8sClientMgr.GetClientRESTConfig(cluster)
 	if restConfig == nil {
 		return clientset, nil, nil
 	}
 
 	metricsClient, err := versioned.NewForConfig(restConfig)
 	if err != nil {
-		// metrics 客户端创建失败不影响主功能
 		return clientset, nil, nil
 	}
 

@@ -19,6 +19,8 @@ func RegisterYAMLRoutes(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8s
 	r.POST("/:resourceType/yaml", createResourceYAML(logger, getK8sClient))
 	r.GET("/:resourceType/:namespace/:name/yaml", getResourceYAML(logger, getK8sClient))
 	r.PUT("/:resourceType/:namespace/:name/yaml", updateResourceYAML(logger, getK8sClient))
+	r.GET("/:resourceType/_cluster_/:name/yaml", getResourceYAMLCluster(logger, getK8sClient))
+	r.PUT("/:resourceType/_cluster_/:name/yaml", updateResourceYAMLCluster(logger, getK8sClient))
 }
 
 // getResourceYAML 获取资源 YAML
@@ -43,7 +45,8 @@ func getResourceYAML(
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -112,7 +115,8 @@ func updateResourceYAML(
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -121,6 +125,112 @@ func updateResourceYAML(
 		ctx := GetRequestContext(c)
 
 		// 根据资源类型调用不同的更新方法
+		err = service.UpdateResourceByType(ctx, clientset, resourceType, namespace, name, jsonBytes)
+		if err != nil {
+			logger.Error("Failed to update resource", zap.Error(err))
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+
+		middleware.ResponseSuccess(c, nil, "Resource updated successfully", nil)
+	}
+}
+
+// getResourceYAMLCluster 获取集群级资源 YAML（不带 namespace）
+func getResourceYAMLCluster(
+	logger *zap.Logger,
+	getK8sClient K8sClientProvider,
+) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resourceType := c.Param("resourceType")
+		name := c.Param("name")
+		namespace := ""
+
+		if resourceType == "event" {
+			middleware.ResponseError(c, logger, fmt.Errorf("Events resource does not support YAML format"), http.StatusBadRequest)
+			return
+		}
+
+		if err := validateResourceParams(resourceType, namespace); err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
+			return
+		}
+
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+
+		ctx := GetRequestContext(c)
+		obj, err := service.GetResourceByName(ctx, clientset, resourceType, namespace, name)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusNotFound)
+			return
+		}
+
+		yamlBytes, err := yaml.Marshal(obj)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+
+		middleware.ResponseSuccess(c, string(yamlBytes), "YAML retrieved successfully", nil)
+	}
+}
+
+// updateResourceYAMLCluster 更新集群级资源 YAML（不带 namespace）
+func updateResourceYAMLCluster(
+	logger *zap.Logger,
+	getK8sClient K8sClientProvider,
+) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resourceType := c.Param("resourceType")
+		name := c.Param("name")
+		namespace := ""
+
+		if resourceType == "event" {
+			middleware.ResponseError(c, logger, fmt.Errorf("Events resource does not support YAML update"), http.StatusBadRequest)
+			return
+		}
+
+		if err := validateResourceParams(resourceType, namespace); err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
+			return
+		}
+
+		var reqBody map[string]interface{}
+		if err := c.ShouldBindJSON(&reqBody); err != nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("invalid request body: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		var objData interface{} = reqBody
+		if yamlData, ok := reqBody["yaml"]; ok {
+			objData = yamlData
+		}
+
+		if err := validateResourceIdentity(resourceType, namespace, name, objData); err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
+			return
+		}
+
+		jsonBytes, err := json.Marshal(objData)
+		if err != nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("JSON serialization failed: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
+		if err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
+			return
+		}
+
+		ctx := GetRequestContext(c)
+
 		err = service.UpdateResourceByType(ctx, clientset, resourceType, namespace, name, jsonBytes)
 		if err != nil {
 			logger.Error("Failed to update resource", zap.Error(err))
@@ -172,7 +282,8 @@ func createResourceYAML(
 			return
 		}
 
-		clientset, _, err := getK8sClient()
+		cluster := c.Query("cluster")
+		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
