@@ -2,12 +2,12 @@
 import { useNavigate } from 'react-router-dom';
 import { PageConfig } from '../types';
 import { StatusBadge } from '../common/StatusBadge';
+import { FaInbox } from 'react-icons/fa';
 import {
   TableHeaderCell,
   TableRow,
   TableColumn,
   TableSkeleton,
-  EmptyState,
   ErrorState,
 } from '../common/Table';
 import PageHeader from '../common/PageHeader.tsx';
@@ -102,7 +102,6 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
     apiEndpoint: config.apiEndpoint,
     namespaceFilter: config.namespaceFilter,
     defaultSort: config.defaultSort,
-    initialPageSize: 20,
     staleTime: 30000, // 30 seconds cache
   });
 
@@ -436,9 +435,17 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
         />
       </PageHeader>
 
-      {/* Data table */}
-      <div className="table-container">
-        <table className="resource-table">
+      {/* Data table or empty state */}
+      {data.length === 0 ? (
+        <div className="resource-empty">
+          <div className="resource-empty-icon"><FaInbox /></div>
+          <p className="resource-empty-text">No data yet</p>
+          {search && <p className="resource-empty-desc">Try adjusting search criteria</p>}
+          {search && <button onClick={clearSearch} className="clear-search-btn">Clear search</button>}
+        </div>
+      ) : (
+        <div className="table-container">
+          <table className="resource-table">
           <thead>
             <tr>
               {allColumns.map((column, index) => (
@@ -453,41 +460,27 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
-              <EmptyState
-                message="No data yet"
-                description={search ? 'Try adjusting search criteria' : undefined}
-                colSpan={allColumns.length}
-                action={
-                  search && (
-                    <button onClick={clearSearch} className="clear-search-btn">
-                      Clear search
-                    </button>
-                  )
-                }
-              />
-            ) : (
-              <>
-                {data.map((record, rowIndex) => (
-                  <TableRow
-                    key={rowIndex}
-                    record={record}
-                    rowIndex={rowIndex}
-                    columns={allColumns}
-                    isStatusColumn={!!statusColumnIndex}
-                    statusColumnIndex={statusColumnIndex as string | undefined}
-                    StatusBadge={StatusBadge}
-                    resourceType={config.resourceType}
-                    onClick={handleRowClick}
-                  />
-                ))}
-                {/* Skeleton rows when refreshing */}
-                {isValidating && <TableSkeleton columns={allColumns.length} rows={2} />}
-              </>
-            )}
+            <>
+              {data.map((record, rowIndex) => (
+                <TableRow
+                  key={rowIndex}
+                  record={record}
+                  rowIndex={rowIndex}
+                  columns={allColumns}
+                  isStatusColumn={!!statusColumnIndex}
+                  statusColumnIndex={statusColumnIndex as string | undefined}
+                  StatusBadge={StatusBadge}
+                  resourceType={config.resourceType}
+                  onClick={handleRowClick}
+                />
+              ))}
+              {/* Skeleton rows when refreshing */}
+              {isValidating && <TableSkeleton columns={allColumns.length} rows={2} />}
+            </>
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Pagination */}
       {data.length > 0 && (
@@ -497,7 +490,6 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
           pageSize={pageSize}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
-          pageSizeOptions={[20, 50, 100, 500]}
           showQuickJumper
         />
       )}

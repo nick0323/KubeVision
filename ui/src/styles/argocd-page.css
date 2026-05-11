@@ -159,6 +159,12 @@
   white-space: nowrap;
 }
 
+.app-info-value--repo {
+  max-width: none;
+  word-break: break-all;
+  white-space: normal;
+}
+
 .operation-badge {
   display: inline-flex;
   align-items: center;
@@ -166,6 +172,50 @@
   border-radius: var(--radius-xs);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+}
+
+/* Revision chip */
+.revision-chip {
+  font-family: var(--font-main);
+  font-size: var(--font-size-xs);
+  background: var(--bg-active);
+  color: var(--primary);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+}
+
+/* Auto-sync badges */
+.auto-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  margin-left: 4px;
+}
+
+.auto-sync-badge:first-child {
+  margin-left: 0;
+}
+
+.auto-sync-badge svg {
+  font-size: 10px;
+}
+
+.auto-sync-on {
+  background: var(--bg-success);
+  color: var(--success);
+}
+
+.auto-sync-off {
+  background: var(--bg-disabled);
+  color: var(--text-disabled);
+}
+
+.app-info-value .auto-sync-badge + .auto-sync-badge {
+  margin-left: 4px;
 }
 
 /* 卡片操作按钮 */

@@ -7,8 +7,13 @@ import { ErrorDisplay } from '../common/ErrorDisplay';
 import { apiClient } from '../utils/apiClient';
 import { notification } from '../common/Notification';
 import { ArgoCDApplication } from '../types/argocd';
-import { FaCheckCircle, FaExclamationTriangle, FaSync, FaHourglassHalf } from 'react-icons/fa';
+import { FaCheckCircle, FaExclamationTriangle, FaSync, FaHourglassHalf, FaCheck, FaTimes } from 'react-icons/fa';
 import '../styles/argocd-page.css';
+
+function shortSha(rev?: string): string {
+  if (!rev) return '';
+  return rev.length > 7 ? rev.slice(0, 7) : rev;
+}
 
 /**
  * ArgoCD 应用管理页面
@@ -244,16 +249,52 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
                   </div>
                   <div className="app-info-row">
                     <span className="app-info-label">Repo:</span>
-                    <span className="app-info-value" title={app.spec.source.repoURL}>
-                      {app.spec.source.repoURL}
-                    </span>
+                    <span className="app-info-value app-info-value--repo">{app.spec.source.repoURL}</span>
                   </div>
+                  {app.spec.source.path && (
+                    <div className="app-info-row">
+                      <span className="app-info-label">Path:</span>
+                      <span className="app-info-value" title={app.spec.source.path}>
+                        {app.spec.source.path}
+                      </span>
+                    </div>
+                  )}
+                  {app.spec.source.targetRevision && (
+                    <div className="app-info-row">
+                      <span className="app-info-label">Revision:</span>
+                      <span className="app-info-value">{app.spec.source.targetRevision}</span>
+                    </div>
+                  )}
                   <div className="app-info-row">
-                    <span className="app-info-label">Target:</span>
+                    <span className="app-info-label">Namespace:</span>
                     <span className="app-info-value">
-                      {app.spec.destination.namespace}
+                      {app.spec.destination.namespace || app.spec.destination.server}
                     </span>
                   </div>
+                  {app.status.sync.revision && (
+                    <div className="app-info-row">
+                      <span className="app-info-label">Deployed:</span>
+                      <span className="app-info-value">
+                        <code className="revision-chip">{shortSha(app.status.sync.revision)}</code>
+                      </span>
+                    </div>
+                  )}
+                  {app.spec.syncPolicy?.automated && (
+                    <div className="app-info-row">
+                      <span className="app-info-label">Auto Sync:</span>
+                      <span className="app-info-value">
+                        <span className="auto-sync-badge auto-sync-on">
+                          <FaCheck /> Auto
+                        </span>
+                        <span className={`auto-sync-badge ${app.spec.syncPolicy.automated.prune ? 'auto-sync-on' : 'auto-sync-off'}`}>
+                          {app.spec.syncPolicy.automated.prune ? <FaCheck /> : <FaTimes />} Prune
+                        </span>
+                        <span className={`auto-sync-badge ${app.spec.syncPolicy.automated.selfHeal ? 'auto-sync-on' : 'auto-sync-off'}`}>
+                          {app.spec.syncPolicy.automated.selfHeal ? <FaCheck /> : <FaTimes />} Heal
+                        </span>
+                      </span>
+                    </div>
+                  )}
                   {app.status.operationState && (
                     <div className="app-info-row">
                       <span className="app-info-label">Operation:</span>

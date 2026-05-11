@@ -13,8 +13,8 @@ export const API_CONFIG = {
 // ==================== PaginationConfig ====================
 
 export const PAGINATION_CONFIG = {
-  DEFAULT_PAGE_SIZE: 20,
-  PAGE_SIZE_OPTIONS: [20, 50, 100, 500],
+  DEFAULT_PAGE_SIZE: 15,
+  PAGE_SIZE_OPTIONS: [15, 30, 50, 100],
   MIN_PAGE_SIZE: 10,
   MAX_PAGE_SIZE: 1000,
 } as const;

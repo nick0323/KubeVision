@@ -394,7 +394,6 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
             pageSize={pageSize}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
-            pageSizeOptions={[20, 50, 100, 500]}
             showQuickJumper
           />
         )}

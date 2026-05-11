@@ -16,6 +16,8 @@
   overflow: auto;
 }
 
+
+
 /* PageHeader andTable之间's间距 */
 .resource-list-page > .page-header {
   margin-bottom: 16px;
@@ -181,22 +183,17 @@ th.sorted .sort-icon {
   }
 }
 
-/* Empty state */
-.resource-table tbody tr.empty-row td {
-  background: transparent;
-  border-bottom: none;
-  padding: 60px 16px;
-  text-align: center;
-}
-
-.empty-state {
-  align-items: center;
+/* Empty state - standalone (no table container) */
+.resource-empty {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 16px;
   gap: var(--spacing-md);
 }
 
-.empty-icon {
+.resource-empty-icon {
   font-size: var(--font-size-icon-lg);
   color: var(--text-tertiary);
   display: flex;
@@ -204,20 +201,16 @@ th.sorted .sort-icon {
   justify-content: center;
 }
 
-.empty-message {
+.resource-empty-text {
   color: var(--text-quaternary);
   font-size: var(--font-size-base);
   margin: 0;
 }
 
-.empty-description {
+.resource-empty-desc {
   color: var(--text-disabled);
   font-size: var(--font-size-sm);
-  margin: 4px 0 0;
-}
-
-.empty-action {
-  margin-top: 16px;
+  margin: 0;
 }
 
 .clear-search-btn {

@@ -26,8 +26,7 @@
 
 ## Phase 3 — 架构增强
 
-- [ ] 3.1 动态客户端 — dynamic.Interface 替代 typed client ❌ (仅 ArgoCD Client 使用)
-- [ ] 3.2 多集群 UI — 前端集群切换 + 后端配置加载 ❌ (仅有 clientPool/GetClient 骨架)
+- [x] 3.2 多集群 UI — 前端集群切换 + 后端配置加载 ✅
 - [ ] 3.3 实时 Watch — Informer WebSocket 推送到前端 ❌
 - [x] 3.4 CRD 浏览器 — 动态列出 CRD 及其实例 ✅
 

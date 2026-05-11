@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { PaginationProps } from '../types';
-import { PAGE_SIZE_OPTIONS } from '../constants';
+import { PAGINATION_CONFIG } from '../constants';
 import './Pagination.css';
 
 /**
@@ -13,7 +13,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = PAGE_SIZE_OPTIONS,
+  pageSizeOptions = PAGINATION_CONFIG.PAGE_SIZE_OPTIONS,
   fixed = false,
   fixedBottom = false,
 }) => {

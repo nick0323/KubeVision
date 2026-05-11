@@ -53,27 +53,32 @@ export const MENU_LIST: MenuGroup[] = [
     ],
   },
   {
-    group: 'Others',
-    items: [
-      { key: 'horizontalpodautoscalers', label: 'HPA', icon: 'FaArrowsAltV' },
-      { key: 'networkpolicies', label: 'NetworkPolicies', icon: 'FaShieldAlt' },
-      { key: 'serviceaccounts', label: 'ServiceAccounts', icon: 'FaUserSecret' },
-      { key: 'roles', label: 'Roles', icon: 'FaUserTag' },
-      { key: 'rolebindings', label: 'RoleBindings', icon: 'FaUserCheck' },
-      { key: 'clusterroles', label: 'ClusterRoles', icon: 'FaUserTag' },
-      { key: 'clusterrolebindings', label: 'ClusterRoleBindings', icon: 'FaUserCheck' },
-      { key: 'resourcequotas', label: 'ResourceQuotas', icon: 'FaTachometerAlt' },
-      { key: 'limitranges', label: 'LimitRanges', icon: 'FaSlidersH' },
-      { key: 'poddisruptionbudgets', label: 'PDBs', icon: 'FaBalanceScale' },
-      { key: 'crds', label: 'CRDs', icon: 'FaPuzzlePiece' },
-    ],
-  },
-  {
     group: 'Cluster',
     items: [
       { key: 'nodes', label: 'Nodes', icon: 'FaServer' },
       { key: 'namespaces', label: 'Namespaces', icon: 'FaThLarge' },
       { key: 'events', label: 'Events', icon: 'FaBell' },
+    ],
+  },
+  {
+    group: 'Policy',
+    items: [
+      { key: 'networkpolicies', label: 'NetworkPolicies', icon: 'FaShieldAlt' },
+      { key: 'resourcequotas', label: 'ResourceQuotas', icon: 'FaTachometerAlt' },
+      { key: 'limitranges', label: 'LimitRanges', icon: 'FaSlidersH' },
+      { key: 'poddisruptionbudgets', label: 'PDBs', icon: 'FaBalanceScale' },
+    ],
+  },
+  {
+    group: 'Others',
+    items: [
+      { key: 'horizontalpodautoscalers', label: 'HPA', icon: 'FaArrowsAltV' },
+      { key: 'serviceaccounts', label: 'ServiceAccounts', icon: 'FaUserSecret' },
+      { key: 'roles', label: 'Roles', icon: 'FaUserTag' },
+      { key: 'rolebindings', label: 'RoleBindings', icon: 'FaUserCheck' },
+      { key: 'clusterroles', label: 'ClusterRoles', icon: 'FaUserTag' },
+      { key: 'clusterrolebindings', label: 'ClusterRoleBindings', icon: 'FaUserCheck' },
+      { key: 'crds', label: 'CRDs', icon: 'FaPuzzlePiece' },
     ],
   },
   {
@@ -83,10 +88,6 @@ export const MENU_LIST: MenuGroup[] = [
     ],
   },
 ];
-
-// Pagination Configuration
-export const DEFAULT_PAGE_SIZE = 10;
-export const PAGE_SIZE_OPTIONS = [10, 15, 20, 50];
 
 // Re-export from config.ts
 export * from './config';

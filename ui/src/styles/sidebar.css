@@ -198,8 +198,8 @@
 /* Cluster Selector */
 .cluster-selector {
   position: relative;
-  padding: 8px 24px;
-  border-bottom: 1px solid var(--bg-active-solid);
+  padding: 4px 24px;
+  border-top: 1px solid var(--bg-active-solid);
 }
 
 .cluster-selector-trigger {
@@ -274,8 +274,7 @@
 /* 登出按钮 */
 .logout-btn {
   width: 100%;
-  padding: var(--spacing-md) 24px;
-  margin-top: 24px;
+  padding: var(--spacing-sm) var(--spacing-lg);
   background: none;
   color: var(--text-secondary);
   border: none;
