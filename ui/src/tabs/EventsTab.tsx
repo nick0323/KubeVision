@@ -3,6 +3,7 @@ import { EventsTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
+import { formatTime } from '../utils/time';
 import { isClusterResource } from '../constants/config';
 import './EventsTab.css';
 
@@ -54,25 +55,6 @@ export const EventsTab: React.FC<EventsTabProps> = ({
     loadEvents();
   }, [loadEvents, name, resourceKind]);
 
-  // format化time
-  const formatTime = (timestamp?: string) => {
-    if (!timestamp) return '-';
-    // 尝试解析多种timeformat
-    try {
-      const date = new Date(timestamp);
-      // Format: 2026-03-31 20:42:11
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      const seconds = String(date.getSeconds()).padStart(2, '0');
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    } catch {
-      return timestamp;
-    }
-  };
-
   if (loading) {
     return <LoadingSpinner text="Loading....." size="lg" />;
   }
@@ -86,9 +68,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       <div className="detail-card">
         <h3 className="detail-card-title">Events</h3>
         {events.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-state-text">No events</span>
-          </div>
+          <div className="empty-state">No events</div>
         ) : (
           <table className="detail-table">
             <thead>
@@ -101,10 +81,7 @@ export const EventsTab: React.FC<EventsTabProps> = ({
             </thead>
             <tbody>
               {events.map((event: any, index: number) => (
-                <tr
-                  key={index}
-                  className={`table-row ${event.type === 'Warning' ? 'warning' : 'normal'}`}
-                >
+                <tr key={index} className="table-row">
                   <td>
                     <span
                       className={`event-type ${event.type === 'Warning' ? 'warning' : 'normal'}`}

@@ -5,6 +5,7 @@ import TemplateSelector from './TemplateSelector';
 import { LoadingSpinner } from './LoadingSpinner';
 import { notification } from './Notification';
 import { authFetch } from '../utils/auth';
+import { capitalize } from '../utils/string';
 import './CreateResourceModal.css';
 
 interface CreateResourceModalProps {
@@ -101,7 +102,7 @@ export const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
         {/* Header */}
         <div className="modal-header">
           <h2 className="modal-title">
-            Create {resourceType ? resourceType.charAt(0).toUpperCase() + resourceType.slice(1) : 'Resource'}
+            Create {resourceType ? capitalize(resourceType) : 'Resource'}
           </h2>
           <button className="modal-close" onClick={onClose}>
             <FaTimes />

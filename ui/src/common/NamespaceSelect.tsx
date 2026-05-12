@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { useClickOutside } from '../hooks/useClickOutside';
 import './NamespaceSelect.css';
 
 interface NamespaceSelectProps {
@@ -25,19 +26,7 @@ export const NamespaceSelect: React.FC<NamespaceSelectProps> = ({
   width,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Clickoutside部关闭under拉
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const containerRef = useClickOutside<HTMLDivElement>(() => setIsOpen(false));
 
   const handleSelect = (ns: string) => {
     onChange(ns);

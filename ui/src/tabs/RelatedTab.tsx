@@ -115,9 +115,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
       <div className="detail-card">
         <h3 className="detail-card-title">Related</h3>
         {relatedResources.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-state-text">No related resources found</span>
-          </div>
+          <div className="empty-state">No related resources found</div>
         ) : (
           <table className="detail-table">
             <thead>

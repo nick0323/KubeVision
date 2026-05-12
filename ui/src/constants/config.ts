@@ -72,6 +72,7 @@ export const RESOURCE_TYPE_MAP = {
   // Network
   service: 'services',
   ingress: 'ingress',
+  networkpolicy: 'networkpolicies',
   // Storage
   pvc: 'pvcs',
   pv: 'pvs',
@@ -82,6 +83,17 @@ export const RESOURCE_TYPE_MAP = {
   // Cluster
   namespace: 'namespaces',
   node: 'nodes',
+  // Auth
+  serviceaccount: 'serviceaccounts',
+  role: 'roles',
+  rolebinding: 'rolebindings',
+  clusterrole: 'clusterroles',
+  clusterrolebinding: 'clusterrolebindings',
+  // Policy
+  resourcequota: 'resourcequotas',
+  limitrange: 'limitranges',
+  poddisruptionbudget: 'poddisruptionbudgets',
+  horizontalpodautoscaler: 'horizontalpodautoscalers',
   // Events
   event: 'events',
 } as const;
@@ -105,6 +117,16 @@ export const RESOURCE_DISPLAY_NAMES: Record<string, string> = {
   secrets: 'Secrets',
   namespaces: 'Namespaces',
   nodes: 'Nodes',
+  networkpolicies: 'NetworkPolicies',
+  serviceaccounts: 'ServiceAccounts',
+  roles: 'Roles',
+  rolebindings: 'RoleBindings',
+  clusterroles: 'ClusterRoles',
+  clusterrolebindings: 'ClusterRoleBindings',
+  resourcequotas: 'ResourceQuotas',
+  limitranges: 'LimitRanges',
+  poddisruptionbudgets: 'PDBs',
+  horizontalpodautoscalers: 'HPA',
   events: 'Events',
 } as const;
 
@@ -124,6 +146,14 @@ export const SHELL_CONFIG = {
   OPTIONS: ['bash', 'sh', 'zsh'],
   DEFAULT: 'bash',
 } as const;
+
+export const ALWAYS_HIDDEN_FIELDS = ['managedFields', 'selfLink', 'clusterName'] as const;
+
+export const LINES_OPTIONS = [
+  { value: '100', label: '100' },
+  { value: '200', label: '200' },
+  { value: '500', label: '500' },
+] as const;
 
 // ==================== Time config ====================
 

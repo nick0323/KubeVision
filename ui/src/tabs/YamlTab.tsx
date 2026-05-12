@@ -5,21 +5,15 @@ import { ErrorDisplay } from '../common/ErrorDisplay';
 import { notification } from '../common/Notification';
 import { authFetch } from '../utils/auth';
 import { isClusterResource } from '../constants/config';
+import { capitalize } from '../utils/string';
+import { downloadFile } from '../utils/download';
+import { ALWAYS_HIDDEN_FIELDS } from '../constants/config';
 import { FaCopy, FaDownload, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
 import jsyaml from 'js-yaml';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-yaml';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import './YamlTab.css';
-
-/**
- * 始终hide's字段（inside部Use/already废弃）
- */
-const ALWAYS_HIDDEN_FIELDS = [
-  'managedFields',
-  'selfLink',
-  'clusterName',
-];
 
 /**
  * YAML Display options
@@ -125,7 +119,7 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
   // GetResource type config
   const resourceConfig = RESOURCE_TYPE_MAP[resourceType] || {
     apiVersion: 'v1',
-    kind: resourceType.charAt(0).toUpperCase() + resourceType.slice(1),
+    kind: capitalize(resourceType),
     title: resourceType,
   };
 
@@ -226,15 +220,8 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
     }
   }, [yamlContent]);
 
-  // 下载 YAML
   const handleDownload = useCallback(() => {
-    const blob = new Blob([yamlContent], { type: 'text/yaml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name}.yaml`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadFile(yamlContent, `${name}.yaml`, 'text/yaml;charset=utf-8');
   }, [yamlContent, name]);
 
   // 进入EditMode

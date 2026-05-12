@@ -119,9 +119,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
       <div className="detail-card">
         <h3 className="detail-card-title">Pods</h3>
         {pods.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-state-text">No Pods</span>
-          </div>
+          <div className="empty-state">No Pods</div>
         ) : (
           <table className="detail-table">
             <thead>

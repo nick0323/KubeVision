@@ -66,9 +66,7 @@ export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceNa
   if (!endpoints) {
     return (
       <div className="endpoints-tab">
-        <div className="empty-state">
-          <span className="empty-state-text">No Endpoints info</span>
-        </div>
+        <div className="empty-state">No Endpoints info</div>
       </div>
     );
   }
@@ -107,9 +105,7 @@ export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceNa
               </div>
             ))
           ) : (
-            <div className="empty-state">
-              <span className="empty-state-text">No Endpoints configured</span>
-            </div>
+            <div className="empty-state">No Endpoints configured</div>
           )}
         </div>
       </div>

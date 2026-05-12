@@ -1,6 +1,7 @@
 import React from 'react';
 import { FaDownload, FaEraser, FaCog } from 'react-icons/fa';
 import NamespaceSelect from '../common/NamespaceSelect';
+import { LINES_OPTIONS } from '../constants';
 import './LogsFilterBar.css';
 
 export interface LogsFilterBarProps {
@@ -27,12 +28,6 @@ export interface LogsFilterBarProps {
   logCount: number;
   totalLogs: number;
 }
-
-const LINES_OPTIONS = [
-  { value: '100', label: '100' },
-  { value: '200', label: '200' },
-  { value: '500', label: '500' },
-];
 
 /**
  * LogsFilterBar 日志filterToolbar

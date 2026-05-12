@@ -7,6 +7,8 @@ import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import Pagination from '../common/Pagination.tsx';
 import { apiClient } from '../utils/apiClient';
+import { downloadFile } from '../utils/download';
+import { ALWAYS_HIDDEN_FIELDS } from '../constants/config';
 import { FaArrowLeft, FaCopy, FaDownload } from 'react-icons/fa';
 import { notification } from '../common/Notification';
 import { EmptyState, ErrorState, TableSkeleton } from '../common/Table';
@@ -25,8 +27,6 @@ interface CRDSummary {
 }
 
 type ViewType = 'list' | 'instances' | 'yaml';
-
-const ALWAYS_HIDDEN_FIELDS = ['managedFields', 'selfLink', 'clusterName'];
 
 export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => void }> = ({
   collapsed,
@@ -157,13 +157,7 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
 
   const handleDownloadYaml = useCallback(() => {
     const name = selectedInstance?.metadata?.name || 'instance';
-    const blob = new Blob([instanceYaml], { type: 'text/yaml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name}.yaml`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadFile(instanceYaml, `${name}.yaml`, 'text/yaml;charset=utf-8');
   }, [instanceYaml, selectedInstance]);
 
   useEffect(() => {

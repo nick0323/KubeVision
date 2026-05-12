@@ -1,28 +1,26 @@
-/* Events Tab Style */
 .events-tab {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  padding-bottom: 10px;
 }
 
 .event-type {
   align-items: center;
-  border-radius: var(--radius-sm);
+  background: var(--bg-active);
+  border: 1px solid var(--primary-light);
+  border-radius: var(--radius-xs);
+  color: var(--primary);
   display: inline-flex;
+  font-family: var(--font-main);
   font-size: var(--font-size-sm);
   gap: 6px;
-  padding: 4px 12px;
+  padding: 3px 10px;
   white-space: nowrap;
-}
-
-.event-type.normal {
-  background: var(--bg-success);
-  color: var(--success);
 }
 
 .event-type.warning {
   background: var(--bg-warning);
+  border-color: var(--warning);
   color: var(--warning);
 }
 
@@ -36,25 +34,8 @@
   font-family: var(--font-main);
 }
 
-.event-source {
-  color: var(--text-tertiary);
-  font-family: var(--font-main);
-}
-
 .event-time {
   color: var(--text-tertiary);
   font-family: var(--font-main);
   white-space: nowrap;
-}
-
-.table-row.warning {
-  background: var(--bg-warning);
-}
-
-.table-row.warning:hover {
-  background: var(--bg-warning);
-}
-
-.table-row.normal:hover {
-  background: var(--bg-surface-alt);
 }

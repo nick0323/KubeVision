@@ -4,6 +4,8 @@ import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
 import { OverviewTabProps } from '../pages/ResourceDetailPage.types';
 import { StatusBadge } from '../common/StatusBadge';
+import { formatRelativeTime } from '../utils/time';
+import { truncateText } from '../utils/string';
 import './OverviewTab.css';
 import '../styles/detail-page.css';
 
@@ -371,32 +373,8 @@ function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
   );
 }
 
-/**
- * 截断text
- */
-const truncateText = (text: string, maxLength: number) => {
-  if (!text) return '';
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + '...';
-};
 
-/**
- * format化relativetime
- */
-const formatRelativeTime = (timestamp?: string) => {
-  if (!timestamp) return '-';
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
 
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'Just now';
-};
 
 /**
  * Commonresource概览 Tab
@@ -484,9 +462,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 </span>
               </div>
             )) || (
-              <div className="empty-state">
-                <span className="empty-state-text">No ports defined</span>
-              </div>
+              <div className="empty-state">No ports defined</div>
             )}
           </div>
         </div>
@@ -506,9 +482,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 </span>
               </div>
             )) || (
-              <div className="empty-state">
-                <span className="empty-state-text">No environment variables</span>
-              </div>
+              <div className="empty-state">No environment variables</div>
             )}
           </div>
         </div>
@@ -567,9 +541,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 </span>
               </div>
             )) || (
-              <div className="empty-state">
-                <span className="empty-state-text">No volumes</span>
-              </div>
+              <div className="empty-state">No volumes</div>
             )}
           </div>
         </div>

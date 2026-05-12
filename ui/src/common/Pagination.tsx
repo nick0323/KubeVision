@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { PaginationProps } from '../types';
 import { PAGINATION_CONFIG } from '../constants';
 import './Pagination.css';
@@ -19,7 +20,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 }) => {
   const totalPages = Math.ceil(total / pageSize);
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useClickOutside<HTMLDivElement>(() => setIsOpen(false));
 
   // 键盘快捷键 Support
   useEffect(() => {
@@ -41,18 +42,6 @@ export const Pagination: React.FC<PaginationProps> = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [fixedBottom, fixed, currentPage, totalPages, onPageChange]);
-
-  // Click outside 关闭 dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   if (total <= pageSize) return null;
 

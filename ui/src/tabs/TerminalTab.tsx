@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { TerminalTabProps } from '../pages/ResourceDetailPage.types';
 import { FaPlug, FaTimes, FaEraser, FaChevronDown } from 'react-icons/fa';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { useNotification } from '../common/Notification';
 import NamespaceSelect from '../common/NamespaceSelect';
 import { Terminal } from 'xterm';
@@ -26,7 +27,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
   const [showShellDropdown, setShowShellDropdown] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
+  const shellRef = useClickOutside<HTMLDivElement>(() => setShowShellDropdown(false));
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -146,16 +147,7 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     };
   }, []);
 
-  // Close shell dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (shellRef.current && !shellRef.current.contains(event.target as Node)) {
-        setShowShellDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
 
   // Connect to terminal
   const handleConnect = useCallback(() => {

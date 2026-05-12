@@ -10,6 +10,8 @@ import { RelatedTab } from '../tabs/RelatedTab';
 import { EndpointsTab } from '../tabs/EndpointsTab';
 import { useResourceDetail } from '../hooks/useResourceDetail';
 import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './ResourceDetailPage.types';
+import { capitalize } from '../utils/string';
+import { RESOURCE_TYPE_MAP } from '../constants/config';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch } from '../utils/auth';
@@ -165,7 +167,9 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
   // determineis否forclusterresource
   const isClusterResource = isClusterScopeResource(resourceType);
 
-  // 面包屑Config - with Pod detail pagekeepconsistent：resourceType > namespace(not可Click) > name
+  const getResourceListPath = (type: string): string =>
+    (RESOURCE_TYPE_MAP as Record<string, string>)[type] || 'overview';
+
   const breadcrumbs = useMemo(
     () => [
       { label: config.title, path: getResourceListPath(resourceType) },
@@ -175,46 +179,12 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
     [config.title, resourceType, namespace, resourceName, isClusterResource]
   );
 
-  /**
-   * according toresourceTypeGetList页路径（tab key，not带斜杠）
-   */
-  function getResourceListPath(type: string): string {
-    const typeToPath: Record<string, string> = {
-      pod: 'pods',
-      deployment: 'deployments',
-      statefulset: 'statefulsets',
-      daemonset: 'daemonsets',
-      job: 'jobs',
-      cronjob: 'cronjobs',
-      service: 'services',
-      ingress: 'ingress',
-      configmap: 'configmaps',
-      secret: 'secrets',
-      pvc: 'pvcs',
-      pv: 'pvs',
-      storageclass: 'storageclasses',
-      namespace: 'namespaces',
-      node: 'nodes',
-      horizontalpodautoscaler: 'horizontalpodautoscalers',
-      networkpolicy: 'networkpolicies',
-      serviceaccount: 'serviceaccounts',
-      role: 'roles',
-      rolebinding: 'rolebindings',
-      clusterrole: 'clusterroles',
-      clusterrolebinding: 'clusterrolebindings',
-      resourcequota: 'resourcequotas',
-      limitrange: 'limitranges',
-      poddisruptionbudget: 'poddisruptionbudgets',
-    };
-    return typeToPath[type] || 'overview';
-  }
-
   // Tab Config
   const tabItems: TabItem[] = useMemo(
     () =>
       config.tabs.map(key => ({
         key,
-        label: key.charAt(0).toUpperCase() + key.slice(1),
+        label: capitalize(key),
       })),
     [config.tabs]
   );

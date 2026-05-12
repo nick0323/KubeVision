@@ -4,15 +4,12 @@ import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { FaCog, FaDownload, FaChevronDown, FaEraser } from 'react-icons/fa';
 import NamespaceSelect from '../common/NamespaceSelect';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { createAuthWebSocket, getWsUrl } from '../utils/auth';
-import { LOG_CONFIG } from '../constants';
+import { stripAnsiCodes, classifyLogLine } from '../utils/string';
+import { downloadFile } from '../utils/download';
+import { LOG_CONFIG, LINES_OPTIONS } from '../constants';
 import './LogsTab.css';
-
-const LINES_OPTIONS = [
-  { value: '100', label: '100' },
-  { value: '200', label: '200' },
-  { value: '500', label: '500' },
-];
 
 // Performance: max log lines to display
 const MAX_LOG_LINES = LOG_CONFIG.MAX_LOG_LINES;
@@ -55,18 +52,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
   // Tail Lines under拉
   const [showLinesDropdown, setShowLinesDropdown] = useState(false);
-  const linesRef = useRef<HTMLDivElement>(null);
-
-  // Clickoutside部关闭 Tail Lines under拉
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (linesRef.current && !linesRef.current.contains(event.target as Node)) {
-        setShowLinesDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const linesRef = useClickOutside<HTMLDivElement>(() => setShowLinesDropdown(false));
 
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(500);
@@ -74,18 +60,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
   const logsEndRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const settingsRef = useRef<HTMLDivElement>(null);
-
-  // Clickoutside部关闭Settings panel
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
-        setShowSettings(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const settingsRef = useClickOutside<HTMLDivElement>(() => setShowSettings(false));
 
   // Limit log lines
   const limitedLogs = useMemo(() => {
@@ -127,8 +102,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
         const data = JSON.parse(event.data);
 
         if (data.type === 'log') {
-          const newLines = data.content
-            .replace(/\u001b\[[0-9;]*m/g, '')
+          const newLines = stripAnsiCodes(data.content)
             .split('\n')
             .filter((line: string) => line.length > 0);
 
@@ -248,13 +222,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
   // Download logs
   const handleDownload = useCallback(() => {
-    const blob = new Blob([limitedLogs.join('\n')], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${name}-${selectedContainer}-logs.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadFile(limitedLogs.join('\n'), `${name}-${selectedContainer}-logs.txt`);
   }, [limitedLogs, name, selectedContainer]);
 
   // Clear logs
@@ -270,11 +238,8 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
         const actualIndex = i + offset;
         const isInSearchResults = searchResults.includes(actualIndex);
 
-        let className = 'log-line';
-        if (isInSearchResults) className += ' highlight';
-        if (line.toLowerCase().includes('error')) className += ' error';
-        else if (line.toLowerCase().includes('warn')) className += ' warn';
-        else if (line.toLowerCase().includes('info')) className += ' info';
+        const isSearchHit = isInSearchResults ? ' highlight' : '';
+        const className = classifyLogLine(line) + isSearchHit;
 
         return (
           <div key={actualIndex} id={`log-line-${actualIndex}`} className={className}>
@@ -298,11 +263,8 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       const actualIndex = i + offset;
       const isInSearchResults = searchResults.includes(actualIndex);
 
-      let className = 'log-line';
-      if (isInSearchResults) className += ' highlight';
-      if (line.toLowerCase().includes('error')) className += ' error';
-      else if (line.toLowerCase().includes('warn')) className += ' warn';
-      else if (line.toLowerCase().includes('info')) className += ' info';
+      const isSearchHit = isInSearchResults ? ' highlight' : '';
+      const className = classifyLogLine(line) + isSearchHit;
 
       lines.push(
         <div
@@ -466,7 +428,7 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       ) : logs.length === 0 ? (
         <div className="empty-state">
           <span className="empty-state-icon">📭</span>
-          <span className="empty-state-text">No logs available</span>
+          No logs available
         </div>
       ) : (
         <div
