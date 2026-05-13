@@ -1,7 +1,8 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { LoginPageProps } from '../types';
 import { authUtils } from '../utils/auth';
-import { notification } from '../common/Notification';
+import { apiClient } from '../utils/apiClient';
+import { notification } from '../common/NotificationContext';
 import './LoginPage.css';
 
 /**

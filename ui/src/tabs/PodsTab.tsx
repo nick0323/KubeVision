@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { StatusBadge } from '../common/StatusBadge';
-import { authFetch } from '../utils/auth';
+import { authFetch, withCluster } from '../utils/auth';
+import { PodsTabProps } from '../pages/ResourceDetailPage.types';
 import './PodsTab.css';
 
 interface Pod {
@@ -15,14 +16,6 @@ interface Pod {
   age?: string;
   podIP?: string;
   nodeName?: string;
-}
-
-interface PodsTabProps {
-  namespace: string;
-  resourceName: string;
-  resourceKind: string;
-  resourceLabels?: Record<string, string>;
-  resourceUid?: string;
 }
 
 /**
@@ -61,7 +54,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
     return selectors.length > 0 ? selectors.join(',') : null;
   }, [resourceLabels]);
 
-  // Loading...ds
+  // Load pods
   const loadPods = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -86,7 +79,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
         url += `&ownerUid=${encodeURIComponent(resourceUid)}`;
       }
 
-      const response = await authFetch(url);
+      const response = await authFetch(withCluster(url));
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
@@ -107,7 +100,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
   }, [loadPods]);
 
   if (loading) {
-    return <LoadingSpinner text="Loading...ds..." size="lg" />;
+    return <LoadingSpinner text="Loading Pods..." size="lg" />;
   }
 
   if (error && pods.length === 0) {

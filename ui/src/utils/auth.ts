@@ -5,11 +5,6 @@
 
 import { STORAGE_KEYS, CUSTOM_EVENTS, API_CONFIG } from '../constants';
 
-function getClusterQuery(): string {
-  const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
-  return cluster && cluster !== 'default' ? `&cluster=${encodeURIComponent(cluster)}` : '';
-}
-
 export interface TokenInfo {
   token: string;
   expiry?: number;
@@ -125,12 +120,6 @@ export function createAuthFetch() {
       ...options.headers,
     };
 
-    const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
-    if (cluster && cluster !== 'default') {
-      const separator = url.includes('?') ? '&' : '?';
-      url = `${url}${separator}cluster=${encodeURIComponent(cluster)}`;
-    }
-
     const response = await fetch(url, {
       ...options,
       headers,
@@ -154,15 +143,24 @@ export function createAuthFetch() {
 export function createAuthWebSocket(url: string, _protocols?: string | string[]): WebSocket {
   const token = authUtils.getToken();
 
-  const clusterQS = getClusterQuery();
   const separator = (url.includes('?') ? '&' : '?');
-  const urlWithAuth = token ? `${url}${separator}token=${encodeURIComponent(token)}${clusterQS}` : url;
+  const urlWithAuth = token ? `${url}${separator}token=${encodeURIComponent(token)}` : url;
 
   return new WebSocket(urlWithAuth);
 }
 
 // Createglobal authFetch 实例
 export const authFetch = createAuthFetch();
+
+/**
+ * Add cluster param to URL if not on default cluster
+ */
+export function withCluster(url: string): string {
+  const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
+  if (!cluster || cluster === 'default') return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}cluster=${encodeURIComponent(cluster)}`;
+}
 
 // WebSocket URL Config
 export const getWsUrl = (endpoint: string): string => {

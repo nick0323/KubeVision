@@ -3,9 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
-	"time"
 
 	"github.com/nick0323/K8sVision/model"
 	"go.uber.org/zap"
@@ -315,36 +313,7 @@ func ListEvents(ctx context.Context, clientset kubernetes.Interface, namespace, 
 		return nil, err
 	}
 
-	duration, err := time.ParseDuration(since)
-	if err != nil {
-		duration = 1 * time.Hour
-	}
-
-	cutoffTime := time.Now().Add(-duration)
-	filteredEvents := make([]corev1.Event, 0, len(events.Items))
-	for _, event := range events.Items {
-		eventTime := event.LastTimestamp.Time
-		if eventTime.IsZero() {
-			eventTime = event.EventTime.Time
-		}
-		if !eventTime.IsZero() && eventTime.After(cutoffTime) {
-			filteredEvents = append(filteredEvents, event)
-		}
-	}
-
-	sort.Slice(filteredEvents, func(i, j int) bool {
-		iTime := filteredEvents[i].LastTimestamp.Time
-		if iTime.IsZero() {
-			iTime = filteredEvents[i].EventTime.Time
-		}
-		jTime := filteredEvents[j].LastTimestamp.Time
-		if jTime.IsZero() {
-			jTime = filteredEvents[j].EventTime.Time
-		}
-		return iTime.After(jTime)
-	})
-
-	return MapEvents(filteredEvents), nil
+	return MapEvents(filterEventsByTime(events.Items, since)), nil
 }
 
 func ListEndpoints(ctx context.Context, clientset kubernetes.Interface, namespace, labelSelector, fieldSelector string) ([]model.Endpoints, error) {

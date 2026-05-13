@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/nick0323/K8sVision/api/middleware"
 	"github.com/nick0323/K8sVision/model"
 	"k8s.io/client-go/kubernetes"
 )
@@ -79,30 +80,7 @@ func GetRequestContext(c *gin.Context) context.Context {
 }
 
 func ExtractTokenFromRequest(c *gin.Context) string {
-	if c == nil || c.Request == nil {
-		return ""
-	}
-	if token := extractTokenFromWebSocket(c.GetHeader("Sec-WebSocket-Protocol")); token != "" {
-		return token
-	}
-	if token := c.GetHeader("Authorization"); token != "" {
-		return strings.TrimPrefix(token, "Bearer ")
-	}
-	return c.Query("token")
-}
-
-func extractTokenFromWebSocket(headerValue string) string {
-	if headerValue == "" {
-		return ""
-	}
-	parts := strings.Split(headerValue, ",")
-	for i := range parts {
-		parts[i] = strings.TrimSpace(parts[i])
-	}
-	if len(parts) >= 2 && parts[0] == webSocketAuthProtocol && parts[1] != "" {
-		return parts[1]
-	}
-	return strings.TrimSpace(headerValue)
+	return middleware.ExtractTokenFromRequest(c)
 }
 
 func buildWebSocketUpgradeHeaders(c *gin.Context) http.Header {

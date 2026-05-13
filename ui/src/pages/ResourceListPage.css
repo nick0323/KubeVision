@@ -16,8 +16,6 @@
   overflow: auto;
 }
 
-
-
 /* PageHeader andTable之间's间距 */
 .resource-list-page > .page-header {
   margin-bottom: 16px;
@@ -211,6 +209,45 @@ th.sorted .sort-icon {
   color: var(--text-disabled);
   font-size: var(--font-size-sm);
   margin: 0;
+}
+
+/* Table empty state (shared with CRDPage) */
+.resource-table tbody tr.empty-row td {
+  background: transparent;
+  border-bottom: none;
+  padding: 60px 16px;
+  text-align: center;
+}
+
+.empty-state {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.empty-icon {
+  font-size: var(--font-size-icon-lg);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-message {
+  color: var(--text-quaternary);
+  font-size: var(--font-size-base);
+  margin: 0;
+}
+
+.empty-description {
+  color: var(--text-disabled);
+  font-size: var(--font-size-sm);
+  margin: 4px 0 0;
+}
+
+.empty-action {
+  margin-top: 16px;
 }
 
 .clear-search-btn {

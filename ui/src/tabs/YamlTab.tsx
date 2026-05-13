@@ -2,12 +2,12 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { YamlTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
-import { notification } from '../common/Notification';
-import { authFetch } from '../utils/auth';
+import { notification } from '../common/NotificationContext';
+import { authFetch, withCluster } from '../utils/auth';
 import { isClusterResource } from '../constants/config';
 import { capitalize } from '../utils/string';
 import { downloadFile } from '../utils/download';
-import { ALWAYS_HIDDEN_FIELDS } from '../constants/config';
+import { filterHiddenFields } from '../utils/filterHiddenFields';
 import { FaCopy, FaDownload, FaEdit, FaExchangeAlt, FaSave, FaRocket, FaTimes } from 'react-icons/fa';
 import jsyaml from 'js-yaml';
 import Prism from 'prismjs';
@@ -25,19 +25,6 @@ interface YamlDisplayOptions {
 /**
  * 递归filter YAML object'shide字段
  */
-const filterHiddenFields = (obj: any, options: YamlDisplayOptions): any => {
-  if (typeof obj !== 'object' || obj === null) return obj;
-  if (Array.isArray(obj)) return obj.map(item => filterHiddenFields(item, options));
-
-  const filtered: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    if (ALWAYS_HIDDEN_FIELDS.includes(key)) continue;
-    if (!options.showStatus && key === 'status') continue;
-    filtered[key] = filterHiddenFields(value, options);
-  }
-  return filtered;
-};
-
 /**
  * 清理 YAML object'sno效字段（forUpdate）
  */
@@ -134,7 +121,7 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       const yamlPath = isClusterScope
         ? `/api/${resourceType}/_cluster_/${name}/yaml`
         : `/api/${resourceType}/${namespace}/${name}/yaml`;
-      const response = await authFetch(yamlPath);
+      const response = await authFetch(withCluster(yamlPath));
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
@@ -285,7 +272,7 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       const yamlPath = isClusterScope
         ? `/api/${resourceType}/_cluster_/${name}/yaml`
         : `/api/${resourceType}/${namespace}/${name}/yaml`;
-      const response = await authFetch(yamlPath, {
+      const response = await authFetch(withCluster(yamlPath), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(cleaned),

@@ -41,7 +41,7 @@ func (s *SecurityChecker) CheckAndValidate() error {
 			"  2. Environment variable: K8SVISION_AUTH_PASSWORD=your-password")
 	}
 
-	s.logger.Info("Admin password validation passed", zap.String("username", cfg.Auth.Username))
+	s.logger.Info("Admin password validation passed")
 	s.logger.Info("Security configuration validation completed successfully")
 	return nil
 }

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
-import { authFetch } from '../utils/auth';
+import { authFetch, withCluster } from '../utils/auth';
 import './EndpointsTab.css';
 
 interface EndpointSubset {
@@ -36,7 +36,7 @@ export const EndpointsTab: React.FC<EndpointsTabProps> = ({ namespace, serviceNa
     setError(null);
 
     try {
-      const response = await authFetch(`/api/endpoint/${namespace}/${serviceName}`);
+      const response = await authFetch(withCluster(`/api/endpoint/${namespace}/${serviceName}`));
       const result = await response.json();
 
       if (result.code === 0 && result.data) {

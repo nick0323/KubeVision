@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -63,7 +65,16 @@ func (m *CRDManager) ListCRDs(ctx context.Context) ([]CRDSummary, error) {
 		return nil, fmt.Errorf("failed to list CRDs: %w", err)
 	}
 
-	result := make([]CRDSummary, 0, len(list.Items))
+	type crdInfo struct {
+		name        string
+		group       string
+		scope       string
+		plural      string
+		kind        string
+		versionToUse string
+	}
+
+	crdInfos := make([]crdInfo, 0, len(list.Items))
 	for _, crd := range list.Items {
 		name := crd.GetName()
 		spec, ok := crd.Object["spec"].(map[string]interface{})
@@ -75,12 +86,6 @@ func (m *CRDManager) ListCRDs(ctx context.Context) ([]CRDSummary, error) {
 		scope, _ := spec["scope"].(string)
 		plural := ""
 		kind := ""
-
-		versions, ok := spec["versions"].([]interface{})
-		if !ok {
-			version, _ := spec["version"].(string)
-			versions = []interface{}{map[string]interface{}{"name": version, "served": true, "storage": true}}
-		}
 
 		names, ok := spec["names"].(map[string]interface{})
 		if ok {
@@ -94,7 +99,7 @@ func (m *CRDManager) ListCRDs(ctx context.Context) ([]CRDSummary, error) {
 
 		storageVersion := ""
 		servedVersions := []string{}
-		versions, ok = spec["versions"].([]interface{})
+		versions, ok := spec["versions"].([]interface{})
 		if ok {
 			for _, v := range versions {
 				ver, ok := v.(map[string]interface{})
@@ -121,34 +126,60 @@ func (m *CRDManager) ListCRDs(ctx context.Context) ([]CRDSummary, error) {
 			versionToUse = servedVersions[0]
 		}
 
-		gvr := schema.GroupVersionResource{
-			Group:    group,
-			Version:  versionToUse,
-			Resource: plural,
-		}
-
-		instanceCnt := 0
-		if gvr.Resource != "" && gvr.Version != "" {
-			var instanceList *unstructured.UnstructuredList
-			if strings.ToLower(scope) == "cluster" {
-				instanceList, err = m.dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{Limit: 1})
-			} else {
-				instanceList, err = m.dynamicClient.Resource(gvr).Namespace("").List(ctx, metav1.ListOptions{Limit: 1})
-			}
-			if err == nil && instanceList != nil {
-				instanceCnt = len(instanceList.Items)
-			}
-		}
-
-		result = append(result, CRDSummary{
-			Name:        name,
-			Group:       group,
-			Version:     versionToUse,
-			Kind:        kind,
-			Plural:      plural,
-			Scope:       scope,
-			InstanceCnt: instanceCnt,
+		crdInfos = append(crdInfos, crdInfo{
+			name:         name,
+			group:        group,
+			scope:        scope,
+			plural:       plural,
+			kind:         kind,
+			versionToUse: versionToUse,
 		})
+	}
+
+	result := make([]CRDSummary, len(crdInfos))
+	var mu sync.Mutex
+	g, gCtx := errgroup.WithContext(ctx)
+	g.SetLimit(20)
+
+	for i, info := range crdInfos {
+		i, info := i, info
+		g.Go(func() error {
+			instanceCnt := 0
+			if info.plural != "" && info.versionToUse != "" {
+				gvr := schema.GroupVersionResource{
+					Group:    info.group,
+					Version:  info.versionToUse,
+					Resource: info.plural,
+				}
+				var instanceList *unstructured.UnstructuredList
+				var listErr error
+				if strings.ToLower(info.scope) == "cluster" {
+					instanceList, listErr = m.dynamicClient.Resource(gvr).List(gCtx, metav1.ListOptions{Limit: 1})
+				} else {
+					instanceList, listErr = m.dynamicClient.Resource(gvr).Namespace("").List(gCtx, metav1.ListOptions{Limit: 1})
+				}
+				if listErr == nil && instanceList != nil {
+					instanceCnt = len(instanceList.Items)
+				}
+			}
+
+			mu.Lock()
+			result[i] = CRDSummary{
+				Name:        info.name,
+				Group:       info.group,
+				Version:     info.versionToUse,
+				Kind:        info.kind,
+				Plural:      info.plural,
+				Scope:       info.scope,
+				InstanceCnt: instanceCnt,
+			}
+			mu.Unlock()
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
 	return result, nil

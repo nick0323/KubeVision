@@ -158,7 +158,7 @@ func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	api.RegisterRoutes(apiGroup, s.logger, s.getK8sClient, s.lruCacheMgr)
 	api.RegisterPasswordAdmin(apiGroup, s.configMgr, s.logger)
 	api.RegisterArgoCDRoutes(apiGroup, s.logger, s.k8sClientMgr)
-	api.RegisterCRDRoutes(apiGroup, s.logger, s.k8sClientMgr)
+	api.RegisterCRDRoutes(apiGroup, s.logger, s.k8sClientMgr, s.lruCacheMgr)
 	apiGroup.GET("/clusters", func(c *gin.Context) {
 		names := s.k8sClientMgr.GetClusterNames()
 		c.JSON(200, gin.H{"data": names})

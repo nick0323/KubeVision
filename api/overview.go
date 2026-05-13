@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nick0323/K8sVision/api/middleware"
@@ -11,9 +12,13 @@ import (
 )
 
 func RegisterOverview(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sClientProvider) {
+	var (
+		svcs sync.Map
+	)
+
 	r.GET("/overview", func(c *gin.Context) {
 		cluster := c.Query("cluster")
-		clientset, _, err := getK8sClient(cluster)
+		clientset, metricsClient, err := getK8sClient(cluster)
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -22,8 +27,15 @@ func RegisterOverview(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sCl
 			middleware.ResponseError(c, logger, fmt.Errorf("kubernetes client unavailable"), http.StatusServiceUnavailable)
 			return
 		}
-		overviewService := service.NewOverviewService(clientset)
-		overview, err := overviewService.GetOverview(GetRequestContext(c))
+
+		key := cluster
+		if key == "" {
+			key = "default"
+		}
+		svcVal, _ := svcs.LoadOrStore(key, service.NewOverviewService(clientset, metricsClient))
+		svc := svcVal.(*service.OverviewService)
+
+		overview, err := svc.GetOverview(GetRequestContext(c))
 		if err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -31,3 +43,5 @@ func RegisterOverview(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sCl
 		middleware.ResponseSuccess(c, overview, "Overview retrieved successfully", nil)
 	})
 }
+
+

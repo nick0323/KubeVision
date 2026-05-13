@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -22,7 +23,7 @@ func scaleResource(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Handl
 		name := c.Param("name")
 
 		if resourceType == "" || name == "" {
-			middleware.ResponseError(c, logger, nil, http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("resource type and name are required"), http.StatusBadRequest)
 			return
 		}
 
@@ -57,7 +58,7 @@ func restartResource(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Han
 		name := c.Param("name")
 
 		if resourceType == "" || name == "" {
-			middleware.ResponseError(c, logger, nil, http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("resource type and name are required"), http.StatusBadRequest)
 			return
 		}
 

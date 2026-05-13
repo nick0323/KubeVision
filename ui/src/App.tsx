@@ -1,5 +1,5 @@
 import React, { useState, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import './App.css';
 import LoadingSpinner from './common/LoadingSpinner.tsx';
 import ErrorBoundary from './common/ErrorBoundary.tsx';
@@ -10,7 +10,6 @@ import LoginPage from './pages/LoginPage.tsx';
 import { authUtils } from './utils/auth';
 import { PAGE_COMPONENTS } from './constants/page-components.tsx';
 import { ResourceDetailPage as ImportedResourceDetail } from './pages/ResourceDetailPage';
-import { useLocalStorage } from './hooks/useLocalStorage';
 
 /**
  * 路由守卫组件：未登录时重定向到登录页
@@ -48,31 +47,28 @@ const PageRenderer: React.FC<{ tab: string; collapsed: boolean; onToggleCollapse
  * List Page Component
  */
 const ListPage: React.FC = () => {
-  const [tab, setTab] = useLocalStorage<string>('current_tab', 'overview');
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab') || 'overview';
+  const [tab, setTab] = useState(urlTab);
 
   useEffect(() => {
-    const handleTabChange = (newTab: string) => {
-      setTab(newTab);
-    };
+    setTab(urlTab);
+    localStorage.setItem('current_tab', JSON.stringify(urlTab));
+  }, [urlTab]);
 
-    const handleCustomEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<string>;
-      handleTabChange(customEvent.detail);
-    };
-
+  // Cross-tab sync
+  useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'current_tab' && e.newValue) {
-        handleTabChange(e.newValue);
+        const newTab = JSON.parse(e.newValue);
+        if (newTab !== tab) {
+          setTab(newTab);
+        }
       }
     };
-
-    window.addEventListener('tab-change', handleCustomEvent);
     window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('tab-change', handleCustomEvent);
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [tab]);
 
   return (
     <SidebarLayout activeTab={tab}>
@@ -98,17 +94,47 @@ const ListPage: React.FC = () => {
 };
 
 /**
+ * Map singular resource type (from route) to sidebar key (plural/menu key)
+ */
+function sidebarKeyForResource(resourceType: string): string {
+  const map: Record<string, string> = {
+    pod: 'pods',
+    deployment: 'deployments',
+    statefulset: 'statefulsets',
+    daemonset: 'daemonsets',
+    job: 'jobs',
+    cronjob: 'cronjobs',
+    service: 'services',
+    ingress: 'ingress',
+    pvc: 'pvcs',
+    pv: 'pvs',
+    storageclass: 'storageclasses',
+    configmap: 'configmaps',
+    secret: 'secrets',
+    namespace: 'namespaces',
+    node: 'nodes',
+    horizontalpodautoscaler: 'horizontalpodautoscalers',
+    networkpolicy: 'networkpolicies',
+    serviceaccount: 'serviceaccounts',
+    role: 'roles',
+    rolebinding: 'rolebindings',
+    resourcequota: 'resourcequotas',
+    limitrange: 'limitranges',
+    poddisruptionbudget: 'poddisruptionbudgets',
+    clusterrole: 'clusterroles',
+    clusterrolebinding: 'clusterrolebindings',
+  };
+  return map[resourceType] || 'overview';
+}
+
+/**
  * Generic Resource Detail Page Wrapper
  */
 function GenericResourceDetail({ resourceType }: { resourceType: string }) {
-  const [tab] = useLocalStorage<string>('current_tab', 'overview');
-
-  const handleMenuClick = () => {
-    window.dispatchEvent(new CustomEvent('tab-change', { detail: tab }));
-  };
+  const tab = sidebarKeyForResource(resourceType);
 
   return (
-    <SidebarLayout activeTab={tab} onMenuClick={handleMenuClick}>
+    <SidebarLayout activeTab={tab}>
       {({ collapsed, onToggleCollapsed }) => (
         <ImportedResourceDetail
           resourceType={resourceType}
@@ -178,6 +204,7 @@ const AppWithNotification: React.FC = () => {
 
   return (
     <NotificationProvider>
+      <NotificationContainerWrapper />
       <>
         <BrowserRouter>
           <Routes>
@@ -188,10 +215,7 @@ const AppWithNotification: React.FC = () => {
                 login ? (
                   <Navigate to="/" replace />
                 ) : (
-                  <>
-                    <LoginPage onLogin={() => setLogin(true)} />
-                    <NotificationContainerWrapper />
-                  </>
+                  <LoginPage onLogin={() => setLogin(true)} />
                 )
               }
             />
@@ -220,7 +244,7 @@ const AppWithNotification: React.FC = () => {
             ))}
 
             {/* 根路径重定向 */}
-            <Route path="/" element={<ListPage />} />
+            <Route path="/" element={<RequireAuth><ListPage /></RequireAuth>} />
 
             {/* 未匹配重定向 */}
             <Route path="*" element={<Navigate to="/" replace />} />

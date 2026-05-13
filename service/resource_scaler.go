@@ -26,6 +26,10 @@ func isScalable(rt k8s.ResourceType) bool {
 	return scalableTypes[rt]
 }
 
+func isRestartable(rt k8s.ResourceType) bool {
+	return restartableTypes[rt]
+}
+
 func ScaleResource(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, name string, replicas int32) error {
 	rt := k8s.ResourceType(resourceType).Normalize()
 	if !isScalable(rt) {
@@ -63,7 +67,7 @@ func ScaleResource(ctx context.Context, clientset kubernetes.Interface, resource
 
 func RestartResource(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, name string) error {
 	rt := k8s.ResourceType(resourceType).Normalize()
-	if !isScalable(rt) {
+	if !isRestartable(rt) {
 		return fmt.Errorf("unsupported resource type for restart: %s", resourceType)
 	}
 

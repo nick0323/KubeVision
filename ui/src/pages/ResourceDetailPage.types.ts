@@ -76,7 +76,7 @@ export interface PodsTabProps {
   resourceName: string;
   resourceKind: string;
   resourceLabels?: Record<string, string>;
-  ownerReferences?: unknown[];
+  resourceUid?: string;
 }
 
 // ============================================================================

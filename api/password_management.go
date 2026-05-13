@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/nick0323/K8sVision/model"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -227,7 +229,18 @@ func RegisterPasswordAdmin(r *gin.RouterGroup, configMgr *config.Manager, logger
 		configManager:   configMgr,
 		logger:          logger,
 	}
-	handler.RegisterRoutes(r)
+
+	cfg := configMgr.GetConfig()
+	if cfg.Auth.EnableRateLimit {
+		rateLimit := cfg.Auth.RateLimit
+		if rateLimit <= 0 {
+			rateLimit = 10
+		}
+		limiter := middleware.NewIPRateLimiter(rate.Limit(rateLimit), rateLimit)
+		handler.RegisterRoutes(r, limiter.Middleware())
+	} else {
+		handler.RegisterRoutes(r)
+	}
 }
 
 type PasswordHandler struct {
@@ -236,11 +249,12 @@ type PasswordHandler struct {
 	logger          *zap.Logger
 }
 
-func (h *PasswordHandler) RegisterRoutes(r *gin.RouterGroup) {
-	r.POST("/admin/password/change", h.ChangePassword())
-	r.POST("/admin/password/generate", h.GeneratePassword())
-	r.POST("/admin/password/hash", h.HashPassword())
-	r.POST("/admin/password/validate", h.ValidatePassword())
+func (h *PasswordHandler) RegisterRoutes(r *gin.RouterGroup, middleware ...gin.HandlerFunc) {
+	adminGroup := r.Group("/admin/password", middleware...)
+	adminGroup.POST("/change", h.ChangePassword())
+	adminGroup.POST("/generate", h.GeneratePassword())
+	adminGroup.POST("/hash", h.HashPassword())
+	adminGroup.POST("/validate", h.ValidatePassword())
 }
 
 func (h *PasswordHandler) ChangePassword() gin.HandlerFunc {
@@ -269,7 +283,7 @@ func (h *PasswordHandler) ChangePassword() gin.HandlerFunc {
 		if isHashedPassword(authConfig.Password) {
 			oldPasswordMatch = h.passwordManager.VerifyPassword(req.OldPassword, authConfig.Password)
 		} else {
-			oldPasswordMatch = req.OldPassword == authConfig.Password
+			oldPasswordMatch = subtle.ConstantTimeCompare([]byte(req.OldPassword), []byte(authConfig.Password)) == 1
 		}
 
 		if !oldPasswordMatch {

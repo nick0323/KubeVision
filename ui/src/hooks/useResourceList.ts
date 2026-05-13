@@ -3,6 +3,7 @@ import { authFetch } from '../utils/auth';
 import {
   PAGINATION_CONFIG,
   CACHE_CONFIG,
+  STORAGE_KEYS,
 } from '../constants';
 import type { UseListReturn, ListQueryParams, APIResponse } from '../types';
 import { logError } from '../utils/errorHandler';
@@ -29,19 +30,36 @@ export interface UseResourceListConfig {
   staleTime?: number;
 }
 
-/**
- * 简单'sinside存缓存（SWR Mode）
- */
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
+  lastAccess: number;
 }
 
+const MAX_CACHE_SIZE = 50;
 const cache = new Map<string, CacheEntry<unknown>>();
+const accessOrder: string[] = [];
 
-/**
- * from缓存Getdata
- */
+let cleanupTimer: ReturnType<typeof setInterval> | null = null;
+
+function startCleanup(staleTime: number): void {
+  if (cleanupTimer) return;
+  cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of cache) {
+      if (now - entry.timestamp > staleTime * 2) {
+        cache.delete(key);
+        const idx = accessOrder.indexOf(key);
+        if (idx !== -1) accessOrder.splice(idx, 1);
+      }
+    }
+    if (cache.size === 0 && cleanupTimer) {
+      clearInterval(cleanupTimer);
+      cleanupTimer = null;
+    }
+  }, 60000);
+}
+
 function getCached<T>(key: string, staleTime: number): T | null {
   const entry = cache.get(key);
   if (!entry) return null;
@@ -49,28 +67,53 @@ function getCached<T>(key: string, staleTime: number): T | null {
   const isStale = Date.now() - entry.timestamp > staleTime;
   if (isStale) {
     cache.delete(key);
+    const idx = accessOrder.indexOf(key);
+    if (idx !== -1) accessOrder.splice(idx, 1);
     return null;
   }
+
+  entry.lastAccess = Date.now();
+  const idx = accessOrder.indexOf(key);
+  if (idx !== -1) accessOrder.splice(idx, 1);
+  accessOrder.push(key);
+
   return entry.data as T;
 }
 
-/**
- * settings缓存
- */
 function setCache<T>(key: string, data: T): void {
-  cache.set(key, { data, timestamp: Date.now() });
+  if (cache.has(key)) {
+    const idx = accessOrder.indexOf(key);
+    if (idx !== -1) accessOrder.splice(idx, 1);
+  }
+
+  while (cache.size >= MAX_CACHE_SIZE && accessOrder.length > 0) {
+    const oldest = accessOrder.shift();
+    if (oldest) cache.delete(oldest);
+  }
+
+  cache.set(key, { data, timestamp: Date.now(), lastAccess: Date.now() });
+  accessOrder.push(key);
 }
 
-/**
- * 生成缓存键
- */
+// Ensure cleanup is stopped on HMR
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    if (cleanupTimer) {
+      clearInterval(cleanupTimer);
+      cleanupTimer = null;
+    }
+  });
+}
+
 function getCacheKey(endpoint: string, params: ListQueryParams): string {
+  const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
   const paramsObj: Record<string, string> = {
     limit: params.limit.toString(),
     offset: params.offset.toString(),
     sortBy: params.sortBy || '',
     sortOrder: params.sortOrder || '',
   };
+  if (cluster && cluster !== 'default') paramsObj.cluster = cluster;
   if (params.namespace) paramsObj.namespace = params.namespace;
   if (params.search) paramsObj.search = params.search;
   return `${endpoint}?${new URLSearchParams(paramsObj).toString()}`;
@@ -163,7 +206,9 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
 
     setNamespacesLoading(true);
     try {
-      const response = await authFetch('/api/namespace?limit=1000&offset=0');
+      const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
+      const clusterParam = cluster && cluster !== 'default' ? `&cluster=${encodeURIComponent(cluster)}` : '';
+      const response = await authFetch(`/api/namespace?limit=1000&offset=0${clusterParam}`);
       const result = await response.json();
       if (result.code === 0 && result.data) {
         const nsList = Array.isArray(result.data) ? result.data : [];
@@ -237,10 +282,13 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
       offset: ((page - 1) * pageSize).toString(),
       sortBy: sortField,
       sortOrder,
-      force: 'true', // 强制刷新，绕过后端缓存
+      force: 'true',
       ...(namespace ? { namespace } : {}),
       ...(search ? { search } : {}),
     });
+
+    const cluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER);
+    if (cluster && cluster !== 'default') params.set('cluster', cluster);
 
     try {
       const response = await authFetch(`${apiEndpoint}?${params}`, {
@@ -253,10 +301,11 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
       }
 
       const result = (await response.json()) as APIResponse<T[]>;
-      
+
       if (mountedRef.current && result.code === 0 && result.data) {
         setData(result.data || []);
         setTotal(result.page?.total || result.data?.length || 0);
+        setCache(getCacheKey(apiEndpoint, queryParams), result.data || []);
       } else if (mountedRef.current && result.code !== 0) {
         throw new Error(result.message || 'Request failed');
       }
@@ -270,7 +319,7 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
         setIsValidating(false);
       }
     }
-  }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint]);
+  }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint, queryParams]);
 
   /**
    * manualUpdatedata（optimisticUpdate）
@@ -312,12 +361,21 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
 
   // Unified'sdataLoading...监听所hasneedtriggerLoading...）
   useEffect(() => {
+    startCleanup(staleTime);
+
+    const cacheKey = getCacheKey(apiEndpoint, queryParams);
+    const cached = getCached<T[]>(cacheKey, staleTime);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+    }
+
     refresh();
 
     return () => {
       abortControllerRef.current?.abort();
     };
-  }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint, refresh]);
+  }, [page, pageSize, sortField, sortOrder, namespace, search, apiEndpoint, queryParams, staleTime, refresh]);
 
   return {
     data,

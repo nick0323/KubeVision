@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { LogsTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
-import { FaCog, FaDownload, FaChevronDown, FaEraser } from 'react-icons/fa';
+import { FaCog, FaDownload, FaChevronDown, FaEraser, FaPause, FaPlay } from 'react-icons/fa';
 import NamespaceSelect from '../common/NamespaceSelect';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { createAuthWebSocket, getWsUrl } from '../utils/auth';
@@ -46,6 +46,16 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
 
   // WebSocket ref
   const wsRef = useRef<WebSocket | null>(null);
+
+  // Pause/resume state
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(paused);
+  const bufferedRef = useRef<string[]>([]);
+
+  // Keep ref in sync
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   // Settings panel
   const [showSettings, setShowSettings] = useState(false);
@@ -106,6 +116,13 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
             .split('\n')
             .filter((line: string) => line.length > 0);
 
+          if (newLines.length === 0) return;
+
+          if (pausedRef.current) {
+            bufferedRef.current.push(...newLines);
+            return;
+          }
+
           setLogs(prev => {
             const updated = [...prev, ...newLines];
             if (updated.length > MAX_LOG_LINES) {
@@ -149,6 +166,21 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
       }
     };
   }, []);
+
+  // Flush buffered logs when unpausing
+  useEffect(() => {
+    if (paused) return;
+    if (bufferedRef.current.length === 0) return;
+
+    setLogs(prev => {
+      const updated = [...prev, ...bufferedRef.current];
+      bufferedRef.current = [];
+      if (updated.length > MAX_LOG_LINES) {
+        return updated.slice(updated.length - MAX_LOG_LINES);
+      }
+      return updated;
+    });
+  }, [paused]);
 
   // Auto scroll to bottom when new logs arrive
   useEffect(() => {
@@ -331,74 +363,81 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
             />
           )}
 
-          {/* Settings dropdown */}
-          <div className="settings-dropdown" ref={settingsRef}>
-            <button
-              className={`settings-btn ${showSettings ? 'active' : ''}`}
-              onClick={() => setShowSettings(!showSettings)}
-              title="Settings"
-            >
-              <FaCog />
-            </button>
-            {showSettings && (
-              <div className="settings-panel">
-                <div className="setting-item setting-item-select" ref={linesRef}>
-                  <label>Initial Lines</label>
-                  <div className="custom-dropdown">
-                    <button
-                      className={`dropdown-trigger ${showLinesDropdown ? 'active' : ''}`}
-                      onClick={() => setShowLinesDropdown(!showLinesDropdown)}
-                    >
-                      <span className="dropdown-value">{tailLines}</span>
-                      <FaChevronDown
-                        className={`dropdown-arrow ${showLinesDropdown ? 'rotate' : ''}`}
-                      />
-                    </button>
-                    {showLinesDropdown && (
-                      <div className="dropdown-menu">
-                        {LINES_OPTIONS.map(opt => (
-                          <button
-                            key={opt.value}
-                            className={`dropdown-option ${tailLines === opt.value ? 'selected' : ''}`}
-                            onClick={() => {
-                              setTailLines(opt.value);
-                              setShowLinesDropdown(false);
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="setting-item setting-item-toggle">
-                  <label>Show Timestamps</label>
-                  <button
-                    className={`toggle-btn ${timestamps ? 'active' : ''}`}
-                    onClick={() => setTimestamps(!timestamps)}
-                  />
-                </div>
-                <div className="setting-item setting-item-toggle">
-                  <label>Previous Container</label>
-                  <button
-                    className={`toggle-btn ${previous ? 'active' : ''}`}
-                    onClick={() => setPrevious(!previous)}
-                  />
-                </div>
-                <div className="setting-item setting-item-toggle">
-                  <label>Word Wrap</label>
-                  <button
-                    className={`toggle-btn ${wrapLines ? 'active' : ''}`}
-                    onClick={() => setWrapLines(!wrapLines)}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Action buttons */}
           <div className="filter-actions">
+            {/* Settings dropdown */}
+            <div className="settings-dropdown" ref={settingsRef}>
+              <button
+                className={`settings-btn ${showSettings ? 'active' : ''}`}
+                onClick={() => setShowSettings(!showSettings)}
+                title="Settings"
+              >
+                <FaCog />
+              </button>
+              {showSettings && (
+                <div className="settings-panel">
+                  <div className="setting-item setting-item-select" ref={linesRef}>
+                    <label>Initial Lines</label>
+                    <div className="custom-dropdown">
+                      <button
+                        className={`dropdown-trigger ${showLinesDropdown ? 'active' : ''}`}
+                        onClick={() => setShowLinesDropdown(!showLinesDropdown)}
+                      >
+                        <span className="dropdown-value">{tailLines}</span>
+                        <FaChevronDown
+                          className={`dropdown-arrow ${showLinesDropdown ? 'rotate' : ''}`}
+                        />
+                      </button>
+                      {showLinesDropdown && (
+                        <div className="dropdown-menu">
+                          {LINES_OPTIONS.map(opt => (
+                            <button
+                              key={opt.value}
+                              className={`dropdown-option ${tailLines === opt.value ? 'selected' : ''}`}
+                              onClick={() => {
+                                setTailLines(opt.value);
+                                setShowLinesDropdown(false);
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="setting-item setting-item-toggle">
+                    <label>Show Timestamps</label>
+                    <button
+                      className={`toggle-btn ${timestamps ? 'active' : ''}`}
+                      onClick={() => setTimestamps(!timestamps)}
+                    />
+                  </div>
+                  <div className="setting-item setting-item-toggle">
+                    <label>Previous Container</label>
+                    <button
+                      className={`toggle-btn ${previous ? 'active' : ''}`}
+                      onClick={() => setPrevious(!previous)}
+                    />
+                  </div>
+                  <div className="setting-item setting-item-toggle">
+                    <label>Word Wrap</label>
+                    <button
+                      className={`toggle-btn ${wrapLines ? 'active' : ''}`}
+                      onClick={() => setWrapLines(!wrapLines)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button
+              className={`action-btn ${paused ? 'paused' : ''}`}
+              onClick={() => setPaused(!paused)}
+              title={paused ? 'Resume log streaming' : 'Pause log streaming'}
+            >
+              {paused ? <FaPlay /> : <FaPause />}
+            </button>
             <button className="action-btn" onClick={handleDownload} title="Download logs">
               <FaDownload />
             </button>
@@ -408,9 +447,9 @@ export const LogsTab: React.FC<LogsTabProps> = ({ namespace, name, containers })
           </div>
 
           {/* Status Display */}
-          <div className={`filter-status ${connected ? 'connected' : 'disconnected'}`}>
+          <div className={`filter-status ${connected ? (paused ? 'paused' : 'connected') : 'disconnected'}`}>
             <span className="status-dot"></span>
-            <span>{connected ? 'Live' : 'Disconnected'}</span>
+            <span>{connected ? (paused ? 'Paused' : 'Live') : 'Disconnected'}</span>
           </div>
         </div>
       </div>

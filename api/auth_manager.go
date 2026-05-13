@@ -27,6 +27,7 @@ type AuthManager struct {
 	logger *zap.Logger
 	config *config.Manager
 	stopCh chan struct{}
+	wg     sync.WaitGroup
 }
 
 type authShard struct {
@@ -47,6 +48,7 @@ func NewAuthManager(logger *zap.Logger, configMgr *config.Manager) *AuthManager 
 		}
 	}
 
+	am.wg.Add(1)
 	go am.startCleanup()
 	return am
 }
@@ -180,6 +182,7 @@ func (am *AuthManager) GetStats() map[string]interface{} {
 
 func (am *AuthManager) Close() {
 	close(am.stopCh)
+	am.wg.Wait()
 	am.logger.Info("Authentication manager closed")
 }
 
@@ -197,6 +200,7 @@ func (am *AuthManager) clearAttempt(username, ip string) {
 }
 
 func (am *AuthManager) startCleanup() {
+	defer am.wg.Done()
 	ticker := time.NewTicker(AuthCleanupInterval)
 	defer ticker.Stop()
 

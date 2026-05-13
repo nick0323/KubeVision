@@ -3,8 +3,8 @@ import { FaTimes, FaRocket, FaCode, FaEraser } from 'react-icons/fa';
 import { ResourceTemplate, RESOURCE_TEMPLATES, getTemplateByResourceType } from '../constants/templates';
 import TemplateSelector from './TemplateSelector';
 import { LoadingSpinner } from './LoadingSpinner';
-import { notification } from './Notification';
-import { authFetch } from '../utils/auth';
+import { notification } from './NotificationContext';
+import { authFetch, withCluster } from '../utils/auth';
 import { capitalize } from '../utils/string';
 import './CreateResourceModal.css';
 
@@ -70,7 +70,7 @@ export const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
         yamlObj.metadata.namespace = namespace || yamlObj.metadata.namespace || 'default';
       }
 
-      const response = await authFetch(`/api/${resourceType}/yaml`, {
+      const response = await authFetch(withCluster(`/api/${resourceType}/yaml`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

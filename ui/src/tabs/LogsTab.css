@@ -468,6 +468,12 @@
   color: var(--primary);
 }
 
+.action-btn.paused {
+  background: var(--warning-bg, #fff3cd);
+  border-color: var(--warning-border, #ffc107);
+  color: var(--warning, #856404);
+}
+
 /* ScrollbarStyle */
 .filter-options::-webkit-scrollbar {
   height: 6px;
@@ -505,6 +511,16 @@
   background: var(--success-bg);
   border-color: var(--success-border);
   color: var(--success);
+}
+
+.filter-status.paused {
+  background: var(--warning-bg, #fff3cd);
+  border-color: var(--warning-border, #ffc107);
+  color: var(--warning, #856404);
+}
+
+.filter-status.paused .status-dot {
+  animation: none;
 }
 
 .filter-status.disconnected {

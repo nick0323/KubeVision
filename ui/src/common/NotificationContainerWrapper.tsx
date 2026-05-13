@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNotificationContext } from './NotificationContext';
+import './Notification.css';
 
 export const NotificationContainerWrapper: React.FC = () => {
   const { notifications, removeNotification } = useNotificationContext();

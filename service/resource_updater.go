@@ -7,9 +7,12 @@ import (
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -123,6 +126,30 @@ func resourceFactory(resourceType string) (interface{}, error) {
 		return &v1.Namespace{}, nil
 	case "node":
 		return &v1.Node{}, nil
+	case "endpoints":
+		return &v1.Endpoints{}, nil
+	case "events":
+		return &v1.Event{}, nil
+	case "networkpolicies", "networkpolicy":
+		return &networkingv1.NetworkPolicy{}, nil
+	case "serviceaccounts", "serviceaccount":
+		return &v1.ServiceAccount{}, nil
+	case "roles", "role":
+		return &rbacv1.Role{}, nil
+	case "rolebindings", "rolebinding":
+		return &rbacv1.RoleBinding{}, nil
+	case "clusterroles", "clusterrole":
+		return &rbacv1.ClusterRole{}, nil
+	case "clusterrolebindings", "clusterrolebinding":
+		return &rbacv1.ClusterRoleBinding{}, nil
+	case "resourcequotas", "resourcequota":
+		return &v1.ResourceQuota{}, nil
+	case "limitranges", "limitrange":
+		return &v1.LimitRange{}, nil
+	case "poddisruptionbudgets", "poddisruptionbudget":
+		return &policyv1.PodDisruptionBudget{}, nil
+	case "horizontalpodautoscalers", "horizontalpodautoscaler", "hpa":
+		return &autoscalingv1.HorizontalPodAutoscaler{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}

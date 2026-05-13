@@ -421,7 +421,7 @@ func MapResourceQuotas(rqs []corev1.ResourceQuota) []model.ResourceQuota {
 		result[i] = model.ResourceQuota{
 			Namespace: rq.Namespace,
 			Name:      rq.Name,
-			Requests:  formatResourceQuotaHard(rq.Status.Hard),
+			Requests:  formatResourceQuotaHard(rq.Status.Used),
 			Limits:    formatResourceQuotaHard(rq.Status.Hard),
 			Age:       CalculateAge(rq.CreationTimestamp),
 		}

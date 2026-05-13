@@ -8,9 +8,10 @@ import { ErrorDisplay } from '../common/ErrorDisplay';
 import Pagination from '../common/Pagination.tsx';
 import { apiClient } from '../utils/apiClient';
 import { downloadFile } from '../utils/download';
-import { ALWAYS_HIDDEN_FIELDS } from '../constants/config';
+import { PAGINATION_CONFIG } from '../constants/config';
+import { filterHiddenFields } from '../utils/filterHiddenFields';
 import { FaArrowLeft, FaCopy, FaDownload } from 'react-icons/fa';
-import { notification } from '../common/Notification';
+import { notification } from '../common/NotificationContext';
 import { EmptyState, ErrorState, TableSkeleton } from '../common/Table';
 import '../pages/ResourceListPage.css';
 import '../tabs/YamlTab.css';
@@ -43,7 +44,7 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(PAGINATION_CONFIG.DEFAULT_PAGE_SIZE);
 
   const fetchCRDs = useCallback(async () => {
     setLoading(true);
@@ -79,17 +80,6 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
       setLoading(false);
     }
   }, []);
-
-  const filterHiddenFields = (obj: any): any => {
-    if (typeof obj !== 'object' || obj === null) return obj;
-    if (Array.isArray(obj)) return obj.map(item => filterHiddenFields(item));
-    const filtered: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      if (ALWAYS_HIDDEN_FIELDS.includes(key)) continue;
-      filtered[key] = filterHiddenFields(value);
-    }
-    return filtered;
-  };
 
   const fetchInstanceYaml = useCallback(async (crd: CRDSummary, instance: Record<string, any>) => {
     setLoading(true);

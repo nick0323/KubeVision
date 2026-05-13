@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	JWTIssuer   = "k8svision"
-	JWTAudience = "k8svision-client"
+	JWTIssuer           = "k8svision"
+	JWTAudience         = "k8svision-client"
+	webSocketAuthProtocol = "k8svision.auth"
 )
 
 type ConfigProvider interface {
@@ -103,7 +104,7 @@ func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.Handle
 			return
 		}
 
-		m.logger.Info("authentication successful",
+		m.logger.Debug("authentication successful",
 			zap.String("traceId", traceId),
 			zap.String("username", username),
 		)
@@ -135,10 +136,20 @@ func (m *JWTMiddleware) verifyAndSetClaims(c *gin.Context, tokenStr string, conf
 
 func getTokenFromRequest(c *gin.Context) string {
 	if token := c.GetHeader("Authorization"); token != "" {
-		return token
+		return strings.TrimPrefix(token, "Bearer ")
+	}
+	return ExtractTokenFromRequest(c)
+}
+
+func ExtractTokenFromRequest(c *gin.Context) string {
+	if c == nil || c.Request == nil {
+		return ""
 	}
 	if token := extractTokenFromWebSocket(c.GetHeader("Sec-WebSocket-Protocol")); token != "" {
 		return token
+	}
+	if token := c.GetHeader("Authorization"); token != "" {
+		return strings.TrimPrefix(token, "Bearer ")
 	}
 	return c.Query("token")
 }
@@ -151,11 +162,8 @@ func extractTokenFromWebSocket(headerValue string) string {
 	for i := range parts {
 		parts[i] = strings.TrimSpace(parts[i])
 	}
-	if parts[0] == "k8svision.auth" {
-		if len(parts) >= 2 && parts[1] != "" {
-			return parts[1]
-		}
-		return ""
+	if len(parts) >= 2 && parts[0] == webSocketAuthProtocol && parts[1] != "" {
+		return parts[1]
 	}
 	return strings.TrimSpace(headerValue)
 }

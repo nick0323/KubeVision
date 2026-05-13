@@ -326,6 +326,10 @@ func (m *ClientManager) AddCluster(name string, k8sConfig *model.KubernetesConfi
 		return fmt.Errorf("failed to build config for cluster %s: %w", name, err)
 	}
 
+	if old, ok := m.clientPool.Load(name); ok {
+		old.(*ClientHolder).Close()
+	}
+
 	holder, err := NewClientHolder(restConfig, m.logger.With(zap.String("cluster", name)))
 	if err != nil {
 		return fmt.Errorf("failed to create client for cluster %s: %w", name, err)
@@ -390,6 +394,16 @@ func (m *ClientManager) Close() {
 	m.clientPool.Range(func(key, value interface{}) bool {
 		holder := value.(*ClientHolder)
 		holder.Close()
+		return true
+	})
+	m.argocdManager = nil
+	m.crdManager = nil
+	m.crdManagerPool.Range(func(key, value interface{}) bool {
+		m.crdManagerPool.Delete(key)
+		return true
+	})
+	m.argocdManagerPool.Range(func(key, value interface{}) bool {
+		m.argocdManagerPool.Delete(key)
 		return true
 	})
 }

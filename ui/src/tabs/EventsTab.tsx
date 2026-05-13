@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { EventsTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
-import { authFetch } from '../utils/auth';
+import { authFetch, withCluster } from '../utils/auth';
 import { formatTime } from '../utils/time';
 import { isClusterResource } from '../constants/config';
 import './EventsTab.css';
@@ -33,9 +33,9 @@ export const EventsTab: React.FC<EventsTabProps> = ({
       // cluster-scoped resources (Node, PV, etc.) have no namespace
       const eventNamespace = resourceKind && isClusterResource(resourceKind) ? '' : namespace;
 
-      const response = await authFetch(
+      const response = await authFetch(withCluster(
         `/api/event?namespace=${eventNamespace}&involvedObject=${involvedObject}&force=true`
-      );
+      ));
       const result = await response.json();
 
       if (result.code === 0 && result.data) {

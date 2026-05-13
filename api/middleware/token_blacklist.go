@@ -13,6 +13,7 @@ type TokenBlacklist struct {
 	cleanupTicker *time.Ticker
 	stopCh        chan struct{}
 	closeOnce     sync.Once
+	wg            sync.WaitGroup
 }
 
 // NewTokenBlacklist 创建一个新的 token 黑名单
@@ -25,6 +26,7 @@ func NewTokenBlacklist(maxSize int) *TokenBlacklist {
 
 	// 启动定期清理过期 token
 	tb.cleanupTicker = time.NewTicker(5 * time.Minute)
+	tb.wg.Add(1)
 	go tb.cleanupWorker()
 
 	return tb
@@ -45,21 +47,19 @@ func (tb *TokenBlacklist) Add(jti string, expireTime time.Time) {
 
 // IsBlacklisted 检查 token 是否在黑名单中
 func (tb *TokenBlacklist) IsBlacklisted(jti string) bool {
-	tb.mu.RLock()
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+
 	expireTime, exists := tb.tokens[jti]
 	if !exists {
-		tb.mu.RUnlock()
 		return false
 	}
 
-	// 如果 token 已过期，从黑名单中移除
 	if time.Now().After(expireTime) {
-		tb.mu.RUnlock()
-		tb.Remove(jti)
+		delete(tb.tokens, jti)
 		return false
 	}
 
-	tb.mu.RUnlock()
 	return true
 }
 
@@ -82,6 +82,7 @@ func (tb *TokenBlacklist) cleanupExpired() {
 
 // cleanupWorker 定期清理过期 token
 func (tb *TokenBlacklist) cleanupWorker() {
+	defer tb.wg.Done()
 	for {
 		select {
 		case <-tb.cleanupTicker.C:
@@ -100,6 +101,7 @@ func (tb *TokenBlacklist) Close() {
 	tb.closeOnce.Do(func() {
 		close(tb.stopCh)
 	})
+	tb.wg.Wait()
 }
 
 // Size 返回黑名单中的 token 数量

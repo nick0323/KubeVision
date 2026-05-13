@@ -178,7 +178,7 @@ func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider Exe
 		middleware.ResponseError(c, logger, err, http.StatusBadRequest)
 		return
 	}
-	executeRemoteCommand(ws, clientset, config, pod, container, command, logger)
+	executeRemoteCommand(c.Request.Context(), ws, clientset, config, pod, container, command, logger)
 }
 
 func validateExecParams(namespace, podName string) error {
@@ -192,11 +192,12 @@ func validateExecParams(namespace, podName string) error {
 }
 
 func checkExecConnectionLimit(logger *zap.Logger, username string) error {
-	if activeExecConnections.Load() >= MaxExecConnections {
-		logger.Warn("exec connection limit reached", zap.Int32("active", activeExecConnections.Load()), zap.String("user", username))
+	current := activeExecConnections.Add(1)
+	if current > MaxExecConnections {
+		activeExecConnections.Add(-1)
+		logger.Warn("exec connection limit reached", zap.Int32("active", current-1), zap.String("user", username))
 		return fmt.Errorf("service busy, please try again later")
 	}
-	activeExecConnections.Add(1)
 	return nil
 }
 
@@ -266,7 +267,7 @@ func upgradeExecWebSocket(c *gin.Context, logger *zap.Logger, namespace, podName
 	return ws, nil
 }
 
-func executeRemoteCommand(ws *websocket.Conn, clientset *kubernetes.Clientset, config *rest.Config, pod *v1.Pod, container string, command []string, logger *zap.Logger) {
+func executeRemoteCommand(reqCtx context.Context, ws *websocket.Conn, clientset *kubernetes.Clientset, config *rest.Config, pod *v1.Pod, container string, command []string, logger *zap.Logger) {
 	req := clientset.CoreV1().RESTClient().
 		Post().
 		Resource("pods").
@@ -288,14 +289,14 @@ func executeRemoteCommand(ws *websocket.Conn, clientset *kubernetes.Clientset, c
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), ExecSessionTimeout)
+	execCtx, cancel := context.WithTimeout(reqCtx, ExecSessionTimeout)
 	defer cancel()
 
 	sizeChan := make(chan *remotecommand.TerminalSize, 1)
 	input := &wsInput{conn: ws, sizeChan: sizeChan}
 	output := &wsOutput{conn: ws}
 
-	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+	err = exec.StreamWithContext(execCtx, remotecommand.StreamOptions{
 		Stdin:             input,
 		Stdout:            output,
 		Stderr:            output,

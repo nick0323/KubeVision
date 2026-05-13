@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { RelatedTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
-import { authFetch } from '../utils/auth';
+import { authFetch, withCluster } from '../utils/auth';
 import { isClusterResource as isClusterScopeResource } from '../constants/config';
 
 interface RelatedResource {
@@ -61,7 +61,7 @@ export const RelatedTab: React.FC<RelatedTabProps> = ({ namespace, name, resourc
         const apiPath = isClusterResource
           ? `/api/${resourceType}/_cluster_/${name}/related`
           : `/api/${resourceType}/${namespace}/${name}/related`;
-        const response = await authFetch(apiPath);
+        const response = await authFetch(withCluster(apiPath));
         const result = await response.json();
 
         if (result.code === 0 && result.data) {

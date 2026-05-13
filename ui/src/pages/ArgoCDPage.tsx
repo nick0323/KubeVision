@@ -5,7 +5,7 @@ import RefreshButton from '../common/RefreshButton';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { apiClient } from '../utils/apiClient';
-import { notification } from '../common/Notification';
+import { notification } from '../common/NotificationContext';
 import { ArgoCDApplication } from '../types/argocd';
 import { FaCheckCircle, FaExclamationTriangle, FaSync, FaHourglassHalf, FaCheck, FaTimes } from 'react-icons/fa';
 import '../styles/argocd-page.css';
@@ -33,7 +33,7 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
     setLoading(true);
     setError(null);
     try {
-      const result = await apiClient.get<{ data: ArgoCDApplication[] }>('/api/argocd/apps');
+      const result = await apiClient.get<ArgoCDApplication[]>('/api/argocd/apps');
       setApps(result.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load ArgoCD applications');

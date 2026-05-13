@@ -4,6 +4,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { authUtils, authFetch } from '../utils/auth';
 import apiClient from '../utils/apiClient';
 import { MENU_LIST, STORAGE_KEYS } from '../constants';
+import k8sLogo from '../assets/kubernetes-logo.svg';
 import {
   FaChartPie,
   FaCube,
@@ -147,15 +148,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
    */
   const handleMenuClick = useCallback(
     (key: string) => {
-      // 先settings current_tab
       localStorage.setItem('current_tab', JSON.stringify(key));
-      // Trigger event component（Notificationalready挂载'sComponent）
-      window.dispatchEvent(new CustomEvent('tab-change', { detail: key }));
-      // jump totoList页（ListPage 挂载时will读取最新's current_tab）
-      navigate('/');
-      onMenuClick?.(key);
+      navigate('/?tab=' + encodeURIComponent(key));
     },
-    [navigate, onMenuClick]
+    [navigate]
   );
 
   /**
@@ -179,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo */}
       <div className="logo-area">
         <span className="logo-text-full">KubeVision</span>
-        <img src="/src/assets/kubernetes-logo.svg" alt="Kubernetes" className="logo-compact" />
+        <img src={k8sLogo} alt="Kubernetes" className="logo-compact" />
       </div>
 
       {/* Menu */}

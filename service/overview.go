@@ -4,22 +4,25 @@ import (
 	"context"
 	"math"
 	"sort"
+	"sync"
+	"time"
 
 	"github.com/nick0323/K8sVision/model"
-	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	versioned "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 const BytesPerGiB = 1024 * 1024 * 1024
 
 type OverviewService struct {
-	clientset kubernetes.Interface
+	clientset     kubernetes.Interface
+	metricsClient interface{}
 }
 
-func NewOverviewService(clientset kubernetes.Interface) *OverviewService {
-	return &OverviewService{clientset: clientset}
+func NewOverviewService(clientset kubernetes.Interface, metricsClient interface{}) *OverviewService {
+	return &OverviewService{clientset: clientset, metricsClient: metricsClient}
 }
 
 func (s *OverviewService) GetOverview(ctx context.Context) (*model.OverviewStatus, error) {
@@ -85,63 +88,68 @@ type overviewData struct {
 
 func (s *OverviewService) fetchAllResources(ctx context.Context) (*overviewData, error) {
 	data := &overviewData{}
-	g, ctx := errgroup.WithContext(ctx)
+	var wg sync.WaitGroup
 
-	// 1. 并发查询 Pod
-	g.Go(func() error {
-		pods, podsRaw, err := ListPodsWithRaw(ctx, s.clientset, "", "", "", true)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		pods, podsRaw, err := ListPodsWithRaw(ctx, s.clientset, "", "", "")
 		data.pods = pods
 		data.podsRaw = podsRaw
 		data.podsErr = err
-		return err
-	})
+	}()
 
-	// 2. 并发查询 Node
-	g.Go(func() error {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		nodesRaw, err := s.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 		if err != nil {
 			data.nodesErr = err
-			return err
+			return
 		}
-		// 获取 metrics
 		metricsMap := make(map[string]*model.NodeMetrics)
-		if s.clientset != nil {
-			// 注意：这里需要 metrics 客户端，但 overview 中未传入，暂传空 map
+		if s.metricsClient != nil {
+			if mc, ok := s.metricsClient.(versioned.Interface); ok {
+				metricsList, err := mc.MetricsV1beta1().NodeMetricses().List(ctx, metav1.ListOptions{})
+				if err == nil {
+					for i := range metricsList.Items {
+						metricsMap[metricsList.Items[i].Name] = &model.NodeMetrics{
+							CPU:    metricsList.Items[i].Usage.Cpu().String(),
+							Memory: metricsList.Items[i].Usage.Memory().String(),
+						}
+					}
+				}
+			}
 		}
 		data.nodes = MapNodes(nodesRaw.Items, &corev1.PodList{}, metricsMap)
 		data.nodesRaw = nodesRaw
-		return nil
-	})
+	}()
 
-	// 3. 并发查询 Namespace
-	g.Go(func() error {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		nsList, err := ListNamespaces(ctx, s.clientset, "", "")
 		data.nsList = nsList
 		data.nsErr = err
-		return err
-	})
+	}()
 
-	// 4. 并发查询 Service
-	g.Go(func() error {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		services, err := ListServices(ctx, s.clientset, "", "", "")
 		data.services = services
 		data.servicesErr = err
-		return err
-	})
+	}()
 
-	// 5. 并发查询 Events
-	g.Go(func() error {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		events, err := s.getRecentEvents(ctx, model.DefaultOverviewEventsLimit)
 		data.events = events
 		data.eventsErr = err
-		return err
-	})
+	}()
 
-	// 等待所有任务完成
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-
+	wg.Wait()
 	return data, nil
 }
 
@@ -186,7 +194,9 @@ func (s *OverviewService) calcResourceUsage(nodesRaw *corev1.NodeList, podsRaw *
 func round(val float64) float64 { return math.Round(val*10) / 10 }
 
 func (s *OverviewService) getRecentEvents(ctx context.Context, limit int) ([]model.Event, error) {
-	eventList, err := s.clientset.CoreV1().Events("").List(ctx, metav1.ListOptions{})
+	eventList, err := s.clientset.CoreV1().Events("").List(ctx, metav1.ListOptions{
+		Limit: 500,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -194,15 +204,34 @@ func (s *OverviewService) getRecentEvents(ctx context.Context, limit int) ([]mod
 		return []model.Event{}, nil
 	}
 
-	events := eventList.Items
-	sort.Slice(events, func(i, j int) bool {
-		return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
+	since := time.Now().Add(-1 * time.Hour)
+	filtered := make([]corev1.Event, 0, len(eventList.Items))
+	for _, e := range eventList.Items {
+		eventTime := e.LastTimestamp.Time
+		if eventTime.IsZero() {
+			eventTime = e.EventTime.Time
+		}
+		if !eventTime.IsZero() && eventTime.After(since) {
+			filtered = append(filtered, e)
+		}
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		iTime := filtered[i].LastTimestamp.Time
+		if iTime.IsZero() {
+			iTime = filtered[i].EventTime.Time
+		}
+		jTime := filtered[j].LastTimestamp.Time
+		if jTime.IsZero() {
+			jTime = filtered[j].EventTime.Time
+		}
+		return iTime.After(jTime)
 	})
 
-	count := min(limit, len(events))
+	count := min(limit, len(filtered))
 	recentEvents := make([]model.Event, count)
 	for i := 0; i < count; i++ {
-		e := events[i]
+		e := filtered[i]
 		recentEvents[i] = model.Event{
 			Name:      e.Name,
 			Namespace: e.Namespace,

@@ -109,7 +109,7 @@ func streamPodLog(
 		// 获取日志流
 		podLogs, err := getPodLogStream(ctx, clientset, namespace, podName, opts, logger)
 		if err != nil {
-			logger.Error("Failed to get log stream", zap.Error(err))
+			logger.Warn("Failed to get log stream", zap.Error(err))
 			if writeErr := ws.WriteJSON(gin.H{"type": "error", "message": fmt.Sprintf("Failed to get log stream: %v", err)}); writeErr != nil {
 				logger.Error("Failed to send error message", zap.Error(writeErr))
 			}
@@ -141,12 +141,12 @@ func streamPodLog(
 
 // checkConnectionLimit 检查连接数限制
 func checkConnectionLimit(logger *zap.Logger) error {
-	currentConnections := wsConnectionCount.Load()
-	if currentConnections >= maxWSConnections {
-		logger.Warn("Too many WebSocket connections", zap.Int32("current", currentConnections))
-		return fmt.Errorf("connection limit exceeded: current %d, max %d", currentConnections, maxWSConnections)
+	current := wsConnectionCount.Add(1)
+	if current > maxWSConnections {
+		wsConnectionCount.Add(-1)
+		logger.Warn("Too many WebSocket connections", zap.Int32("current", current-1))
+		return fmt.Errorf("connection limit exceeded: current %d, max %d", current-1, maxWSConnections)
 	}
-	wsConnectionCount.Add(1)
 	return nil
 }
 
@@ -229,6 +229,8 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 	reader := bufio.NewReader(podLogs)
 	logCount := int64(0)
 	lastReadTime := time.Now()
+	backoff := 100 * time.Millisecond
+	const maxBackoff = 5 * time.Second
 
 	for {
 		select {
@@ -240,6 +242,7 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 			readDuration := time.Since(lastReadTime)
 
 			if len(line) > 0 {
+				backoff = 100 * time.Millisecond
 				count := atomic.AddInt64(&logCount, 1)
 				logger.Debug("Read log line",
 					zap.String("pod", podName),
@@ -261,11 +264,19 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 			if err != nil {
 				if err == io.EOF {
 					logger.Debug("Log stream EOF, waiting for new data", zap.String("pod", podName))
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(backoff)
+					backoff *= 2
+					if backoff > maxBackoff {
+						backoff = maxBackoff
+					}
 					continue
 				} else if isTimeoutError(err) {
 					logger.Debug("Connection timeout, retrying", zap.String("pod", podName), zap.Error(err))
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(backoff)
+					backoff *= 2
+					if backoff > maxBackoff {
+						backoff = maxBackoff
+					}
 					continue
 				} else {
 					logger.Error("Error reading log stream", zap.String("pod", podName), zap.Error(err))

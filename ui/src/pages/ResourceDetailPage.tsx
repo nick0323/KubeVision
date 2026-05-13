@@ -14,9 +14,9 @@ import { capitalize } from '../utils/string';
 import { RESOURCE_TYPE_MAP } from '../constants/config';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
-import { authFetch } from '../utils/auth';
+import { authFetch, withCluster } from '../utils/auth';
 import { isClusterResource as isClusterScopeResource } from '../constants/config';
-import { notification } from '../common/Notification';
+import { notification } from '../common/NotificationContext';
 import '../styles/detail-page.css';
 
 // 导入resource特定 Tabs
@@ -24,7 +24,7 @@ import { PodsTab } from '../tabs/PodsTab';
 
 // Pod 特has Tabs（复use现hasComponent）
 import { LogsTab } from '../tabs/LogsTab';
-import { TerminalTab } from '../tabs/TerminalTab';
+const TerminalTab = React.lazy(() => import('../tabs/TerminalTab'));
 
 /**
  * CommonResource detail pageComponent
@@ -85,7 +85,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
     const current = (data as any)?.spec?.replicas ?? 0;
     const replicas = Math.max(0, current + delta);
     try {
-      const response = await authFetch(`/api/${resourceType}/${namespace}/${resourceName}/scale`, {
+      const response = await authFetch(withCluster(`/api/${resourceType}/${namespace}/${resourceName}/scale`), {
         method: 'PUT',
         body: JSON.stringify({ replicas }),
       });
@@ -106,7 +106,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
   const handleRestart = useCallback(async () => {
     try {
-      const response = await authFetch(`/api/${resourceType}/${namespace}/${resourceName}/restart`, {
+      const response = await authFetch(withCluster(`/api/${resourceType}/${namespace}/${resourceName}/restart`), {
         method: 'POST',
       });
       const result = await response.json();
@@ -125,7 +125,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
    */
   const handleDelete = useCallback(async () => {
     try {
-      const response = await authFetch(`/api/${resourceType}/${namespace}/${resourceName}`, {
+      const response = await authFetch(withCluster(`/api/${resourceType}/${namespace}/${resourceName}`), {
         method: 'DELETE',
       });
       const result = await response.json();
@@ -148,17 +148,8 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
   const handleBreadcrumbClick = useCallback(
     (path: string) => {
       if (path) {
-        // settings current_tab (Use JSON.stringify Keep with useLocalStorage consistent)
         localStorage.setItem('current_tab', JSON.stringify(path));
-
-        // Trigger event component
-        window.dispatchEvent(new CustomEvent('tab-change', { detail: path }));
-
-        // jump totoList页（根路径）
-        navigate('/');
-      } else {
-        // path for空，notProcess（namespace and name 's路径for空）
-        return;
+        navigate('/?tab=' + encodeURIComponent(path));
       }
     },
     [navigate]
@@ -247,11 +238,13 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
       case 'terminal':
         return (
-          <TerminalTab
-            namespace={namespace}
-            name={resourceName}
-            containers={(data as Record<string, any>)?.spec?.containers || []}
-          />
+          <React.Suspense fallback={<LoadingSpinner text="Loading terminal..." size="lg" />}>
+            <TerminalTab
+              namespace={namespace}
+              name={resourceName}
+              containers={(data as Record<string, any>)?.spec?.containers || []}
+            />
+          </React.Suspense>
         );
 
       case 'pods':

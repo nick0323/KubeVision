@@ -285,7 +285,7 @@ func deleteResource(
 		// 清除相关缓存
 		if cacheMgr != nil {
 			cacheMgr.Delete(fmt.Sprintf("detail:%s:%s:%s:%s:%s", cacheVersion, cluster, resourceType, ns, name))
-			cacheMgr.Delete(fmt.Sprintf("list:%s:%s:%s:%s::::", cacheVersion, cluster, resourceType, ns))
+			cacheMgr.DeleteByPrefix(fmt.Sprintf("list:%s:%s:%s:", cacheVersion, cluster, resourceType))
 		}
 
 		middleware.ResponseSuccess(c, nil, "Resource deleted successfully", nil)

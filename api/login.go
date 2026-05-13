@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -125,10 +126,7 @@ func verifyPassword(reqPassword, configPassword string, pm *PasswordManager) boo
 	if hashed {
 		return pm.VerifyPassword(reqPassword, configPassword)
 	}
-	if reqPassword == configPassword {
-		return true
-	}
-	return false
+	return subtle.ConstantTimeCompare([]byte(reqPassword), []byte(configPassword)) == 1
 }
 
 func min(a, b int) int {

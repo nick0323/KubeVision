@@ -168,26 +168,29 @@ export interface PaginationQueryOptions {
 /**
  * Paginationquery
  */
+type PaginatedResponse<T> = { data: T[]; page: PageMeta } | T[];
+
 export async function createPaginatedQuery<T>(
   endpoint: string,
   options: PaginationQueryOptions
 ): Promise<{ data: T[]; page: PageMeta }> {
   const { page, pageSize, namespace, search } = options;
 
-  const result = await apiClient.get<{ data: T[]; page: PageMeta }>(endpoint, {
+  const result = await apiClient.get<PaginatedResponse<T>>(endpoint, {
     limit: pageSize,
     offset: (page - 1) * pageSize,
     ...(namespace && { namespace }),
     ...(search && { search }),
   });
 
-  // backendBackformat：{ code: 200, message: "xxx", data: { data: [...], page: {...} }, page: {...} }
-  // or者：{ code: 200, message: "xxx", data: [...], page: {...} }
   const responseData = result.data;
 
+  if (Array.isArray(responseData)) {
+    return { data: responseData, page: { total: 0, limit: pageSize, offset: 0 } };
+  }
   return {
-    data: (responseData as any)?.data || responseData || [],
-    page: result.page || { total: 0, limit: pageSize, offset: 0 },
+    data: responseData.data || [],
+    page: responseData.page || { total: 0, limit: pageSize, offset: 0 },
   };
 }
 
