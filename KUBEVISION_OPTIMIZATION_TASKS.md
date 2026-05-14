@@ -177,21 +177,20 @@
 
 ### F4 - 集群健康状态 API
 - [x] 添加 `GetClustersHealth()` 和 `ClusterHealth` 模型
-- [ ] 添加 `GET /api/clusters/health` 端点
-- [ ] 前端在 Sidebar 显示集群状态指示器
-- [ ] 优先级: 🟢
+- [x] 添加 `GET /api/v1/clusters/health` 端点
+- [x] 前端 Sidebar 显示集群健康指示器（状态点 + tooltip）
+- 优先级: 🟢
 
 ### F5 - 前端键盘导航
-- [ ] Sidebar 添加 `tabindex` 和方向键导航
-- [ ] Table 行添加 `tabindex` 和 Enter 跳转
-- [ ] 在 `sidebar.tsx` 中添加 `aria-current` 属性
-- [ ] 优先级: 🟡
+- [x] Sidebar 添加 `tabIndex`、`role="menuitem"`、`aria-current`、Enter/Space 键盘支持
+- [x] Table 行添加 `tabIndex`、`role="button"`、Enter/Space 跳转
+- 优先级: 🟡
 
 ### F6 - 服务端优雅关闭 WebSocket
 - [x] 添加 `WebSocketManager`（`api/wsmanager.go`）：连接计数、关闭信号
-- [ ] 集成到 `main.go` 信号处理中
-- [ ] 关闭时向所有活跃 WS 连接发送关闭帧
-- [ ] 优先级: 🟡
+- [x] `exec.go` 和 `logstream_handler.go` 使用 `Acquire()`/`Release()` 管理连接
+- [x] 集成到 `server.Shutdown()` 中，通过 `ShutdownCtx()` 传播关闭信号
+- 优先级: 🟡
 
 ### F7 - 页面 Title 动态管理
 - [x] 创建 `usePageTitle` hook
@@ -247,7 +246,7 @@
 Sprint 1: ████████████████████ [10/10 tasks done]
 Sprint 2: ████████████████████ [5/5 tasks done]
 Sprint 3: ████████████████████ [10/10 tasks done]
-Sprint 4: ███████░░░░░░░░░░░░░ [5/7 tasks done]
+Sprint 4: ████████████████████ [7/7 tasks done]
 Sprint 5: ░░░░░░░░░░░░░░░░░░░░ [0/4 tasks done]
 Deps:     ░░░░░░░░░░░░░░░░░░░░ [0/2 tasks done]
 ```

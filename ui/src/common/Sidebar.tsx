@@ -186,25 +186,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Menu */}
       <div className="sider-scroll">
-        <ul>
-          {/* Overview */}
-          {MENU_LIST[0].items.map(item => (
-            <li
-              key={item.key}
-              className={showActiveState && activeTab === item.key ? 'active' : ''}
-              onClick={() => handleMenuClick(item.key)}
-              data-tip={item.label}
-            >
-              <span className="icon">{ICON_MAP[item.icon]}</span>
-              <span>{item.label}</span>
-            </li>
-          ))}
+        <ul role="menubar">
+          {MENU_LIST[0].items.map(item => {
+            const isActive = showActiveState && activeTab === item.key;
+            return (
+              <li
+                key={item.key}
+                role="menuitem"
+                tabIndex={0}
+                className={isActive ? 'active' : ''}
+                aria-current={isActive ? 'page' : undefined}
+                onClick={() => handleMenuClick(item.key)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleMenuClick(item.key); } }}
+                data-tip={item.label}
+              >
+                <span className="icon">{ICON_MAP[item.icon]}</span>
+                <span>{item.label}</span>
+              </li>
+            );
+          })}
 
-          {/* Menu Group */}
           {MENU_LIST.slice(1).map(group => (
             <React.Fragment key={group.group}>
               {!collapsed && (
-                <li className="menu-group-title">
+                <li className="menu-group-title" role="separator">
                   <span>{group.group}</span>
                   <span
                     style={{ marginLeft: 8, cursor: 'pointer' }}
@@ -222,17 +227,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </li>
               )}
               {(collapsed || openGroups[group.group]) &&
-                group.items.map(item => (
-                  <li
-                    key={item.key}
-                    className={showActiveState && activeTab === item.key ? 'active' : ''}
-                    onClick={() => handleMenuClick(item.key)}
-                    data-tip={item.label}
-                  >
-                    <span className="icon">{ICON_MAP[item.icon]}</span>
-                    <span>{item.label}</span>
-                  </li>
-                ))}
+                group.items.map(item => {
+                  const isActive = showActiveState && activeTab === item.key;
+                  return (
+                    <li
+                      key={item.key}
+                      role="menuitem"
+                      tabIndex={0}
+                      className={isActive ? 'active' : ''}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => handleMenuClick(item.key)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleMenuClick(item.key); } }}
+                      data-tip={item.label}
+                    >
+                      <span className="icon">{ICON_MAP[item.icon]}</span>
+                      <span>{item.label}</span>
+                    </li>
+                  );
+                })}
             </React.Fragment>
           ))}
         </ul>

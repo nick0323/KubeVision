@@ -226,11 +226,21 @@ export const TableRow = memo(
       onClick?.(record);
     }, [onClick, record]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+      e.preventDefault();
+      onClick(record);
+    }
+  }, [onClick, record]);
+
   return (
     <tr
       key={rowIndex}
       className={`table-row ${onClick ? 'clickable' : ''}`}
+      tabIndex={onClick ? 0 : undefined}
+      role={onClick ? 'button' : undefined}
       onClick={handleClick}
+      onKeyDown={onClick ? handleKeyDown : undefined}
     >
       {columns.map((column, colIndex) => (
         <TableCell
