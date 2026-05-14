@@ -100,8 +100,8 @@ export const TerminalTab: React.FC<TerminalTabProps> = ({ namespace, name, conta
     const resizeObserver = new ResizeObserver(() => {
       if (fitAddonRef.current && xtermRef.current && terminalRef.current) {
         // debounceProcess
-        clearTimeout((fitAddonRef.current as any).fitTimeout);
-        (fitAddonRef.current as any).fitTimeout = setTimeout(() => {
+        clearTimeout((fitAddonRef.current as unknown as { fitTimeout: ReturnType<typeof setTimeout> | undefined }).fitTimeout);
+        (fitAddonRef.current as unknown as { fitTimeout: ReturnType<typeof setTimeout> }).fitTimeout = setTimeout(() => {
           // 检查Containeris否可见（notfor 0）
           if (terminalRef.current && terminalRef.current.offsetWidth > 0 && terminalRef.current.offsetHeight > 0) {
             fitAddonRef.current?.fit();

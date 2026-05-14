@@ -135,9 +135,20 @@ func (h *LoginHandler) handleLoginSuccess(c *gin.Context, username, clientIP str
 		zap.String("clientIP", clientIP),
 	)
 
-	tokenString, err := h.generateToken(username, authConfig)
+	jwtConfig := h.configManager.GetConfig().JWT
+	tokenString, err := h.generateToken(username, jwtConfig)
 	if err != nil {
 		h.logger.Error("Token generation failed", zap.String("username", username), zap.Error(err))
+		middleware.ResponseError(c, h.logger, &model.APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "Token generation failed",
+		}, http.StatusInternalServerError)
+		return
+	}
+
+	refreshToken, err := h.generateRefreshToken(username, jwtConfig)
+	if err != nil {
+		h.logger.Error("Refresh token generation failed", zap.String("username", username), zap.Error(err))
 		middleware.ResponseError(c, h.logger, &model.APIError{
 			Code:    http.StatusInternalServerError,
 			Message: "Token generation failed",
@@ -149,7 +160,10 @@ func (h *LoginHandler) handleLoginSuccess(c *gin.Context, username, clientIP str
 		h.authManager.RecordSuccess(username, clientIP)
 	}
 
-	middleware.ResponseSuccess(c, map[string]string{"token": tokenString}, "Login successful", nil)
+	middleware.ResponseSuccess(c, map[string]string{
+		"token":        tokenString,
+		"refreshToken": refreshToken,
+	}, "Login successful", nil)
 }
 
 func (h *LoginHandler) handleLoginFailure(c *gin.Context, username, clientIP string, authConfig model.AuthConfig) {
@@ -171,20 +185,26 @@ func (h *LoginHandler) handleLoginFailure(c *gin.Context, username, clientIP str
 	}, http.StatusUnauthorized)
 }
 
-func (h *LoginHandler) generateToken(username string, authConfig model.AuthConfig) (string, error) {
+func (h *LoginHandler) generateToken(username string, jwtConfig model.JWTConfig) (string, error) {
 	jti := generateJTI()
 	if jti == "" {
 		h.logger.Warn("failed to generate JTI, using timestamp")
 		jti = fmt.Sprintf("%d", time.Now().UnixNano())
 	}
 
+	expiration := jwtConfig.Expiration
+	if expiration <= 0 {
+		expiration = 15 * time.Minute
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
 		"iat":      time.Now().Unix(),
-		"exp":      time.Now().Add(authConfig.SessionTimeout).Unix(),
+		"exp":      time.Now().Add(expiration).Unix(),
 		"iss":      middleware.JWTIssuer,
 		"aud":      middleware.JWTAudience,
 		"jti":      jti,
+		"type":     "access",
 	})
 
 	secret := h.configManager.GetJWTSecret()
@@ -193,6 +213,132 @@ func (h *LoginHandler) generateToken(username string, authConfig model.AuthConfi
 	}
 
 	return token.SignedString(secret)
+}
+
+func (h *LoginHandler) generateRefreshToken(username string, jwtConfig model.JWTConfig) (string, error) {
+	jti := generateJTI()
+	if jti == "" {
+		h.logger.Warn("failed to generate JTI, using timestamp")
+		jti = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+
+	expiration := jwtConfig.RefreshExpiration
+	if expiration <= 0 {
+		expiration = 7 * 24 * time.Hour
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"iat":      time.Now().Unix(),
+		"exp":      time.Now().Add(expiration).Unix(),
+		"iss":      middleware.JWTIssuer,
+		"aud":      middleware.JWTAudience,
+		"jti":      jti,
+		"type":     "refresh",
+	})
+
+	secret := h.configManager.GetJWTSecret()
+	if len(secret) == 0 {
+		return "", errors.New("JWT secret not configured")
+	}
+
+	return token.SignedString(secret)
+}
+
+func (h *LoginHandler) Refresh(blacklist *middleware.TokenBlacklist) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			RefreshToken string `json:"refreshToken"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil || req.RefreshToken == "" {
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusBadRequest,
+				Message: "Refresh token is required",
+			}, http.StatusBadRequest)
+			return
+		}
+
+		if h.configManager == nil {
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "Server configuration not available",
+			}, http.StatusInternalServerError)
+			return
+		}
+
+		claims, err := middleware.VerifyToken(req.RefreshToken, h.configManager.GetJWTSecret())
+		if err != nil {
+			h.logger.Warn("refresh token verification failed", zap.Error(err))
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusUnauthorized,
+				Message: "Invalid or expired refresh token",
+			}, http.StatusUnauthorized)
+			return
+		}
+
+		if tokenType, ok := claims["type"].(string); !ok || tokenType != "refresh" {
+			h.logger.Warn("invalid token type for refresh")
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusUnauthorized,
+				Message: "Invalid token type",
+			}, http.StatusUnauthorized)
+			return
+		}
+
+		if jti, ok := claims["jti"].(string); ok && jti != "" && blacklist != nil {
+			if blacklist.IsBlacklisted(jti) {
+				h.logger.Warn("refresh token is blacklisted", zap.String("jti", jti))
+				middleware.ResponseError(c, h.logger, &model.APIError{
+					Code:    http.StatusUnauthorized,
+					Message: "Refresh token has been revoked",
+				}, http.StatusUnauthorized)
+				return
+			}
+		}
+
+		username, ok := claims["username"].(string)
+		if !ok || username == "" {
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusUnauthorized,
+				Message: "Invalid refresh token claims",
+			}, http.StatusUnauthorized)
+			return
+		}
+
+		if jti, ok := claims["jti"].(string); ok && jti != "" && blacklist != nil {
+			blacklist.Add(jti, time.Now().Add(7*24*time.Hour))
+		}
+
+		jwtConfig := h.configManager.GetConfig().JWT
+		newToken, err := h.generateToken(username, jwtConfig)
+		if err != nil {
+			h.logger.Error("access token generation failed during refresh", zap.Error(err))
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "Token generation failed",
+			}, http.StatusInternalServerError)
+			return
+		}
+
+		newRefreshToken, err := h.generateRefreshToken(username, jwtConfig)
+		if err != nil {
+			h.logger.Error("refresh token generation failed during refresh", zap.Error(err))
+			middleware.ResponseError(c, h.logger, &model.APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "Token generation failed",
+			}, http.StatusInternalServerError)
+			return
+		}
+
+		h.logger.Info("Token refreshed successfully",
+			zap.String("username", username),
+		)
+
+		middleware.ResponseSuccess(c, map[string]string{
+			"token":        newToken,
+			"refreshToken": newRefreshToken,
+		}, "Token refreshed successfully", nil)
+	}
 }
 
 func validateLoginRequest(req model.LoginRequest) error {

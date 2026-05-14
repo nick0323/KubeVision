@@ -3,12 +3,14 @@ import { LoginPageProps } from '../types';
 import { authUtils } from '../utils/auth';
 import { apiClient } from '../utils/apiClient';
 import { notification } from '../common/NotificationContext';
+import { usePageTitle } from '../hooks/usePageTitle';
 import './LoginPage.css';
 
 /**
  * Login pageComponent
  */
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+  usePageTitle('Login');
   const [username, setUsername] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [remember, setRemember] = useState<boolean>(false);
@@ -45,23 +47,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
 
     try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.code === 0) {
-        const token = data.data?.token;
+      const result = await apiClient.post<{ token: string; refreshToken: string }>('/api/login', { username, password });
+      if (result.code === 0) {
+        const token = result.data?.token;
+        const refreshToken = result.data?.refreshToken;
 
         if (!token) {
           notification.error('No token found in login response');
           return;
         }
 
-        authUtils.setToken(token);
+        if (refreshToken) {
+          authUtils.setTokens(token, refreshToken);
+        } else {
+          authUtils.setToken(token);
+        }
 
         if (authUtils.isLoggedIn()) {
           notification.success('Login successful');
@@ -70,11 +70,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           notification.error('Token verification failed, please retry');
         }
       } else {
-        const errMsg = data.message || data.details || 'Wrong username or password';
+        const errMsg = result.message || 'Wrong username or password';
         notification.error(errMsg);
       }
-    } catch {
-      notification.error('Network error, please retry');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error, please retry';
+      notification.error(msg);
     } finally {
       setLoading(false);
     }

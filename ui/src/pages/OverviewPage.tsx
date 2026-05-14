@@ -6,6 +6,7 @@ import PageHeader from '../common/PageHeader.tsx';
 import RefreshButton from '../common/RefreshButton.tsx';
 import { OverviewPageProps, OverviewData } from '../types';
 import { apiClient } from '../utils/apiClient';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { FaServer, FaCube, FaNetworkWired } from 'react-icons/fa';
 import { FaThLarge } from 'react-icons/fa';
 
@@ -46,6 +47,7 @@ function useFetch<T>(url: string) {
  * clusterOverview page
  */
 export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleCollapsed }) => {
+  usePageTitle('Overview');
   const { data, loading, error, refresh } = useFetch<OverviewData>('/api/overview');
   const safeData: Partial<OverviewData> = data || {};
 

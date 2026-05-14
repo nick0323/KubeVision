@@ -8,6 +8,7 @@ import { ErrorDisplay } from '../common/ErrorDisplay';
 import Pagination from '../common/Pagination.tsx';
 import { apiClient } from '../utils/apiClient';
 import { downloadFile } from '../utils/download';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { PAGINATION_CONFIG } from '../constants/config';
 import { filterHiddenFields } from '../utils/filterHiddenFields';
 import { FaArrowLeft, FaCopy, FaDownload } from 'react-icons/fa';
@@ -45,6 +46,9 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGINATION_CONFIG.DEFAULT_PAGE_SIZE);
+
+  const crdTitle = view === 'list' ? 'CRDs' : view === 'instances' ? `${selectedCRD?.kind || 'CRD'} Instances` : `${selectedInstance?.metadata?.name || 'Instance'} YAML`;
+  usePageTitle(crdTitle);
 
   const fetchCRDs = useCallback(async () => {
     setLoading(true);

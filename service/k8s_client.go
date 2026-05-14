@@ -121,6 +121,24 @@ func (h *ClientHolder) GetClientset() (*kubernetes.Clientset, error) {
 	return h.clientset, nil
 }
 
+func (h *ClientHolder) GetServerVersion() string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	info, err := h.clientset.Discovery().ServerVersion()
+	if err != nil {
+		return "unknown"
+	}
+	return fmt.Sprintf("%s.%s", info.Major, info.Minor)
+}
+
+func (h *ClientHolder) GetHost() string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	return h.config.Host
+}
+
 func (h *ClientHolder) Close() {
 	h.closeOnce.Do(func() {
 		close(h.closeCh)
@@ -353,6 +371,48 @@ func (m *ClientManager) GetClusterNames() []string {
 		return true
 	})
 	return names
+}
+
+func (m *ClientManager) GetClustersHealth(ctx context.Context) []model.ClusterHealth {
+	var healthList []model.ClusterHealth
+
+	// default cluster
+	defaultHealth := m.collectHealth(ctx, "default", m.defaultClient)
+	healthList = append(healthList, defaultHealth)
+
+	// named clusters
+	m.clientPool.Range(func(key, value interface{}) bool {
+		name := key.(string)
+		holder := value.(*ClientHolder)
+		healthList = append(healthList, m.collectHealth(ctx, name, holder))
+		return true
+	})
+
+	return healthList
+}
+
+func (m *ClientManager) collectHealth(ctx context.Context, name string, holder *ClientHolder) model.ClusterHealth {
+	h := model.ClusterHealth{
+		Name:    name,
+		Healthy: holder.IsHealthy(),
+		Host:    holder.GetHost(),
+		Version: holder.GetServerVersion(),
+	}
+
+	holder.mu.RLock()
+	if !holder.lastHealthCheck.IsZero() {
+		h.LastCheck = holder.lastHealthCheck.Unix()
+	}
+	holder.mu.RUnlock()
+
+	if h.Healthy {
+		nodes, err := holder.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{Limit: 1})
+		if err == nil {
+			h.NodeCount = len(nodes.Items)
+		}
+	}
+
+	return h
 }
 
 func (m *ClientManager) loadClustersFromConfig(cfg *model.Config) {

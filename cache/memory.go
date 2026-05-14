@@ -3,6 +3,7 @@ package cache
 import (
 	"container/list"
 	"context"
+	"hash/fnv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -15,6 +16,7 @@ const (
 	DefaultMaxSize         = 1000
 	DefaultTTL             = 5 * time.Minute
 	DefaultCleanupInterval = 1 * time.Minute
+	DefaultShardCount      = 16
 )
 
 type CacheItem[T any] struct {
@@ -27,10 +29,15 @@ type cacheEntry[T any] struct {
 	item *CacheItem[T]
 }
 
-type MemoryCache[T any] struct {
+type cacheShard[T any] struct {
 	data    map[string]*list.Element
 	lruList *list.List
 	mutex   sync.RWMutex
+}
+
+type MemoryCache[T any] struct {
+	shards  []*cacheShard[T]
+	shardMask uint32
 	maxSize int
 	ttl     time.Duration
 	hits    atomic.Int64
@@ -46,17 +53,34 @@ func NewMemoryCache(config *model.CacheConfig) *MemoryCache[interface{}] {
 			MaxSize:         DefaultMaxSize,
 			TTL:             DefaultTTL,
 			CleanupInterval: DefaultCleanupInterval,
+			ShardCount:      DefaultShardCount,
+		}
+	}
+
+	shardCount := config.ShardCount
+	if shardCount <= 0 {
+		shardCount = DefaultShardCount
+	}
+	if shardCount&(shardCount-1) != 0 {
+		shardCount = DefaultShardCount
+	}
+
+	shards := make([]*cacheShard[interface{}], shardCount)
+	for i := range shards {
+		shards[i] = &cacheShard[interface{}]{
+			data:    make(map[string]*list.Element, config.MaxSize/shardCount+1),
+			lruList: list.New(),
 		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cache := &MemoryCache[interface{}]{
-		data:    make(map[string]*list.Element, config.MaxSize),
-		lruList: list.New(),
-		maxSize: config.MaxSize,
-		ttl:     config.TTL,
-		ctx:     ctx,
-		cancel:  cancel,
+		shards:    shards,
+		shardMask: uint32(shardCount - 1),
+		maxSize:   config.MaxSize,
+		ttl:       config.TTL,
+		ctx:       ctx,
+		cancel:    cancel,
 	}
 
 	if config.Enabled {
@@ -66,21 +90,28 @@ func NewMemoryCache(config *model.CacheConfig) *MemoryCache[interface{}] {
 	return cache
 }
 
+func (c *MemoryCache[T]) getShard(key string) *cacheShard[T] {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return c.shards[h.Sum32()&c.shardMask]
+}
+
 func (c *MemoryCache[T]) Set(key string, value T) {
 	c.SetWithTTL(key, value, c.ttl)
 }
 
 func (c *MemoryCache[T]) SetWithTTL(key string, value T, ttl time.Duration) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	s := c.getShard(key)
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
-	if elem, ok := c.data[key]; ok {
-		c.lruList.Remove(elem)
-		delete(c.data, key)
+	if elem, ok := s.data[key]; ok {
+		s.lruList.Remove(elem)
+		delete(s.data, key)
 	}
 
-	for c.lruList.Len() >= c.maxSize {
-		c.evictLRU()
+	for s.lruList.Len() >= c.maxSize/c.lenShards() {
+		s.evictLRU()
 	}
 
 	entry := &cacheEntry[T]{
@@ -90,17 +121,23 @@ func (c *MemoryCache[T]) SetWithTTL(key string, value T, ttl time.Duration) {
 			ExpireTime: time.Now().Add(ttl),
 		},
 	}
-	elem := c.lruList.PushFront(entry)
-	c.data[key] = elem
+	elem := s.lruList.PushFront(entry)
+	s.data[key] = elem
+}
+
+func (c *MemoryCache[T]) lenShards() int {
+	return len(c.shards)
 }
 
 func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	var zero T
 
-	c.mutex.RLock()
-	elem, exists := c.data[key]
+	s := c.getShard(key)
+
+	s.mutex.RLock()
+	elem, exists := s.data[key]
 	if !exists {
-		c.mutex.RUnlock()
+		s.mutex.RUnlock()
 		c.misses.Add(1)
 		return zero, false
 	}
@@ -108,74 +145,87 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	entry := elem.Value.(*cacheEntry[T])
 
 	if time.Now().After(entry.item.ExpireTime) {
-		c.mutex.RUnlock()
-		c.mutex.Lock()
-		// 双重检查：另一个 goroutine 可能已经移除了该条目
-		if elem2, ok := c.data[key]; ok {
+		s.mutex.RUnlock()
+		s.mutex.Lock()
+		if elem2, ok := s.data[key]; ok {
 			entry2 := elem2.Value.(*cacheEntry[T])
 			if time.Now().After(entry2.item.ExpireTime) {
-				c.lruList.Remove(elem2)
-				delete(c.data, key)
+				s.lruList.Remove(elem2)
+				delete(s.data, key)
 			}
 		}
-		c.mutex.Unlock()
+		s.mutex.Unlock()
 		c.misses.Add(1)
 		return zero, false
 	}
 
-	c.mutex.RUnlock()
-	c.mutex.Lock()
-	// 双重检查并移动到前端
-	if elem2, ok := c.data[key]; ok {
-		c.lruList.MoveToFront(elem2)
+	s.mutex.RUnlock()
+	s.mutex.Lock()
+	if elem2, ok := s.data[key]; ok {
+		s.lruList.MoveToFront(elem2)
 	}
-	c.mutex.Unlock()
+	s.mutex.Unlock()
 
 	c.hits.Add(1)
 	return entry.item.Value, true
 }
 
 func (c *MemoryCache[T]) Delete(key string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	if elem, ok := c.data[key]; ok {
-		c.lruList.Remove(elem)
-		delete(c.data, key)
+	s := c.getShard(key)
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if elem, ok := s.data[key]; ok {
+		s.lruList.Remove(elem)
+		delete(s.data, key)
 	}
 }
 
 func (c *MemoryCache[T]) DeleteByPrefix(prefix string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	for key, elem := range c.data {
-		if strings.HasPrefix(key, prefix) {
-			c.lruList.Remove(elem)
-			delete(c.data, key)
-		}
+	var wg sync.WaitGroup
+	for _, s := range c.shards {
+		wg.Add(1)
+		go func(shard *cacheShard[T]) {
+			defer wg.Done()
+			shard.mutex.Lock()
+			for key, elem := range shard.data {
+				if strings.HasPrefix(key, prefix) {
+					shard.lruList.Remove(elem)
+					delete(shard.data, key)
+				}
+			}
+			shard.mutex.Unlock()
+		}(s)
 	}
+	wg.Wait()
 }
 
 func (c *MemoryCache[T]) Clear() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.data = make(map[string]*list.Element)
-	c.lruList = list.New()
+	for _, s := range c.shards {
+		s.mutex.Lock()
+		s.data = make(map[string]*list.Element)
+		s.lruList = list.New()
+		s.mutex.Unlock()
+	}
 }
 
 func (c *MemoryCache[T]) Size() int {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	return c.lruList.Len()
+	total := 0
+	for _, s := range c.shards {
+		s.mutex.RLock()
+		total += s.lruList.Len()
+		s.mutex.RUnlock()
+	}
+	return total
 }
 
-func (c *MemoryCache[T]) evictLRU() {
-	elem := c.lruList.Back()
+func (s *cacheShard[T]) evictLRU() {
+	elem := s.lruList.Back()
 	if elem == nil {
 		return
 	}
 	entry := elem.Value.(*cacheEntry[T])
-	delete(c.data, entry.key)
-	c.lruList.Remove(elem)
+	delete(s.data, entry.key)
+	s.lruList.Remove(elem)
 }
 
 func (c *MemoryCache[T]) cleanupWorker(interval time.Duration) {
@@ -193,18 +243,19 @@ func (c *MemoryCache[T]) cleanupWorker(interval time.Duration) {
 }
 
 func (c *MemoryCache[T]) cleanup() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	now := time.Now()
-	var next *list.Element
-	for e := c.lruList.Front(); e != nil; e = next {
-		next = e.Next()
-		entry := e.Value.(*cacheEntry[T])
-		if now.After(entry.item.ExpireTime) {
-			delete(c.data, entry.key)
-			c.lruList.Remove(e)
+	for _, s := range c.shards {
+		s.mutex.Lock()
+		now := time.Now()
+		var next *list.Element
+		for e := s.lruList.Front(); e != nil; e = next {
+			next = e.Next()
+			entry := e.Value.(*cacheEntry[T])
+			if now.After(entry.item.ExpireTime) {
+				delete(s.data, entry.key)
+				s.lruList.Remove(e)
+			}
 		}
+		s.mutex.Unlock()
 	}
 }
 
@@ -214,9 +265,7 @@ func (c *MemoryCache[T]) Close() {
 }
 
 func (c *MemoryCache[T]) GetStats() map[string]interface{} {
-	c.mutex.RLock()
-	size := c.lruList.Len()
-	c.mutex.RUnlock()
+	size := c.Size()
 
 	hits := c.hits.Load()
 	misses := c.misses.Load()
@@ -230,6 +279,7 @@ func (c *MemoryCache[T]) GetStats() map[string]interface{} {
 	return map[string]interface{}{
 		"size":    size,
 		"maxSize": c.maxSize,
+		"shards":  len(c.shards),
 		"hitRate": hitRate,
 		"hits":    hits,
 		"misses":  misses,

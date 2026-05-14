@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,8 +28,6 @@ const (
 	ExecSessionTimeout = 30 * time.Minute
 	MaxExecConnections = 100
 )
-
-var activeExecConnections atomic.Int32
 
 var (
 	namespaceRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -152,7 +149,7 @@ func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider Exe
 		middleware.ResponseError(c, logger, err, http.StatusServiceUnavailable)
 		return
 	}
-	defer activeExecConnections.Add(-1)
+	defer globalWSManager.Release()
 
 	cluster := c.Query("cluster")
 	clientset, config, err := getExecClient(execClientProvider, cluster)
@@ -178,7 +175,8 @@ func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider Exe
 		middleware.ResponseError(c, logger, err, http.StatusBadRequest)
 		return
 	}
-	executeRemoteCommand(c.Request.Context(), ws, clientset, config, pod, container, command, logger)
+	execCtx := globalWSManager.ShutdownCtx(c.Request.Context())
+	executeRemoteCommand(execCtx, ws, clientset, config, pod, container, command, logger)
 }
 
 func validateExecParams(namespace, podName string) error {
@@ -192,10 +190,9 @@ func validateExecParams(namespace, podName string) error {
 }
 
 func checkExecConnectionLimit(logger *zap.Logger, username string) error {
-	current := activeExecConnections.Add(1)
-	if current > MaxExecConnections {
-		activeExecConnections.Add(-1)
-		logger.Warn("exec connection limit reached", zap.Int32("active", current-1), zap.String("user", username))
+	err := globalWSManager.Acquire()
+	if err != nil {
+		logger.Warn("exec connection limit reached", zap.Int32("active", globalWSManager.ActiveCount()), zap.String("user", username))
 		return fmt.Errorf("service busy, please try again later")
 	}
 	return nil

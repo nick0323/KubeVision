@@ -81,8 +81,8 @@ export interface Container {
   livenessProbe?: Probe;
   startupProbe?: Probe;
   lifecycle?: {
-    postStart?: { exec?: { command?: string[] }; httpGet?: any; tcpSocket?: any };
-    preStop?: { exec?: { command?: string[] }; httpGet?: any; tcpSocket?: any };
+    postStart?: { exec?: { command?: string[] }; httpGet?: Probe['httpGet']; tcpSocket?: Probe['tcpSocket'] };
+    preStop?: { exec?: { command?: string[] }; httpGet?: Probe['httpGet']; tcpSocket?: Probe['tcpSocket'] };
   };
   terminationMessagePath?: string;
   terminationMessagePolicy?: 'File' | 'FallbackToLogsOnError';
@@ -100,31 +100,31 @@ export interface Volume {
   configMap?: { name: string; items?: { key: string; path: string }[]; optional?: boolean };
   secret?: { secretName: string; items?: { key: string; path: string }[]; optional?: boolean };
   persistentVolumeClaim?: { claimName: string; readOnly?: boolean };
-  downwardAPI?: any;
-  projected?: any;
+  downwardAPI?: Record<string, unknown>;
+  projected?: Record<string, unknown>;
   nfs?: { server: string; path: string; readOnly?: boolean };
-  awsElasticBlockStore?: any;
-  azureDisk?: any;
-  azureFile?: any;
-  cephfs?: any;
-  cinder?: any;
-  csi?: any;
-  ephemeral?: any;
-  fc?: any;
-  flexVolume?: any;
-  flocker?: any;
-  gcePersistentDisk?: any;
-  gitRepo?: any;
-  glusterfs?: any;
-  iscsi?: any;
-  local?: any;
-  photonPersistentDisk?: any;
-  portworxVolume?: any;
-  quobyte?: any;
-  rbd?: any;
-  scaleIO?: any;
-  storageos?: any;
-  vsphereVolume?: any;
+  awsElasticBlockStore?: Record<string, unknown>;
+  azureDisk?: Record<string, unknown>;
+  azureFile?: Record<string, unknown>;
+  cephfs?: Record<string, unknown>;
+  cinder?: Record<string, unknown>;
+  csi?: Record<string, unknown>;
+  ephemeral?: Record<string, unknown>;
+  fc?: Record<string, unknown>;
+  flexVolume?: Record<string, unknown>;
+  flocker?: Record<string, unknown>;
+  gcePersistentDisk?: Record<string, unknown>;
+  gitRepo?: Record<string, unknown>;
+  glusterfs?: Record<string, unknown>;
+  iscsi?: Record<string, unknown>;
+  local?: Record<string, unknown>;
+  photonPersistentDisk?: Record<string, unknown>;
+  portworxVolume?: Record<string, unknown>;
+  quobyte?: Record<string, unknown>;
+  rbd?: Record<string, unknown>;
+  scaleIO?: Record<string, unknown>;
+  storageos?: Record<string, unknown>;
+  vsphereVolume?: Record<string, unknown>;
 }
 
 export type PodPhase = 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Unknown';
@@ -184,14 +184,14 @@ export interface PodSpec {
     runAsGroup?: number;
     fsGroup?: number;
     supplementalGroups?: number[];
-    seccompProfile?: any;
-    sysctls?: any[];
+    seccompProfile?: { type: string; localhostProfile?: string };
+    sysctls?: { name: string; value: string }[];
   };
   imagePullSecrets?: K8sLocalObjectReference[];
   hostname?: string;
   subdomain?: string;
-  affinity?: any;
-  tolerations?: any[];
+  affinity?: import('./core').Affinity;
+  tolerations?: import('./core').Toleration[];
   priorityClassName?: string;
   priority?: number;
   preemptionPolicy?: 'PreemptLowerPriority' | 'Never';
@@ -237,9 +237,9 @@ export interface Deployment extends K8sResource {
   metadata: K8sMetadata & { namespace: string };
   spec: {
     replicas?: number;
-    selector: { matchLabels?: Record<string, string>; matchExpressions?: any[] };
+    selector: { matchLabels?: Record<string, string>; matchExpressions?: { key: string; operator: string; values?: string[] }[] };
     template: { metadata: K8sMetadata; spec: PodSpec };
-    strategy?: { type?: 'Recreate' | 'RollingUpdate'; rollingUpdate?: any };
+    strategy?: { type?: 'Recreate' | 'RollingUpdate'; rollingUpdate?: Record<string, unknown> };
     minReadySeconds?: number;
     revisionHistoryLimit?: number;
     paused?: boolean;
@@ -276,8 +276,8 @@ export interface StatefulSet extends K8sResource {
     selector: { matchLabels?: Record<string, string> };
     template: { metadata: K8sMetadata; spec: PodSpec };
     podManagementPolicy?: 'OrderedReady' | 'Parallel';
-    updateStrategy?: any;
-    volumeClaimTemplates?: any[];
+    updateStrategy?: Record<string, unknown>;
+    volumeClaimTemplates?: Record<string, unknown>[];
     minReadySeconds?: number;
     revisionHistoryLimit?: number;
   };
@@ -306,7 +306,7 @@ export interface DaemonSet extends K8sResource {
   spec: {
     selector: { matchLabels?: Record<string, string> };
     template: { metadata: K8sMetadata; spec: PodSpec };
-    updateStrategy?: any;
+    updateStrategy?: Record<string, unknown>;
     minReadySeconds?: number;
     revisionHistoryLimit?: number;
   };
@@ -336,7 +336,7 @@ export interface CronJob extends K8sResource {
   spec: {
     schedule: string;
     suspend?: boolean;
-    jobTemplate?: any;
+    jobTemplate?: Record<string, unknown>;
     successfulJobsHistoryLimit?: number;
     failedJobsHistoryLimit?: number;
   };
@@ -368,7 +368,7 @@ export interface K8sJob extends K8sResource {
     active?: number;
     succeeded?: number;
     failed?: number;
-    conditions?: any[];
+    conditions?: { type: string; status: string; reason?: string; message?: string }[];
     startTime?: string;
     completionTime?: string;
   };

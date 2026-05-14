@@ -1,5 +1,4 @@
 import React from 'react';
-import type { APIResponse as APIResponseType, PageMeta as PageMetaType } from './index';
 
 export interface K8sMetadata {
   name: string;
@@ -43,19 +42,6 @@ export interface K8sResourceList<T extends K8sResource> {
     remainingItemCount?: number;
   };
   items: T[];
-}
-
-export interface APIErrorResponse {
-  code: number;
-  message: string;
-  details?: { field?: string; reason?: string }[];
-  traceId?: string;
-  timestamp?: number;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  page?: PageMetaType;
 }
 
 export interface ColumnDef<T> {
@@ -162,7 +148,7 @@ export interface Toleration {
 }
 
 export interface Affinity {
-  nodeAffinity?: any;
-  podAffinity?: any;
-  podAntiAffinity?: any;
+  nodeAffinity?: Record<string, unknown>;
+  podAffinity?: Record<string, unknown>;
+  podAntiAffinity?: Record<string, unknown>;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useReducer } from 'react';
 import { YamlTabProps } from '../pages/ResourceDetailPage.types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
@@ -15,51 +15,99 @@ import 'prismjs/components/prism-yaml';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import './YamlTab.css';
 
-/**
- * YAML Display options
- */
 interface YamlDisplayOptions {
   showStatus: boolean;
 }
 
-/**
- * 递归filter YAML object'shide字段
- */
-/**
- * 清理 YAML object'sno效字段（forUpdate）
- */
-const cleanYamlForUpdate = (obj: any): any => {
-  if (typeof obj !== 'object' || obj === null) return obj;
-  if (Array.isArray(obj)) return obj.map(item => cleanYamlForUpdate(item));
+interface YamlState {
+  yamlContent: string;
+  originalYaml: string;
+  editing: boolean;
+  loading: boolean;
+  error: string | null;
+  showDiff: boolean;
+  copySuccess: boolean;
+  displayOptions: YamlDisplayOptions;
+}
 
-  const cleaned: any = {};
+type YamlAction =
+  | { type: 'SET_YAML'; payload: string }
+  | { type: 'SET_ORIGINAL'; payload: string }
+  | { type: 'SET_BOTH'; payload: string }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'START_EDIT' }
+  | { type: 'CANCEL_EDIT' }
+  | { type: 'SAVE_SUCCESS' }
+  | { type: 'TOGGLE_DIFF' }
+  | { type: 'SET_COPY_SUCCESS'; payload: boolean }
+  | { type: 'TOGGLE_STATUS' };
+
+function yamlReducer(state: YamlState, action: YamlAction): YamlState {
+  switch (action.type) {
+    case 'SET_YAML':
+      return { ...state, yamlContent: action.payload };
+    case 'SET_ORIGINAL':
+      return { ...state, originalYaml: action.payload };
+    case 'SET_BOTH':
+      return { ...state, yamlContent: action.payload, originalYaml: action.payload };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'START_EDIT':
+      return { ...state, editing: true, showDiff: false };
+    case 'CANCEL_EDIT':
+      return { ...state, editing: false, yamlContent: state.originalYaml, showDiff: false };
+    case 'SAVE_SUCCESS':
+      return { ...state, editing: false, originalYaml: state.yamlContent };
+    case 'TOGGLE_DIFF':
+      return { ...state, showDiff: !state.showDiff };
+    case 'SET_COPY_SUCCESS':
+      return { ...state, copySuccess: action.payload };
+    case 'TOGGLE_STATUS':
+      return { ...state, displayOptions: { ...state.displayOptions, showStatus: !state.displayOptions.showStatus } };
+    default:
+      return state;
+  }
+}
+
+const initialState: YamlState = {
+  yamlContent: '',
+  originalYaml: '',
+  editing: false,
+  loading: false,
+  error: null,
+  showDiff: false,
+  copySuccess: false,
+  displayOptions: { showStatus: false },
+};
+
+const cleanYamlForUpdate = (obj: Record<string, unknown>): Record<string, unknown> => {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(item => cleanYamlForUpdate(item as Record<string, unknown>));
+
+  const cleaned: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    // 跳过空 uid 's ownerReferences
     if (key === 'ownerReferences' && Array.isArray(value)) {
-      cleaned[key] = value.filter((ref: any) => ref.uid && ref.uid.trim() !== '');
-      if (cleaned[key].length > 0) {
-        cleaned[key] = cleaned[key].map((ref: any) => cleanYamlForUpdate(ref));
+      cleaned[key] = value.filter((ref: Record<string, unknown>) => ref.uid && String(ref.uid).trim() !== '');
+      if ((cleaned[key] as unknown[]).length > 0) {
+        cleaned[key] = (cleaned[key] as unknown[]).map((ref: unknown) => cleanYamlForUpdate(ref as Record<string, unknown>));
       }
       continue;
     }
-    // 保留 resourceVersion and uid（K8s Update必需），but跳过空值
     if (['resourceVersion', 'uid'].includes(key)) {
       if (value === '' || value === null || value === undefined) continue;
       cleaned[key] = value;
       continue;
     }
-    // 跳过其他only读字段
     if (['creationTimestamp', 'generation', 'selfLink', 'managedFields'].includes(key)) continue;
-    // 跳过空值
     if (value === '' || value === null || value === undefined) continue;
-    cleaned[key] = cleanYamlForUpdate(value);
+    cleaned[key] = cleanYamlForUpdate(value as Record<string, unknown>);
   }
   return cleaned;
 };
 
-/**
- * resourceTypeMapping
- */
 const RESOURCE_TYPE_MAP: Record<string, { apiVersion: string; kind: string; title: string }> = {
   pod: { apiVersion: 'v1', kind: 'Pod', title: 'Pod' },
   deployment: { apiVersion: 'apps/v1', kind: 'Deployment', title: 'Deployment' },
@@ -78,32 +126,44 @@ const RESOURCE_TYPE_MAP: Record<string, { apiVersion: string; kind: string; titl
   node: { apiVersion: 'v1', kind: 'Node', title: 'Node' },
 };
 
-/**
- * Common YAML Tab - 查看/Editresource YAML
- */
+function yamlToDump(data: Record<string, unknown>, resourceConfig: { apiVersion: string; kind: string }): string {
+  return jsyaml.dump(
+    { apiVersion: resourceConfig.apiVersion, kind: resourceConfig.kind, ...data },
+    { indent: 2, lineWidth: -1, noRefs: true, quotingType: '"', forceQuotes: false },
+  );
+}
+
+function buildYamlPath(isClusterScope: boolean, resourceType: string, namespace: string | undefined, name: string): string {
+  return isClusterScope
+    ? `/api/${resourceType}/_cluster_/${name}/yaml`
+    : `/api/${resourceType}/${namespace}/${name}/yaml`;
+}
+
+async function submitYaml(
+  yamlPath: string,
+  body: Record<string, unknown>,
+  useCluster: boolean,
+): Promise<{ success: boolean; message: string }> {
+  const url = useCluster ? withCluster(yamlPath) : yamlPath;
+  const response = await authFetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const result = await response.json();
+  return { success: result.code === 0, message: result.message || 'Unknown error' };
+}
+
 export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
   namespace,
   name,
   resourceType = 'pod',
   data,
-  pod, // Compatible with PodDetailPage
+  pod,
 }) => {
-  const [yamlContent, setYamlContent] = useState<string>('');
-  const [originalYaml, setOriginalYaml] = useState<string>('');
-  const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showDiff, setShowDiff] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
-
-  // YAML Display options
-  const [displayOptions, setDisplayOptions] = useState<YamlDisplayOptions>({
-    showStatus: false,
-  });
-
+  const [state, dispatch] = useReducer(yamlReducer, initialState);
   const editorRef = useRef<HTMLPreElement>(null);
 
-  // GetResource type config
   const resourceConfig = RESOURCE_TYPE_MAP[resourceType] || {
     apiVersion: 'v1',
     kind: capitalize(resourceType),
@@ -112,222 +172,125 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
 
   const isClusterScope = isClusterResource(resourceType);
 
-  // Load YAML
   const loadYaml = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      const yamlPath = isClusterScope
-        ? `/api/${resourceType}/_cluster_/${name}/yaml`
-        : `/api/${resourceType}/${namespace}/${name}/yaml`;
+      const yamlPath = buildYamlPath(isClusterScope, resourceType, namespace, name);
       const response = await authFetch(withCluster(yamlPath));
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        // filterhide字段
-        const filteredData =
-          typeof result.data === 'string'
-            ? jsyaml.load(result.data)
-            : filterHiddenFields(result.data, displayOptions);
-
-        // ensureinclude完整's TypeMeta 字段
-        const resourceWithMeta = {
-          apiVersion: resourceConfig.apiVersion,
-          kind: resourceConfig.kind,
-          ...filteredData,
-        };
-
-        const yaml = jsyaml.dump(resourceWithMeta, {
-          indent: 2,
-          lineWidth: -1,
-          noRefs: true,
-          quotingType: '"',
-          forceQuotes: false,
-        });
-
-        setYamlContent(yaml);
-        setOriginalYaml(yaml);
+        const filteredData = filterHiddenFields(result.data, state.displayOptions);
+        dispatch({ type: 'SET_BOTH', payload: yamlToDump(filteredData, resourceConfig) });
       } else {
-          setError(result.message || 'Failed to load YAML');
+        dispatch({ type: 'SET_ERROR', payload: result.message || 'Failed to load YAML' });
       }
     } catch {
-      setError('Load Failed');
+      dispatch({ type: 'SET_ERROR', payload: 'Load Failed' });
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [namespace, name, resourceType, resourceConfig, displayOptions]);
+  }, [namespace, name, resourceType, isClusterScope, resourceConfig, state.displayOptions]);
 
-  // initialLoad
   useEffect(() => {
-    // preferUse data prop，其次Use pod prop（Compatible with PodDetailPage）
     const resourceData = data || pod;
-
     if (resourceData) {
-      // filter掉not needed's字段
-      const filteredData = filterHiddenFields(resourceData, displayOptions);
-
-      // ensureinclude完整's TypeMeta 字段
-      const resourceWithMeta = {
-        apiVersion: resourceConfig.apiVersion,
-        kind: resourceConfig.kind,
-        ...filteredData,
-      };
-      const yaml = jsyaml.dump(resourceWithMeta, {
-        indent: 2,
-        lineWidth: -1,
-        noRefs: true,
-        quotingType: '"',
-        forceQuotes: false,
-      });
-      setYamlContent(yaml);
-      setOriginalYaml(yaml);
+      const filteredData = filterHiddenFields(resourceData, state.displayOptions);
+      dispatch({ type: 'SET_BOTH', payload: yamlToDump(filteredData, resourceConfig) });
     }
-    // if没hasdata，from API Load
     if (!resourceData) {
       loadYaml();
     }
-  }, [data, pod, resourceConfig, displayOptions, loadYaml]);
+  }, [data, pod, resourceConfig, state.displayOptions, loadYaml]);
 
-  // Syntax highlighting
   useEffect(() => {
-    if (editorRef.current && !editing) {
+    if (editorRef.current && !state.editing) {
       Prism.highlightAllUnder(editorRef.current);
     }
-  }, [yamlContent, editing]);
+  }, [state.yamlContent, state.editing]);
 
-  // 复制 YAML
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(yamlContent);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      await navigator.clipboard.writeText(state.yamlContent);
+      dispatch({ type: 'SET_COPY_SUCCESS', payload: true });
+      setTimeout(() => dispatch({ type: 'SET_COPY_SUCCESS', payload: false }), 2000);
     } catch {
       notification.error('Copy failed');
     }
-  }, [yamlContent]);
+  }, [state.yamlContent]);
 
   const handleDownload = useCallback(() => {
-    downloadFile(yamlContent, `${name}.yaml`, 'text/yaml;charset=utf-8');
-  }, [yamlContent, name]);
+    downloadFile(state.yamlContent, `${name}.yaml`, 'text/yaml;charset=utf-8');
+  }, [state.yamlContent, name]);
 
-  // 进入EditMode
-  const handleEdit = useCallback(() => {
-    setEditing(true);
-    setShowDiff(false);
-  }, []);
-
-  // CancelEdit
-  const handleCancel = useCallback(() => {
-    setEditing(false);
-    setYamlContent(originalYaml);
-    setShowDiff(false);
-  }, [originalYaml]);
-
-  // Save修改
   const handleSave = useCallback(async () => {
-    setLoading(true);
+    dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const parsed = jsyaml.load(yamlContent);
-      // 清理no效字段
+      const parsed = jsyaml.load(state.yamlContent) as Record<string, unknown>;
       const cleaned = cleanYamlForUpdate(parsed);
-      const yamlPath = isClusterScope
-        ? `/api/${resourceType}/_cluster_/${name}/yaml`
-        : `/api/${resourceType}/${namespace}/${name}/yaml`;
-      const response = await authFetch(yamlPath, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ yaml: cleaned }),
-      });
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-          throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
-      }
-
-      const result = await response.json();
-
-      if (result.code === 0) {
+      const yamlPath = buildYamlPath(isClusterScope, resourceType, namespace, name);
+      const { success, message } = await submitYaml(yamlPath, { yaml: cleaned }, false);
+      if (success) {
         notification.success('YAML saved');
-        setEditing(false);
-        setOriginalYaml(yamlContent);
+        dispatch({ type: 'SAVE_SUCCESS' });
       } else {
-        notification.error(`Save failed: ${result.message}`);
+        notification.error(`Save failed: ${message}`);
       }
     } catch (err) {
       notification.error(`Save failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [namespace, name, resourceType, yamlContent]);
+  }, [namespace, name, resourceType, isClusterScope, state.yamlContent]);
 
-  // 应use更改
   const handleApply = useCallback(async () => {
-    setLoading(true);
+    dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const parsed = jsyaml.load(yamlContent);
-      // 清理no效字段
+      const parsed = jsyaml.load(state.yamlContent) as Record<string, unknown>;
       const cleaned = cleanYamlForUpdate(parsed);
-      const yamlPath = isClusterScope
-        ? `/api/${resourceType}/_cluster_/${name}/yaml`
-        : `/api/${resourceType}/${namespace}/${name}/yaml`;
-      const response = await authFetch(withCluster(yamlPath), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cleaned),
-      });
-      const result = await response.json();
-
-      if (result.code === 0) {
+      const yamlPath = buildYamlPath(isClusterScope, resourceType, namespace, name);
+      const { success, message } = await submitYaml(yamlPath, cleaned, true);
+      if (success) {
         notification.success('Config applied');
-        setEditing(false);
-        setOriginalYaml(yamlContent);
+        dispatch({ type: 'SAVE_SUCCESS' });
       } else {
-        notification.error(`Apply failed: ${result.message}`);
+        notification.error(`Apply failed: ${message}`);
       }
     } catch (err) {
       notification.error(`Apply failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [namespace, name, resourceType, yamlContent]);
+  }, [namespace, name, resourceType, isClusterScope, state.yamlContent]);
 
-  // toggle Diff 视图
-  const toggleDiff = useCallback(() => {
-    setShowDiff(prev => !prev);
-  }, []);
-
-  if (loading && !yamlContent) {
-          return <LoadingSpinner text="Loading YAML..." size="lg" />;
+  if (state.loading && !state.yamlContent) {
+    return <LoadingSpinner text="Loading YAML..." size="lg" />;
   }
 
-  if (error && !yamlContent) {
-    return <ErrorDisplay message={error} type="error" showRetry onRetry={loadYaml} />;
+  if (state.error && !state.yamlContent) {
+    return <ErrorDisplay message={state.error} type="error" showRetry onRetry={loadYaml} />;
   }
 
   return (
     <div className="yaml-tab">
-      {/* Toolbar */}
       <div className="yaml-toolbar">
         <div className="yaml-toolbar-left">
           <span className="yaml-title">{resourceConfig.title} YAML</span>
           <span className="yaml-title-separator">|</span>
           <span className="yaml-status-inline">
-            Lines: {yamlContent.split('\n').length} | Chars: {yamlContent.length}
+            Lines: {state.yamlContent.split('\n').length} | Chars: {state.yamlContent.length}
           </span>
-          {editing && <span className="yaml-editing-badge">Editing</span>}
+          {state.editing && <span className="yaml-editing-badge">Editing</span>}
         </div>
         <div className="yaml-toolbar-actions">
-          {/* Display options toggle */}
           <div className="yaml-display-toggles">
             <label className="toggle-label">
               <span className="toggle-text">Status</span>
               <button
-                className={`toggle-switch ${displayOptions.showStatus ? 'active' : ''}`}
-                onClick={() =>
-                  setDisplayOptions(prev => ({ ...prev, showStatus: !prev.showStatus }))
-                }
+                className={`toggle-switch ${state.displayOptions.showStatus ? 'active' : ''}`}
+                onClick={() => dispatch({ type: 'TOGGLE_STATUS' })}
                 title="Toggle Status field"
               >
                 <span className="toggle-slider"></span>
@@ -335,10 +298,10 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
             </label>
           </div>
 
-          {!editing ? (
+          {!state.editing ? (
             <>
               <button
-                className={`toolbar-btn ${copySuccess ? 'success' : ''}`}
+                className={`toolbar-btn ${state.copySuccess ? 'success' : ''}`}
                 onClick={handleCopy}
                 title="Copy to clipboard"
               >
@@ -347,13 +310,13 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
               <button className="toolbar-btn" onClick={handleDownload} title="Download YAML">
                 <FaDownload />
               </button>
-              <button className="toolbar-btn" onClick={handleEdit} title="Edit YAML">
+              <button className="toolbar-btn" onClick={() => dispatch({ type: 'START_EDIT' })} title="Edit YAML">
                 <FaEdit />
               </button>
             </>
           ) : (
             <>
-              <button className="toolbar-btn" onClick={toggleDiff} title="Show diff">
+              <button className="toolbar-btn" onClick={() => dispatch({ type: 'TOGGLE_DIFF' })} title="Show diff">
                 <FaExchangeAlt />
               </button>
               <button className="toolbar-btn" onClick={handleSave} title="Save changes">
@@ -366,7 +329,7 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
               >
                 <FaRocket />
               </button>
-              <button className="toolbar-btn danger" onClick={handleCancel} title="Cancel editing">
+              <button className="toolbar-btn danger" onClick={() => dispatch({ type: 'CANCEL_EDIT' })} title="Cancel editing">
                 <FaTimes />
               </button>
             </>
@@ -374,12 +337,11 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
         </div>
       </div>
 
-      {/* Editor/Viewer */}
-      {showDiff && editing ? (
+      {state.showDiff && state.editing ? (
         <div className="diff-container">
           <ReactDiffViewer
-            oldValue={originalYaml}
-            newValue={yamlContent}
+            oldValue={state.originalYaml}
+            newValue={state.yamlContent}
             splitView={true}
             leftTitle="Original Version"
             rightTitle="Current Version"
@@ -402,12 +364,12 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
             }}
           />
         </div>
-      ) : editing ? (
+      ) : state.editing ? (
         <div className="yaml-editor-container">
           <textarea
             className="yaml-editor-textarea"
-            value={yamlContent}
-            onChange={e => setYamlContent(e.target.value)}
+            value={state.yamlContent}
+            onChange={e => dispatch({ type: 'SET_YAML', payload: e.target.value })}
             spellCheck={false}
             autoCapitalize="off"
             autoComplete="off"
@@ -416,7 +378,7 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       ) : (
         <div className="yaml-editor-container">
           <pre className="yaml-editor-pre" ref={editorRef}>
-            <code className="language-yaml">{yamlContent}</code>
+            <code className="language-yaml">{state.yamlContent}</code>
           </pre>
         </div>
       )}

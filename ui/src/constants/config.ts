@@ -195,6 +195,7 @@ export const STORAGE_KEYS = {
   TOKEN: 'token',
   TOKEN_EXPIRY: 'token_expiry',
   TOKEN_USERNAME: 'token_username',
+  REFRESH_TOKEN: 'refresh_token',
   REMEMBERED_USERNAME: 'remembered_username',
   SIDER_COLLAPSED: 'sider_collapsed',
   CURRENT_TAB: 'current_tab',

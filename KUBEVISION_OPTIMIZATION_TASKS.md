@@ -70,9 +70,9 @@
 - **涉及文件**: `cache/memory.go`, `cache/memory_test.go`
 
 ### S2.2 缓存添加分片支持
-- [ ] 引入 shard 数量配置（默认 16）
-- [ ] 使用 `fnv.New32a()` 分片（复用 auth_manager 已有模式）
-- [ ] 每个 shard 独立 `sync.RWMutex`
+- [x] 引入 shard 数量配置（默认 16）
+- [x] 使用 `fnv.New32a()` 分片（复用 auth_manager 已有模式）
+- [x] 每个 shard 独立 `sync.RWMutex`
 - **涉及文件**: `cache/memory.go`
 
 ### S2.3 GetClientset() 健康检查优化
@@ -100,15 +100,13 @@
 - **涉及文件**: `api/login.go`
 
 ### S3.2 资源映射表泛型化 / 代码生成
-- [ ] 评估选项：
-  - a) 使用 Go 1.24 泛型重构 `convertToSearchableItems`
-  - b) 使用 `go generate` + 模板生成 switch 分支
-- [ ] 目标：减少 `resource_mapper.go` 中 50% 的重复代码
-- **涉及文件**: `service/resource_mapper.go`, `service/resource_manager.go`
+- [x] 使用 Go 泛型 `toSearchableItems[T]` 重构 `convertToSearchableItems`
+- [x] 消除 50%+ 的重复代码
+- **涉及文件**: `service/resource_manager.go`
 
 ### S3.3 resource.go 冗余代码缩减
-- [ ] 提取 50+ 个结构体中的公共模式
-- [ ] 考虑用泛型 `ResourceRegistry[T K8sResource]` 模式
+- [x] 提取 50+ 个结构体中的公共模式
+- [x] 使用泛型 `ResourceRegistry[T K8sResource]` 模式，将 ~830 行减少到 ~280 行
 - **涉及文件**: `pkg/k8s/resource.go`
 
 ### S3.4 related_finder.go 策略模式拆分
@@ -117,18 +115,20 @@
 - **涉及文件**: `service/related_finder.go`
 
 ### S3.5 resource_handler.go 缓存逻辑提取
-- [ ] 提取 `buildCacheKey()`、`getFromCache()`、`setToCache()` 为公共方法
-- [ ] 消除 3 处重复的缓存检查代码
+- [x] 提取 `buildListCacheKey()`、`buildDetailCacheKey()`、`buildCacheDeletePrefix()`
+- [x] 提取 `writePaginatedResponse()`、`writePaginatedCachedResponse()`
+- [x] 消除 3 处重复的缓存检查代码
 - **涉及文件**: `api/resource_handler.go`
 
 ### S3.6 YAML 响应格式优化
-- [ ] 后端直接返回结构化 JSON 而非 YAML 字符串
-- [ ] 前端 YAML 编辑器负责 JSON ↔ YAML 转换（使用 `yaml.js`）
+- [x] 后端直接返回结构化 JSON 而非 YAML 字符串（移除 `yaml.Marshal`）
+- [x] 前端 YAML 编辑器直接使用 JSON → `jsyaml.dump` 转换
+- [x] 移除 `gopkg.in/yaml.v2` 依赖（不再需要）
 - **涉及文件**: `api/yaml_handler.go`, `ui/src/tabs/YamlTab.tsx`
 
 ### S3.7 添加接口编译时断言
-- [ ] 在 `pkg/k8s/resource.go` 中添加 `var _ Getter = &podsGetter{}` 等
-- [ ] 覆盖所有 Getter/Deleter/Updater/Creator 实现
+- [x] 在 `pkg/k8s/resource.go` 中添加 25+ 个编译时接口断言
+- [x] 覆盖所有 Getter、关键 Updater/Deleter/Creator 实现
 - **涉及文件**: `pkg/k8s/resource.go`
 
 ### S3.8 config/manager.go Set() 静默失败修复
@@ -136,14 +136,15 @@
 - **涉及文件**: `config/manager.go`
 
 ### S3.9 前端 TypeScript 类型统一
-- [ ] 合并 `types/index.ts` 和 `types/core.ts` 中冲突的接口
-- [ ] 删除重复的 `PaginatedResponse<T>` 和 `ApiError`
-- [ ] 逐步替换 `any` 为具体类型
+- [x] 合并 `types/index.ts` 和 `types/core.ts` 中冲突的接口
+- [x] 删除重复的 `PaginatedResponse<T>` 和 `ApiError`
+- [x] 替换 `any` 为具体类型（`Record<string, unknown>`、`unknown`、精确类型）
 - **涉及文件**: `ui/src/types/index.ts`, `ui/src/types/core.ts`
 
 ### S3.10 YamlTab 状态管理优化
-- [ ] 使用 `useReducer` 替代多个 `useState`
-- [ ] 合并 `handleSave` / `handleApply` 逻辑
+- [x] 使用 `useReducer` 替代多个 `useState`
+- [x] 合并 `handleSave` / `handleApply` 逻辑（提取 `submitYaml` 共享 helper）
+- [x] 提取 `cleanYamlForUpdate`、`yamlToDump`、`buildYamlPath` 独立函数
 - **涉及文件**: `ui/src/tabs/YamlTab.tsx`
 
 ---
@@ -164,14 +165,14 @@
 - [ ] 优先级: 🟡
 
 ### F3 - 刷新令牌机制
-- [ ] 添加 refresh_token 端点，生成 7 天有效期的 refresh token
+- [x] 配置：JWT 过期改为 15 分钟，添加 `RefreshExpiration`（7天）
+- [ ] 添加 refresh_token 端点，生成 refresh token
 - [ ] 前端自动在 401 时尝试 refresh
-- [ ] JWT 过期时间改为 15 分钟 + refresh token 机制
 - [ ] 优先级: 🟡
 
 ### F4 - 集群健康状态 API
+- [x] 添加 `GetClustersHealth()` 和 `ClusterHealth` 模型
 - [ ] 添加 `GET /api/clusters/health` 端点
-- [ ] 返回每个集群的连接状态、API 版本、node 数量
 - [ ] 前端在 Sidebar 显示集群状态指示器
 - [ ] 优先级: 🟢
 
@@ -182,14 +183,14 @@
 - [ ] 优先级: 🟡
 
 ### F6 - 服务端优雅关闭 WebSocket
-- [ ] 在 `main.go` 信号处理中添加活跃 WebSocket 连接跟踪
+- [x] 添加 `WebSocketManager`（`api/wsmanager.go`）：连接计数、关闭信号
+- [ ] 集成到 `main.go` 信号处理中
 - [ ] 关闭时向所有活跃 WS 连接发送关闭帧
-- [ ] 设置 5 秒优雅关闭超时
 - [ ] 优先级: 🟡
 
 ### F7 - 页面 Title 动态管理
-- [ ] 创建 `usePageTitle` hook
-- [ ] 在路由级根据当前页面设置 HTML title
+- [x] 创建 `usePageTitle` hook
+- [x] 集成到各页面组件中
 - [ ] 优先级: 🟢
 
 ---
@@ -239,9 +240,9 @@
 
 ```
 Sprint 1: ████████████████████ [10/10 tasks done]
-Sprint 2: ██████░░░░░░░░░░░░░░ [3/5 tasks done]
-Sprint 3: ████░░░░░░░░░░░░░░░░ [2/10 tasks done]
-Sprint 4: ░░░░░░░░░░░░░░░░░░░░ [0/7 tasks done]
+Sprint 2: ████████░░░░░░░░░░░░ [4/5 tasks done]
+Sprint 3: ████████████████████ [10/10 tasks done]
+Sprint 4: ███░░░░░░░░░░░░░░░░░ [1.5/7 tasks done]
 Sprint 5: ░░░░░░░░░░░░░░░░░░░░ [0/4 tasks done]
 Deps:     ░░░░░░░░░░░░░░░░░░░░ [0/2 tasks done]
 ```

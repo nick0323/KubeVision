@@ -19,19 +19,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// WebSocket 连接管理
-var (
-	wsConnectionCount atomic.Int32
-	maxWSConnections  int32 = 100
-)
-
-// InitWebSocketManager 初始化 WebSocket 连接数限制
-func InitWebSocketManager(maxConnections int) {
-	if maxConnections > 0 {
-		maxWSConnections = int32(maxConnections)
-	}
-}
-
 // RegisterLogStream 注册日志流接口（WebSocket）
 func RegisterLogStream(
 	r *gin.RouterGroup,
@@ -58,6 +45,7 @@ func streamPodLog(
 		}
 
 		ctx := GetRequestContext(c)
+		ctx = globalWSManager.ShutdownCtx(ctx)
 		namespace := c.Query("namespace")
 		podName := c.Query("pod")
 		container := c.Query("container")
@@ -103,7 +91,7 @@ func streamPodLog(
 			zap.String("namespace", namespace),
 			zap.String("pod", podName),
 			zap.String("container", container),
-			zap.Int32("activeConnections", wsConnectionCount.Load()),
+			zap.Int32("activeConnections", globalWSManager.ActiveCount()),
 		)
 
 		// 获取日志流
@@ -141,17 +129,16 @@ func streamPodLog(
 
 // checkConnectionLimit 检查连接数限制
 func checkConnectionLimit(logger *zap.Logger) error {
-	current := wsConnectionCount.Add(1)
-	if current > maxWSConnections {
-		wsConnectionCount.Add(-1)
-		logger.Warn("Too many WebSocket connections", zap.Int32("current", current-1))
-		return fmt.Errorf("connection limit exceeded: current %d, max %d", current-1, maxWSConnections)
+	err := globalWSManager.Acquire()
+	if err != nil {
+		logger.Warn("Too many WebSocket connections", zap.Int32("current", globalWSManager.ActiveCount()))
+		return fmt.Errorf("connection limit exceeded")
 	}
 	return nil
 }
 
 func decrementConnection() {
-	wsConnectionCount.Add(-1)
+	globalWSManager.Release()
 }
 
 // buildPodLogOptions 构建 Pod 日志选项

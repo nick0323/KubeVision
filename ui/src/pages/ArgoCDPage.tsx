@@ -6,6 +6,7 @@ import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { apiClient } from '../utils/apiClient';
 import { notification } from '../common/NotificationContext';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { ArgoCDApplication } from '../types/argocd';
 import { FaCheckCircle, FaExclamationTriangle, FaSync, FaHourglassHalf, FaCheck, FaTimes } from 'react-icons/fa';
 import '../styles/argocd-page.css';
@@ -22,6 +23,7 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
   collapsed,
   onToggleCollapsed,
 }) => {
+  usePageTitle('ArgoCD');
   const [apps, setApps] = useState<ArgoCDApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

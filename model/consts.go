@@ -9,6 +9,7 @@ const (
 	HealthCheckPath = "/health"
 	APIPrefix       = "/api"
 	LoginPath       = "/api/login"
+	RefreshPath     = "/api/refresh"
 
 	WorkloadAvailable   = "Available"
 	WorkloadPartial     = "Partial"

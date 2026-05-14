@@ -18,8 +18,8 @@ export interface ArgoCDApplication {
       repoURL: string;
       path?: string;
       targetRevision?: string;
-      helm?: Record<string, any>;
-      kustomize?: Record<string, any>;
+      helm?: Record<string, unknown>;
+      kustomize?: Record<string, unknown>;
     };
     destination: {
       server: string;
@@ -148,5 +148,5 @@ export interface ArgoCDAppResponse {
 export interface ArgoCDActionResponse {
   code: number;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }

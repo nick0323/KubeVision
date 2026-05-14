@@ -153,6 +153,15 @@ export interface LoginPageProps {
   onLogin: () => void;
 }
 
+export interface ClusterHealth {
+  name: string;
+  healthy: boolean;
+  host: string;
+  version: string;
+  lastCheck: number;
+  nodeCount: number;
+}
+
 export interface PageConfig {
   title: string;
   apiEndpoint: string;

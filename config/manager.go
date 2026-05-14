@@ -42,6 +42,8 @@ func (m *Manager) Load(configFile string) error {
 	m.viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	m.viper.AutomaticEnv()
 
+	m.viper.BindEnv("jwt.secret")
+
 	if err := m.viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			m.logger.Warn("Config file not found, using default config")

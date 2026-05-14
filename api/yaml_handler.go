@@ -10,7 +10,6 @@ import (
 	"github.com/nick0323/K8sVision/pkg/k8s"
 	"github.com/nick0323/K8sVision/service"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
 )
 
 // RegisterYAMLRoutes 注册 YAML 相关路由
@@ -62,13 +61,7 @@ func getResourceYAML(
 			return
 		}
 
-		yamlBytes, err := yaml.Marshal(obj)
-		if err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
-			return
-		}
-
-		middleware.ResponseSuccess(c, string(yamlBytes), "YAML retrieved successfully", nil)
+		middleware.ResponseSuccess(c, obj, "Resource data retrieved successfully", nil)
 	}
 }
 

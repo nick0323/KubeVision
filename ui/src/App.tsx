@@ -11,6 +11,7 @@ import { authUtils } from './utils/auth';
 import { PAGE_COMPONENTS } from './constants/page-components.tsx';
 import { RESOURCE_TYPE_MAP } from './constants';
 import { ResourceDetailPage as ImportedResourceDetail } from './pages/ResourceDetailPage';
+import { usePageTitle, getTabTitle } from './hooks/usePageTitle';
 
 /**
  * 路由守卫组件：未登录时重定向到登录页
@@ -50,6 +51,7 @@ const PageRenderer: React.FC<{ tab: string; collapsed: boolean; onToggleCollapse
 const ListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const urlTab = searchParams.get('tab') || 'overview';
+  usePageTitle(getTabTitle(urlTab));
   const [tab, setTab] = useState(urlTab);
 
   useEffect(() => {

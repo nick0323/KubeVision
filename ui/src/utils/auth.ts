@@ -12,22 +12,17 @@ export interface TokenInfo {
 }
 
 export const authUtils = {
-  /**
-   * 检查is否already登录
-   */
   isLoggedIn: (): boolean => {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     if (!token) return false;
 
-    // 验证 token format（JWT has 3 个部分）
     const parts = token.split('.');
     if (parts.length !== 3) return false;
 
-    // 检查is否过期
     try {
       const payload = JSON.parse(atob(parts[1]));
       if (payload.exp && payload.exp < Date.now() / 1000) {
-        authUtils.clearToken();
+        authUtils.clearTokens();
         return false;
       }
     } catch {
@@ -37,20 +32,17 @@ export const authUtils = {
     return true;
   },
 
-  /**
-   * Get Token（every次from localStorage 读取最新值）
-   */
   getToken: (): string | null => {
     return localStorage.getItem(STORAGE_KEYS.TOKEN);
   },
 
-  /**
-   * settings Token
-   */
+  getRefreshToken: (): string | null => {
+    return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  },
+
   setToken: (token: string): void => {
     localStorage.setItem(STORAGE_KEYS.TOKEN, token);
 
-    // 解析 token Get过期time
     try {
       const parts = token.split('.');
       if (parts.length === 3) {
@@ -63,29 +55,25 @@ export const authUtils = {
         }
       }
     } catch {
-      // 忽略解析Error
     }
   },
 
-  /**
-   * 清除 Token
-   */
-  clearToken: (): void => {
+  setTokens: (token: string, refreshToken: string): void => {
+    authUtils.setToken(token);
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+  },
+
+  clearTokens: (): void => {
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.TOKEN_EXPIRY);
     localStorage.removeItem(STORAGE_KEYS.TOKEN_USERNAME);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   },
 
-  /**
-   * Getuser名
-   */
   getUsername: (): string | null => {
     return localStorage.getItem(STORAGE_KEYS.TOKEN_USERNAME);
   },
 
-  /**
-   * 检查 Token is否即will过期（5 分钟inside）
-   */
   isTokenExpiringSoon: (minutes = 5): boolean => {
     const expiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
     if (!expiry) return false;
@@ -97,21 +85,20 @@ export const authUtils = {
     return expiryTime - now < threshold;
   },
 
-  /**
-   * Get Token 过期time
-   */
   getTokenExpiry: (): number | null => {
     const expiry = localStorage.getItem(STORAGE_KEYS.TOKEN_EXPIRY);
     return expiry ? parseInt(expiry, 10) : null;
   },
 };
 
-/**
- * Create带认证's fetch 包装器
- * every次Requestallfrom localStorage 读取最新 token
- */
+let _refreshPromise: Promise<boolean> | null = null;
+
 export function createAuthFetch() {
-  return async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  return async function authFetch(url: string, options: RequestInit = {}, _isRetry = false): Promise<Response> {
+    if (!_isRetry && url !== '/api/refresh' && authUtils.isTokenExpiringSoon(5)) {
+      await attemptTokenRefresh();
+    }
+
     const token = authUtils.getToken();
 
     const headers: HeadersInit = {
@@ -125,15 +112,49 @@ export function createAuthFetch() {
       headers,
     });
 
-    // Process 401 not yet授权
-    if (response.status === 401) {
-      authUtils.clearToken();
-      // triggerCustom事 component，Notification其他Component
+    if (response.status === 401 && !_isRetry && url !== '/api/refresh') {
+      const refreshed = await attemptTokenRefresh();
+      if (refreshed) {
+        return authFetch(url, options, true);
+      }
+      authUtils.clearTokens();
       window.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.AUTH_UNAUTHORIZED));
     }
 
     return response;
   };
+}
+
+async function attemptTokenRefresh(): Promise<boolean> {
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    try {
+      const refreshToken = authUtils.getRefreshToken();
+      if (!refreshToken) return false;
+
+      const response = await fetch('/api/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) return false;
+
+      const result = await response.json();
+      if (result.code === 0 && result.data?.token && result.data?.refreshToken) {
+        authUtils.setTokens(result.data.token, result.data.refreshToken);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+
+  return _refreshPromise;
 }
 
 /**

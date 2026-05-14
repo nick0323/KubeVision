@@ -32,7 +32,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       // onlyin按 Enter 键时triggerSearch
       if (e.key === 'Enter' && onSubmit) {
         e.preventDefault();
-        onSubmit(e as any);
+        (onSubmit as (e: React.KeyboardEvent<HTMLInputElement>) => void)(e);
       }
     },
     [onSubmit]

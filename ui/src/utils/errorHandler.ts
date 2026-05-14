@@ -5,10 +5,9 @@
 
 // ==================== ErrorType definitions ====================
 
-export interface ApiError extends Error {
-  code?: number;
-  status?: number;
-  details?: unknown;
+import { ApiError as ApiClientError } from './apiClient';
+
+export interface ApiError extends ApiClientError {
   traceId?: string;
 }
 

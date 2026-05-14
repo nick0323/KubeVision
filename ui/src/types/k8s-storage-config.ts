@@ -55,7 +55,7 @@ export interface PersistentVolume extends K8sResource {
     persistentVolumeReclaimPolicy?: string;
     storageClassName?: string;
     claimRef?: { namespace: string; name: string };
-    nodeAffinity?: any;
+    nodeAffinity?: { required?: { nodeSelectorTerms: { matchExpressions: { key: string; operator: string; values?: string[] }[] }[] } };
   };
   status?: { phase: string; message?: string };
 }

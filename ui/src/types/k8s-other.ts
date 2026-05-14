@@ -4,7 +4,7 @@ export interface Node extends K8sResource {
   spec: {
     providerID?: string;
     unschedulable?: boolean;
-    taints?: any[];
+    taints?: { key: string; value?: string; effect: string }[];
   };
   status: {
     conditions: {
@@ -71,7 +71,7 @@ export interface K8sEvent extends K8sResource {
   count: number;
   type: 'Normal' | 'Warning';
   eventTime?: string;
-  series?: any;
+  series?: EventSeries;
   action?: string;
   related?: ObjectReference;
   reportingController?: string;
@@ -160,7 +160,7 @@ export interface ResourceQuota extends K8sResource {
   metadata: K8sMetadata & { namespace: string };
   spec: {
     hard?: Record<string, string>;
-    scopeSelector?: any;
+    scopeSelector?: { matchExpressions: { scopeName: string; operator: string; values?: string[] }[] };
     scopes?: string[];
   };
   status: {
@@ -214,7 +214,7 @@ export interface PodDisruptionBudget extends K8sResource {
     currentHealthy: number;
     desiredHealthy: number;
     expectedPods: number;
-    conditions?: any[];
+    conditions?: { type: string; status: string; lastTransitionTime?: string; reason?: string; message?: string }[];
     observedGeneration?: number;
   };
 }

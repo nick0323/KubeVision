@@ -50,7 +50,7 @@ export interface Ingress extends K8sResource {
         paths: {
           path: string;
           pathType: string;
-          backend: any;
+          backend: { service?: { name: string; port: { number?: number; name?: string } }; resource?: { apiGroup: string; kind: string; name: string } };
         }[];
       };
     }[];
@@ -80,7 +80,7 @@ export interface NetworkPolicy extends K8sResource {
   spec: {
     podSelector: { matchLabels?: Record<string, string> };
     policyTypes?: string[];
-    ingress?: any[];
-    egress?: any[];
+    ingress?: Record<string, unknown>[];
+    egress?: Record<string, unknown>[];
   };
 }

@@ -31,7 +31,7 @@ func NewJWTMiddleware(secret []byte, logger *zap.Logger) *JWTMiddleware {
 	return &JWTMiddleware{
 		secret:    secret,
 		logger:    logger,
-		blacklist: NewTokenBlacklist(10000), // 最多存储 10000 个黑名单 token
+		blacklist: NewTokenBlacklist(100000), // 最多存储 100000 个黑名单 token
 	}
 }
 

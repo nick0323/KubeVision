@@ -21,6 +21,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+func toSearchableItems[T model.SearchableItem](items []T) []model.SearchableItem {
+	res := make([]model.SearchableItem, len(items))
+	for i := range items {
+		res[i] = items[i]
+	}
+	return res
+}
+
 func GetResourceByName(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, name string) (interface{}, error) {
 	rt := k8s.ResourceType(resourceType).Normalize()
 	getters := k8s.NewGetters(clientset)
@@ -104,335 +112,149 @@ func ListResourcesByType(ctx context.Context, clientset kubernetes.Interface, re
 }
 
 func convertToSearchableItems(result interface{}, resourceType string, rt k8s.ResourceType, since string) ([]model.SearchableItem, error) {
-	switch rt {
-	case k8s.ResourcePod:
-		items, ok := result.(*v1.PodList)
-		if !ok {
-			return nil, fmt.Errorf("invalid pod list")
-		}
-		pods := MapPods(items.Items)
-		res := make([]model.SearchableItem, len(pods))
-		for i := range pods {
-			res[i] = &pods[i]
-		}
-		return res, nil
+	mappers := map[k8s.ResourceType]func() ([]model.SearchableItem, error){
+		k8s.ResourcePod: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.PodList)
+			if !ok { return nil, fmt.Errorf("invalid pod list") }
+			return toSearchableItems(MapPods(items.Items)), nil
+		},
+		k8s.ResourceDeployment: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*appsv1.DeploymentList)
+			if !ok { return nil, fmt.Errorf("invalid deployment list") }
+			return toSearchableItems(MapDeployments(items.Items)), nil
+		},
+		k8s.ResourceStatefulSet: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*appsv1.StatefulSetList)
+			if !ok { return nil, fmt.Errorf("invalid statefulset list") }
+			return toSearchableItems(MapStatefulSets(items.Items)), nil
+		},
+		k8s.ResourceDaemonSet: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*appsv1.DaemonSetList)
+			if !ok { return nil, fmt.Errorf("invalid daemonset list") }
+			return toSearchableItems(MapDaemonSets(items.Items)), nil
+		},
+		k8s.ResourceService: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.ServiceList)
+			if !ok { return nil, fmt.Errorf("invalid service list") }
+			return toSearchableItems(MapServices(items.Items)), nil
+		},
+		k8s.ResourceConfigMap: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.ConfigMapList)
+			if !ok { return nil, fmt.Errorf("invalid configmap list") }
+			return toSearchableItems(MapConfigMaps(items.Items)), nil
+		},
+		k8s.ResourceSecret: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.SecretList)
+			if !ok { return nil, fmt.Errorf("invalid secret list") }
+			return toSearchableItems(MapSecrets(items.Items)), nil
+		},
+		k8s.ResourceIngress: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*networkingv1.IngressList)
+			if !ok { return nil, fmt.Errorf("invalid ingress list") }
+			return toSearchableItems(MapIngresses(items.Items)), nil
+		},
+		k8s.ResourceJob: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*batchv1.JobList)
+			if !ok { return nil, fmt.Errorf("invalid job list") }
+			return toSearchableItems(MapJobs(items.Items)), nil
+		},
+		k8s.ResourceCronJob: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*batchv1.CronJobList)
+			if !ok { return nil, fmt.Errorf("invalid cronjob list") }
+			return toSearchableItems(MapCronJobs(items.Items)), nil
+		},
+		k8s.ResourcePVC: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.PersistentVolumeClaimList)
+			if !ok { return nil, fmt.Errorf("invalid pvc list") }
+			return toSearchableItems(MapPVCs(items.Items)), nil
+		},
+		k8s.ResourcePV: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.PersistentVolumeList)
+			if !ok { return nil, fmt.Errorf("invalid pv list") }
+			return toSearchableItems(MapPVs(items.Items)), nil
+		},
+		k8s.ResourceStorageClass: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*storagev1.StorageClassList)
+			if !ok { return nil, fmt.Errorf("invalid storageclass list") }
+			return toSearchableItems(MapStorageClasses(items.Items)), nil
+		},
+		k8s.ResourceNamespace: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.NamespaceList)
+			if !ok { return nil, fmt.Errorf("invalid namespace list") }
+			return toSearchableItems(MapNamespaces(items.Items)), nil
+		},
+		k8s.ResourceNode: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.NodeList)
+			if !ok { return nil, fmt.Errorf("invalid node list") }
+			return toSearchableItems(MapNodes(items.Items, nil, make(map[string]*model.NodeMetrics))), nil
+		},
+		k8s.ResourceEndpoint: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.EndpointsList)
+			if !ok { return nil, fmt.Errorf("invalid endpoints list") }
+			return toSearchableItems(MapEndpoints(items.Items)), nil
+		},
+		k8s.ResourceEvent: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.EventList)
+			if !ok { return nil, fmt.Errorf("invalid event list") }
+			return toSearchableItems(MapEvents(filterEventsByTime(items.Items, since))), nil
+		},
+		k8s.ResourceNetworkPolicy: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*networkingv1.NetworkPolicyList)
+			if !ok { return nil, fmt.Errorf("invalid networkpolicy list") }
+			return toSearchableItems(MapNetworkPolicies(items.Items)), nil
+		},
+		k8s.ResourceServiceAccount: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.ServiceAccountList)
+			if !ok { return nil, fmt.Errorf("invalid serviceaccount list") }
+			return toSearchableItems(MapServiceAccounts(items.Items)), nil
+		},
+		k8s.ResourceRole: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*rbacv1.RoleList)
+			if !ok { return nil, fmt.Errorf("invalid role list") }
+			return toSearchableItems(MapRoles(items.Items)), nil
+		},
+		k8s.ResourceRoleBinding: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*rbacv1.RoleBindingList)
+			if !ok { return nil, fmt.Errorf("invalid rolebinding list") }
+			return toSearchableItems(MapRoleBindings(items.Items)), nil
+		},
+		k8s.ResourceClusterRole: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*rbacv1.ClusterRoleList)
+			if !ok { return nil, fmt.Errorf("invalid clusterrole list") }
+			return toSearchableItems(MapClusterRoles(items.Items)), nil
+		},
+		k8s.ResourceClusterRoleBinding: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*rbacv1.ClusterRoleBindingList)
+			if !ok { return nil, fmt.Errorf("invalid clusterrolebinding list") }
+			return toSearchableItems(MapClusterRoleBindings(items.Items)), nil
+		},
+		k8s.ResourceResourceQuota: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.ResourceQuotaList)
+			if !ok { return nil, fmt.Errorf("invalid resourcequota list") }
+			return toSearchableItems(MapResourceQuotas(items.Items)), nil
+		},
+		k8s.ResourceLimitRange: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*v1.LimitRangeList)
+			if !ok { return nil, fmt.Errorf("invalid limitrange list") }
+			return toSearchableItems(MapLimitRanges(items.Items)), nil
+		},
+		k8s.ResourcePodDisruptionBudget: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*policyv1.PodDisruptionBudgetList)
+			if !ok { return nil, fmt.Errorf("invalid poddisruptionbudget list") }
+			return toSearchableItems(MapPodDisruptionBudgets(items.Items)), nil
+		},
+		k8s.ResourceHorizontalPodAutoscaler: func() ([]model.SearchableItem, error) {
+			items, ok := result.(*autoscalingv2.HorizontalPodAutoscalerList)
+			if !ok { return nil, fmt.Errorf("invalid hpa list") }
+			return toSearchableItems(MapHPAs(items.Items)), nil
+		},
+	}
 
-	case k8s.ResourceDeployment:
-		items, ok := result.(*appsv1.DeploymentList)
-		if !ok {
-			return nil, fmt.Errorf("invalid deployment list")
-		}
-		deps := MapDeployments(items.Items)
-		res := make([]model.SearchableItem, len(deps))
-		for i := range deps {
-			res[i] = &deps[i]
-		}
-		return res, nil
-
-	case k8s.ResourceStatefulSet:
-		items, ok := result.(*appsv1.StatefulSetList)
-		if !ok {
-			return nil, fmt.Errorf("invalid statefulset list")
-		}
-		sts := MapStatefulSets(items.Items)
-		res := make([]model.SearchableItem, len(sts))
-		for i := range sts {
-			res[i] = &sts[i]
-		}
-		return res, nil
-
-	case k8s.ResourceDaemonSet:
-		items, ok := result.(*appsv1.DaemonSetList)
-		if !ok {
-			return nil, fmt.Errorf("invalid daemonset list")
-		}
-		dss := MapDaemonSets(items.Items)
-		res := make([]model.SearchableItem, len(dss))
-		for i := range dss {
-			res[i] = &dss[i]
-		}
-		return res, nil
-
-	case k8s.ResourceService:
-		items, ok := result.(*v1.ServiceList)
-		if !ok {
-			return nil, fmt.Errorf("invalid service list")
-		}
-		svcs := MapServices(items.Items)
-		res := make([]model.SearchableItem, len(svcs))
-		for i := range svcs {
-			res[i] = &svcs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceConfigMap:
-		items, ok := result.(*v1.ConfigMapList)
-		if !ok {
-			return nil, fmt.Errorf("invalid configmap list")
-		}
-		cms := MapConfigMaps(items.Items)
-		res := make([]model.SearchableItem, len(cms))
-		for i := range cms {
-			res[i] = &cms[i]
-		}
-		return res, nil
-
-	case k8s.ResourceSecret:
-		items, ok := result.(*v1.SecretList)
-		if !ok {
-			return nil, fmt.Errorf("invalid secret list")
-		}
-		secrets := MapSecrets(items.Items)
-		res := make([]model.SearchableItem, len(secrets))
-		for i := range secrets {
-			res[i] = &secrets[i]
-		}
-		return res, nil
-
-	case k8s.ResourceIngress:
-		items, ok := result.(*networkingv1.IngressList)
-		if !ok {
-			return nil, fmt.Errorf("invalid ingress list")
-		}
-		ings := MapIngresses(items.Items)
-		res := make([]model.SearchableItem, len(ings))
-		for i := range ings {
-			res[i] = &ings[i]
-		}
-		return res, nil
-
-	case k8s.ResourceJob:
-		items, ok := result.(*batchv1.JobList)
-		if !ok {
-			return nil, fmt.Errorf("invalid job list")
-		}
-		jobs := MapJobs(items.Items)
-		res := make([]model.SearchableItem, len(jobs))
-		for i := range jobs {
-			res[i] = &jobs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceCronJob:
-		items, ok := result.(*batchv1.CronJobList)
-		if !ok {
-			return nil, fmt.Errorf("invalid cronjob list")
-		}
-		cjs := MapCronJobs(items.Items)
-		res := make([]model.SearchableItem, len(cjs))
-		for i := range cjs {
-			res[i] = &cjs[i]
-		}
-		return res, nil
-
-	case k8s.ResourcePVC:
-		items, ok := result.(*v1.PersistentVolumeClaimList)
-		if !ok {
-			return nil, fmt.Errorf("invalid pvc list")
-		}
-		pvcs := MapPVCs(items.Items)
-		res := make([]model.SearchableItem, len(pvcs))
-		for i := range pvcs {
-			res[i] = &pvcs[i]
-		}
-		return res, nil
-
-	case k8s.ResourcePV:
-		items, ok := result.(*v1.PersistentVolumeList)
-		if !ok {
-			return nil, fmt.Errorf("invalid pv list")
-		}
-		pvs := MapPVs(items.Items)
-		res := make([]model.SearchableItem, len(pvs))
-		for i := range pvs {
-			res[i] = &pvs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceStorageClass:
-		items, ok := result.(*storagev1.StorageClassList)
-		if !ok {
-			return nil, fmt.Errorf("invalid storageclass list")
-		}
-		scs := MapStorageClasses(items.Items)
-		res := make([]model.SearchableItem, len(scs))
-		for i := range scs {
-			res[i] = &scs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceNamespace:
-		items, ok := result.(*v1.NamespaceList)
-		if !ok {
-			return nil, fmt.Errorf("invalid namespace list")
-		}
-		nss := MapNamespaces(items.Items)
-		res := make([]model.SearchableItem, len(nss))
-		for i := range nss {
-			res[i] = &nss[i]
-		}
-		return res, nil
-
-	case k8s.ResourceNode:
-		items, ok := result.(*v1.NodeList)
-		if !ok {
-			return nil, fmt.Errorf("invalid node list")
-		}
-		// 无 metrics 客户端，传空 map
-		nodes := MapNodes(items.Items, nil, make(map[string]*model.NodeMetrics))
-		res := make([]model.SearchableItem, len(nodes))
-		for i := range nodes {
-			res[i] = &nodes[i]
-		}
-		return res, nil
-
-	case k8s.ResourceEndpoint:
-		items, ok := result.(*v1.EndpointsList)
-		if !ok {
-			return nil, fmt.Errorf("invalid endpoints list")
-		}
-		eps := MapEndpoints(items.Items)
-		res := make([]model.SearchableItem, len(eps))
-		for i := range eps {
-			res[i] = &eps[i]
-		}
-		return res, nil
-
-	case k8s.ResourceEvent:
-		items, ok := result.(*v1.EventList)
-		if !ok {
-			return nil, fmt.Errorf("invalid event list")
-		}
-		events := MapEvents(filterEventsByTime(items.Items, since))
-		res := make([]model.SearchableItem, len(events))
-		for i := range events {
-			res[i] = &events[i]
-		}
-		return res, nil
-
-	case k8s.ResourceNetworkPolicy:
-		items, ok := result.(*networkingv1.NetworkPolicyList)
-		if !ok {
-			return nil, fmt.Errorf("invalid networkpolicy list")
-		}
-		nps := MapNetworkPolicies(items.Items)
-		res := make([]model.SearchableItem, len(nps))
-		for i := range nps {
-			res[i] = &nps[i]
-		}
-		return res, nil
-
-	case k8s.ResourceServiceAccount:
-		items, ok := result.(*v1.ServiceAccountList)
-		if !ok {
-			return nil, fmt.Errorf("invalid serviceaccount list")
-		}
-		sas := MapServiceAccounts(items.Items)
-		res := make([]model.SearchableItem, len(sas))
-		for i := range sas {
-			res[i] = &sas[i]
-		}
-		return res, nil
-
-	case k8s.ResourceRole:
-		items, ok := result.(*rbacv1.RoleList)
-		if !ok {
-			return nil, fmt.Errorf("invalid role list")
-		}
-		roles := MapRoles(items.Items)
-		res := make([]model.SearchableItem, len(roles))
-		for i := range roles {
-			res[i] = &roles[i]
-		}
-		return res, nil
-
-	case k8s.ResourceRoleBinding:
-		items, ok := result.(*rbacv1.RoleBindingList)
-		if !ok {
-			return nil, fmt.Errorf("invalid rolebinding list")
-		}
-		rbs := MapRoleBindings(items.Items)
-		res := make([]model.SearchableItem, len(rbs))
-		for i := range rbs {
-			res[i] = &rbs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceClusterRole:
-		items, ok := result.(*rbacv1.ClusterRoleList)
-		if !ok {
-			return nil, fmt.Errorf("invalid clusterrole list")
-		}
-		crs := MapClusterRoles(items.Items)
-		res := make([]model.SearchableItem, len(crs))
-		for i := range crs {
-			res[i] = &crs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceClusterRoleBinding:
-		items, ok := result.(*rbacv1.ClusterRoleBindingList)
-		if !ok {
-			return nil, fmt.Errorf("invalid clusterrolebinding list")
-		}
-		crbs := MapClusterRoleBindings(items.Items)
-		res := make([]model.SearchableItem, len(crbs))
-		for i := range crbs {
-			res[i] = &crbs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceResourceQuota:
-		items, ok := result.(*v1.ResourceQuotaList)
-		if !ok {
-			return nil, fmt.Errorf("invalid resourcequota list")
-		}
-		rqs := MapResourceQuotas(items.Items)
-		res := make([]model.SearchableItem, len(rqs))
-		for i := range rqs {
-			res[i] = &rqs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceLimitRange:
-		items, ok := result.(*v1.LimitRangeList)
-		if !ok {
-			return nil, fmt.Errorf("invalid limitrange list")
-		}
-		lrs := MapLimitRanges(items.Items)
-		res := make([]model.SearchableItem, len(lrs))
-		for i := range lrs {
-			res[i] = &lrs[i]
-		}
-		return res, nil
-
-	case k8s.ResourcePodDisruptionBudget:
-		items, ok := result.(*policyv1.PodDisruptionBudgetList)
-		if !ok {
-			return nil, fmt.Errorf("invalid poddisruptionbudget list")
-		}
-		pdbs := MapPodDisruptionBudgets(items.Items)
-		res := make([]model.SearchableItem, len(pdbs))
-		for i := range pdbs {
-			res[i] = &pdbs[i]
-		}
-		return res, nil
-
-	case k8s.ResourceHorizontalPodAutoscaler:
-		items, ok := result.(*autoscalingv2.HorizontalPodAutoscalerList)
-		if !ok {
-			return nil, fmt.Errorf("invalid hpa list")
-		}
-		hpas := MapHPAs(items.Items)
-		res := make([]model.SearchableItem, len(hpas))
-		for i := range hpas {
-			res[i] = &hpas[i]
-		}
-		return res, nil
-
-	default:
+	mapper, ok := mappers[rt]
+	if !ok {
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
+	return mapper()
 }
 
 func filterEventsByTime(events []v1.Event, since string) []v1.Event {

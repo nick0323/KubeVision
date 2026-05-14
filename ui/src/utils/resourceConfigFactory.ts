@@ -5,7 +5,7 @@
 
 import type { ColumnDef } from '../types/k8s-resources';
 
-export interface ExtendedColumn extends ColumnDef<any> {
+export interface ExtendedColumn<T = Record<string, unknown>> extends ColumnDef<T> {
   sortable?: boolean;
 }
 
@@ -82,7 +82,7 @@ export function createReadyColumn(options?: {
     title: 'Ready',
     dataIndex: 'readyReplicas',
     width,
-    render: (v: any, r: any) => {
+    render: (v: unknown, r: Record<string, unknown>) => {
       const desired = r[desiredReplicasField] || 0;
       return `${v}/${desired}`;
     },
@@ -229,19 +229,19 @@ export function createNodeConfig(): ResourcePageConfig {
       title: 'CPU',
       dataIndex: 'cpuUsage',
       width: '10%',
-      render: (value: any) => value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A',
+      render: (value: unknown) => value !== null && value !== undefined ? `${Math.round(value as number)}%` : 'N/A',
     },
     {
       title: 'Memory',
       dataIndex: 'memoryUsage',
       width: '10%',
-      render: (value: any) => value !== null && value !== undefined ? `${Math.round(value)}%` : 'N/A',
+      render: (value: unknown) => value !== null && value !== undefined ? `${Math.round(value as number)}%` : 'N/A',
     },
     {
       title: 'Pods',
       dataIndex: 'podsUsed',
       width: '10%',
-      render: (value: any, record: any) => `${value}/${record.podsCapacity || 0}`,
+      render: (value: unknown, record: Record<string, unknown>) => `${value}/${record.podsCapacity || 0}`,
     },
     createStatusColumn('10%'),
     createAgeColumn('10%'),

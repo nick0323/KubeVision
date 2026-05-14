@@ -43,5 +43,3 @@ func RegisterOverview(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sCl
 		middleware.ResponseSuccess(c, overview, "Overview retrieved successfully", nil)
 	})
 }
-
-

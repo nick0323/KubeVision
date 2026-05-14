@@ -73,10 +73,28 @@ func (s *Server) Run() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("Gracefully shutting down server...")
+
 	if s.jwtMiddleware != nil {
 		s.jwtMiddleware.Close()
 	}
+
+	if wsMgr := api.GetWebSocketManager(); wsMgr != nil {
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		wsCtx, wsCancel := context.WithTimeout(ctx, 10*time.Second)
+		defer wsCancel()
+		if err := wsMgr.Shutdown(wsCtx); err != nil {
+			s.logger.Warn("WebSocket shutdown timed out, proceeding with server shutdown", zap.Error(err))
+		} else {
+			s.logger.Info("All WebSocket connections closed gracefully")
+		}
+	}
+
 	if s.httpServer != nil {
+		if ctx == nil {
+			ctx = context.Background()
+		}
 		return s.httpServer.Shutdown(ctx)
 	}
 	return nil
@@ -129,6 +147,10 @@ func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	s.jwtMiddleware = middleware.NewJWTMiddleware(s.configMgr.GetJWTSecret(), s.logger)
 	apiGroup.Use(s.jwtMiddleware.AuthMiddleware(s.configMgr))
 
+	// 刷新令牌端点（需要在 jwtMiddleware 初始化之后，以获取黑名单实例）
+	refreshRateLimiter := middleware.NewIPRateLimiter(5, 10)
+	r.POST(model.RefreshPath, refreshRateLimiter.Middleware(), loginHandler.Refresh(s.jwtMiddleware.GetBlacklist()))
+
 	apiGroup.POST("/logout", loginHandler.Logout(s.jwtMiddleware.GetBlacklist()))
 
 	s.registerAPIRoutes(apiGroup)
@@ -173,6 +195,12 @@ func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	apiGroup.GET("/clusters", func(c *gin.Context) {
 		names := s.k8sClientMgr.GetClusterNames()
 		c.JSON(200, gin.H{"data": names})
+	})
+	apiGroup.GET("/clusters/health", func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+		defer cancel()
+		health := s.k8sClientMgr.GetClustersHealth(ctx)
+		c.JSON(200, gin.H{"data": health})
 	})
 }
 

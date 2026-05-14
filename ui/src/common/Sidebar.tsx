@@ -4,6 +4,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { authUtils, authFetch } from '../utils/auth';
 import apiClient from '../utils/apiClient';
 import { MENU_LIST, STORAGE_KEYS } from '../constants';
+import { ClusterHealth } from '../types';
 import k8sLogo from '../assets/kubernetes-logo.svg';
 import {
   FaChartPie,
@@ -109,14 +110,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   });
 
   const [clusters, setClusters] = useState<string[]>([]);
+  const [clusterHealth, setClusterHealth] = useState<Record<string, ClusterHealth>>({});
   const [clusterOpen, setClusterOpen] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
   const currentCluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER) || 'default';
 
   useEffect(() => {
-    apiClient.get<string[]>('/api/clusters').then(res => {
+    apiClient.get<ClusterHealth[]>('/api/clusters/health').then(res => {
       const list = res.data || [];
-      if (list.length > 1) setClusters(list);
+      const healthMap: Record<string, ClusterHealth> = {};
+      list.forEach(h => { healthMap[h.name] = h; });
+      setClusterHealth(healthMap);
+      const names = list.map(h => h.name);
+      if (names.length > 1) setClusters(names);
     }).catch(() => {});
   }, []);
 
@@ -236,23 +242,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="sider-bottom">
         {clusters.length > 0 && !collapsed && (
           <div className="cluster-selector" ref={clusterRef}>
-            <div className="cluster-selector-trigger" onClick={() => setClusterOpen(o => !o)}>
+            <div
+              className="cluster-selector-trigger"
+              onClick={() => setClusterOpen(o => !o)}
+              title={(() => {
+                const h = clusterHealth[currentCluster];
+                return h ? `${h.host} | v${h.version} | ${h.nodeCount} nodes` : '';
+              })()}
+            >
               <span className="icon"><FaCloud /></span>
+              <span className={`cluster-status-dot ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`} />
               <span className="cluster-name">{currentCluster}</span>
               <span className="cluster-arrow">{clusterOpen ? '▲' : '▼'}</span>
             </div>
             {clusterOpen && (
               <div className="cluster-dropdown">
-                {clusters.map(name => (
-                  <div
-                    key={name}
-                    className={`cluster-option ${name === currentCluster ? 'active' : ''}`}
-                    onClick={() => handleClusterChange(name)}
-                  >
-                    <span className="cluster-check">{name === currentCluster ? '✓' : ''}</span>
-                    {name}
-                  </div>
-                ))}
+                {clusters.map(name => {
+                  const health = clusterHealth[name];
+                  return (
+                    <div
+                      key={name}
+                      className={`cluster-option ${name === currentCluster ? 'active' : ''}`}
+                      onClick={() => handleClusterChange(name)}
+                    >
+                      <span className="cluster-check">{name === currentCluster ? '✓' : ''}</span>
+                      <span className={`cluster-status-dot ${health?.healthy ? 'healthy' : 'unhealthy'}`} />
+                      {name}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

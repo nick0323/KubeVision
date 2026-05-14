@@ -54,8 +54,9 @@ type ArgoCDConfig struct {
 }
 
 type JWTConfig struct {
-	Secret     string        `mapstructure:"secret" json:"-"`
-	Expiration time.Duration `mapstructure:"expiration" json:"expiration"`
+	Secret            string        `mapstructure:"secret" json:"-"`
+	Expiration        time.Duration `mapstructure:"expiration" json:"expiration"`
+	RefreshExpiration time.Duration `mapstructure:"refreshExpiration" json:"refresh_expiration"`
 }
 
 type LogConfig struct {
@@ -80,6 +81,7 @@ type CacheConfig struct {
 	TTL             time.Duration `mapstructure:"ttl" json:"ttl"`
 	MaxSize         int           `mapstructure:"maxSize" json:"max_size"`
 	CleanupInterval time.Duration `mapstructure:"cleanupInterval" json:"cleanup_interval"`
+	ShardCount      int           `mapstructure:"shardCount" json:"shard_count"`
 }
 
 func DefaultConfig() *Config {
@@ -103,8 +105,9 @@ func DefaultConfig() *Config {
 			Plaintext:  false,
 		},
 		JWT: JWTConfig{
-			Secret:     "",
-			Expiration: 24 * time.Hour,
+			Secret:            "",
+			Expiration:        15 * time.Minute,
+			RefreshExpiration: 7 * 24 * time.Hour,
 		},
 		Log: LogConfig{
 			Level:  "info",
@@ -126,6 +129,7 @@ func DefaultConfig() *Config {
 			TTL:             5 * time.Minute,
 			MaxSize:         1000,
 			CleanupInterval: 10 * time.Minute,
+			ShardCount:      16,
 		},
 	}
 }
@@ -185,6 +189,12 @@ func (c *CacheConfig) Validate() error {
 		}
 		if c.CleanupInterval <= 0 {
 			return fmt.Errorf("cache cleanup interval must be greater than 0")
+		}
+		if c.ShardCount <= 0 {
+			return fmt.Errorf("cache shard count must be greater than 0")
+		}
+		if c.ShardCount&(c.ShardCount-1) != 0 {
+			return fmt.Errorf("cache shard count must be a power of 2")
 		}
 	}
 	return nil

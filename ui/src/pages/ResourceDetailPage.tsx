@@ -12,6 +12,7 @@ import { useResourceDetail } from '../hooks/useResourceDetail';
 import { ResourceDetailPageProps, RESOURCE_CONFIGS } from './ResourceDetailPage.types';
 import { capitalize } from '../utils/string';
 import { RESOURCE_TYPE_MAP } from '../constants/config';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
 import { authFetch, withCluster } from '../utils/auth';
@@ -49,6 +50,8 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
     tabs: ['overview', 'yaml', 'events'],
   };
 
+  usePageTitle(`${config.title}: ${resourceName}`);
+
   // whenbefore激活's Tab
   const [activeTab, setActiveTab] = useState<string>(config.tabs[0] || 'overview');
 
@@ -79,10 +82,15 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
   const restartableTypes = ['deployment', 'statefulset', 'daemonset'];
   const canScale = scalableTypes.includes(resourceType);
   const canRestart = restartableTypes.includes(resourceType);
-  const currentReplicas = canScale ? (data as any)?.spec?.replicas ?? 0 : undefined;
+  const resource = data as Record<string, unknown> | null;
+  const spec = resource?.spec as Record<string, unknown> | undefined;
+  const meta = resource?.metadata as Record<string, unknown> | undefined;
+  const currentReplicas = canScale ? (spec?.replicas as number) ?? 0 : undefined;
 
   const scaleReplicas = useCallback(async (delta: number) => {
-    const current = (data as any)?.spec?.replicas ?? 0;
+    const d = data as Record<string, unknown> | null;
+    const s = d?.spec as Record<string, unknown> | undefined;
+    const current = (s?.replicas as number) ?? 0;
     const replicas = Math.max(0, current + delta);
     try {
       const response = await authFetch(withCluster(`/api/${resourceType}/${namespace}/${resourceName}/scale`), {
@@ -314,7 +322,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
       {/* Resource info bar */}
       <ResourceActionBar
-        name={(data as any)?.metadata?.name || resourceName}
+        name={(meta?.name as string) || resourceName}
         namespace={isClusterResource ? undefined : namespace}
         onRefresh={refresh}
         onDelete={handleDelete}
