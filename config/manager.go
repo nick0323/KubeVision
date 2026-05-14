@@ -88,6 +88,7 @@ func (m *Manager) Set(key string, value interface{}) {
 
 	parts := strings.Split(key, ".")
 	if len(parts) != 2 {
+		m.logger.Warn("config.Set() invalid key format, expected 'section.field'", zap.String("key", key))
 		return
 	}
 

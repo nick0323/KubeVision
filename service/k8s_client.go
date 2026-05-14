@@ -27,6 +27,7 @@ type ClientHolder struct {
 	config          *rest.Config
 	mu              sync.RWMutex
 	closeCh         chan struct{}
+	closeOnce       sync.Once
 	logger          *zap.Logger
 	lastHealthCheck time.Time
 	healthy         bool
@@ -121,7 +122,9 @@ func (h *ClientHolder) GetClientset() (*kubernetes.Clientset, error) {
 }
 
 func (h *ClientHolder) Close() {
-	close(h.closeCh)
+	h.closeOnce.Do(func() {
+		close(h.closeCh)
+	})
 }
 
 func NewClientManager(configMgr *config.Manager, logger *zap.Logger) (*ClientManager, error) {
@@ -315,6 +318,8 @@ func (m *ClientManager) GetClientRESTConfig(clusterName string) *rest.Config {
 	}
 	if client, ok := m.clientPool.Load(clusterName); ok {
 		holder := client.(*ClientHolder)
+		holder.mu.RLock()
+		defer holder.mu.RUnlock()
 		return holder.config
 	}
 	return nil

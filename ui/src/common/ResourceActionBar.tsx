@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { FaSync, FaClipboardList, FaTrash, FaPowerOff, FaMinus, FaPlus } from 'react-icons/fa';
+import React, { useState, useCallback } from 'react';
+import { FaSync, FaClipboardList, FaTrash, FaPowerOff, FaMinus, FaPlus, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
+import { useConfirm } from '../hooks/useConfirm';
 import './ResourceActionBar.css';
 
 export interface ResourceActionBarProps {
@@ -26,6 +27,7 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
   onRestart,
 }) => {
   const [refreshing, setRefreshing] = useState(false);
+  const { confirm, confirming, config, onConfirm, onCancel } = useConfirm();
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -35,6 +37,20 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
       setRefreshing(false);
     }
   };
+
+  const handleDelete = useCallback(async () => {
+    const result = await confirm({
+      title: 'Confirm Delete',
+      message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      danger: true,
+    });
+
+    if (result.confirmed) {
+      onDelete();
+    }
+  }, [confirm, name, onDelete]);
 
   return (
     <div className="resource-action-bar">
@@ -71,7 +87,7 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
             >
               <FaSync />
             </button>
-            <button className="action-btn danger" onClick={onDelete} title="Delete">
+            <button className="action-btn danger" onClick={handleDelete} title="Delete">
               <FaTrash />
             </button>
           </div>
@@ -83,6 +99,37 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Confirm Dialog Modal */}
+      {confirming && config && (
+        <div className="confirm-overlay" onClick={onCancel}>
+          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+            <div className="confirm-header">
+              <h3 className="confirm-title">
+                <FaExclamationTriangle className="confirm-icon" />
+                {config.title || 'Confirm'}
+              </h3>
+              <button className="confirm-close" onClick={onCancel}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="confirm-body">
+              <p className="confirm-message">{config.message}</p>
+            </div>
+            <div className="confirm-footer">
+              <button className="confirm-btn cancel" onClick={onCancel}>
+                {config.cancelText || 'Cancel'}
+              </button>
+              <button
+                className={`confirm-btn ${config.danger ? 'danger' : 'primary'}`}
+                onClick={onConfirm}
+              >
+                {config.confirmText || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

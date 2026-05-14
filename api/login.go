@@ -129,13 +129,6 @@ func verifyPassword(reqPassword, configPassword string, pm *PasswordManager) boo
 	return subtle.ConstantTimeCompare([]byte(reqPassword), []byte(configPassword)) == 1
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func (h *LoginHandler) handleLoginSuccess(c *gin.Context, username, clientIP string, authConfig model.AuthConfig) {
 	h.logger.Info("User login successful",
 		zap.String("username", username),

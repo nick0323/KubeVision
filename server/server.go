@@ -92,6 +92,8 @@ func (s *Server) SetupRouter() *gin.Engine {
 	}
 
 	r := gin.New()
+	// 全局请求体大小限制：10MB
+	r.MaxMultipartMemory = 10 << 20
 	s.registerMiddlewares(r, cfg)
 	s.registerRoutes(r, cfg)
 	return r
@@ -105,12 +107,21 @@ func (s *Server) registerMiddlewares(r *gin.Engine, cfg *model.Config) {
 	if cfg.IsDevelopment() {
 		r.Use(middleware.CORSMiddleware(nil))
 	}
+
+	// Content-Security-Policy 保护
+	r.Use(func(c *gin.Context) {
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:")
+	})
 }
 
 func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	authManager, _ := api.InitAuthManager(s.logger, s.configMgr)
 	loginHandler := api.NewLoginHandler(authManager, s.configMgr, s.logger)
-	r.POST(model.LoginPath, loginHandler.Handle())
+	// 登录端点添加 IP 速率限制：每秒最多 3 次尝试
+	loginRateLimiter := middleware.NewIPRateLimiter(3, 6)
+	r.POST(model.LoginPath, loginRateLimiter.Middleware(), loginHandler.Handle())
 
 	r.GET(model.HealthCheckPath, s.healthCheckHandler)
 

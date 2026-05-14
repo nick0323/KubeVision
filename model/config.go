@@ -183,6 +183,9 @@ func (c *CacheConfig) Validate() error {
 		if c.MaxSize <= 0 {
 			return fmt.Errorf("cache max size must be greater than 0")
 		}
+		if c.CleanupInterval <= 0 {
+			return fmt.Errorf("cache cleanup interval must be greater than 0")
+		}
 	}
 	return nil
 }

@@ -138,14 +138,28 @@ export function createAuthFetch() {
 
 /**
  * Create带认证's WebSocket 连接
- * Token 通过 URL query 参数传递（避免子协议暴露）
+ * Token 通过 WebSocket 子协议传递（避免 URL 泄露 token）
+ * URL query 参数 (token=) 作为向后兼容的 fallback
  */
 export function createAuthWebSocket(url: string, _protocols?: string | string[]): WebSocket {
   const token = authUtils.getToken();
 
+  // 优先使用子协议传递 token（不会出现在服务器日志中）
+  if (token) {
+    const protocols = _protocols
+      ? (Array.isArray(_protocols) ? _protocols : [_protocols])
+      : [];
+    const authProtocols = ['k8svision.auth', token, ...protocols];
+    try {
+      return new WebSocket(url, authProtocols);
+    } catch {
+      // fallback: URL query
+    }
+  }
+
+  // fallback: URL query 参数
   const separator = (url.includes('?') ? '&' : '?');
   const urlWithAuth = token ? `${url}${separator}token=${encodeURIComponent(token)}` : url;
-
   return new WebSocket(urlWithAuth);
 }
 

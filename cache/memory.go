@@ -97,10 +97,10 @@ func (c *MemoryCache[T]) SetWithTTL(key string, value T, ttl time.Duration) {
 func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	var zero T
 
-	c.mutex.Lock()
+	c.mutex.RLock()
 	elem, exists := c.data[key]
 	if !exists {
-		c.mutex.Unlock()
+		c.mutex.RUnlock()
 		c.misses.Add(1)
 		return zero, false
 	}
@@ -108,14 +108,27 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	entry := elem.Value.(*cacheEntry[T])
 
 	if time.Now().After(entry.item.ExpireTime) {
-		c.lruList.Remove(elem)
-		delete(c.data, key)
+		c.mutex.RUnlock()
+		c.mutex.Lock()
+		// 双重检查：另一个 goroutine 可能已经移除了该条目
+		if elem2, ok := c.data[key]; ok {
+			entry2 := elem2.Value.(*cacheEntry[T])
+			if time.Now().After(entry2.item.ExpireTime) {
+				c.lruList.Remove(elem2)
+				delete(c.data, key)
+			}
+		}
 		c.mutex.Unlock()
 		c.misses.Add(1)
 		return zero, false
 	}
 
-	c.lruList.MoveToFront(elem)
+	c.mutex.RUnlock()
+	c.mutex.Lock()
+	// 双重检查并移动到前端
+	if elem2, ok := c.data[key]; ok {
+		c.lruList.MoveToFront(elem2)
+	}
 	c.mutex.Unlock()
 
 	c.hits.Add(1)

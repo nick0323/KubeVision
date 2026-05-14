@@ -7,7 +7,7 @@ import (
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -149,7 +149,7 @@ func resourceFactory(resourceType string) (interface{}, error) {
 	case "poddisruptionbudgets", "poddisruptionbudget":
 		return &policyv1.PodDisruptionBudget{}, nil
 	case "horizontalpodautoscalers", "horizontalpodautoscaler", "hpa":
-		return &autoscalingv1.HorizontalPodAutoscaler{}, nil
+		return &autoscalingv2.HorizontalPodAutoscaler{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
