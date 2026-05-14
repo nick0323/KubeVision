@@ -1211,3 +1211,47 @@ func (c *nodesCreator) Create(ctx context.Context, namespace string, obj interfa
 	_, err := c.client.CoreV1().Nodes().Create(ctx, node, metav1.CreateOptions{})
 	return err
 }
+
+// Compile-time interface assertions
+var (
+	_ Getter  = &podsGetter{}
+	_ Getter  = &deploymentsGetter{}
+	_ Getter  = &servicesGetter{}
+	_ Getter  = &configMapsGetter{}
+	_ Getter  = &secretsGetter{}
+	_ Getter  = &ingressesGetter{}
+	_ Getter  = &jobsGetter{}
+	_ Getter  = &cronJobsGetter{}
+	_ Getter  = &pvcsGetter{}
+	_ Getter  = &pvsGetter{}
+	_ Getter  = &storageClassesGetter{}
+	_ Getter  = &namespacesGetter{}
+	_ Getter  = &nodesGetter{}
+	_ Getter  = &endpointsGetter{}
+	_ Getter  = &hpasGetter{}
+	_ Getter  = &eventsGetter{}
+	_ Getter  = &networkPoliciesGetter{}
+	_ Getter  = &serviceAccountsGetter{}
+	_ Getter  = &rolesGetter{}
+	_ Getter  = &roleBindingsGetter{}
+	_ Getter  = &clusterRolesGetter{}
+	_ Getter  = &clusterRoleBindingsGetter{}
+	_ Getter  = &resourceQuotasGetter{}
+	_ Getter  = &limitRangesGetter{}
+	_ Getter  = &podDisruptionBudgetsGetter{}
+
+	_ Updater = &podsUpdater{}
+	_ Updater = &deploymentsUpdater{}
+	_ Updater = &hpasUpdater{}
+
+	_ Deleter = &podsUpdater{}
+	_ Deleter = &deploymentsUpdater{}
+	_ Deleter = &hpasUpdater{}
+	_ Deleter = &rolesUpdater{}
+	_ Deleter = &namespacesUpdater{}
+	_ Deleter = &nodesUpdater{}
+
+	_ Creator = &podsCreator{}
+	_ Creator = &deploymentsCreator{}
+	_ Creator = &nodesCreator{}
+)
