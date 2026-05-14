@@ -60,23 +60,7 @@ func NewClientHolder(cfg *rest.Config, logger *zap.Logger) (*ClientHolder, error
 		healthy:   true,
 	}
 
-	go holder.startHealthCheck()
 	return holder, nil
-}
-
-func (h *ClientHolder) startHealthCheck() {
-	h.checkHealth()
-	ticker := time.NewTicker(HealthCheckInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			h.checkHealth()
-		case <-h.closeCh:
-			return
-		}
-	}
 }
 
 func (h *ClientHolder) checkHealth() {
@@ -431,6 +415,7 @@ func (m *ClientManager) loadClustersFromConfig(cfg *model.Config) {
 }
 
 func (m *ClientManager) startHealthMonitor() {
+	m.checkAllClients()
 	ticker := time.NewTicker(m.healthInterval)
 	defer ticker.Stop()
 

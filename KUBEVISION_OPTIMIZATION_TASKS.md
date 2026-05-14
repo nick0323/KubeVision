@@ -76,8 +76,9 @@
 - **涉及文件**: `cache/memory.go`
 
 ### S2.3 GetClientset() 健康检查优化
-- [ ] 改为返回最后一次健康状态，后台 goroutine 异步检查
-- [ ] 健康检查间隔 30s，失败时标记为不健康
+- [x] 改为返回最后一次健康状态，后台 goroutine 异步检查
+- [x] 健康检查间隔 30s，失败时标记为不健康
+- [x] 移除 `ClientHolder` 级别冗余的健康检查 goroutine，统一由 `ClientManager.startHealthMonitor()` 管理
 - **涉及文件**: `service/k8s_client.go`
 
 ### S2.4 缓存 maxSize 参数校验
@@ -240,7 +241,7 @@
 
 ```
 Sprint 1: ████████████████████ [10/10 tasks done]
-Sprint 2: ████████░░░░░░░░░░░░ [4/5 tasks done]
+Sprint 2: ████████████████████ [5/5 tasks done]
 Sprint 3: ████████████████████ [10/10 tasks done]
 Sprint 4: ███░░░░░░░░░░░░░░░░░ [1.5/7 tasks done]
 Sprint 5: ░░░░░░░░░░░░░░░░░░░░ [0/4 tasks done]
