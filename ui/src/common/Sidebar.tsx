@@ -116,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const currentCluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER) || 'default';
 
   useEffect(() => {
-    apiClient.get<ClusterHealth[]>('/api/clusters/health').then(res => {
+    apiClient.get<ClusterHealth[]>('/api/v1/clusters/health').then(res => {
       const list = res.data || [];
       const healthMap: Record<string, ClusterHealth> = {};
       list.forEach(h => { healthMap[h.name] = h; });

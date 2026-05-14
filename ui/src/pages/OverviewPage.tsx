@@ -48,7 +48,7 @@ function useFetch<T>(url: string) {
  */
 export const OverviewPage: React.FC<OverviewPageProps> = ({ collapsed, onToggleCollapsed }) => {
   usePageTitle('Overview');
-  const { data, loading, error, refresh } = useFetch<OverviewData>('/api/overview');
+  const { data, loading, error, refresh } = useFetch<OverviewData>('/api/v1/overview');
   const safeData: Partial<OverviewData> = data || {};
 
   if (loading) {

@@ -95,7 +95,7 @@ let _refreshPromise: Promise<boolean> | null = null;
 
 export function createAuthFetch() {
   return async function authFetch(url: string, options: RequestInit = {}, _isRetry = false): Promise<Response> {
-    if (!_isRetry && url !== '/api/refresh' && authUtils.isTokenExpiringSoon(5)) {
+    if (!_isRetry && url !== '/api/v1/refresh' && authUtils.isTokenExpiringSoon(5)) {
       await attemptTokenRefresh();
     }
 
@@ -112,13 +112,14 @@ export function createAuthFetch() {
       headers,
     });
 
-    if (response.status === 401 && !_isRetry && url !== '/api/refresh') {
-      const refreshed = await attemptTokenRefresh();
+    if (response.status === 401 && !_isRetry && url !== '/api/v1/refresh') {
+      const refreshed = await attemptRefresh();
       if (refreshed) {
-        return authFetch(url, options, true);
+        const retryResponse = await authFetch(url, options);
+        return retryResponse;
       }
-      authUtils.clearTokens();
-      window.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.AUTH_UNAUTHORIZED));
+      logout();
+      throw new Error('Session expired');
     }
 
     return response;
@@ -133,7 +134,7 @@ async function attemptTokenRefresh(): Promise<boolean> {
       const refreshToken = authUtils.getRefreshToken();
       if (!refreshToken) return false;
 
-      const response = await fetch('/api/refresh', {
+      const response = await fetch('/api/v1/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),

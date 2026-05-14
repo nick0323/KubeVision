@@ -10,7 +10,7 @@ import { logError } from '../utils/errorHandler';
 
 // Constants definition
 const API_ENDPOINTS = {
-  NAMESPACE_LIST: '/api/namespace',
+  NAMESPACE_LIST: '/api/v1/namespace',
 } as const;
 
 const DEFAULT_LIMIT = 1000;

@@ -139,24 +139,31 @@ func (s *Server) registerMiddlewares(r *gin.Engine, cfg *model.Config) {
 func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	authManager, _ := api.InitAuthManager(s.logger, s.configMgr)
 	loginHandler := api.NewLoginHandler(authManager, s.configMgr, s.logger)
-	// 登录端点添加 IP 速率限制：每秒最多 3 次尝试
 	loginRateLimiter := middleware.NewIPRateLimiter(3, 6)
-	r.POST(model.LoginPath, loginRateLimiter.Middleware(), loginHandler.Handle())
+	refreshRateLimiter := middleware.NewIPRateLimiter(5, 10)
+
+	for _, loginPath := range []string{model.LoginPath, model.LoginLegacyPath} {
+		r.POST(loginPath, loginRateLimiter.Middleware(), loginHandler.Handle())
+	}
 
 	r.GET(model.HealthCheckPath, s.healthCheckHandler)
-	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	apiGroup := r.Group(model.APIPrefix)
+	legacyGroup := r.Group(model.APILegacyPrefix)
+
 	s.jwtMiddleware = middleware.NewJWTMiddleware(s.configMgr.GetJWTSecret(), s.logger)
 	apiGroup.Use(s.jwtMiddleware.AuthMiddleware(s.configMgr))
+	legacyGroup.Use(s.jwtMiddleware.AuthMiddleware(s.configMgr))
 
-	// 刷新令牌端点（需要在 jwtMiddleware 初始化之后，以获取黑名单实例）
-	refreshRateLimiter := middleware.NewIPRateLimiter(5, 10)
-	r.POST(model.RefreshPath, refreshRateLimiter.Middleware(), loginHandler.Refresh(s.jwtMiddleware.GetBlacklist()))
+	for _, refreshPath := range []string{model.RefreshPath, model.RefreshLegacyPath} {
+		r.POST(refreshPath, refreshRateLimiter.Middleware(), loginHandler.Refresh(s.jwtMiddleware.GetBlacklist()))
+	}
 
 	apiGroup.POST("/logout", loginHandler.Logout(s.jwtMiddleware.GetBlacklist()))
+	legacyGroup.POST("/logout", loginHandler.Logout(s.jwtMiddleware.GetBlacklist()))
 
 	s.registerAPIRoutes(apiGroup)
+	s.registerAPIRoutes(legacyGroup)
 }
 
 func (s *Server) healthCheckHandler(c *gin.Context) {

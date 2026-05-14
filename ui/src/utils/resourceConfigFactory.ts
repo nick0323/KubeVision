@@ -140,7 +140,7 @@ export function finalizeConfig(
   
   return {
     title: base.title || 'Resource',
-    apiEndpoint: base.apiEndpoint || '/api/resource',
+    apiEndpoint: base.apiEndpoint || '/api/v1/resource',
     resourceType: base.resourceType || 'unknown',
     columns: [...base.columns, ...additionalColumns],
     namespaceFilter: base.namespaceFilter ?? true,
@@ -187,69 +187,13 @@ export function createPodConfig(): ResourcePageConfig {
   
   return finalizeConfig({
     title: 'Pods',
-    apiEndpoint: '/api/pod',
-    resourceType: 'pod',
-    columns,
-    namespaceFilter: true,
-    defaultSort: { field: 'name', order: 'asc' },
-  });
-}
+    apiEndpoint: '/api/v1/pod',
 
-/**
- * Create Service resourceConfig
- */
-export function createServiceConfig(): ResourcePageConfig {
-  const columns: ExtendedColumn[] = [
-    createNameColumn('25%'),
-    createNamespaceColumn('18%'),
-    { title: 'Type', dataIndex: 'type', width: '15%' },
-    { title: 'Cluster IP', dataIndex: 'clusterIP', width: '18%' },
-    { title: 'Ports', dataIndex: 'ports', width: '16%' },
-    createAgeColumn('8%'),
-  ];
-  
-  return finalizeConfig({
-    title: 'Services',
-    apiEndpoint: '/api/service',
-    resourceType: 'service',
-    columns,
-    namespaceFilter: true,
-  });
-}
+    // Service / Endpoint
+    apiEndpoint: '/api/v1/service',
 
-/**
- * Create Node resourceConfig（clusterresource）
- */
-export function createNodeConfig(): ResourcePageConfig {
-  const columns: ExtendedColumn[] = [
-    createNameColumn('15%'),
-    { title: 'IP', dataIndex: 'ip', width: '15%' },
-    { title: 'Role', dataIndex: 'role', width: '20%', sortable: true },
-    {
-      title: 'CPU',
-      dataIndex: 'cpuUsage',
-      width: '10%',
-      render: (value: unknown) => value !== null && value !== undefined ? `${Math.round(value as number)}%` : 'N/A',
-    },
-    {
-      title: 'Memory',
-      dataIndex: 'memoryUsage',
-      width: '10%',
-      render: (value: unknown) => value !== null && value !== undefined ? `${Math.round(value as number)}%` : 'N/A',
-    },
-    {
-      title: 'Pods',
-      dataIndex: 'podsUsed',
-      width: '10%',
-      render: (value: unknown, record: Record<string, unknown>) => `${value}/${record.podsCapacity || 0}`,
-    },
-    createStatusColumn('10%'),
-    createAgeColumn('10%'),
-  ];
-  
-  return finalizeConfig({
-    title: 'Nodes',
-    apiEndpoint: '/api/node',
+    // Node
+    apiEndpoint: '/api/v1/node',
     resourceType: 'node',
     columns,
     namespaceFilter: false,

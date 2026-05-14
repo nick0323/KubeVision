@@ -161,10 +161,11 @@
 - 优先级: 🟠
 
 ### F2 - API 版本前缀
-- [ ] 路由改为 `/api/v1/` 前缀
-- [ ] 保留旧路由兼容（通过重定向或双注册）
-- [ ] 更新前端 apiClient baseURL
-- [ ] 优先级: 🟡
+- [x] 路由改为 `/api/v1/` 前缀（`APIPrefix` → `/api/v1`）
+- [x] 保留旧路由兼容（注册 `/api` 和 `/api/v1` 双路由组）
+- [x] 更新前端 `API_CONFIG.BASE_URL` 和所有硬编码路径
+- [x] 修复 `auth.ts` 中预先存在的多余 `}` 语法错误
+- 优先级: 🟡
 
 ### F3 - 刷新令牌机制
 - [x] 配置：JWT 过期改为 15 分钟，添加 `RefreshExpiration`（7天）
@@ -244,7 +245,7 @@
 Sprint 1: ████████████████████ [10/10 tasks done]
 Sprint 2: ████████████████████ [5/5 tasks done]
 Sprint 3: ████████████████████ [10/10 tasks done]
-Sprint 4: ████░░░░░░░░░░░░░░░░ [2.5/7 tasks done]
+Sprint 4: ██████░░░░░░░░░░░░░░ [3.5/7 tasks done]
 Sprint 5: ░░░░░░░░░░░░░░░░░░░░ [0/4 tasks done]
 Deps:     ░░░░░░░░░░░░░░░░░░░░ [0/2 tasks done]
 ```

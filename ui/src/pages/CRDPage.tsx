@@ -54,7 +54,7 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
     setLoading(true);
     setError(null);
     try {
-      const result = await apiClient.get<CRDSummary[]>('/api/crds');
+      const result = await apiClient.get<CRDSummary[]>('/api/v1/crds');
       setCrds(result.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load CRDs');
@@ -75,7 +75,7 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
     try {
       const group = crd.group || '_';
       const result = await apiClient.get<Record<string, any>[]>(
-        `/api/crds/${group}/${crd.version}/${crd.plural}`
+        `/api/v1/crds/${group}/${crd.version}/${crd.plural}`
       );
       setInstances(result.data || []);
     } catch (err) {
@@ -93,7 +93,7 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
       const name = instance?.metadata?.name || '';
       const namespace = instance?.metadata?.namespace || '_';
       const result = await apiClient.get<Record<string, any>>(
-        `/api/crds/${group}/${crd.version}/${crd.plural}/${namespace}/${name}`
+        `/api/v1/crds/${group}/${crd.version}/${crd.plural}/${namespace}/${name}`
       );
       const filtered = filterHiddenFields(result.data);
       const yaml = jsyaml.dump(filtered, {

@@ -143,13 +143,13 @@ export const apiClient = {
   },
 
   async getDetail<T = unknown>(resourceType: string, namespace: string, name: string): Promise<T> {
-    const endpoint = `/api/${resourceType}/${namespace}/${name}`;
+    const endpoint = `${API_CONFIG.BASE_URL}/${resourceType}/${namespace}/${name}`;
     const result = await this.request<T>(endpoint);
     return result.data;
   },
 
   async deleteResource<T = unknown>(resourceType: string, namespace: string, name: string): Promise<T> {
-    const endpoint = `/api/${resourceType}/${namespace}/${name}`;
+    const endpoint = `${API_CONFIG.BASE_URL}/${resourceType}/${namespace}/${name}`;
     const result = await this.request<T>(endpoint, { method: 'DELETE' });
     return result.data;
   },

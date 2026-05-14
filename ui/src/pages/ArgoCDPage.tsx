@@ -35,7 +35,7 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
     setLoading(true);
     setError(null);
     try {
-      const result = await apiClient.get<ArgoCDApplication[]>('/api/argocd/apps');
+      const result = await apiClient.get<ArgoCDApplication[]>('/api/v1/argocd/apps');
       setApps(result.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load ArgoCD applications');
@@ -69,7 +69,7 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
   const handleSync = async (name: string) => {
     setActionLoading(prev => ({ ...prev, [`${name}-sync`]: true }));
     try {
-      await apiClient.post(`/api/argocd/apps/${name}/sync`);
+      await apiClient.post(`/api/v1/argocd/apps/${name}/sync`);
       notification.success(`Application "${name}" sync triggered`);
       handleRefresh();
     } catch (err) {
@@ -82,7 +82,7 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
   const handleRefreshApp = async (name: string) => {
     setActionLoading(prev => ({ ...prev, [`${name}-refresh`]: true }));
     try {
-      await apiClient.post(`/api/argocd/apps/${name}/refresh`);
+      await apiClient.post(`/api/v1/argocd/apps/${name}/refresh`);
       notification.success(`Application "${name}" refresh triggered`);
       handleRefresh();
     } catch (err) {
@@ -98,7 +98,7 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
     }
     setActionLoading(prev => ({ ...prev, [`${name}-delete`]: true }));
     try {
-      await apiClient.delete(`/api/argocd/apps/${name}`);
+      await apiClient.delete(`/api/v1/argocd/apps/${name}`);
       notification.success(`Application "${name}" deleted`);
       handleRefresh();
     } catch (err) {

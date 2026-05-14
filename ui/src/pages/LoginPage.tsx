@@ -47,7 +47,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
 
     try {
-      const result = await apiClient.post<{ token: string; refreshToken: string }>('/api/login', { username, password });
+      const result = await apiClient.post<{ token: string; refreshToken: string }>('/api/v1/login', { username, password });
       if (result.code === 0) {
         const token = result.data?.token;
         const refreshToken = result.data?.refreshToken;
