@@ -154,11 +154,11 @@
 ## Sprint 4: 缺失功能实现（优先级按标签排列）
 
 ### F1 - Prometheus /metrics 端点
-- [ ] 添加 `github.com/prometheus/client_golang` 依赖
-- [ ] 在 `server/server.go` 中注册 `/metrics` 路由
-- [ ] 在 `cache/memory.go` 中添加 cache hit/miss 指标
-- [ ] 添加 HTTP 请求计数和延时指标
-- [ ] 优先级: 🟠
+- [x] 添加 `github.com/prometheus/client_golang` 依赖
+- [x] 在 `server/server.go` 中注册 `/metrics` 路由（JWT 外部）
+- [x] 在 `cache/memory.go` 中添加 cache hit/miss/size Prometheus 指标
+- [x] 添加 HTTP 请求计数和延时指标（`api/middleware/metrics.go`）
+- 优先级: 🟠
 
 ### F2 - API 版本前缀
 - [ ] 路由改为 `/api/v1/` 前缀
@@ -244,7 +244,7 @@
 Sprint 1: ████████████████████ [10/10 tasks done]
 Sprint 2: ████████████████████ [5/5 tasks done]
 Sprint 3: ████████████████████ [10/10 tasks done]
-Sprint 4: ███░░░░░░░░░░░░░░░░░ [1.5/7 tasks done]
+Sprint 4: ████░░░░░░░░░░░░░░░░ [2.5/7 tasks done]
 Sprint 5: ░░░░░░░░░░░░░░░░░░░░ [0/4 tasks done]
 Deps:     ░░░░░░░░░░░░░░░░░░░░ [0/2 tasks done]
 ```

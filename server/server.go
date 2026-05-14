@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -121,6 +122,7 @@ func (s *Server) registerMiddlewares(r *gin.Engine, cfg *model.Config) {
 	r.Use(middleware.Recovery(s.logger))
 	r.Use(middleware.TraceMiddleware())
 	r.Use(middleware.LoggingMiddleware(s.logger))
+	r.Use(middleware.MetricsMiddleware())
 
 	if cfg.IsDevelopment() {
 		r.Use(middleware.CORSMiddleware(nil))
@@ -142,6 +144,7 @@ func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	r.POST(model.LoginPath, loginRateLimiter.Middleware(), loginHandler.Handle())
 
 	r.GET(model.HealthCheckPath, s.healthCheckHandler)
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	apiGroup := r.Group(model.APIPrefix)
 	s.jwtMiddleware = middleware.NewJWTMiddleware(s.configMgr.GetJWTSecret(), s.logger)

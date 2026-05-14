@@ -10,6 +10,25 @@ import (
 	"time"
 
 	"github.com/nick0323/K8sVision/model"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	cacheSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kubevision_cache_size",
+		Help: "Current cache size",
+	})
+
+	cacheHitsCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "kubevision_cache_hits_total",
+		Help: "Total number of cache hits",
+	})
+
+	cacheMissesCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "kubevision_cache_misses_total",
+		Help: "Total number of cache misses",
+	})
 )
 
 const (
@@ -85,6 +104,7 @@ func NewMemoryCache(config *model.CacheConfig) *MemoryCache[interface{}] {
 
 	if config.Enabled {
 		go cache.cleanupWorker(config.CleanupInterval)
+		go cache.metricsReporter(5 * time.Minute)
 	}
 
 	return cache
@@ -139,6 +159,7 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	if !exists {
 		s.mutex.RUnlock()
 		c.misses.Add(1)
+		cacheMissesCounter.Inc()
 		return zero, false
 	}
 
@@ -156,6 +177,7 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 		}
 		s.mutex.Unlock()
 		c.misses.Add(1)
+		cacheMissesCounter.Inc()
 		return zero, false
 	}
 
@@ -167,6 +189,7 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	s.mutex.Unlock()
 
 	c.hits.Add(1)
+	cacheHitsCounter.Inc()
 	return entry.item.Value, true
 }
 
@@ -256,6 +279,20 @@ func (c *MemoryCache[T]) cleanup() {
 			}
 		}
 		s.mutex.Unlock()
+	}
+}
+
+func (c *MemoryCache[T]) metricsReporter(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			cacheSizeGauge.Set(float64(c.Size()))
+		case <-c.ctx.Done():
+			return
+		}
 	}
 }
 
