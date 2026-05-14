@@ -113,7 +113,7 @@ export function createAuthFetch() {
     });
 
     if (response.status === 401 && !_isRetry && url !== '/api/v1/refresh') {
-      const refreshed = await attemptRefresh();
+      const refreshed = await attemptTokenRefresh();
       if (refreshed) {
         const retryResponse = await authFetch(url, options);
         return retryResponse;

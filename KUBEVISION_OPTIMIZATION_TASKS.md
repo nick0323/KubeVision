@@ -169,9 +169,11 @@
 
 ### F3 - 刷新令牌机制
 - [x] 配置：JWT 过期改为 15 分钟，添加 `RefreshExpiration`（7天）
-- [ ] 添加 refresh_token 端点，生成 refresh token
-- [ ] 前端自动在 401 时尝试 refresh
-- [ ] 优先级: 🟡
+- [x] 后端 refresh_token 端点：验证旧 token → 黑名单 → 生成新 token 对
+- [x] 前端自动在 401 时尝试 refresh（`attemptTokenRefresh`）
+- [x] 前端 `isTokenExpiringSoon()` 预刷新逻辑
+- [x] 修复前端调用不存在的 `attemptRefresh()` 函数名 bug
+- 优先级: 🟡
 
 ### F4 - 集群健康状态 API
 - [x] 添加 `GetClustersHealth()` 和 `ClusterHealth` 模型
@@ -245,7 +247,7 @@
 Sprint 1: ████████████████████ [10/10 tasks done]
 Sprint 2: ████████████████████ [5/5 tasks done]
 Sprint 3: ████████████████████ [10/10 tasks done]
-Sprint 4: ██████░░░░░░░░░░░░░░ [3.5/7 tasks done]
+Sprint 4: ███████░░░░░░░░░░░░░ [5/7 tasks done]
 Sprint 5: ░░░░░░░░░░░░░░░░░░░░ [0/4 tasks done]
 Deps:     ░░░░░░░░░░░░░░░░░░░░ [0/2 tasks done]
 ```
