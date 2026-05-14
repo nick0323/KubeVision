@@ -317,7 +317,7 @@ func (m *ClientManager) GetClientRESTConfig(clusterName string) *rest.Config {
 		holder := client.(*ClientHolder)
 		return holder.config
 	}
-	return m.GetDefaultRESTConfig()
+	return nil
 }
 
 func (m *ClientManager) AddCluster(name string, k8sConfig *model.KubernetesConfig) error {

@@ -405,62 +405,68 @@ func FindRelatedResources(
 
 	// ==================== ConfigMap ====================
 	case *v1.ConfigMap:
-		// 使用 map 去重
 		addedPods := make(map[string]bool)
 
-		// 1. 查询通过 Volume 引用此 ConfigMap 的 Pod
 		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			logger.Warn("Failed to query ConfigMap Pod", zap.Error(err))
 		} else {
 			for _, pod := range podList.Items {
+				if addedPods[pod.Name] {
+					continue
+				}
+
+				// a. Volume references
 				for _, vol := range pod.Spec.Volumes {
 					if vol.ConfigMap != nil && vol.ConfigMap.Name == o.Name {
-						if !addedPods[pod.Name] {
-							result = append(result, map[string]string{
-								"kind":     "Pod",
-								"name":     pod.Name,
-								"relation": "usedBy",
-							})
-							addedPods[pod.Name] = true
-						}
-						break
-					}
-				}
-			}
-		}
-		// 2. 查询通过 envFrom.configMapRef 引用此 ConfigMap 的 Pod（containers 和 initContainers）
-		for _, pod := range podList.Items {
-			if addedPods[pod.Name] {
-				continue
-			}
-			// 检查 containers
-			for _, container := range pod.Spec.Containers {
-				for _, envFrom := range container.EnvFrom {
-					if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == o.Name {
-						result = append(result, map[string]string{
-							"kind":     "Pod",
-							"name":     pod.Name,
-							"relation": "usedBy",
-						})
+						result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
 						addedPods[pod.Name] = true
 						break
 					}
 				}
 				if addedPods[pod.Name] {
-					break
+					continue
 				}
-			}
-			// 检查 initContainers
-			if !addedPods[pod.Name] {
-				for _, container := range pod.Spec.InitContainers {
+
+				// b. envFrom.configMapRef (containers + initContainers)
+				found := false
+				for _, container := range pod.Spec.Containers {
 					for _, envFrom := range container.EnvFrom {
 						if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == o.Name {
-							result = append(result, map[string]string{
-								"kind":     "Pod",
-								"name":     pod.Name,
-								"relation": "usedBy",
-							})
+							result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
+							addedPods[pod.Name] = true
+							found = true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+				if !found {
+					for _, container := range pod.Spec.InitContainers {
+						for _, envFrom := range container.EnvFrom {
+							if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == o.Name {
+								result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
+								addedPods[pod.Name] = true
+								found = true
+								break
+							}
+						}
+						if found {
+							break
+						}
+					}
+				}
+				if addedPods[pod.Name] {
+					continue
+				}
+
+				// c. env.valueFrom.configMapKeyRef
+				for _, container := range pod.Spec.Containers {
+					for _, env := range container.Env {
+						if env.ValueFrom != nil && env.ValueFrom.ConfigMapKeyRef != nil && env.ValueFrom.ConfigMapKeyRef.Name == o.Name {
+							result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
 							addedPods[pod.Name] = true
 							break
 						}
@@ -469,53 +475,24 @@ func FindRelatedResources(
 						break
 					}
 				}
-			}
-		}
-		// 3. 查询通过 env.valueFrom.configMapKeyRef 引用此 ConfigMap 的 Pod
-		for _, pod := range podList.Items {
-			if addedPods[pod.Name] {
-				continue
-			}
-			for _, container := range pod.Spec.Containers {
-				for _, env := range container.Env {
-					if env.ValueFrom != nil && env.ValueFrom.ConfigMapKeyRef != nil {
-						if env.ValueFrom.ConfigMapKeyRef.Name == o.Name {
-							result = append(result, map[string]string{
-								"kind":     "Pod",
-								"name":     pod.Name,
-								"relation": "usedBy",
-							})
-							addedPods[pod.Name] = true
-							break
+				if addedPods[pod.Name] {
+					continue
+				}
+
+				// d. Projected volume sources
+				for _, vol := range pod.Spec.Volumes {
+					if vol.Projected != nil {
+						for _, source := range vol.Projected.Sources {
+							if source.ConfigMap != nil && source.ConfigMap.Name == o.Name {
+								result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
+								addedPods[pod.Name] = true
+								break
+							}
 						}
 					}
-				}
-				if addedPods[pod.Name] {
-					break
-				}
-			}
-		}
-		// 4. 查询通过 projection 引用的 Pod（高级用法）
-		for _, pod := range podList.Items {
-			if addedPods[pod.Name] {
-				continue
-			}
-			for _, vol := range pod.Spec.Volumes {
-				if vol.Projected != nil {
-					for _, source := range vol.Projected.Sources {
-						if source.ConfigMap != nil && source.ConfigMap.Name == o.Name {
-							result = append(result, map[string]string{
-								"kind":     "Pod",
-								"name":     pod.Name,
-								"relation": "usedBy",
-							})
-							addedPods[pod.Name] = true
-							break
-						}
+					if addedPods[pod.Name] {
+						break
 					}
-				}
-				if addedPods[pod.Name] {
-					break
 				}
 			}
 		}
@@ -526,75 +503,79 @@ func FindRelatedResources(
 		addedPods := make(map[string]bool)
 		addedSA := make(map[string]bool)
 
-		// 1. 查询通过 Volume 引用此 Secret 的 Pod
 		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			logger.Warn("Failed to query Secret Pod", zap.Error(err))
 		} else {
+			// Single pass: check volumes, imagePullSecrets, envFrom, env.valueFrom
 			for _, pod := range podList.Items {
+				if addedPods[pod.Name] {
+					continue
+				}
+
+				// a. Volume references
 				for _, vol := range pod.Spec.Volumes {
 					if vol.Secret != nil && vol.Secret.SecretName == o.Name {
-						if !addedPods[pod.Name] {
-							result = append(result, map[string]string{
-								"kind":     "Pod",
-								"name":     pod.Name,
-								"relation": "usedBy",
-							})
-							addedPods[pod.Name] = true
-						}
-						break
-					}
-				}
-			}
-		}
-		// 2. 查询通过 imagePullSecrets 引用此 Secret 的 Pod
-		for _, pod := range podList.Items {
-			for _, ips := range pod.Spec.ImagePullSecrets {
-				if ips.Name == o.Name {
-					if !addedPods[pod.Name] {
-						result = append(result, map[string]string{
-							"kind":     "Pod",
-							"name":     pod.Name,
-							"relation": "usedBy",
-						})
-						addedPods[pod.Name] = true
-					}
-					break
-				}
-			}
-		}
-		// 3. 查询通过 envFrom.secretRef 引用此 Secret 的 Pod（containers 和 initContainers）
-		for _, pod := range podList.Items {
-			if addedPods[pod.Name] {
-				continue
-			}
-			// 检查 containers
-			for _, container := range pod.Spec.Containers {
-				for _, envFrom := range container.EnvFrom {
-					if envFrom.SecretRef != nil && envFrom.SecretRef.Name == o.Name {
-						result = append(result, map[string]string{
-							"kind":     "Pod",
-							"name":     pod.Name,
-							"relation": "usedBy",
-						})
+						result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
 						addedPods[pod.Name] = true
 						break
 					}
 				}
 				if addedPods[pod.Name] {
-					break
+					continue
 				}
-			}
-			// 检查 initContainers
-			if !addedPods[pod.Name] {
-				for _, container := range pod.Spec.InitContainers {
+
+				// b. imagePullSecrets
+				for _, ips := range pod.Spec.ImagePullSecrets {
+					if ips.Name == o.Name {
+						result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
+						addedPods[pod.Name] = true
+						break
+					}
+				}
+				if addedPods[pod.Name] {
+					continue
+				}
+
+				// c. envFrom.secretRef (containers + initContainers)
+				found := false
+				for _, container := range pod.Spec.Containers {
 					for _, envFrom := range container.EnvFrom {
 						if envFrom.SecretRef != nil && envFrom.SecretRef.Name == o.Name {
-							result = append(result, map[string]string{
-								"kind":     "Pod",
-								"name":     pod.Name,
-								"relation": "usedBy",
-							})
+							result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
+							addedPods[pod.Name] = true
+							found = true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+				if !found {
+					for _, container := range pod.Spec.InitContainers {
+						for _, envFrom := range container.EnvFrom {
+							if envFrom.SecretRef != nil && envFrom.SecretRef.Name == o.Name {
+								result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
+								addedPods[pod.Name] = true
+								found = true
+								break
+							}
+						}
+						if found {
+							break
+						}
+					}
+				}
+				if addedPods[pod.Name] {
+					continue
+				}
+
+				// d. env.valueFrom.secretKeyRef
+				for _, container := range pod.Spec.Containers {
+					for _, env := range container.Env {
+						if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == o.Name {
+							result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
 							addedPods[pod.Name] = true
 							break
 						}
@@ -605,31 +586,7 @@ func FindRelatedResources(
 				}
 			}
 		}
-		// 4. 查询通过 env.valueFrom.secretKeyRef 引用此 Secret 的 Pod
-		for _, pod := range podList.Items {
-			if addedPods[pod.Name] {
-				continue
-			}
-			for _, container := range pod.Spec.Containers {
-				for _, env := range container.Env {
-					if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil {
-						if env.ValueFrom.SecretKeyRef.Name == o.Name {
-							result = append(result, map[string]string{
-								"kind":     "Pod",
-								"name":     pod.Name,
-								"relation": "usedBy",
-							})
-							addedPods[pod.Name] = true
-							break
-						}
-					}
-				}
-				if addedPods[pod.Name] {
-					break
-				}
-			}
-		}
-		// 5. 查询引用此 Secret 的 ServiceAccount
+		// 查询引用此 Secret 的 ServiceAccount
 		saList, err := clientset.CoreV1().ServiceAccounts(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			logger.Warn("Failed to query Secret ServiceAccount", zap.Error(err))

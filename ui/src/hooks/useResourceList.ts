@@ -335,30 +335,6 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     [refresh]
   );
 
-  // Searchdebounce（300ms）
-  const debouncedSearchRef = useRef('');
-  const searchDebounceTimerRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const setDebouncedSearch = useCallback((value: string) => {
-    if (searchDebounceTimerRef.current) {
-      clearTimeout(searchDebounceTimerRef.current);
-    }
-    searchDebounceTimerRef.current = setTimeout(() => {
-      debouncedSearchRef.current = value;
-      setSearch(value);
-      setPage(1);
-    }, 300);
-  }, []);
-
-  // Cleanupdebounce timer
-  useEffect(() => {
-    return () => {
-      if (searchDebounceTimerRef.current) {
-        clearTimeout(searchDebounceTimerRef.current);
-      }
-    };
-  }, []);
-
   // Unified'sdataLoading...监听所hasneedtriggerLoading...）
   useEffect(() => {
     startCleanup(staleTime);
@@ -391,7 +367,6 @@ export function useResourceList<T = unknown>(config: UseResourceListConfig): Use
     search,
     setNamespace,
     setSearch,
-    setDebouncedSearch,
     sortField,
     sortOrder,
     handleSort,

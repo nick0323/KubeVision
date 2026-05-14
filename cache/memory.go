@@ -39,7 +39,7 @@ type MemoryCache[T any] struct {
 	cancel  context.CancelFunc
 }
 
-func NewMemoryCache(config *model.CacheConfig, logger interface{}) *MemoryCache[interface{}] {
+func NewMemoryCache(config *model.CacheConfig) *MemoryCache[interface{}] {
 	if config == nil {
 		config = &model.CacheConfig{
 			Enabled:         true,

@@ -43,7 +43,7 @@ func (i *Initializer) InitBaseComponents(configFile string) (*zap.Logger, *cache
 		return nil, nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
-	return logger, InitLRUCache(i.configMgr, logger), nil
+	return logger, InitLRUCache(i.configMgr), nil
 }
 
 func (i *Initializer) InitK8sComponents(ctx context.Context, logger *zap.Logger) (*service.ClientManager, error) {
@@ -114,8 +114,8 @@ func InitLogger(cfg *model.Config) (*zap.Logger, error) {
 	return logger, nil
 }
 
-func InitLRUCache(configMgr *config.Manager, logger *zap.Logger) *cache.MemoryCache[interface{}] {
-	return cache.NewMemoryCache(&configMgr.GetConfig().Cache, logger)
+func InitLRUCache(configMgr *config.Manager) *cache.MemoryCache[interface{}] {
+	return cache.NewMemoryCache(&configMgr.GetConfig().Cache)
 }
 
 func InitK8sClient(configMgr *config.Manager, logger *zap.Logger) (*service.ClientManager, error) {

@@ -279,8 +279,11 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 					}
 					continue
 				} else {
-					logger.Error("Error reading log stream", zap.String("pod", podName), zap.Error(err))
-					errorChan <- err
+					logger.Warn("Error reading log stream", zap.String("pod", podName), zap.Error(err))
+					select {
+					case errorChan <- err:
+					default:
+					}
 					return
 				}
 			}

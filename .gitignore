@@ -6,6 +6,7 @@
 !README.md
 !DEPLOYMENT.md
 !DOCS.md
+!KUBEVISION_OPTIMIZATION_TASKS.md
 
 # docs 目录的文档全部保留
 !docs/*.md

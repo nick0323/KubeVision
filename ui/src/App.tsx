@@ -9,6 +9,7 @@ import { SidebarLayout } from './common/SidebarLayout';
 import LoginPage from './pages/LoginPage.tsx';
 import { authUtils } from './utils/auth';
 import { PAGE_COMPONENTS } from './constants/page-components.tsx';
+import { RESOURCE_TYPE_MAP } from './constants';
 import { ResourceDetailPage as ImportedResourceDetail } from './pages/ResourceDetailPage';
 
 /**
@@ -93,38 +94,8 @@ const ListPage: React.FC = () => {
   );
 };
 
-/**
- * Map singular resource type (from route) to sidebar key (plural/menu key)
- */
 function sidebarKeyForResource(resourceType: string): string {
-  const map: Record<string, string> = {
-    pod: 'pods',
-    deployment: 'deployments',
-    statefulset: 'statefulsets',
-    daemonset: 'daemonsets',
-    job: 'jobs',
-    cronjob: 'cronjobs',
-    service: 'services',
-    ingress: 'ingress',
-    pvc: 'pvcs',
-    pv: 'pvs',
-    storageclass: 'storageclasses',
-    configmap: 'configmaps',
-    secret: 'secrets',
-    namespace: 'namespaces',
-    node: 'nodes',
-    horizontalpodautoscaler: 'horizontalpodautoscalers',
-    networkpolicy: 'networkpolicies',
-    serviceaccount: 'serviceaccounts',
-    role: 'roles',
-    rolebinding: 'rolebindings',
-    resourcequota: 'resourcequotas',
-    limitrange: 'limitranges',
-    poddisruptionbudget: 'poddisruptionbudgets',
-    clusterrole: 'clusterroles',
-    clusterrolebinding: 'clusterrolebindings',
-  };
-  return map[resourceType] || 'overview';
+  return RESOURCE_TYPE_MAP[resourceType as keyof typeof RESOURCE_TYPE_MAP] || 'overview';
 }
 
 /**

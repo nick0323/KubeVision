@@ -10,6 +10,48 @@ import (
 	"github.com/nick0323/K8sVision/model"
 )
 
+type sortableItems[T any] struct {
+	items  []T
+	values []string
+	sortBy string
+	order  string
+}
+
+func (s *sortableItems[T]) Len() int { return len(s.items) }
+
+func (s *sortableItems[T]) Less(i, j int) bool {
+	compare := compareValues(s.values[i], s.values[j], s.sortBy)
+	if s.order == "desc" {
+		compare = -compare
+	}
+	return compare < 0
+}
+
+func (s *sortableItems[T]) Swap(i, j int) {
+	s.items[i], s.items[j] = s.items[j], s.items[i]
+	s.values[i], s.values[j] = s.values[j], s.values[i]
+}
+
+// SortItems 排序函数（泛型）
+func SortItems[T any](items []T, sortBy, sortOrder string) []T {
+	sorted := make([]T, len(items))
+	copy(sorted, items)
+
+	values := make([]string, len(sorted))
+	for i, item := range sorted {
+		values[i] = getFieldValue(item, sortBy)
+	}
+
+	s := &sortableItems[T]{
+		items:  sorted,
+		values: values,
+		sortBy: sortBy,
+		order:  sortOrder,
+	}
+	sort.Sort(s)
+	return sorted
+}
+
 // Paginate 分页函数（泛型）
 func Paginate[T any](list []T, offset, limit int) []T {
 	if offset < 0 || limit <= 0 || offset >= len(list) {
@@ -43,22 +85,6 @@ func matchesSearch(item model.SearchableItem, searchLower string) bool {
 		}
 	}
 	return false
-}
-
-// SortItems 排序函数（泛型）
-func SortItems[T any](items []T, sortBy, sortOrder string) []T {
-	sorted := make([]T, len(items))
-	copy(sorted, items)
-	sort.Slice(sorted, func(i, j int) bool {
-		valI := getFieldValue(sorted[i], sortBy)
-		valJ := getFieldValue(sorted[j], sortBy)
-		compare := compareValues(valI, valJ, sortBy)
-		if sortOrder == "desc" {
-			compare = -compare
-		}
-		return compare < 0
-	})
-	return sorted
 }
 
 func getFieldValue(item interface{}, fieldName string) string {

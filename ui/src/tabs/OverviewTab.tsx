@@ -6,379 +6,11 @@ import { OverviewTabProps } from '../pages/ResourceDetailPage.types';
 import { StatusBadge } from '../common/StatusBadge';
 import { formatRelativeTime } from '../utils/time';
 import { truncateText } from '../utils/string';
+import { RESOURCE_CONFIG, RESOURCE_FIELDS } from './overview/overviewConfig';
+import { ContainerDetails } from './overview/ContainerDetails';
 import './OverviewTab.css';
 import '../styles/detail-page.css';
 
-/**
- * Resource type config
- */
-const RESOURCE_CONFIG: Record<
-  string,
-  { title: string; hasContainers?: boolean; hasPorts?: boolean }
-> = {
-  pod: { title: 'Pod', hasContainers: true },
-  deployment: { title: 'Deployment', hasContainers: true },
-  statefulset: { title: 'StatefulSet', hasContainers: true },
-  daemonset: { title: 'DaemonSet', hasContainers: true },
-  service: { title: 'Service', hasPorts: true },
-  configmap: { title: 'ConfigMap' },
-  secret: { title: 'Secret' },
-  ingress: { title: 'Ingress' },
-  job: { title: 'Job', hasContainers: true },
-  cronjob: { title: 'CronJob' },
-  pvc: { title: 'PersistentVolumeClaim' },
-  pv: { title: 'PersistentVolume' },
-  storageclass: { title: 'StorageClass' },
-  namespace: { title: 'Namespace' },
-  node: { title: 'Node' },
-};
-
-/**
- * eachresourceType特has字段Config
- */
-const RESOURCE_FIELDS: Record<
-  string,
-  Array<{
-    key: string;
-    label: string;
-    getValue: (data: any) => any;
-    condition?: (data: any) => boolean;
-    render?: (value: any, data: any) => React.ReactNode;
-  }>
-> = {
-  // Deployment
-  deployment: [
-    {
-      key: 'strategy',
-      label: 'Strategy',
-      getValue: data => data.spec?.strategy?.type,
-    },
-    {
-      key: 'selector',
-      label: 'Selector',
-      getValue: data => data.spec?.selector?.matchLabels,
-      render: (value: any) => renderLabelsInline(value),
-    },
-  ],
-
-  // StatefulSet
-  statefulset: [
-    {
-      key: 'serviceName',
-      label: 'Service Name',
-      getValue: data => data.spec?.serviceName,
-    },
-    {
-      key: 'selector',
-      label: 'Selector',
-      getValue: data => data.spec?.selector?.matchLabels,
-      render: (value: any) => renderLabelsInline(value),
-    },
-  ],
-
-  // DaemonSet
-  daemonset: [
-    {
-      key: 'selector',
-      label: 'Selector',
-      getValue: data => data.spec?.selector?.matchLabels,
-      render: (value: any) => renderLabelsInline(value),
-    },
-  ],
-
-  // Job
-  job: [
-    {
-      key: 'completions',
-      label: 'Completions',
-      getValue: data => data.spec?.completions || 1,
-    },
-    {
-      key: 'parallelism',
-      label: 'Parallelism',
-      getValue: data => data.spec?.parallelism || 1,
-    },
-  ],
-
-  // CronJob
-  cronjob: [
-    {
-      key: 'schedule',
-      label: 'Schedule',
-      getValue: data => data.spec?.schedule,
-    },
-    {
-      key: 'suspend',
-      label: 'Suspend',
-      getValue: data => data.spec?.suspend,
-      render: (value: boolean) => (value ? 'Yes' : 'No'),
-    },
-  ],
-
-  // Service
-  service: [
-    {
-      key: 'type',
-      label: 'Type',
-      getValue: data => data.spec?.type,
-    },
-    {
-      key: 'clusterIP',
-      label: 'Cluster IP',
-      getValue: data => data.spec?.clusterIP,
-    },
-    {
-      key: 'selector',
-      label: 'Selector',
-      getValue: data => data.spec?.selector,
-      condition: data => data.spec?.selector && Object.keys(data.spec.selector).length > 0,
-      render: (value: any) => renderLabelsInline(value),
-    },
-  ],
-
-  // Ingress
-  ingress: [
-    {
-      key: 'ingressClassName',
-      label: 'Class',
-      getValue: data => data.spec?.ingressClassName,
-    },
-    {
-      key: 'rules',
-      label: 'Rules',
-      getValue: data => data.spec?.rules?.length || 0,
-      render: (value: number) => `${value} rule${value !== 1 ? 's' : ''}`,
-    },
-  ],
-
-  // ConfigMap
-  configmap: [
-    {
-      key: 'dataCount',
-      label: 'Data Count',
-      getValue: data => (data.data ? Object.keys(data.data).length : 0),
-    },
-  ],
-
-  // Secret
-  secret: [
-    {
-      key: 'type',
-      label: 'Type',
-      getValue: data => data.type,
-    },
-    {
-      key: 'dataCount',
-      label: 'Data Count',
-      getValue: data => (data.data ? Object.keys(data.data).length : 0),
-    },
-  ],
-
-  // PVC
-  pvc: [
-    {
-      key: 'accessModes',
-      label: 'Access Modes',
-      getValue: data => data.spec?.accessModes?.[0],
-    },
-    {
-      key: 'storageClass',
-      label: 'Storage Class',
-      getValue: data => data.spec?.storageClassName,
-    },
-    {
-      key: 'volume',
-      label: 'Volume',
-      getValue: data => data.spec?.volumeName,
-      condition: data => !!data.spec?.volumeName,
-    },
-  ],
-
-  // PV
-  pv: [
-    {
-      key: 'accessModes',
-      label: 'Access Modes',
-      getValue: data => data.spec?.accessModes?.[0],
-    },
-    {
-      key: 'storageClass',
-      label: 'Storage Class',
-      getValue: data => data.spec?.storageClassName,
-    },
-    {
-      key: 'claim',
-      label: 'Claim',
-      getValue: data => {
-        const claimRef = data.spec?.claimRef;
-        if (claimRef?.namespace && claimRef?.name) {
-          return `${claimRef.namespace}/${claimRef.name}`;
-        }
-        return claimRef?.name;
-      },
-      condition: data => !!data.spec?.claimRef?.name,
-    },
-  ],
-
-  // StorageClass
-  storageclass: [
-    {
-      key: 'provisioner',
-      label: 'Provisioner',
-      getValue: data => data.provisioner,
-    },
-    {
-      key: 'bindingMode',
-      label: 'Binding Mode',
-      getValue: data => data.volumeBindingMode,
-    },
-    {
-      key: 'isDefault',
-      label: 'Default',
-      getValue: data =>
-        data.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] === 'true',
-      render: (value: boolean) => (value ? 'Yes' : 'No'),
-      condition: data =>
-        data.metadata?.annotations?.['storageclass.kubernetes.io/is-default-class'] !== undefined,
-    },
-  ],
-
-  // Namespace
-  namespace: [
-    {
-      key: 'phase',
-      label: 'Phase',
-      getValue: data => data.status?.phase,
-    },
-  ],
-
-  // Node
-  node: [
-    {
-      key: 'kernelVersion',
-      label: 'Kernel Version',
-      getValue: data => data.status?.nodeInfo?.kernelVersion,
-    },
-    {
-      key: 'kubeletVersion',
-      label: 'Kubelet Version',
-      getValue: data => data.status?.nodeInfo?.kubeletVersion,
-    },
-    {
-      key: 'kubeProxyVersion',
-      label: 'KubeProxy Version',
-      getValue: data => data.status?.nodeInfo?.kubeProxyVersion,
-    },
-    {
-      key: 'os',
-      label: 'OS',
-      getValue: data => data.status?.nodeInfo?.osImage,
-    },
-    {
-      key: 'architecture',
-      label: 'Architecture',
-      getValue: data => data.status?.nodeInfo?.architecture,
-    },
-    {
-      key: 'operatingSystem',
-      label: 'Operating System',
-      getValue: data => data.status?.nodeInfo?.operatingSystem,
-    },
-    {
-      key: 'roles',
-      label: 'Roles',
-      getValue: data => getNodeRoles(data.metadata?.labels),
-      condition: data => {
-        const roles = getNodeRoles(data.metadata?.labels);
-        return roles && roles.length > 0;
-      },
-      render: (value: string[]) => value.join(', '),
-    },
-  ],
-};
-
-/**
- * Get节点角色
- * K8s 节点角色labelformat：node-role.kubernetes.io/<role>: "" (空字符串)
- */
-function getNodeRoles(labels?: Record<string, string>): string[] {
-  if (!labels) return [];
-
-  const roles: string[] = [];
-
-  // 提取所has node-role.kubernetes.io/ 开头'slabel
-  Object.keys(labels).forEach(key => {
-    if (key.startsWith('node-role.kubernetes.io/')) {
-      const role = key.replace('node-role.kubernetes.io/', '');
-      if (role) {
-        roles.push(role);
-      }
-    }
-  });
-
-  // 兼容旧版本label（空值label）
-  if (labels['node-role.kubernetes.io/control-plane']) roles.push('control-plane');
-  if (labels['node-role.kubernetes.io/master']) roles.push('master');
-  if (labels['node-role.kubernetes.io/worker']) roles.push('worker');
-  if (labels['node-role.kubernetes.io/infra']) roles.push('infra');
-
-  // 去重
-  const uniqueRoles = [...new Set(roles)];
-
-  return uniqueRoles.length > 0 ? uniqueRoles : [];
-}
-
-/**
- * Renderinside联label（for Selector 展示，format：key: value）
- */
-function renderLabelsInline(labels?: Record<string, string>): React.ReactNode {
-  if (!labels || Object.keys(labels).length === 0) return null;
-
-  return (
-    <div className="label-list">
-      {Object.entries(labels).map(([key, value]) => {
-        const fullText = `${key}: ${value}`;
-        const displayKey = truncateText(key as string, 20);
-        const displayValue = truncateText(value as string, 20);
-
-        // Only show when text is truncated tooltip
-        const isTruncated = displayKey !== key || displayValue !== value;
-
-        const labelElement = (
-          <span className="label-tag">
-            <span className="label-key">{displayKey}</span>
-            <span className="label-separator">: </span>
-            <span className="label-value">{displayValue}</span>
-          </span>
-        );
-
-        if (isTruncated) {
-          return (
-            <Tippy
-              key={key}
-              content={fullText}
-              theme="light"
-              placement="top"
-              arrow={true}
-              duration={200}
-            >
-              {labelElement}
-            </Tippy>
-          );
-        }
-
-        return <span key={key}>{labelElement}</span>;
-      })}
-    </div>
-  );
-}
-
-
-
-
-/**
- * Commonresource概览 Tab
- */
 export const OverviewTab: React.FC<OverviewTabProps> = ({
   data,
   loading,
@@ -388,13 +20,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const resourceInfo = RESOURCE_CONFIG[resourceType] || { title: resourceType };
 
-  // 提取 metadata、spec、status
   const typedData = data as Record<string, any>;
   const metadata = typedData?.metadata || {};
   const spec = typedData?.spec || {};
   const status = typedData?.status || {};
 
-  // Pod 特has'sContainerStatus
   const containerStatuses = useMemo(() => {
     if (resourceType !== 'pod' || !typedData?.status?.containerStatuses) return [];
     return typedData.status.containerStatuses.map((cs: any) => ({
@@ -406,14 +36,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     }));
   }, [data, resourceType]);
 
-  // Workload resource'sContainerinfo（from Pod Template in提取）
   const workloadContainers = useMemo(() => {
     if (!resourceInfo.hasContainers) return [];
-
-    // from spec.template.spec.containers in提取（适for Deployment、StatefulSet、DaemonSet、Job）
     const podSpec = spec?.template?.spec || spec;
     const containers = podSpec?.containers || [];
-
     return containers.map((c: any) => ({
       name: c.name,
       image: c.image,
@@ -427,7 +53,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     }));
   }, [data, spec, resourceInfo, resourceType]);
 
-  // 计算 Ready Containers
   const readyContainers = useMemo(() => {
     if (resourceType !== 'pod') return null;
     const ready = containerStatuses.filter((c: any) => c.ready).length;
@@ -435,123 +60,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     return { ready, total };
   }, [containerStatuses, spec, resourceType]);
 
-  // 计算 Restart Count
   const restartCount = useMemo(() => {
     if (resourceType !== 'pod') return 0;
     return containerStatuses.reduce((sum: number, c: any) => sum + c.restartCount, 0);
   }, [containerStatuses, resourceType]);
 
-  // Conditions
   const conditions = useMemo(() => {
     return status?.conditions || [];
   }, [status]);
 
-  // RenderContainer详情
-  const renderContainerDetails = (container: any) => {
-    return (
-      <div className="container-card-body">
-        {/* PORTS */}
-        <div className="sub-module">
-          <div className="sub-module-title">Ports</div>
-          <div className="info-grid">
-            {container?.ports?.map((port: any, idx: number) => (
-              <div key={idx} className="info-item">
-                <span className="info-value">
-                  {port.name ? `${port.name}: ` : ''}
-                  {port.containerPort}/{port.protocol || 'TCP'}
-                </span>
-              </div>
-            )) || (
-              <div className="empty-state">No ports defined</div>
-            )}
-          </div>
-        </div>
-
-        {/* ENVIRONMENT VARIABLES */}
-        <div className="sub-module">
-          <div className="sub-module-title">Environment Variables</div>
-          <div className="info-grid">
-            {container?.env?.map((env: any, idx: number) => (
-              <div key={idx} className="info-item">
-                <span className="info-value">
-                  <span className="env-key">{env.name}</span>
-                  <span className="env-separator">: </span>
-                  <span className="env-value">
-                    {env.value || (env.valueFrom ? '(From ConfigMap/Secret)' : '-')}
-                  </span>
-                </span>
-              </div>
-            )) || (
-              <div className="empty-state">No environment variables</div>
-            )}
-          </div>
-        </div>
-
-        {/* RESOURCES */}
-        <div className="sub-module">
-          <div className="sub-module-title">Resources</div>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="info-label">Requests (CPU)</span>
-              <span className="info-value">{container?.resources?.requests?.cpu || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Requests (Memory)</span>
-              <span className="info-value">{container?.resources?.requests?.memory || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Limits (CPU)</span>
-              <span className="info-value">{container?.resources?.limits?.cpu || '-'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Limits (Memory)</span>
-              <span className="info-value">{container?.resources?.limits?.memory || '-'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* HEALTH CHECKS */}
-        <div className="sub-module">
-          <div className="sub-module-title">Health Checks</div>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="info-label">Liveness Probe</span>
-              <span className="info-value">
-                {container?.livenessProbe ? 'Configured' : 'Not Configured'}
-              </span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Readiness Probe</span>
-              <span className="info-value">
-                {container?.readinessProbe ? 'Configured' : 'Not Configured'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* VOLUMES */}
-        <div className="sub-module">
-          <div className="sub-module-title">Volumes</div>
-          <div className="info-grid">
-            {container?.volumeMounts?.map((mount: any, idx: number) => (
-              <div key={idx} className="info-item">
-                <span className="info-label">{mount.name}</span>
-                <span className="info-value">
-                  {mount.mountPath} {mount.readOnly ? '(RO)' : '(RW)'}
-                </span>
-              </div>
-            )) || (
-              <div className="empty-state">No volumes</div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // determineis否needDisplay Status Overview
   const hasStatusOverview = useMemo(() => {
-    // onlyhas Pod、Deployment、StatefulSet DisplayStatus概览
     return ['pod', 'deployment', 'statefulset'].includes(resourceType);
   }, [resourceType]);
 
@@ -561,13 +79,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   return (
     <div className="overview-tab">
-      {/* STATUS OVERVIEW - Only shown for stateful resources */}
       {hasStatusOverview && (
         <div className="detail-card">
           <h3 className="detail-card-title">Status Overview</h3>
           <div className="detail-card-body">
             <div className="stats-grid">
-              {/* Pod-specific status */}
               {resourceType === 'pod' ? (
                 <>
                   <div className="stat-card">
@@ -594,7 +110,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </div>
                 </>
               ) : (
-                /* Workload resource'sStatus */
                 <>
                   <div className="stat-card">
                     <div className="stat-value">
@@ -642,11 +157,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
       )}
 
-      {/* RESOURCE INFORMATION */}
       <div className="detail-card">
         <h3 className="detail-card-title">{resourceInfo.title} Information</h3>
         <div className="detail-card-body">
-          {/* Common fields */}
           <div className="info-grid">
             <div className="info-item">
               <span className="info-label">Created</span>
@@ -680,16 +193,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </div>
             )}
 
-            {/* Resource-specific fields */}
             {RESOURCE_FIELDS[resourceType]?.map(field => {
-              // 检查bar component
               if (field.condition && !field.condition(data)) return null;
-
-              // Get值
               const value = field.getValue(data);
               if (value === null || value === undefined || value === '') return null;
-
-              // Render
               return (
                 <div key={field.key} className="info-item">
                   <span className="info-label">{field.label}</span>
@@ -701,12 +208,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             })}
           </div>
 
-          {/* Labels and Annotations - same row, split width, max 5 lines */}
           {(metadata.labels && Object.keys(metadata.labels).length > 0) ||
           (metadata.annotations && Object.keys(metadata.annotations).length > 0) ? (
             <div className="info-section">
               <div className="info-grid info-grid-2col">
-                {/* Labels - max 5 shown */}
                 {metadata.labels && Object.keys(metadata.labels).length > 0 && (
                   <div className="info-item">
                     <span className="info-label">Labels</span>
@@ -717,10 +222,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                           const fullText = `${key}: ${value}`;
                           const displayKey = truncateText(key as string, 30);
                           const displayValue = truncateText(value as string, 30);
-
-                          // Only show when text is truncated tooltip
                           const isTruncated = displayKey !== key || displayValue !== value;
-
                           const labelElement = (
                             <span className="label-tag">
                               <span className="label-key">{displayKey}</span>
@@ -728,7 +230,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                               <span className="label-value">{displayValue}</span>
                             </span>
                           );
-
                           if (isTruncated) {
                             return (
                               <Tippy
@@ -743,10 +244,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                               </Tippy>
                             );
                           }
-
                           return <span key={key}>{labelElement}</span>;
                         })}
-                      {/* Show more hint */}
                       {Object.keys(metadata.labels).length > 5 && (
                         <Tippy
                           content={
@@ -773,7 +272,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </div>
                 )}
 
-                {/* Annotations - max 5 shown */}
                 {metadata.annotations && Object.keys(metadata.annotations).length > 0 && (
                   <div className="info-item">
                     <span className="info-label">Annotations</span>
@@ -784,10 +282,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                           const fullText = `${key}: ${value}`;
                           const displayKey = truncateText(key as string, 30);
                           const displayValue = truncateText(value as string, 30);
-
-                          // Only show when text is truncated tooltip
                           const isTruncated = displayKey !== key || displayValue !== value;
-
                           const labelElement = (
                             <span className="annotation-tag">
                               <span className="annotation-key">{displayKey}</span>
@@ -795,7 +290,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                               <span className="annotation-value">{displayValue}</span>
                             </span>
                           );
-
                           if (isTruncated) {
                             return (
                               <Tippy
@@ -810,10 +304,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                               </Tippy>
                             );
                           }
-
                           return <span key={key}>{labelElement}</span>;
                         })}
-                      {/* Show more hint */}
                       {Object.keys(metadata.annotations).length > 5 && (
                         <Tippy
                           content={
@@ -845,7 +337,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
       </div>
 
-      {/* POD: CONTAINERS */}
       {containerStatuses.length > 0 && (
         <div className="detail-card">
           <h3 className="detail-card-title">Containers</h3>
@@ -853,7 +344,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             {containerStatuses.map((container: any) => {
               const isExpanded = containersExpanded[container.name] || false;
               const containerSpec = spec?.containers?.find((c: any) => c.name === container.name);
-
               return (
                 <div key={container.name} className="container-card">
                   <div
@@ -874,8 +364,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       </span>
                     )}
                   </div>
-
-                  {isExpanded && renderContainerDetails(containerSpec)}
+                  {isExpanded && <ContainerDetails container={containerSpec} />}
                 </div>
               );
             })}
@@ -883,14 +372,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
       )}
 
-      {/* WORKLOAD: CONTAINERS (Deployment, StatefulSet, DaemonSet, Job) */}
       {resourceInfo.hasContainers && resourceType !== 'pod' && workloadContainers.length > 0 && (
         <div className="detail-card">
           <h3 className="detail-card-title">Containers</h3>
           <div className="detail-card-body">
             {workloadContainers.map((container: any, index: number) => {
               const isExpanded = containersExpanded[container.name] || false;
-
               return (
                 <div key={index} className="container-card">
                   <div
@@ -911,8 +398,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       </span>
                     )}
                   </div>
-
-                  {isExpanded && renderContainerDetails(container)}
+                  {isExpanded && <ContainerDetails container={container} />}
                 </div>
               );
             })}
@@ -920,7 +406,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
       )}
 
-      {/* CONDITIONS */}
       {conditions.length > 0 && (
         <div className="detail-card">
           <h3 className="detail-card-title">Conditions</h3>
