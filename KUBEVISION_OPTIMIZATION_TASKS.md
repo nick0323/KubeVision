@@ -111,8 +111,9 @@
 - **涉及文件**: `pkg/k8s/resource.go`
 
 ### S3.4 related_finder.go 策略模式拆分
-- [ ] 为每种资源关系创建独立的 Finder 策略
-- [ ] 注册到策略注册表，主函数做分发
+- [x] 为每种资源关系创建独立的 Finder 策略
+- [x] 注册到策略注册表，`FindRelatedResources` 通过类型断言分发
+- [x] 引入 `findContext` 共享上下文，消除重复的结果追加逻辑
 - **涉及文件**: `service/related_finder.go`
 
 ### S3.5 resource_handler.go 缓存逻辑提取

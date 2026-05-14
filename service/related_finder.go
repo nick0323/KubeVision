@@ -13,11 +13,45 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// 关联资源查询的最大数量限制
 const maxRelatedResources = 100
 
-// FindRelatedResources 查找关联资源（支持多种资源类型）
-// 返回格式：[]map[string]string{kind, name, relation}
+type findContext struct {
+	obj       interface{}
+	ctx       context.Context
+	clientset kubernetes.Interface
+	namespace string
+	logger    *zap.Logger
+	result    []interface{}
+}
+
+type RelatedResourceFinder interface {
+	Find(fc *findContext)
+}
+
+var relatedFinders = map[string]RelatedResourceFinder{}
+
+func registerFinder(kind string, f RelatedResourceFinder) {
+	relatedFinders[kind] = f
+}
+
+func init() {
+	registerFinder("Pod", &podFinder{})
+	registerFinder("Deployment", &deploymentFinder{})
+	registerFinder("StatefulSet", &statefulSetFinder{})
+	registerFinder("DaemonSet", &daemonSetFinder{})
+	registerFinder("Job", &jobFinder{})
+	registerFinder("CronJob", &cronJobFinder{})
+	registerFinder("Service", &serviceFinder{})
+	registerFinder("ConfigMap", &configMapFinder{})
+	registerFinder("Secret", &secretFinder{})
+	registerFinder("Ingress", &ingressFinder{})
+	registerFinder("PersistentVolumeClaim", &pvcFinder{})
+	registerFinder("PersistentVolume", &pvFinder{})
+	registerFinder("Node", &nodeFinder{})
+	registerFinder("Namespace", &namespaceFinder{})
+	registerFinder("StorageClass", &storageClassFinder{})
+}
+
 func FindRelatedResources(
 	obj interface{},
 	resourceType string,
@@ -26,769 +60,650 @@ func FindRelatedResources(
 	ctx context.Context,
 	logger *zap.Logger,
 ) []interface{} {
-	result := make([]interface{}, 0, 50) // 预分配容量
+	fc := &findContext{
+		obj:       obj,
+		ctx:       ctx,
+		clientset: clientset,
+		namespace: namespace,
+		logger:    logger,
+		result:    make([]interface{}, 0, 50),
+	}
 
-	switch o := obj.(type) {
-	// ==================== Pod ====================
+	var finder RelatedResourceFinder
+	switch obj.(type) {
 	case *v1.Pod:
-		// 1. 父资源 (OwnerReferences) - ReplicaSet, Deployment, Job 等
-		for _, ownerRef := range o.OwnerReferences {
-			if len(result) >= maxRelatedResources {
-				break
-			}
-			result = append(result, map[string]string{
-				"kind":     ownerRef.Kind,
-				"name":     ownerRef.Name,
-				"relation": "owner",
-			})
-		}
-		// 2. 关联的 Service (通过 label 匹配)
-		if o.Labels != nil && len(result) < maxRelatedResources {
-			svcList, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
-			if err != nil {
-				logger.Warn("Failed to query Pod Service", zap.Error(err))
-			} else {
-				for _, svc := range svcList.Items {
-					if len(result) >= maxRelatedResources {
-						break
-					}
-					if svc.Spec.Selector != nil && matchesSelector(o.Labels, svc.Spec.Selector) {
-						result = append(result, map[string]string{
-							"kind":     "Service",
-							"name":     svc.Name,
-							"relation": "selectedBy",
-						})
-					}
-				}
-			}
-		}
-		// 3. Volume 相关 - ConfigMap, Secret, PVC
-		for _, vol := range o.Spec.Volumes {
-			if vol.ConfigMap != nil {
-				result = append(result, map[string]string{
-					"kind":     "ConfigMap",
-					"name":     vol.ConfigMap.Name,
-					"relation": "volume",
-				})
-			}
-			if vol.Secret != nil {
-				result = append(result, map[string]string{
-					"kind":     "Secret",
-					"name":     vol.Secret.SecretName,
-					"relation": "volume",
-				})
-			}
-			if vol.PersistentVolumeClaim != nil {
-				result = append(result, map[string]string{
-					"kind":     "PersistentVolumeClaim",
-					"name":     vol.PersistentVolumeClaim.ClaimName,
-					"relation": "volume",
-				})
-			}
-		}
-		// 4. Node
-		if o.Spec.NodeName != "" {
-			result = append(result, map[string]string{
-				"kind":     "Node",
-				"name":     o.Spec.NodeName,
-				"relation": "scheduledOn",
-			})
-		}
-
-	// ==================== Deployment ====================
+		finder = relatedFinders["Pod"]
 	case *appsv1.Deployment:
-		// 1. 子资源 - ReplicaSet
-		rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Deployment ReplicaSet", zap.Error(err))
-		} else {
-			for _, rs := range rsList.Items {
-				for _, ownerRef := range rs.OwnerReferences {
-					if ownerRef.Kind == "Deployment" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
-						result = append(result, map[string]string{
-							"kind":     "ReplicaSet",
-							"name":     rs.Name,
-							"relation": "child",
-						})
-					}
-				}
-			}
-		}
-		// 2. 关联的 Service (通过 selector 匹配)
-		if o.Spec.Selector != nil {
-			svcList, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
-			if err != nil {
-				logger.Warn("Failed to query Deployment Service", zap.Error(err))
-			} else {
-				for _, svc := range svcList.Items {
-					if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
-						result = append(result, map[string]string{
-							"kind":     "Service",
-							"name":     svc.Name,
-							"relation": "exposedBy",
-						})
-					}
-				}
-			}
-		}
-		// 3. HPA (HorizontalPodAutoscaler)
-		hpaList, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Deployment HPA", zap.Error(err))
-		} else {
-			for _, hpa := range hpaList.Items {
-				if hpa.Spec.ScaleTargetRef.Kind == "Deployment" && hpa.Spec.ScaleTargetRef.Name == o.Name {
-					result = append(result, map[string]string{
-						"kind":     "HorizontalPodAutoscaler",
-						"name":     hpa.Name,
-						"relation": "autoscaled",
-					})
-				}
-			}
-		}
-		// 4. PDB (PodDisruptionBudget)
-		pdbList, err := clientset.PolicyV1().PodDisruptionBudgets(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Deployment PDB", zap.Error(err))
-		} else {
-			for _, pdb := range pdbList.Items {
-				if pdb.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, pdb.Spec.Selector.MatchLabels) {
-					result = append(result, map[string]string{
-						"kind":     "PodDisruptionBudget",
-						"name":     pdb.Name,
-						"relation": "protected",
-					})
-				}
-			}
-		}
-		// 5. Ingress (如果 Service 关联了 Ingress)
-		ingressList, err := clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Deployment Ingress", zap.Error(err))
-		} else {
-			// 先找到关联的 Service
-			svcNames := make(map[string]bool)
-			svcList, _ := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
-			for _, svc := range svcList.Items {
-				if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
-					svcNames[svc.Name] = true
-				}
-			}
-			// 再找关联这些 Service 的 Ingress
-			for _, ing := range ingressList.Items {
-				for _, rule := range ing.Spec.Rules {
-					if rule.HTTP != nil {
-						for _, path := range rule.HTTP.Paths {
-							if svcNames[path.Backend.Service.Name] {
-								result = append(result, map[string]string{
-									"kind":     "Ingress",
-									"name":     ing.Name,
-									"relation": "routedBy",
-								})
-							}
-						}
-					}
-				}
-			}
-		}
-
-	// ==================== StatefulSet ====================
+		finder = relatedFinders["Deployment"]
 	case *appsv1.StatefulSet:
-		// 1. 子资源 - Pod
-		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query StatefulSet Pod", zap.Error(err))
-		} else {
-			for _, pod := range podList.Items {
-				for _, ownerRef := range pod.OwnerReferences {
-					if ownerRef.Kind == "StatefulSet" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
-						result = append(result, map[string]string{
-							"kind":     "Pod",
-							"name":     pod.Name,
-							"relation": "child",
-						})
-					}
-				}
-			}
-		}
-		// 2. 关联的 Service
-		if o.Spec.Selector != nil {
-			svcList, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
-			if err != nil {
-				logger.Warn("Failed to query StatefulSet Service", zap.Error(err))
-			} else {
-				for _, svc := range svcList.Items {
-					if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
-						result = append(result, map[string]string{
-							"kind":     "Service",
-							"name":     svc.Name,
-							"relation": "exposedBy",
-						})
-					}
-				}
-			}
-		}
-		// 3. Headless Service (spec.serviceName)
-		if o.Spec.ServiceName != "" {
-			result = append(result, map[string]string{
-				"kind":     "Service",
-				"name":     o.Spec.ServiceName,
-				"relation": "headlessService",
-			})
-		}
-		// 4. HPA
-		hpaList, err := clientset.AutoscalingV1().HorizontalPodAutoscalers(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query StatefulSet HPA", zap.Error(err))
-		} else {
-			for _, hpa := range hpaList.Items {
-				if hpa.Spec.ScaleTargetRef.Kind == "StatefulSet" && hpa.Spec.ScaleTargetRef.Name == o.Name {
-					result = append(result, map[string]string{
-						"kind":     "HorizontalPodAutoscaler",
-						"name":     hpa.Name,
-						"relation": "autoscaled",
-					})
-				}
-			}
-		}
-		// 5. PVC (volumeClaimTemplates)
-		for _, pvc := range o.Spec.VolumeClaimTemplates {
-			result = append(result, map[string]string{
-				"kind":     "PersistentVolumeClaim",
-				"name":     pvc.Name,
-				"relation": "volumeClaim",
-			})
-		}
-
-	// ==================== DaemonSet ====================
+		finder = relatedFinders["StatefulSet"]
 	case *appsv1.DaemonSet:
-		// 1. 子资源 - Pod
-		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query DaemonSet Pod", zap.Error(err))
-		} else {
-			for _, pod := range podList.Items {
-				for _, ownerRef := range pod.OwnerReferences {
-					if ownerRef.Kind == "DaemonSet" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
-						result = append(result, map[string]string{
-							"kind":     "Pod",
-							"name":     pod.Name,
-							"relation": "child",
-						})
-					}
-				}
-			}
-		}
-		// 2. 关联的 Service
-		if o.Spec.Selector != nil {
-			svcList, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
-			if err != nil {
-				logger.Warn("Failed to query DaemonSet Service", zap.Error(err))
-			} else {
-				for _, svc := range svcList.Items {
-					if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
-						result = append(result, map[string]string{
-							"kind":     "Service",
-							"name":     svc.Name,
-							"relation": "exposedBy",
-						})
-					}
-				}
-			}
-		}
-
-	// ==================== Job ====================
+		finder = relatedFinders["DaemonSet"]
 	case *batchv1.Job:
-		// 1. 子资源 - Pod
-		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Job Pod", zap.Error(err))
-		} else {
-			for _, pod := range podList.Items {
-				for _, ownerRef := range pod.OwnerReferences {
-					if ownerRef.Kind == "Job" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
-						result = append(result, map[string]string{
-							"kind":     "Pod",
-							"name":     pod.Name,
-							"relation": "child",
-						})
-					}
-				}
-			}
-		}
-		// 2. 父资源 - CronJob
-		for _, ownerRef := range o.OwnerReferences {
-			if ownerRef.Kind == "CronJob" {
-				result = append(result, map[string]string{
-					"kind":     "CronJob",
-					"name":     ownerRef.Name,
-					"relation": "owner",
-				})
-			}
-		}
-
-	// ==================== CronJob ====================
+		finder = relatedFinders["Job"]
 	case *batchv1.CronJob:
-		// 1. 子资源 - Job
-		jobList, err := clientset.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query CronJob Job", zap.Error(err))
-		} else {
-			for _, job := range jobList.Items {
-				for _, ownerRef := range job.OwnerReferences {
-					if ownerRef.Kind == "CronJob" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
-						result = append(result, map[string]string{
-							"kind":     "Job",
-							"name":     job.Name,
-							"relation": "child",
-						})
-					}
-				}
-			}
-		}
-
-	// ==================== Service ====================
+		finder = relatedFinders["CronJob"]
 	case *v1.Service:
-		// 1. 关联的 Pod (通过 selector 匹配)
-		if o.Spec.Selector != nil {
-			podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-			if err != nil {
-				logger.Warn("Failed to query Service Pod", zap.Error(err))
-			} else {
-				for _, pod := range podList.Items {
-					if pod.Labels != nil && matchesSelector(pod.Labels, o.Spec.Selector) {
-						result = append(result, map[string]string{
-							"kind":     "Pod",
-							"name":     pod.Name,
-							"relation": "selects",
-						})
-					}
-				}
-			}
-		}
-		// 2. Endpoint
-		epList, err := clientset.CoreV1().Endpoints(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Service Endpoint", zap.Error(err))
-		} else {
-			for _, ep := range epList.Items {
-				if ep.Name == o.Name {
-					result = append(result, map[string]string{
-						"kind":     "Endpoints",
-						"name":     ep.Name,
-						"relation": "endpoints",
-					})
-				}
-			}
-		}
-		// 3. Ingress
-		ingressList, err := clientset.NetworkingV1().Ingresses(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Service Ingress", zap.Error(err))
-		} else {
-			for _, ing := range ingressList.Items {
-				for _, rule := range ing.Spec.Rules {
-					if rule.HTTP != nil {
-						for _, path := range rule.HTTP.Paths {
-							if path.Backend.Service.Name == o.Name {
-								result = append(result, map[string]string{
-									"kind":     "Ingress",
-									"name":     ing.Name,
-									"relation": "routedBy",
-								})
-							}
-						}
-					}
-				}
-			}
-		}
-
-	// ==================== ConfigMap ====================
+		finder = relatedFinders["Service"]
 	case *v1.ConfigMap:
-		addedPods := make(map[string]bool)
-
-		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query ConfigMap Pod", zap.Error(err))
-		} else {
-			for _, pod := range podList.Items {
-				if addedPods[pod.Name] {
-					continue
-				}
-
-				// a. Volume references
-				for _, vol := range pod.Spec.Volumes {
-					if vol.ConfigMap != nil && vol.ConfigMap.Name == o.Name {
-						result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-						addedPods[pod.Name] = true
-						break
-					}
-				}
-				if addedPods[pod.Name] {
-					continue
-				}
-
-				// b. envFrom.configMapRef (containers + initContainers)
-				found := false
-				for _, container := range pod.Spec.Containers {
-					for _, envFrom := range container.EnvFrom {
-						if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == o.Name {
-							result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-							addedPods[pod.Name] = true
-							found = true
-							break
-						}
-					}
-					if found {
-						break
-					}
-				}
-				if !found {
-					for _, container := range pod.Spec.InitContainers {
-						for _, envFrom := range container.EnvFrom {
-							if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == o.Name {
-								result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-								addedPods[pod.Name] = true
-								found = true
-								break
-							}
-						}
-						if found {
-							break
-						}
-					}
-				}
-				if addedPods[pod.Name] {
-					continue
-				}
-
-				// c. env.valueFrom.configMapKeyRef
-				for _, container := range pod.Spec.Containers {
-					for _, env := range container.Env {
-						if env.ValueFrom != nil && env.ValueFrom.ConfigMapKeyRef != nil && env.ValueFrom.ConfigMapKeyRef.Name == o.Name {
-							result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-							addedPods[pod.Name] = true
-							break
-						}
-					}
-					if addedPods[pod.Name] {
-						break
-					}
-				}
-				if addedPods[pod.Name] {
-					continue
-				}
-
-				// d. Projected volume sources
-				for _, vol := range pod.Spec.Volumes {
-					if vol.Projected != nil {
-						for _, source := range vol.Projected.Sources {
-							if source.ConfigMap != nil && source.ConfigMap.Name == o.Name {
-								result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-								addedPods[pod.Name] = true
-								break
-							}
-						}
-					}
-					if addedPods[pod.Name] {
-						break
-					}
-				}
-			}
-		}
-
-	// ==================== Secret ====================
+		finder = relatedFinders["ConfigMap"]
 	case *v1.Secret:
-		// 使用 map 去重
-		addedPods := make(map[string]bool)
-		addedSA := make(map[string]bool)
-
-		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Secret Pod", zap.Error(err))
-		} else {
-			// Single pass: check volumes, imagePullSecrets, envFrom, env.valueFrom
-			for _, pod := range podList.Items {
-				if addedPods[pod.Name] {
-					continue
-				}
-
-				// a. Volume references
-				for _, vol := range pod.Spec.Volumes {
-					if vol.Secret != nil && vol.Secret.SecretName == o.Name {
-						result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-						addedPods[pod.Name] = true
-						break
-					}
-				}
-				if addedPods[pod.Name] {
-					continue
-				}
-
-				// b. imagePullSecrets
-				for _, ips := range pod.Spec.ImagePullSecrets {
-					if ips.Name == o.Name {
-						result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-						addedPods[pod.Name] = true
-						break
-					}
-				}
-				if addedPods[pod.Name] {
-					continue
-				}
-
-				// c. envFrom.secretRef (containers + initContainers)
-				found := false
-				for _, container := range pod.Spec.Containers {
-					for _, envFrom := range container.EnvFrom {
-						if envFrom.SecretRef != nil && envFrom.SecretRef.Name == o.Name {
-							result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-							addedPods[pod.Name] = true
-							found = true
-							break
-						}
-					}
-					if found {
-						break
-					}
-				}
-				if !found {
-					for _, container := range pod.Spec.InitContainers {
-						for _, envFrom := range container.EnvFrom {
-							if envFrom.SecretRef != nil && envFrom.SecretRef.Name == o.Name {
-								result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-								addedPods[pod.Name] = true
-								found = true
-								break
-							}
-						}
-						if found {
-							break
-						}
-					}
-				}
-				if addedPods[pod.Name] {
-					continue
-				}
-
-				// d. env.valueFrom.secretKeyRef
-				for _, container := range pod.Spec.Containers {
-					for _, env := range container.Env {
-						if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == o.Name {
-							result = append(result, map[string]string{"kind": "Pod", "name": pod.Name, "relation": "usedBy"})
-							addedPods[pod.Name] = true
-							break
-						}
-					}
-					if addedPods[pod.Name] {
-						break
-					}
-				}
-			}
-		}
-		// 查询引用此 Secret 的 ServiceAccount
-		saList, err := clientset.CoreV1().ServiceAccounts(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Secret ServiceAccount", zap.Error(err))
-		} else {
-			for _, sa := range saList.Items {
-				// 检查 imagePullSecrets
-				for _, ips := range sa.ImagePullSecrets {
-					if ips.Name == o.Name && !addedSA[sa.Name] {
-						result = append(result, map[string]string{
-							"kind":     "ServiceAccount",
-							"name":     sa.Name,
-							"relation": "usedBy",
-						})
-						addedSA[sa.Name] = true
-						break
-					}
-				}
-				// 检查 secrets
-				for _, secret := range sa.Secrets {
-					if secret.Name == o.Name && !addedSA[sa.Name] {
-						result = append(result, map[string]string{
-							"kind":     "ServiceAccount",
-							"name":     sa.Name,
-							"relation": "usedBy",
-						})
-						addedSA[sa.Name] = true
-						break
-					}
-				}
-			}
-		}
-
-	// ==================== Ingress ====================
+		finder = relatedFinders["Secret"]
 	case *networkingv1.Ingress:
-		// 1. 关联的 Service
-		for _, rule := range o.Spec.Rules {
-			if rule.HTTP != nil {
-				for _, path := range rule.HTTP.Paths {
-					result = append(result, map[string]string{
-						"kind":     "Service",
-						"name":     path.Backend.Service.Name,
-						"relation": "routesTo",
-					})
-				}
-			}
-		}
-		// 2. TLS Secret
-		for _, tls := range o.Spec.TLS {
-			if tls.SecretName != "" {
-				result = append(result, map[string]string{
-					"kind":     "Secret",
-					"name":     tls.SecretName,
-					"relation": "tlsSecret",
-				})
-			}
-		}
-
-	// ==================== PVC ====================
+		finder = relatedFinders["Ingress"]
 	case *v1.PersistentVolumeClaim:
-		// 1. 关联的 PV
-		if o.Spec.VolumeName != "" {
-			result = append(result, map[string]string{
-				"kind":     "PersistentVolume",
-				"name":     o.Spec.VolumeName,
-				"relation": "boundPV",
-			})
-		}
-		// 2. 关联的 Pod
-		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query PVC Pod", zap.Error(err))
-		} else {
-			for _, pod := range podList.Items {
-				for _, vol := range pod.Spec.Volumes {
-					if vol.PersistentVolumeClaim != nil && vol.PersistentVolumeClaim.ClaimName == o.Name {
-						result = append(result, map[string]string{
-							"kind":     "Pod",
-							"name":     pod.Name,
-							"relation": "usedBy",
-						})
-					}
-				}
-			}
-		}
-
-	// ==================== PV ====================
+		finder = relatedFinders["PersistentVolumeClaim"]
 	case *v1.PersistentVolume:
-		// 1. 关联的 PVC
-		if o.Spec.ClaimRef != nil {
-			result = append(result, map[string]string{
-				"kind":     "PersistentVolumeClaim",
-				"name":     o.Spec.ClaimRef.Name,
-				"relation": "boundPVC",
-			})
-			// 2. 查询使用此 PVC 的 Pod
-			pvcNamespace := o.Spec.ClaimRef.Namespace
-			if pvcNamespace != "" {
-				podList, err := clientset.CoreV1().Pods(pvcNamespace).List(ctx, metav1.ListOptions{})
-				if err != nil {
-					logger.Warn("Failed to query PV Pod", zap.Error(err))
-				} else {
-					for _, pod := range podList.Items {
-						for _, vol := range pod.Spec.Volumes {
-							if vol.PersistentVolumeClaim != nil && vol.PersistentVolumeClaim.ClaimName == o.Spec.ClaimRef.Name {
-								result = append(result, map[string]string{
-									"kind":     "Pod",
-									"name":     pod.Name,
-									"relation": "usedBy",
-								})
-							}
-						}
-					}
-				}
-			}
-		}
-		// 3. StorageClass
-		if o.Spec.StorageClassName != "" {
-			result = append(result, map[string]string{
-				"kind":     "StorageClass",
-				"name":     o.Spec.StorageClassName,
-				"relation": "storageClass",
-			})
-		}
-
-	// ==================== Node ====================
+		finder = relatedFinders["PersistentVolume"]
 	case *v1.Node:
-		// 查询运行在此 Node 上的 Pod
-		podList, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{
-			FieldSelector: "spec.nodeName=" + o.Name,
-		})
-		if err != nil {
-			logger.Warn("Failed to query Node Pod", zap.Error(err))
-		} else {
-			for _, pod := range podList.Items {
-				result = append(result, map[string]string{
-					"kind":     "Pod",
-					"name":     pod.Name,
-					"relation": "scheduled",
-				})
-			}
-		}
-
-	// ==================== Namespace ====================
+		finder = relatedFinders["Node"]
 	case *v1.Namespace:
-		// 查询 Namespace 中的主要资源数量
-		result = append(result, map[string]string{
-			"kind":     "ResourceQuota",
-			"name":     "ResourceQuota",
-			"relation": "quota",
-		})
-		// 查询此 Namespace 中的 Pod
-		podList, err := clientset.CoreV1().Pods(o.Name).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query Namespace Pod", zap.Error(err))
-		} else {
-			for _, pod := range podList.Items {
-				result = append(result, map[string]string{
-					"kind":     "Pod",
-					"name":     pod.Name,
-					"relation": "contains",
-				})
-			}
-		}
-
-	// ==================== StorageClass ====================
+		finder = relatedFinders["Namespace"]
 	case *storagev1.StorageClass:
-		// 查询使用此 StorageClass 的 PVC
-		pvcList, err := clientset.CoreV1().PersistentVolumeClaims("").List(ctx, metav1.ListOptions{})
+		finder = relatedFinders["StorageClass"]
+	}
+	if finder != nil {
+		finder.Find(fc)
+	}
+	return fc.result
+}
+
+func (fc *findContext) add(kind, name, relation string) {
+	if len(fc.result) >= maxRelatedResources {
+		return
+	}
+	fc.result = append(fc.result, map[string]string{
+		"kind":     kind,
+		"name":     name,
+		"relation": relation,
+	})
+}
+
+type podFinder struct{}
+
+func (f *podFinder) Find(fc *findContext) {
+	o := fc.obj.(*v1.Pod)
+	for _, ownerRef := range o.OwnerReferences {
+		fc.add(ownerRef.Kind, ownerRef.Name, "owner")
+	}
+	if o.Labels != nil {
+		svcList, err := fc.clientset.CoreV1().Services(fc.namespace).List(fc.ctx, metav1.ListOptions{})
 		if err != nil {
-			logger.Warn("Failed to query StorageClass PVC", zap.Error(err))
+			fc.logger.Warn("Failed to query Pod Service", zap.Error(err))
 		} else {
-			for _, pvc := range pvcList.Items {
-				if pvc.Spec.StorageClassName != nil && *pvc.Spec.StorageClassName == o.Name {
-					result = append(result, map[string]string{
-						"kind":     "PersistentVolumeClaim",
-						"name":     pvc.Name,
-						"relation": "provisionedPVC",
-					})
-				}
-			}
-		}
-		// 查询使用此 StorageClass 的 PV
-		pvList, err := clientset.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
-		if err != nil {
-			logger.Warn("Failed to query StorageClass PV", zap.Error(err))
-		} else {
-			for _, pv := range pvList.Items {
-				if pv.Spec.StorageClassName == o.Name {
-					result = append(result, map[string]string{
-						"kind":     "PersistentVolume",
-						"name":     pv.Name,
-						"relation": "provisionedPV",
-					})
+			for _, svc := range svcList.Items {
+				if svc.Spec.Selector != nil && matchesSelector(o.Labels, svc.Spec.Selector) {
+					fc.add("Service", svc.Name, "selectedBy")
 				}
 			}
 		}
 	}
-
-	return result
+	for _, vol := range o.Spec.Volumes {
+		if vol.ConfigMap != nil {
+			fc.add("ConfigMap", vol.ConfigMap.Name, "volume")
+		}
+		if vol.Secret != nil {
+			fc.add("Secret", vol.Secret.SecretName, "volume")
+		}
+		if vol.PersistentVolumeClaim != nil {
+			fc.add("PersistentVolumeClaim", vol.PersistentVolumeClaim.ClaimName, "volume")
+		}
+	}
+	if o.Spec.NodeName != "" {
+		fc.add("Node", o.Spec.NodeName, "scheduledOn")
+	}
 }
 
-// matchesSelector 检查 labels 是否匹配 selector
+type deploymentFinder struct{}
+
+func (f *deploymentFinder) Find(fc *findContext) {
+	o := fc.obj.(*appsv1.Deployment)
+	rsList, err := fc.clientset.AppsV1().ReplicaSets(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Deployment ReplicaSet", zap.Error(err))
+	} else {
+		for _, rs := range rsList.Items {
+			for _, ownerRef := range rs.OwnerReferences {
+				if ownerRef.Kind == "Deployment" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
+					fc.add("ReplicaSet", rs.Name, "child")
+				}
+			}
+		}
+	}
+	if o.Spec.Selector != nil {
+		svcList, err := fc.clientset.CoreV1().Services(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+		if err != nil {
+			fc.logger.Warn("Failed to query Deployment Service", zap.Error(err))
+		} else {
+			for _, svc := range svcList.Items {
+				if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
+					fc.add("Service", svc.Name, "exposedBy")
+				}
+			}
+		}
+	}
+	hpaList, err := fc.clientset.AutoscalingV1().HorizontalPodAutoscalers(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Deployment HPA", zap.Error(err))
+	} else {
+		for _, hpa := range hpaList.Items {
+			if hpa.Spec.ScaleTargetRef.Kind == "Deployment" && hpa.Spec.ScaleTargetRef.Name == o.Name {
+				fc.add("HorizontalPodAutoscaler", hpa.Name, "autoscaled")
+			}
+		}
+	}
+	pdbList, err := fc.clientset.PolicyV1().PodDisruptionBudgets(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Deployment PDB", zap.Error(err))
+	} else {
+		for _, pdb := range pdbList.Items {
+			if pdb.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, pdb.Spec.Selector.MatchLabels) {
+				fc.add("PodDisruptionBudget", pdb.Name, "protected")
+			}
+		}
+	}
+	ingressList, err := fc.clientset.NetworkingV1().Ingresses(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Deployment Ingress", zap.Error(err))
+	} else {
+		svcNames := make(map[string]bool)
+		svcList, _ := fc.clientset.CoreV1().Services(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+		for _, svc := range svcList.Items {
+			if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
+				svcNames[svc.Name] = true
+			}
+		}
+		for _, ing := range ingressList.Items {
+			for _, rule := range ing.Spec.Rules {
+				if rule.HTTP != nil {
+					for _, path := range rule.HTTP.Paths {
+						if svcNames[path.Backend.Service.Name] {
+							fc.add("Ingress", ing.Name, "routedBy")
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+type statefulSetFinder struct{}
+
+func (f *statefulSetFinder) Find(fc *findContext) {
+	o := fc.obj.(*appsv1.StatefulSet)
+	podList, err := fc.clientset.CoreV1().Pods(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query StatefulSet Pod", zap.Error(err))
+	} else {
+		for _, pod := range podList.Items {
+			for _, ownerRef := range pod.OwnerReferences {
+				if ownerRef.Kind == "StatefulSet" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
+					fc.add("Pod", pod.Name, "child")
+				}
+			}
+		}
+	}
+	if o.Spec.Selector != nil {
+		svcList, err := fc.clientset.CoreV1().Services(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+		if err != nil {
+			fc.logger.Warn("Failed to query StatefulSet Service", zap.Error(err))
+		} else {
+			for _, svc := range svcList.Items {
+				if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
+					fc.add("Service", svc.Name, "exposedBy")
+				}
+			}
+		}
+	}
+	if o.Spec.ServiceName != "" {
+		fc.add("Service", o.Spec.ServiceName, "headlessService")
+	}
+	hpaList, err := fc.clientset.AutoscalingV1().HorizontalPodAutoscalers(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query StatefulSet HPA", zap.Error(err))
+	} else {
+		for _, hpa := range hpaList.Items {
+			if hpa.Spec.ScaleTargetRef.Kind == "StatefulSet" && hpa.Spec.ScaleTargetRef.Name == o.Name {
+				fc.add("HorizontalPodAutoscaler", hpa.Name, "autoscaled")
+			}
+		}
+	}
+	for _, pvc := range o.Spec.VolumeClaimTemplates {
+		fc.add("PersistentVolumeClaim", pvc.Name, "volumeClaim")
+	}
+}
+
+type daemonSetFinder struct{}
+
+func (f *daemonSetFinder) Find(fc *findContext) {
+	o := fc.obj.(*appsv1.DaemonSet)
+	podList, err := fc.clientset.CoreV1().Pods(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query DaemonSet Pod", zap.Error(err))
+	} else {
+		for _, pod := range podList.Items {
+			for _, ownerRef := range pod.OwnerReferences {
+				if ownerRef.Kind == "DaemonSet" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
+					fc.add("Pod", pod.Name, "child")
+				}
+			}
+		}
+	}
+	if o.Spec.Selector != nil {
+		svcList, err := fc.clientset.CoreV1().Services(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+		if err != nil {
+			fc.logger.Warn("Failed to query DaemonSet Service", zap.Error(err))
+		} else {
+			for _, svc := range svcList.Items {
+				if svc.Spec.Selector != nil && matchesSelector(o.Spec.Selector.MatchLabels, svc.Spec.Selector) {
+					fc.add("Service", svc.Name, "exposedBy")
+				}
+			}
+		}
+	}
+}
+
+type jobFinder struct{}
+
+func (f *jobFinder) Find(fc *findContext) {
+	o := fc.obj.(*batchv1.Job)
+	podList, err := fc.clientset.CoreV1().Pods(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Job Pod", zap.Error(err))
+	} else {
+		for _, pod := range podList.Items {
+			for _, ownerRef := range pod.OwnerReferences {
+				if ownerRef.Kind == "Job" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
+					fc.add("Pod", pod.Name, "child")
+				}
+			}
+		}
+	}
+	for _, ownerRef := range o.OwnerReferences {
+		if ownerRef.Kind == "CronJob" {
+			fc.add("CronJob", ownerRef.Name, "owner")
+		}
+	}
+}
+
+type cronJobFinder struct{}
+
+func (f *cronJobFinder) Find(fc *findContext) {
+	o := fc.obj.(*batchv1.CronJob)
+	jobList, err := fc.clientset.BatchV1().Jobs(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query CronJob Job", zap.Error(err))
+	} else {
+		for _, job := range jobList.Items {
+			for _, ownerRef := range job.OwnerReferences {
+				if ownerRef.Kind == "CronJob" && ownerRef.Name == o.Name && ownerRef.UID == o.UID {
+					fc.add("Job", job.Name, "child")
+				}
+			}
+		}
+	}
+}
+
+type serviceFinder struct{}
+
+func (f *serviceFinder) Find(fc *findContext) {
+	o := fc.obj.(*v1.Service)
+	if o.Spec.Selector != nil {
+		podList, err := fc.clientset.CoreV1().Pods(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+		if err != nil {
+			fc.logger.Warn("Failed to query Service Pod", zap.Error(err))
+		} else {
+			for _, pod := range podList.Items {
+				if pod.Labels != nil && matchesSelector(pod.Labels, o.Spec.Selector) {
+					fc.add("Pod", pod.Name, "selects")
+				}
+			}
+		}
+	}
+	epList, err := fc.clientset.CoreV1().Endpoints(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Service Endpoint", zap.Error(err))
+	} else {
+		for _, ep := range epList.Items {
+			if ep.Name == o.Name {
+				fc.add("Endpoints", ep.Name, "endpoints")
+			}
+		}
+	}
+	ingressList, err := fc.clientset.NetworkingV1().Ingresses(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Service Ingress", zap.Error(err))
+	} else {
+		for _, ing := range ingressList.Items {
+			for _, rule := range ing.Spec.Rules {
+				if rule.HTTP != nil {
+					for _, path := range rule.HTTP.Paths {
+						if path.Backend.Service.Name == o.Name {
+							fc.add("Ingress", ing.Name, "routedBy")
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+type configMapFinder struct{}
+
+func (f *configMapFinder) Find(fc *findContext) {
+	o := fc.obj.(*v1.ConfigMap)
+	addedPods := make(map[string]bool)
+
+	podList, err := fc.clientset.CoreV1().Pods(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query ConfigMap Pod", zap.Error(err))
+		return
+	}
+	for _, pod := range podList.Items {
+		if addedPods[pod.Name] {
+			continue
+		}
+		for _, vol := range pod.Spec.Volumes {
+			if vol.ConfigMap != nil && vol.ConfigMap.Name == o.Name {
+				fc.add("Pod", pod.Name, "usedBy")
+				addedPods[pod.Name] = true
+				break
+			}
+		}
+		if addedPods[pod.Name] {
+			continue
+		}
+		found := false
+		for _, container := range pod.Spec.Containers {
+			for _, envFrom := range container.EnvFrom {
+				if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == o.Name {
+					fc.add("Pod", pod.Name, "usedBy")
+					addedPods[pod.Name] = true
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+		if !found {
+			for _, container := range pod.Spec.InitContainers {
+				for _, envFrom := range container.EnvFrom {
+					if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == o.Name {
+						fc.add("Pod", pod.Name, "usedBy")
+						addedPods[pod.Name] = true
+						found = true
+						break
+					}
+				}
+				if found {
+					break
+				}
+			}
+		}
+		if addedPods[pod.Name] {
+			continue
+		}
+		for _, container := range pod.Spec.Containers {
+			for _, env := range container.Env {
+				if env.ValueFrom != nil && env.ValueFrom.ConfigMapKeyRef != nil && env.ValueFrom.ConfigMapKeyRef.Name == o.Name {
+					fc.add("Pod", pod.Name, "usedBy")
+					addedPods[pod.Name] = true
+					break
+				}
+			}
+			if addedPods[pod.Name] {
+				break
+			}
+		}
+		if addedPods[pod.Name] {
+			continue
+		}
+		for _, vol := range pod.Spec.Volumes {
+			if vol.Projected != nil {
+				for _, source := range vol.Projected.Sources {
+					if source.ConfigMap != nil && source.ConfigMap.Name == o.Name {
+						fc.add("Pod", pod.Name, "usedBy")
+						addedPods[pod.Name] = true
+						break
+					}
+				}
+			}
+			if addedPods[pod.Name] {
+				break
+			}
+		}
+	}
+}
+
+type secretFinder struct{}
+
+func (f *secretFinder) Find(fc *findContext) {
+	o := fc.obj.(*v1.Secret)
+	addedPods := make(map[string]bool)
+	addedSA := make(map[string]bool)
+
+	podList, err := fc.clientset.CoreV1().Pods(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Secret Pod", zap.Error(err))
+	} else {
+		for _, pod := range podList.Items {
+			if addedPods[pod.Name] {
+				continue
+			}
+			for _, vol := range pod.Spec.Volumes {
+				if vol.Secret != nil && vol.Secret.SecretName == o.Name {
+					fc.add("Pod", pod.Name, "usedBy")
+					addedPods[pod.Name] = true
+					break
+				}
+			}
+			if addedPods[pod.Name] {
+				continue
+			}
+			for _, ips := range pod.Spec.ImagePullSecrets {
+				if ips.Name == o.Name {
+					fc.add("Pod", pod.Name, "usedBy")
+					addedPods[pod.Name] = true
+					break
+				}
+			}
+			if addedPods[pod.Name] {
+				continue
+			}
+			found := false
+			for _, container := range pod.Spec.Containers {
+				for _, envFrom := range container.EnvFrom {
+					if envFrom.SecretRef != nil && envFrom.SecretRef.Name == o.Name {
+						fc.add("Pod", pod.Name, "usedBy")
+						addedPods[pod.Name] = true
+						found = true
+						break
+					}
+				}
+				if found {
+					break
+				}
+			}
+			if !found {
+				for _, container := range pod.Spec.InitContainers {
+					for _, envFrom := range container.EnvFrom {
+						if envFrom.SecretRef != nil && envFrom.SecretRef.Name == o.Name {
+							fc.add("Pod", pod.Name, "usedBy")
+							addedPods[pod.Name] = true
+							found = true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+			}
+			if addedPods[pod.Name] {
+				continue
+			}
+			for _, container := range pod.Spec.Containers {
+				for _, env := range container.Env {
+					if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == o.Name {
+						fc.add("Pod", pod.Name, "usedBy")
+						addedPods[pod.Name] = true
+						break
+					}
+				}
+				if addedPods[pod.Name] {
+					break
+				}
+			}
+		}
+	}
+	saList, err := fc.clientset.CoreV1().ServiceAccounts(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Secret ServiceAccount", zap.Error(err))
+		return
+	}
+	for _, sa := range saList.Items {
+		for _, ips := range sa.ImagePullSecrets {
+			if ips.Name == o.Name && !addedSA[sa.Name] {
+				fc.add("ServiceAccount", sa.Name, "usedBy")
+				addedSA[sa.Name] = true
+				break
+			}
+		}
+		for _, secret := range sa.Secrets {
+			if secret.Name == o.Name && !addedSA[sa.Name] {
+				fc.add("ServiceAccount", sa.Name, "usedBy")
+				addedSA[sa.Name] = true
+				break
+			}
+		}
+	}
+}
+
+type ingressFinder struct{}
+
+func (f *ingressFinder) Find(fc *findContext) {
+	o := fc.obj.(*networkingv1.Ingress)
+	for _, rule := range o.Spec.Rules {
+		if rule.HTTP != nil {
+			for _, path := range rule.HTTP.Paths {
+				fc.add("Service", path.Backend.Service.Name, "routesTo")
+			}
+		}
+	}
+	for _, tls := range o.Spec.TLS {
+		if tls.SecretName != "" {
+			fc.add("Secret", tls.SecretName, "tlsSecret")
+		}
+	}
+}
+
+type pvcFinder struct{}
+
+func (f *pvcFinder) Find(fc *findContext) {
+	o := fc.obj.(*v1.PersistentVolumeClaim)
+	if o.Spec.VolumeName != "" {
+		fc.add("PersistentVolume", o.Spec.VolumeName, "boundPV")
+	}
+	podList, err := fc.clientset.CoreV1().Pods(fc.namespace).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query PVC Pod", zap.Error(err))
+		return
+	}
+	for _, pod := range podList.Items {
+		for _, vol := range pod.Spec.Volumes {
+			if vol.PersistentVolumeClaim != nil && vol.PersistentVolumeClaim.ClaimName == o.Name {
+				fc.add("Pod", pod.Name, "usedBy")
+			}
+		}
+	}
+}
+
+type pvFinder struct{}
+
+func (f *pvFinder) Find(fc *findContext) {
+	o := fc.obj.(*v1.PersistentVolume)
+	if o.Spec.ClaimRef != nil {
+		fc.add("PersistentVolumeClaim", o.Spec.ClaimRef.Name, "boundPVC")
+		pvcNamespace := o.Spec.ClaimRef.Namespace
+		if pvcNamespace != "" {
+			podList, err := fc.clientset.CoreV1().Pods(pvcNamespace).List(fc.ctx, metav1.ListOptions{})
+			if err != nil {
+				fc.logger.Warn("Failed to query PV Pod", zap.Error(err))
+			} else {
+				for _, pod := range podList.Items {
+					for _, vol := range pod.Spec.Volumes {
+						if vol.PersistentVolumeClaim != nil && vol.PersistentVolumeClaim.ClaimName == o.Spec.ClaimRef.Name {
+							fc.add("Pod", pod.Name, "usedBy")
+						}
+					}
+				}
+			}
+		}
+	}
+	if o.Spec.StorageClassName != "" {
+		fc.add("StorageClass", o.Spec.StorageClassName, "storageClass")
+	}
+}
+
+type nodeFinder struct{}
+
+func (f *nodeFinder) Find(fc *findContext) {
+	o := fc.obj.(*v1.Node)
+	podList, err := fc.clientset.CoreV1().Pods("").List(fc.ctx, metav1.ListOptions{
+		FieldSelector: "spec.nodeName=" + o.Name,
+	})
+	if err != nil {
+		fc.logger.Warn("Failed to query Node Pod", zap.Error(err))
+		return
+	}
+	for _, pod := range podList.Items {
+		fc.add("Pod", pod.Name, "scheduled")
+	}
+}
+
+type namespaceFinder struct{}
+
+func (f *namespaceFinder) Find(fc *findContext) {
+	o := fc.obj.(*v1.Namespace)
+	fc.add("ResourceQuota", "ResourceQuota", "quota")
+	podList, err := fc.clientset.CoreV1().Pods(o.Name).List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query Namespace Pod", zap.Error(err))
+		return
+	}
+	for _, pod := range podList.Items {
+		fc.add("Pod", pod.Name, "contains")
+	}
+}
+
+type storageClassFinder struct{}
+
+func (f *storageClassFinder) Find(fc *findContext) {
+	o := fc.obj.(*storagev1.StorageClass)
+	pvcList, err := fc.clientset.CoreV1().PersistentVolumeClaims("").List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query StorageClass PVC", zap.Error(err))
+	} else {
+		for _, pvc := range pvcList.Items {
+			if pvc.Spec.StorageClassName != nil && *pvc.Spec.StorageClassName == o.Name {
+				fc.add("PersistentVolumeClaim", pvc.Name, "provisionedPVC")
+			}
+		}
+	}
+	pvList, err := fc.clientset.CoreV1().PersistentVolumes().List(fc.ctx, metav1.ListOptions{})
+	if err != nil {
+		fc.logger.Warn("Failed to query StorageClass PV", zap.Error(err))
+		return
+	}
+	for _, pv := range pvList.Items {
+		if pv.Spec.StorageClassName == o.Name {
+			fc.add("PersistentVolume", pv.Name, "provisionedPV")
+		}
+	}
+}
+
 func matchesSelector(labels, selector map[string]string) bool {
 	if len(selector) == 0 {
 		return false
