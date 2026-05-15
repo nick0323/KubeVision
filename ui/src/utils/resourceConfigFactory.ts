@@ -188,11 +188,60 @@ export function createPodConfig(): ResourcePageConfig {
   return finalizeConfig({
     title: 'Pods',
     apiEndpoint: '/api/v1/pod',
+    resourceType: 'pod',
+    columns,
+    defaultSort: { field: 'name', order: 'asc' },
+  });
+}
 
-    // Service / Endpoint
+export function createServiceConfig(): ResourcePageConfig {
+  const columns: ExtendedColumn[] = [
+    createNameColumn('20%'),
+    createNamespaceColumn('12%'),
+    { title: 'Type', dataIndex: 'type', width: '10%', sortable: true },
+    { title: 'ClusterIP', dataIndex: 'clusterIP', width: '18%' },
+    { title: 'Ports', dataIndex: 'ports', width: '26%', sortable: false },
+    createAgeColumn('8%'),
+  ];
+  
+  return finalizeConfig({
+    title: 'Services',
     apiEndpoint: '/api/v1/service',
+    resourceType: 'service',
+    columns,
+    defaultSort: { field: 'name', order: 'asc' },
+  });
+}
 
-    // Node
+export function createNodeConfig(): ResourcePageConfig {
+  const columns: ExtendedColumn[] = [
+    createNameColumn('15%'),
+    { title: 'IP', dataIndex: 'ip', width: '15%' },
+    { title: 'Role', dataIndex: 'role', width: '20%', sortable: true },
+    {
+      title: 'CPU',
+      dataIndex: 'cpuUsage',
+      width: '10%',
+      render: (value: unknown) => value !== null && value !== undefined ? `${Math.round(value as number)}%` : 'N/A',
+    },
+    {
+      title: 'Memory',
+      dataIndex: 'memoryUsage',
+      width: '10%',
+      render: (value: unknown) => value !== null && value !== undefined ? `${Math.round(value as number)}%` : 'N/A',
+    },
+    {
+      title: 'Pods',
+      dataIndex: 'podsUsed',
+      width: '10%',
+      render: (value: unknown, record: Record<string, unknown>) => `${value || 0}/${record.podsCapacity || 0}`,
+    },
+    createStatusColumn('10%'),
+    createAgeColumn('10%'),
+  ];
+  
+  return finalizeConfig({
+    title: 'Nodes',
     apiEndpoint: '/api/v1/node',
     resourceType: 'node',
     columns,

@@ -25,8 +25,9 @@ func RegisterLogStream(
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
 	configProvider middleware.ConfigProvider,
+	wsMgr *WebSocketManager,
 ) {
-	r.GET("/ws/stream", streamPodLog(logger, getK8sClient, configProvider))
+	r.GET("/ws/stream", streamPodLog(logger, getK8sClient, configProvider, wsMgr))
 }
 
 // streamPodLog 流式获取 Pod 日志（WebSocket 实时推送）
@@ -34,18 +35,18 @@ func streamPodLog(
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
 	configProvider middleware.ConfigProvider,
+	wsMgr *WebSocketManager,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cluster := c.Query("cluster")
 		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
-			logger.Error("Failed to get K8s client", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
 
 		ctx := GetRequestContext(c)
-		ctx = globalWSManager.ShutdownCtx(ctx)
+		ctx = wsMgr.ShutdownCtx(ctx)
 		namespace := c.Query("namespace")
 		podName := c.Query("pod")
 		container := c.Query("container")
@@ -55,7 +56,6 @@ func streamPodLog(
 
 		// 输入验证
 		if err := validatePodLogParams(namespace, podName, container); err != nil {
-			logger.Warn("Parameter validation failed", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
 			return
 		}
@@ -65,7 +65,7 @@ func streamPodLog(
 		}
 
 		// 检查连接数限制
-		if err := checkConnectionLimit(logger); err != nil {
+		if err := checkConnectionLimit(wsMgr, logger); err != nil {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
 				"type":    "error",
 				"message": err.Error(),
@@ -79,19 +79,19 @@ func streamPodLog(
 		// WebSocket 升级
 		ws, err := upgradeWebSocket(c, logger)
 		if err != nil {
-			decrementConnection()
+			decrementConnection(wsMgr)
 			return
 		}
 		defer ws.Close()
 
 		// 设置 WebSocket 关闭处理器（负责递减连接计数）
-		wsCloseOnce := setupWebSocketCloseHandler(ws, logger, podName)
+		wsCloseOnce := setupWebSocketCloseHandler(ws, logger, podName, wsMgr)
 
 		logger.Info("Log WebSocket connected",
 			zap.String("namespace", namespace),
 			zap.String("pod", podName),
 			zap.String("container", container),
-			zap.Int32("activeConnections", globalWSManager.ActiveCount()),
+			zap.Int32("activeConnections", wsMgr.ActiveCount()),
 		)
 
 		// 获取日志流
@@ -123,22 +123,22 @@ func streamPodLog(
 		go readPodLogs(ctx, podLogs, logChan, errorChan, doneChan, podName, logger)
 
 		// 主循环：处理日志、心跳、超时
-		runWebSocketLoop(ctx, ws, logChan, errorChan, doneChan, podName, logger, wsCloseOnce)
+		runWebSocketLoop(ctx, ws, logChan, errorChan, doneChan, podName, logger, wsCloseOnce, wsMgr)
 	}
 }
 
 // checkConnectionLimit 检查连接数限制
-func checkConnectionLimit(logger *zap.Logger) error {
-	err := globalWSManager.Acquire()
+func checkConnectionLimit(wsMgr *WebSocketManager, logger *zap.Logger) error {
+	err := wsMgr.Acquire()
 	if err != nil {
-		logger.Warn("Too many WebSocket connections", zap.Int32("current", globalWSManager.ActiveCount()))
+		logger.Warn("Too many WebSocket connections", zap.Int32("current", wsMgr.ActiveCount()))
 		return fmt.Errorf("connection limit exceeded")
 	}
 	return nil
 }
 
-func decrementConnection() {
-	globalWSManager.Release()
+func decrementConnection(wsMgr *WebSocketManager) {
+	wsMgr.Release()
 }
 
 // buildPodLogOptions 构建 Pod 日志选项
@@ -177,7 +177,7 @@ func upgradeWebSocket(c *gin.Context, logger *zap.Logger) (*websocket.Conn, erro
 }
 
 // setupWebSocketCloseHandler 设置 WebSocket 关闭处理器
-func setupWebSocketCloseHandler(ws *websocket.Conn, logger *zap.Logger, podName string) *sync.Once {
+func setupWebSocketCloseHandler(ws *websocket.Conn, logger *zap.Logger, podName string, wsMgr *WebSocketManager) *sync.Once {
 	var wsCloseOnce sync.Once
 	ws.SetCloseHandler(func(code int, text string) error {
 		logger.Info("Client disconnected WebSocket",
@@ -186,7 +186,7 @@ func setupWebSocketCloseHandler(ws *websocket.Conn, logger *zap.Logger, podName 
 			zap.String("pod", podName),
 		)
 		wsCloseOnce.Do(func() {
-			decrementConnection()
+			decrementConnection(wsMgr)
 		})
 		return nil
 	})
@@ -279,7 +279,7 @@ func readPodLogs(ctx context.Context, podLogs io.ReadCloser, logChan chan<- stri
 }
 
 // runWebSocketLoop 运行 WebSocket 主循环
-func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan string, errorChan <-chan error, doneChan <-chan struct{}, podName string, logger *zap.Logger, wsCloseOnce *sync.Once) {
+func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan string, errorChan <-chan error, doneChan <-chan struct{}, podName string, logger *zap.Logger, wsCloseOnce *sync.Once, wsMgr *WebSocketManager) {
 	heartbeatTicker := time.NewTicker(30 * time.Second)
 	defer heartbeatTicker.Stop()
 
@@ -292,7 +292,7 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 		case <-ctx.Done():
 			logger.Info("Context cancelled, closing log stream", zap.String("pod", podName))
 			wsCloseOnce.Do(func() {
-				decrementConnection()
+				decrementConnection(wsMgr)
 			})
 			return
 		case <-timeoutTimer.C:
@@ -301,7 +301,7 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 				logger.Error("Failed to send timeout message", zap.Error(writeErr))
 			}
 			wsCloseOnce.Do(func() {
-				decrementConnection()
+				decrementConnection(wsMgr)
 			})
 			return
 		case <-heartbeatTicker.C:
@@ -316,7 +316,7 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 					logger.Debug("Failed to send heartbeat", zap.String("pod", podName), zap.Error(err))
 				}
 				wsCloseOnce.Do(func() {
-					decrementConnection()
+					decrementConnection(wsMgr)
 				})
 				return
 			}
@@ -336,7 +336,7 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 					logger.Error("Failed to send log to WebSocket", zap.String("pod", podName), zap.Error(err))
 				}
 				wsCloseOnce.Do(func() {
-					decrementConnection()
+					decrementConnection(wsMgr)
 				})
 				return
 			}
@@ -346,13 +346,13 @@ func runWebSocketLoop(ctx context.Context, ws *websocket.Conn, logChan <-chan st
 				logger.Error("Failed to send error message", zap.Error(writeErr))
 			}
 			wsCloseOnce.Do(func() {
-				decrementConnection()
+				decrementConnection(wsMgr)
 			})
 			return
 		case <-doneChan:
 			logger.Info("Log reader goroutine exited", zap.String("pod", podName))
 			wsCloseOnce.Do(func() {
-				decrementConnection()
+				decrementConnection(wsMgr)
 			})
 			return
 		}

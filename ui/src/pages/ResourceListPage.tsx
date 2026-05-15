@@ -19,6 +19,7 @@ import CreateResourceModal from '../common/CreateResourceModal';
 import { getTemplateByResourceType } from '../constants/templates';
 import { useResourceList } from '../hooks/useResourceList';
 import { useConfirm } from '../hooks/useConfirm';
+import { ConfirmModal } from '../common/ConfirmModal';
 import { logError } from '../utils/errorHandler';
 import { formatTime } from '../utils/time';
 import './ResourceListPage.css';
@@ -103,7 +104,6 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
     apiEndpoint: config.apiEndpoint,
     namespaceFilter: config.namespaceFilter,
     defaultSort: config.defaultSort,
-    staleTime: 30000, // 30 seconds cache
   });
 
   /**
@@ -475,28 +475,16 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
         />
       )}
 
-      {/* Confirm dialog */}
-      {confirming && confirmConfig && (
-        <div className="confirm-modal-overlay">
-          <div className={`confirm-modal ${confirmConfig.danger ? 'danger' : ''}`}>
-            <div className="confirm-modal-header">
-              <h4>{confirmConfig.title || 'Confirm Operation'}</h4>
-            </div>
-            <div className="confirm-modal-body">{confirmConfig.message}</div>
-            <div className="confirm-modal-footer">
-              <button className="confirm-btn cancel" onClick={onCancel}>
-                {confirmConfig.cancelText || 'Cancel'}
-              </button>
-              <button
-                className={`confirm-btn confirm ${confirmConfig.danger ? 'danger' : ''}`}
-                onClick={onConfirm}
-              >
-                {confirmConfig.confirmText || 'Confirm'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={confirming && !!confirmConfig}
+        title={confirmConfig?.title}
+        message={confirmConfig?.message || ''}
+        confirmText={confirmConfig?.confirmText}
+        cancelText={confirmConfig?.cancelText}
+        danger={confirmConfig?.danger}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
 
       {/* Create resource modal */}
       <CreateResourceModal

@@ -122,35 +122,12 @@ function GenericResourceDetail({ resourceType }: { resourceType: string }) {
 }
 
 /**
- * Resource detail route config（simplify重复定义）
+ * Resource detail route config — 从 RESOURCE_TYPE_MAP 自动生成
  */
-const RESOURCE_DETAIL_ROUTES = [
-  { path: '/pod', resourceType: 'pod' },
-  { path: '/deployment', resourceType: 'deployment' },
-  { path: '/statefulset', resourceType: 'statefulset' },
-  { path: '/daemonset', resourceType: 'daemonset' },
-  { path: '/service', resourceType: 'service' },
-  { path: '/configmap', resourceType: 'configmap' },
-  { path: '/secret', resourceType: 'secret' },
-  { path: '/ingress', resourceType: 'ingress' },
-  { path: '/job', resourceType: 'job' },
-  { path: '/cronjob', resourceType: 'cronjob' },
-  { path: '/pvc', resourceType: 'pvc' },
-  { path: '/pv', resourceType: 'pv' },
-  { path: '/storageclass', resourceType: 'storageclass' },
-  { path: '/namespace', resourceType: 'namespace' },
-  { path: '/node', resourceType: 'node' },
-  { path: '/horizontalpodautoscaler', resourceType: 'horizontalpodautoscaler' },
-  { path: '/networkpolicy', resourceType: 'networkpolicy' },
-  { path: '/serviceaccount', resourceType: 'serviceaccount' },
-  { path: '/role', resourceType: 'role' },
-  { path: '/rolebinding', resourceType: 'rolebinding' },
-  { path: '/resourcequota', resourceType: 'resourcequota' },
-  { path: '/limitrange', resourceType: 'limitrange' },
-  { path: '/poddisruptionbudget', resourceType: 'poddisruptionbudget' },
-  { path: '/clusterrole', resourceType: 'clusterrole' },
-  { path: '/clusterrolebinding', resourceType: 'clusterrolebinding' },
-] as const;
+const ROUTES_EXCLUDE = new Set(['event']);
+const RESOURCE_DETAIL_ROUTES: Array<{ path: string; resourceType: string }> = Object.keys(RESOURCE_TYPE_MAP)
+  .filter(key => !ROUTES_EXCLUDE.has(key))
+  .map(key => ({ path: `/${key}`, resourceType: key }));
 
 /**
  * Main App Component with Notification support

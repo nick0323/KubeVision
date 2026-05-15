@@ -7,8 +7,6 @@ import (
 	"sync/atomic"
 )
 
-var globalWSManager *WebSocketManager
-
 type WebSocketManager struct {
 	maxConns     int32
 	activeCount  atomic.Int32
@@ -18,7 +16,7 @@ type WebSocketManager struct {
 	stopOnce     sync.Once
 }
 
-func InitWebSocketManager(maxConnections int) {
+func NewWebSocketManager(maxConnections int) *WebSocketManager {
 	m := &WebSocketManager{
 		shutdownCh: make(chan struct{}),
 	}
@@ -27,11 +25,7 @@ func InitWebSocketManager(maxConnections int) {
 	} else {
 		m.maxConns = 1 << 30
 	}
-	globalWSManager = m
-}
-
-func GetWebSocketManager() *WebSocketManager {
-	return globalWSManager
+	return m
 }
 
 func (m *WebSocketManager) Acquire() error {

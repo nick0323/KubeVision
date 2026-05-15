@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func RegisterCRDRoutes(r *gin.RouterGroup, logger *zap.Logger, k8sClientMgr *service.ClientManager, cacheMgr *cache.MemoryCache[interface{}]) {
+func RegisterCRDRoutes(r *gin.RouterGroup, logger *zap.Logger, k8sClientMgr *service.ClientManager, cacheMgr *cache.MemoryCache[any]) {
 	crdGroup := r.Group("/crds")
 	{
 		crdGroup.GET("", listCRDs(logger, k8sClientMgr, cacheMgr))
@@ -21,7 +21,7 @@ func RegisterCRDRoutes(r *gin.RouterGroup, logger *zap.Logger, k8sClientMgr *ser
 	}
 }
 
-func listCRDs(logger *zap.Logger, k8sClientMgr *service.ClientManager, cacheMgr *cache.MemoryCache[interface{}]) gin.HandlerFunc {
+func listCRDs(logger *zap.Logger, k8sClientMgr *service.ClientManager, cacheMgr *cache.MemoryCache[any]) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cluster := c.Query("cluster")
 		crdMgr, err := k8sClientMgr.GetCRDManagerForCluster(cluster)
@@ -46,7 +46,6 @@ func listCRDs(logger *zap.Logger, k8sClientMgr *service.ClientManager, cacheMgr 
 
 		crds, err := crdMgr.ListCRDs(c.Request.Context())
 		if err != nil {
-			logger.Error("Failed to list CRDs", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -79,7 +78,6 @@ func listCRDInstances(logger *zap.Logger, k8sClientMgr *service.ClientManager) g
 
 		instances, err := crdMgr.ListCRDInstances(c.Request.Context(), group, version, plural, namespace)
 		if err != nil {
-			logger.Error("Failed to list CRD instances", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -112,7 +110,6 @@ func getCRDInstance(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin
 
 		instance, err := crdMgr.GetCRDInstance(c.Request.Context(), group, version, plural, namespace, name)
 		if err != nil {
-			logger.Error("Failed to get CRD instance", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}

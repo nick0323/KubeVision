@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"math"
-	"sort"
+	"slices"
 	"sync"
 	"time"
 
@@ -18,10 +18,10 @@ const BytesPerGiB = 1024 * 1024 * 1024
 
 type OverviewService struct {
 	clientset     kubernetes.Interface
-	metricsClient interface{}
+	metricsClient any
 }
 
-func NewOverviewService(clientset kubernetes.Interface, metricsClient interface{}) *OverviewService {
+func NewOverviewService(clientset kubernetes.Interface, metricsClient any) *OverviewService {
 	return &OverviewService{clientset: clientset, metricsClient: metricsClient}
 }
 
@@ -216,16 +216,16 @@ func (s *OverviewService) getRecentEvents(ctx context.Context, limit int) ([]mod
 		}
 	}
 
-	sort.Slice(filtered, func(i, j int) bool {
-		iTime := filtered[i].LastTimestamp.Time
-		if iTime.IsZero() {
-			iTime = filtered[i].EventTime.Time
+	slices.SortFunc(filtered, func(a, b corev1.Event) int {
+		aTime := a.LastTimestamp.Time
+		if aTime.IsZero() {
+			aTime = a.EventTime.Time
 		}
-		jTime := filtered[j].LastTimestamp.Time
-		if jTime.IsZero() {
-			jTime = filtered[j].EventTime.Time
+		bTime := b.LastTimestamp.Time
+		if bTime.IsZero() {
+			bTime = b.EventTime.Time
 		}
-		return iTime.After(jTime)
+		return bTime.Compare(aTime)
 	})
 
 	count := min(limit, len(filtered))

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -25,16 +24,17 @@ import (
 type Server struct {
 	logger        *zap.Logger
 	configMgr     *config.Manager
-	lruCacheMgr   *cache.MemoryCache[interface{}]
+	lruCacheMgr   *cache.MemoryCache[any]
 	k8sClientMgr  *service.ClientManager
 	httpServer    *http.Server
 	jwtMiddleware *middleware.JWTMiddleware
+	wsMgr         *api.WebSocketManager
 }
 
 func NewServer(
 	logger *zap.Logger,
 	configMgr *config.Manager,
-	lruCacheMgr *cache.MemoryCache[interface{}],
+	lruCacheMgr *cache.MemoryCache[any],
 	k8sClientMgr *service.ClientManager,
 ) *Server {
 	return &Server{
@@ -79,13 +79,10 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.jwtMiddleware.Close()
 	}
 
-	if wsMgr := api.GetWebSocketManager(); wsMgr != nil {
-		if ctx == nil {
-			ctx = context.Background()
-		}
+	if s.wsMgr != nil {
 		wsCtx, wsCancel := context.WithTimeout(ctx, 10*time.Second)
 		defer wsCancel()
-		if err := wsMgr.Shutdown(wsCtx); err != nil {
+		if err := s.wsMgr.Shutdown(wsCtx); err != nil {
 			s.logger.Warn("WebSocket shutdown timed out, proceeding with server shutdown", zap.Error(err))
 		} else {
 			s.logger.Info("All WebSocket connections closed gracefully")
@@ -191,13 +188,13 @@ func (s *Server) healthCheckHandler(c *gin.Context) {
 
 func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
 	cfg := s.configMgr.GetConfig()
-	api.InitWebSocketManager(cfg.Server.MaxWsConnections)
+	s.wsMgr = api.NewWebSocketManager(cfg.Server.MaxWsConnections)
 
 	api.RegisterOverview(apiGroup, s.logger, s.getK8sClient)
 
 	api.RegisterOperations(apiGroup, s.logger, s.getK8sClient)
-	api.RegisterExecWS(apiGroup, s.logger, &serverClientProvider{mgr: s.k8sClientMgr}, s.configMgr)
-	api.RegisterLogStream(apiGroup, s.logger, s.getK8sClient, s.configMgr)
+	api.RegisterExecWS(apiGroup, s.logger, &serverClientProvider{mgr: s.k8sClientMgr}, s.configMgr, s.wsMgr)
+	api.RegisterLogStream(apiGroup, s.logger, s.getK8sClient, s.configMgr, s.wsMgr)
 	api.RegisterRoutes(apiGroup, s.logger, s.getK8sClient, s.lruCacheMgr)
 	api.RegisterPasswordAdmin(apiGroup, s.configMgr, s.logger)
 	api.RegisterArgoCDRoutes(apiGroup, s.logger, s.k8sClientMgr)
@@ -230,7 +227,7 @@ func (s *serverClientProvider) GetRESTConfig(cluster string) (*rest.Config, erro
 	return cfg, nil
 }
 
-func (s *Server) getK8sClient(cluster string) (kubernetes.Interface, interface{}, error) {
+func (s *Server) getK8sClient(cluster string) (kubernetes.Interface, any, error) {
 	if s.k8sClientMgr == nil {
 		return nil, nil, fmt.Errorf("kubernetes client manager unavailable")
 	}

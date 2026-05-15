@@ -304,7 +304,6 @@ func (h *PasswordHandler) ChangePassword() gin.HandlerFunc {
 
 		newHashedPassword, err := h.passwordManager.HashPassword(req.NewPassword)
 		if err != nil {
-			h.logger.Error("Failed to hash password", zap.Error(err))
 			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    model.CodeInternalServerError,
 				Message: "Password processing failed",

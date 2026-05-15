@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	JWTIssuer           = "k8svision"
-	JWTAudience         = "k8svision-client"
+	JWTIssuer             = "k8svision"
+	JWTAudience           = "k8svision-client"
 	webSocketAuthProtocol = "k8svision.auth"
 )
 
@@ -53,10 +53,6 @@ func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.Handle
 		tokenStr := getTokenFromRequest(c)
 
 		if tokenStr == "" {
-			m.logger.Warn("missing authorization",
-				zap.String("traceId", traceId),
-				zap.String("clientIP", c.ClientIP()),
-			)
 			ResponseError(c, m.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Unauthorized access",
@@ -67,7 +63,6 @@ func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.Handle
 
 		tokenStr = strings.TrimPrefix(tokenStr, "Bearer ")
 		if tokenStr == "" {
-			m.logger.Warn("empty token", zap.String("traceId", traceId))
 			ResponseError(c, m.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Token cannot be empty",
@@ -78,10 +73,6 @@ func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.Handle
 
 		username, jti, err := m.verifyAndSetClaims(c, tokenStr, configProvider)
 		if err != nil {
-			m.logger.Warn("token verification failed",
-				zap.String("traceId", traceId),
-				zap.Error(err),
-			)
 			ResponseError(c, m.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Token verification failed",
@@ -92,10 +83,6 @@ func (m *JWTMiddleware) AuthMiddleware(configProvider ConfigProvider) gin.Handle
 
 		// 检查 token 是否在黑名单中
 		if jti != "" && m.blacklist.IsBlacklisted(jti) {
-			m.logger.Warn("token is blacklisted",
-				zap.String("traceId", traceId),
-				zap.String("jti", jti),
-			)
 			ResponseError(c, m.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Token has been revoked",
@@ -174,7 +161,7 @@ func verifyToken(tokenStr string, configProvider ConfigProvider) (jwt.MapClaims,
 		return nil, err
 	}
 
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
@@ -241,7 +228,7 @@ func VerifyToken(tokenStr string, secret []byte) (jwt.MapClaims, error) {
 		return nil, errors.New("JWT secret not configured")
 	}
 
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}

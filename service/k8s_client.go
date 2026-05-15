@@ -34,15 +34,15 @@ type ClientHolder struct {
 }
 
 type ClientManager struct {
-	configMgr        *config.Manager
-	logger           *zap.Logger
-	defaultClient    *ClientHolder
-	clientPool       sync.Map
-	healthInterval   time.Duration
-	stopCh           chan struct{}
-	argocdManager    *ArgoCDManager
-	crdManager       *CRDManager
-	crdManagerPool   sync.Map
+	configMgr         *config.Manager
+	logger            *zap.Logger
+	defaultClient     *ClientHolder
+	clientPool        sync.Map
+	healthInterval    time.Duration
+	stopCh            chan struct{}
+	argocdManager     *ArgoCDManager
+	crdManager        *CRDManager
+	crdManagerPool    sync.Map
 	argocdManagerPool sync.Map
 }
 
@@ -106,9 +106,6 @@ func (h *ClientHolder) GetClientset() (*kubernetes.Clientset, error) {
 }
 
 func (h *ClientHolder) GetServerVersion() string {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
 	info, err := h.clientset.Discovery().ServerVersion()
 	if err != nil {
 		return "unknown"
@@ -267,7 +264,9 @@ func (m *ClientManager) GetCRDManagerForCluster(cluster string) (*CRDManager, er
 		return m.crdManager, nil
 	}
 	if cached, ok := m.crdManagerPool.Load(cluster); ok {
-		return cached.(*CRDManager), nil
+		if mgr, ok := cached.(*CRDManager); ok {
+			return mgr, nil
+		}
 	}
 	restConfig := m.GetClientRESTConfig(cluster)
 	if restConfig == nil {
@@ -286,7 +285,9 @@ func (m *ClientManager) GetArgoCDManagerForCluster(cluster string) (*ArgoCDManag
 		return m.argocdManager, nil
 	}
 	if cached, ok := m.argocdManagerPool.Load(cluster); ok {
-		return cached.(*ArgoCDManager), nil
+		if mgr, ok := cached.(*ArgoCDManager); ok {
+			return mgr, nil
+		}
 	}
 	restConfig := m.GetClientRESTConfig(cluster)
 	if restConfig == nil {
@@ -306,8 +307,9 @@ func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, er
 	}
 
 	if client, ok := m.clientPool.Load(clusterName); ok {
-		holder := client.(*ClientHolder)
-		return holder.GetClientset()
+		if holder, ok := client.(*ClientHolder); ok {
+			return holder.GetClientset()
+		}
 	}
 
 	m.logger.Warn("cluster not found, falling back to default", zap.String("cluster", clusterName))
@@ -319,10 +321,11 @@ func (m *ClientManager) GetClientRESTConfig(clusterName string) *rest.Config {
 		return m.GetDefaultRESTConfig()
 	}
 	if client, ok := m.clientPool.Load(clusterName); ok {
-		holder := client.(*ClientHolder)
-		holder.mu.RLock()
-		defer holder.mu.RUnlock()
-		return holder.config
+		if holder, ok := client.(*ClientHolder); ok {
+			holder.mu.RLock()
+			defer holder.mu.RUnlock()
+			return holder.config
+		}
 	}
 	return nil
 }
@@ -334,7 +337,9 @@ func (m *ClientManager) AddCluster(name string, k8sConfig *model.KubernetesConfi
 	}
 
 	if old, ok := m.clientPool.Load(name); ok {
-		old.(*ClientHolder).Close()
+		if holder, ok := old.(*ClientHolder); ok {
+			holder.Close()
+		}
 	}
 
 	holder, err := NewClientHolder(restConfig, m.logger.With(zap.String("cluster", name)))
@@ -350,8 +355,10 @@ func (m *ClientManager) AddCluster(name string, k8sConfig *model.KubernetesConfi
 func (m *ClientManager) GetClusterNames() []string {
 	var names []string
 	names = append(names, "default")
-	m.clientPool.Range(func(key, _ interface{}) bool {
-		names = append(names, key.(string))
+	m.clientPool.Range(func(key, _ any) bool {
+		if name, ok := key.(string); ok {
+			names = append(names, name)
+		}
 		return true
 	})
 	return names
@@ -365,10 +372,12 @@ func (m *ClientManager) GetClustersHealth(ctx context.Context) []model.ClusterHe
 	healthList = append(healthList, defaultHealth)
 
 	// named clusters
-	m.clientPool.Range(func(key, value interface{}) bool {
-		name := key.(string)
-		holder := value.(*ClientHolder)
-		healthList = append(healthList, m.collectHealth(ctx, name, holder))
+	m.clientPool.Range(func(key, value any) bool {
+		name, _ := key.(string)
+		holder, _ := value.(*ClientHolder)
+		if holder != nil {
+			healthList = append(healthList, m.collectHealth(ctx, name, holder))
+		}
 		return true
 	})
 
@@ -431,9 +440,10 @@ func (m *ClientManager) startHealthMonitor() {
 
 func (m *ClientManager) checkAllClients() {
 	m.defaultClient.checkHealth()
-	m.clientPool.Range(func(key, value interface{}) bool {
-		holder := value.(*ClientHolder)
-		holder.checkHealth()
+	m.clientPool.Range(func(key, value any) bool {
+		if holder, ok := value.(*ClientHolder); ok {
+			holder.checkHealth()
+		}
 		return true
 	})
 }
@@ -441,18 +451,19 @@ func (m *ClientManager) checkAllClients() {
 func (m *ClientManager) Close() {
 	close(m.stopCh)
 	m.defaultClient.Close()
-	m.clientPool.Range(func(key, value interface{}) bool {
-		holder := value.(*ClientHolder)
-		holder.Close()
+	m.clientPool.Range(func(key, value any) bool {
+		if holder, ok := value.(*ClientHolder); ok {
+			holder.Close()
+		}
 		return true
 	})
 	m.argocdManager = nil
 	m.crdManager = nil
-	m.crdManagerPool.Range(func(key, value interface{}) bool {
+	m.crdManagerPool.Range(func(key, value any) bool {
 		m.crdManagerPool.Delete(key)
 		return true
 	})
-	m.argocdManagerPool.Range(func(key, value interface{}) bool {
+	m.argocdManagerPool.Range(func(key, value any) bool {
 		m.argocdManagerPool.Delete(key)
 		return true
 	})

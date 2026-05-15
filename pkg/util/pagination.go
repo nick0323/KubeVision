@@ -87,11 +87,11 @@ func matchesSearch(item model.SearchableItem, searchLower string) bool {
 	return false
 }
 
-func getFieldValue(item interface{}, fieldName string) string {
+func getFieldValue(item any, fieldName string) string {
 	if item == nil {
 		return ""
 	}
-	if m, ok := item.(map[string]interface{}); ok {
+	if m, ok := item.(map[string]any); ok {
 		if val, exists := m[fieldName]; exists {
 			return fmt.Sprintf("%v", val)
 		}

@@ -16,12 +16,12 @@ import (
 const maxRelatedResources = 100
 
 type findContext struct {
-	obj       interface{}
+	obj       any
 	ctx       context.Context
 	clientset kubernetes.Interface
 	namespace string
 	logger    *zap.Logger
-	result    []interface{}
+	result    []any
 }
 
 type RelatedResourceFinder interface {
@@ -53,20 +53,20 @@ func init() {
 }
 
 func FindRelatedResources(
-	obj interface{},
+	obj any,
 	resourceType string,
 	namespace string,
 	clientset kubernetes.Interface,
 	ctx context.Context,
 	logger *zap.Logger,
-) []interface{} {
+) []any {
 	fc := &findContext{
 		obj:       obj,
 		ctx:       ctx,
 		clientset: clientset,
 		namespace: namespace,
 		logger:    logger,
-		result:    make([]interface{}, 0, 50),
+		result:    make([]any, 0, 50),
 	}
 
 	var finder RelatedResourceFinder

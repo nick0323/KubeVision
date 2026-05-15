@@ -66,18 +66,18 @@ func (m *CRDManager) ListCRDs(ctx context.Context) ([]CRDSummary, error) {
 	}
 
 	type crdInfo struct {
-		name        string
-		group       string
-		scope       string
-		plural      string
-		kind        string
+		name         string
+		group        string
+		scope        string
+		plural       string
+		kind         string
 		versionToUse string
 	}
 
 	crdInfos := make([]crdInfo, 0, len(list.Items))
 	for _, crd := range list.Items {
 		name := crd.GetName()
-		spec, ok := crd.Object["spec"].(map[string]interface{})
+		spec, ok := crd.Object["spec"].(map[string]any)
 		if !ok {
 			continue
 		}
@@ -87,7 +87,7 @@ func (m *CRDManager) ListCRDs(ctx context.Context) ([]CRDSummary, error) {
 		plural := ""
 		kind := ""
 
-		names, ok := spec["names"].(map[string]interface{})
+		names, ok := spec["names"].(map[string]any)
 		if ok {
 			if p, _ := names["plural"].(string); p != "" {
 				plural = p
@@ -99,10 +99,10 @@ func (m *CRDManager) ListCRDs(ctx context.Context) ([]CRDSummary, error) {
 
 		storageVersion := ""
 		servedVersions := []string{}
-		versions, ok := spec["versions"].([]interface{})
+		versions, ok := spec["versions"].([]any)
 		if ok {
 			for _, v := range versions {
-				ver, ok := v.(map[string]interface{})
+				ver, ok := v.(map[string]any)
 				if !ok {
 					continue
 				}

@@ -9,6 +9,8 @@ import { notification } from '../common/NotificationContext';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { ArgoCDApplication } from '../types/argocd';
 import { FaCheckCircle, FaExclamationTriangle, FaSync, FaHourglassHalf, FaCheck, FaTimes } from 'react-icons/fa';
+import Tippy from '@tippyjs/react';
+import { ConfirmModal } from '../common/ConfirmModal';
 import '../styles/argocd-page.css';
 
 function shortSha(rev?: string): string {
@@ -30,6 +32,7 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
   const [refreshKey, setRefreshKey] = useState(0);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const fetchApps = useCallback(async () => {
     setLoading(true);
@@ -92,10 +95,14 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
     }
   };
 
-  const handleDelete = async (name: string) => {
-    if (!window.confirm(`Are you sure you want to delete application "${name}"?`)) {
-      return;
-    }
+  const handleDelete = (name: string) => {
+    setDeleteTarget(name);
+  };
+
+  const handleConfirmDelete = async () => {
+    const name = deleteTarget;
+    if (!name) return;
+    setDeleteTarget(null);
     setActionLoading(prev => ({ ...prev, [`${name}-delete`]: true }));
     try {
       await apiClient.delete(`/api/v1/argocd/apps/${name}`);
@@ -106,6 +113,10 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
     } finally {
       setActionLoading(prev => ({ ...prev, [`${name}-delete`]: false }));
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteTarget(null);
   };
 
   const getStatusColor = (status?: string) => {
@@ -251,7 +262,9 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
                   </div>
                   <div className="app-info-row">
                     <span className="app-info-label">Repo:</span>
-                    <span className="app-info-value app-info-value--repo">{app.spec.source.repoURL}</span>
+                    <Tippy content={app.spec.source.repoURL} theme="light" placement="top" arrow={true} duration={200}>
+                      <span className="app-info-value app-info-value--repo">{app.spec.source.repoURL}</span>
+                    </Tippy>
                   </div>
                   {app.spec.source.path && (
                     <div className="app-info-row">
@@ -353,6 +366,15 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
           </div>
         )}
       </div>
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete Application"
+        message={`Are you sure you want to delete application "${deleteTarget}"?`}
+        confirmText="Delete"
+        danger
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </div>
   );
 };

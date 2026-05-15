@@ -151,7 +151,7 @@ func (am *AuthManager) GetLockTime(username, ip string) time.Duration {
 	return time.Until(attempt.LockUntil)
 }
 
-func (am *AuthManager) GetStats() map[string]interface{} {
+func (am *AuthManager) GetStats() map[string]any {
 	totalAttempts := 0
 	lockedCount := 0
 
@@ -172,7 +172,7 @@ func (am *AuthManager) GetStats() map[string]interface{} {
 	}
 
 	authConfig := am.config.GetAuthConfig()
-	return map[string]interface{}{
+	return map[string]any{
 		"totalAttempts": totalAttempts,
 		"lockedUsers":   lockedCount,
 		"maxFailCount":  authConfig.MaxLoginFail,

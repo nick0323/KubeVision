@@ -33,7 +33,7 @@ func RegisterOverview(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sCl
 			key = "default"
 		}
 		svcVal, _ := svcs.LoadOrStore(key, service.NewOverviewService(clientset, metricsClient))
-		svc := svcVal.(*service.OverviewService)
+		svc, _ := svcVal.(*service.OverviewService)
 
 		overview, err := svc.GetOverview(GetRequestContext(c))
 		if err != nil {

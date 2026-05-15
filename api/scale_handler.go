@@ -42,7 +42,6 @@ func scaleResource(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Handl
 
 		ctx := GetRequestContext(c)
 		if err := service.ScaleResource(ctx, clientset, resourceType, namespace, name, req.Replicas); err != nil {
-			logger.Error("Failed to scale resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -71,7 +70,6 @@ func restartResource(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Han
 
 		ctx := GetRequestContext(c)
 		if err := service.RestartResource(ctx, clientset, resourceType, namespace, name); err != nil {
-			logger.Error("Failed to restart resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}

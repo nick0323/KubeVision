@@ -49,7 +49,7 @@ type PaginationParams struct {
 	SortOrder string
 }
 
-type K8sClientProvider func(cluster string) (kubernetes.Interface, interface{}, error)
+type K8sClientProvider func(cluster string) (kubernetes.Interface, any, error)
 
 func ParsePaginationParams(c *gin.Context) PaginationParams {
 	limit := model.DefaultPageSize

@@ -6,12 +6,12 @@ const (
 	Version         = "2.0.0-optimized"
 	MonitorInterval = 5 * time.Minute
 
-	HealthCheckPath = "/health"
-	APIPrefix       = "/api/v1"
-	APILegacyPrefix = "/api"
-	LoginPath       = "/api/v1/login"
-	LoginLegacyPath = "/api/login"
-	RefreshPath     = "/api/v1/refresh"
+	HealthCheckPath   = "/health"
+	APIPrefix         = "/api/v1"
+	APILegacyPrefix   = "/api"
+	LoginPath         = "/api/v1/login"
+	LoginLegacyPath   = "/api/login"
+	RefreshPath       = "/api/v1/refresh"
 	RefreshLegacyPath = "/api/refresh"
 
 	WorkloadAvailable   = "Available"

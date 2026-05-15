@@ -46,7 +46,7 @@ func UpdateResourceByType(ctx context.Context, clientset kubernetes.Interface, r
 	}
 
 	if err := json.Unmarshal(jsonBytes, obj); err != nil {
-		return fmt.Errorf("invalid %s object: %v", resourceType, err)
+		return fmt.Errorf("invalid %s object: %w", resourceType, err)
 	}
 
 	// 将最新资源的 resourceVersion 应用到更新对象上
@@ -94,7 +94,7 @@ func CreateResourceByType(ctx context.Context, clientset kubernetes.Interface, r
 }
 
 // resourceFactory creates a new instance of the specified resource type
-func resourceFactory(resourceType string) (interface{}, error) {
+func resourceFactory(resourceType string) (any, error) {
 	switch resourceType {
 	case "pod":
 		return &v1.Pod{}, nil
@@ -156,7 +156,7 @@ func resourceFactory(resourceType string) (interface{}, error) {
 }
 
 // getResourceVersion extracts ResourceVersion from any K8s object
-func getResourceVersion(obj interface{}) string {
+func getResourceVersion(obj any) string {
 	val := reflect.ValueOf(obj)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -175,7 +175,7 @@ func getResourceVersion(obj interface{}) string {
 	return rv.String()
 }
 
-func unmarshalResource(resourceType string, jsonBytes []byte) (interface{}, error) {
+func unmarshalResource(resourceType string, jsonBytes []byte) (any, error) {
 	obj, err := resourceFactory(resourceType)
 	if err != nil {
 		return nil, err
@@ -194,7 +194,7 @@ func unmarshalResource(resourceType string, jsonBytes []byte) (interface{}, erro
 }
 
 // unmarshalResourceForCreate 解析资源用于创建（不需要 resourceVersion）
-func unmarshalResourceForCreate(resourceType string, jsonBytes []byte) (interface{}, error) {
+func unmarshalResourceForCreate(resourceType string, jsonBytes []byte) (any, error) {
 	obj, err := resourceFactory(resourceType)
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func unmarshalResourceForCreate(resourceType string, jsonBytes []byte) (interfac
 }
 
 // clearResourceVersion 清除资源的 resourceVersion（用于创建新资源）
-func clearResourceVersion(obj interface{}) {
+func clearResourceVersion(obj any) {
 	val := reflect.ValueOf(obj)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -239,7 +239,7 @@ func clearResourceVersion(obj interface{}) {
 }
 
 // copyResourceVersion 将源资源的 resourceVersion 复制到目标资源（用于更新操作）
-func copyResourceVersion(src, dst interface{}) {
+func copyResourceVersion(src, dst any) {
 	srcVal := reflect.ValueOf(src)
 	if srcVal.Kind() == reflect.Ptr {
 		srcVal = srcVal.Elem()

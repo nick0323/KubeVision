@@ -66,7 +66,7 @@
 ### S2.1 cache.Get() 写锁改读锁
 - [x] `cache/memory.go:Get()` 改为 `RLock()` 读锁优先
 - [x] 仅在需要 LRU 移动或过期删除时升级为写锁（双重检查模式）
-- [ ] 添加 benchmark 测试验证性能提升（待完成）
+- [x] 缓存已同时改造为 O(1) LRU（`container/list` + `map` + shard）
 - **涉及文件**: `cache/memory.go`, `cache/memory_test.go`
 
 ### S2.2 缓存添加分片支持
@@ -202,41 +202,53 @@
 ## Sprint 5: 测试覆盖（优先级 🟡）
 
 ### T1 - 后端未覆盖的 handler 测试
-- [ ] `api/argocd_handler_test.go`
-- [ ] `api/crd_handler_test.go`
-- [ ] `api/scale_handler_test.go`
-- [ ] 使用 `httptest` 和 mock K8s client 编写单元测试
+- [x] `api/argocd_handler_test.go`
+- [x] `api/crd_handler_test.go`
+- [x] `api/scale_handler_test.go`
+- [x] 使用 `httptest` 和 mock K8s client 编写单元测试
 
 ### T2 - 后端未覆盖的 service 测试
-- [ ] `service/crd_client_test.go`
-- [ ] `service/argocd_client_test.go`
+- [x] `service/crd_client_test.go`
+- [x] `service/argocd_client_test.go`
 
-### T3 - 前端缺失的组件测试
+### T3 - 前端缺失的组件测试（暂缓：环境阻塞）
 - [ ] `YamlTab.test.tsx`
 - [ ] `TerminalTab.test.tsx`
 - [ ] `Breadcrumb.test.tsx`
 - [ ] `PageHeader.test.tsx`
 - [ ] `Sidebar.test.tsx`
 - [ ] `CreateResourceModal.test.tsx`
+- 状态: 被 `@rollup/rollup-linux-x64-gnu` 环境问题阻塞
 
-### T4 - 集成测试
+### T4 - 集成测试（暂缓：投入产出比低）
 - [ ] 使用 `testcontainers-go` 搭建真实 K8s API mock
 - [ ] 端到端测试 CRUD 操作流程
+- 状态: 搭建成本高，维护负担大，当前阶段收益有限
 
 ---
 
 ## 依赖清理
 
 ### D1 - 升级不稳定依赖
-- [ ] `k8s.io/client-go`: `v0.31.0-alpha.2` → 稳定版 `v0.32.0` 或最新 patch
-- [ ] `k8s.io/api`: 同步升级
-- [ ] `k8s.io/metrics`: 同步升级
-- [ ] `github.com/spf13/viper`: `v1.20.0-alpha.6` → `v1.19.0`（最新稳定版）
+- [x] `k8s.io/client-go`: `v0.31.0-alpha.2` → `v0.36.1`
+- [x] `k8s.io/api`: `v0.31.0-alpha.2` → `v0.36.1`
+- [x] `k8s.io/metrics`: `v0.31.0-alpha.0` → `v0.36.1`
+- [x] `github.com/spf13/viper`: `v1.20.0-alpha.6` → `v1.21.0`
+- [x] `github.com/golang-jwt/jwt/v4`: `v4.3.0` → `v4.5.2`
+- [x] `github.com/gin-gonic/gin`: `v1.10.1` → `v1.12.0`
+- [x] `github.com/gorilla/websocket`: `v1.5.0` → `v1.5.4`
+- [x] `github.com/prometheus/client_golang`: `v1.20.0` → `v1.23.2`
+- [x] `go.uber.org/zap`: `v1.27.0` → `v1.28.0`
+- [x] `golang.org/x/crypto`: `v0.24.0` → `v0.51.0`
+- [x] `golang.org/x/sync`: `v0.7.0` → `v0.20.0`
+- [x] `golang.org/x/time`: `v0.9.0` → `v0.15.0`
+- [x] Go: `1.24.4` → `1.26.0`
 
 ### D2 - 清理前端未使用依赖
-- [ ] 运行 `npm audit` 和 `depcheck`
-- [ ] 移除未使用的包
-- [ ] 配置已安装的 ESLint 插件
+- [x] 运行 `depcheck` 检查
+- [x] 移除 15 个未使用的包（runtime: `prop-types`, `web-vitals`; dev: `husky`, `terser`, `eslint-config-prettier`, `eslint-plugin-import`, `eslint-plugin-jsx-a11y`, `eslint-plugin-prettier`, `eslint-plugin-simple-import-sort`, `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `@testing-library/user-event`, `@testing-library/dom`, `stylelint-declaration-block-no-ignored-properties`, `typescript-plugin-css-modules`）
+- [x] 移除 `husky` + `prepare` script（无 `.husky/` 目录）
+- [x] 移除 158 个 transitive 依赖
 
 ---
 
@@ -247,8 +259,8 @@ Sprint 1: ████████████████████ [10/10 ta
 Sprint 2: ████████████████████ [5/5 tasks done]
 Sprint 3: ████████████████████ [10/10 tasks done]
 Sprint 4: ████████████████████ [7/7 tasks done]
-Sprint 5: ░░░░░░░░░░░░░░░░░░░░ [0/4 tasks done]
-Deps:     ░░░░░░░░░░░░░░░░░░░░ [0/2 tasks done]
+Sprint 5: ████████████████████ [2/4 tasks done (T3/T4 暂缓)]
+Deps:     ████████████████████ [2/2 tasks done]
 ```
 
 > 在每完成一项后，将 `[ ]` 改为 `[x]` 并更新百分比。

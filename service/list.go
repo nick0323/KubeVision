@@ -239,7 +239,7 @@ func ListSecrets(ctx context.Context, clientset kubernetes.Interface, namespace,
 	return MapSecrets(secretList.Items), nil
 }
 
-func ListNodes(ctx context.Context, clientset kubernetes.Interface, metricsClient interface{}, pods *corev1.PodList, labelSelector, fieldSelector string) ([]model.Node, error) {
+func ListNodes(ctx context.Context, clientset kubernetes.Interface, metricsClient any, pods *corev1.PodList, labelSelector, fieldSelector string) ([]model.Node, error) {
 	opts := DefaultListOptions()
 	opts.LabelSelector = labelSelector
 	opts.FieldSelector = fieldSelector

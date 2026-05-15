@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -29,9 +28,7 @@ const (
 	MaxExecConnections = 100
 )
 
-var (
-	namespaceRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
-)
+var ()
 
 type ExecClientProvider interface {
 	GetClientset(cluster string) (*kubernetes.Clientset, error)
@@ -65,13 +62,13 @@ func (t *termSizeQueue) Next() *remotecommand.TerminalSize {
 
 func (w *wsInput) Read(p []byte) (int, error) {
 	w.mu.Lock()
-	defer w.mu.Unlock()
-
 	if len(w.buf) > 0 {
 		n := copy(p, w.buf)
 		w.buf = w.buf[n:]
+		w.mu.Unlock()
 		return n, nil
 	}
+	w.mu.Unlock()
 
 	for {
 		_, message, err := w.conn.ReadMessage()
@@ -89,10 +86,12 @@ func (w *wsInput) Read(p []byte) (int, error) {
 			continue
 		}
 
+		w.mu.Lock()
 		if len(message) > len(p) {
 			w.buf = append([]byte(nil), message[len(p):]...)
 		}
 		n := copy(p, message)
+		w.mu.Unlock()
 		return n, nil
 	}
 }
@@ -108,48 +107,46 @@ func (w *wsOutput) Write(p []byte) (int, error) {
 	return len(p), w.conn.WriteMessage(websocket.BinaryMessage, p)
 }
 
-func RegisterExecWS(r *gin.RouterGroup, logger *zap.Logger, execClientProvider ExecClientProvider, configProvider middleware.ConfigProvider) {
-	r.GET("/ws/exec", HandleExecWS(logger, execClientProvider, configProvider))
+func RegisterExecWS(r *gin.RouterGroup, logger *zap.Logger, execClientProvider ExecClientProvider, configProvider middleware.ConfigProvider, wsMgr *WebSocketManager) {
+	r.GET("/ws/exec", HandleExecWS(logger, execClientProvider, configProvider, wsMgr))
 }
 
-func HandleExecWS(logger *zap.Logger, execClientProvider ExecClientProvider, configProvider middleware.ConfigProvider) gin.HandlerFunc {
+func HandleExecWS(logger *zap.Logger, execClientProvider ExecClientProvider, configProvider middleware.ConfigProvider, wsMgr *WebSocketManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenStr := ExtractTokenFromRequest(c)
 		if tokenStr == "" {
-			logger.Warn("WebSocket exec missing token")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		claims, err := middleware.VerifyToken(tokenStr, configProvider.GetJWTSecret())
 		if err != nil {
-			logger.Warn("WebSocket exec token verification failed", zap.Error(err))
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
 		username, _ := claims["username"].(string)
-		handleExecWSImpl(c, logger, execClientProvider, username)
+		handleExecWSImpl(c, logger, execClientProvider, username, wsMgr)
 		c.Abort()
 	}
 }
 
-func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider ExecClientProvider, username string) {
+func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider ExecClientProvider, username string, wsMgr *WebSocketManager) {
 	namespace := c.Query("namespace")
 	podName := c.Query("pod")
 	container := c.Query("container")
 	commandStr := c.Query("command")
 
-	if err := validateExecParams(namespace, podName); err != nil {
+	if err := validateExecParams(namespace, podName, container); err != nil {
 		middleware.ResponseError(c, logger, err, http.StatusBadRequest)
 		return
 	}
 
-	if err := checkExecConnectionLimit(logger, username); err != nil {
+	if err := checkExecConnectionLimit(wsMgr, logger, username); err != nil {
 		middleware.ResponseError(c, logger, err, http.StatusServiceUnavailable)
 		return
 	}
-	defer globalWSManager.Release()
+	defer wsMgr.Release()
 
 	cluster := c.Query("cluster")
 	clientset, config, err := getExecClient(execClientProvider, cluster)
@@ -175,24 +172,30 @@ func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider Exe
 		middleware.ResponseError(c, logger, err, http.StatusBadRequest)
 		return
 	}
-	execCtx := globalWSManager.ShutdownCtx(c.Request.Context())
+	execCtx := wsMgr.ShutdownCtx(c.Request.Context())
 	executeRemoteCommand(execCtx, ws, clientset, config, pod, container, command, logger)
 }
 
-func validateExecParams(namespace, podName string) error {
-	if !isValidNamespace(namespace) {
+func validateExecParams(namespace, podName, container string) error {
+	if !isValidResourceName(namespace) {
 		return fmt.Errorf("invalid namespace format")
 	}
-	if podName == "" {
-		return fmt.Errorf("missing pod name")
+	if !isValidResourceName(podName) {
+		return fmt.Errorf("invalid pod name format")
+	}
+	if container != "" && !isValidResourceName(container) {
+		return fmt.Errorf("invalid container name format")
+	}
+	if namespace == "" || podName == "" {
+		return fmt.Errorf("namespace and pod name are required")
 	}
 	return nil
 }
 
-func checkExecConnectionLimit(logger *zap.Logger, username string) error {
-	err := globalWSManager.Acquire()
+func checkExecConnectionLimit(wsMgr *WebSocketManager, logger *zap.Logger, username string) error {
+	err := wsMgr.Acquire()
 	if err != nil {
-		logger.Warn("exec connection limit reached", zap.Int32("active", globalWSManager.ActiveCount()), zap.String("user", username))
+		logger.Warn("exec connection limit reached", zap.Int32("active", wsMgr.ActiveCount()), zap.String("user", username))
 		return fmt.Errorf("service busy, please try again later")
 	}
 	return nil
@@ -313,13 +316,6 @@ func sendWebSocketError(ws *websocket.Conn, msg string, logger *zap.Logger) {
 	if err := ws.WriteJSON(gin.H{"type": "error", "message": msg}); err != nil {
 		logger.Error("Failed to send error message", zap.Error(err))
 	}
-}
-
-func isValidNamespace(namespace string) bool {
-	if namespace == "" || len(namespace) > 63 {
-		return false
-	}
-	return namespaceRegex.MatchString(namespace)
 }
 
 func hasContainer(pod *v1.Pod, containerName string) bool {

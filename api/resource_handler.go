@@ -62,7 +62,7 @@ func writePaginatedCachedResponse(c *gin.Context, items []model.SearchableItem) 
 	})
 }
 
-func RegisterRoutes(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sClientProvider, cacheMgr *cache.MemoryCache[interface{}]) {
+func RegisterRoutes(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sClientProvider, cacheMgr *cache.MemoryCache[any]) {
 	r.GET("/:resourceType", getResourceList(logger, getK8sClient, cacheMgr))
 	r.GET("/:resourceType/:namespace/:name", getResourceDetail(logger, getK8sClient, cacheMgr))
 	// 注意: DELETE 操作是危险操作，生产环境建议添加额外的权限验证
@@ -70,7 +70,7 @@ func RegisterRoutes(r *gin.RouterGroup, logger *zap.Logger, getK8sClient K8sClie
 }
 
 // getResourceList 获取资源列表
-func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider, cacheMgr *cache.MemoryCache[interface{}]) gin.HandlerFunc {
+func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider, cacheMgr *cache.MemoryCache[any]) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		resourceType := c.Param("resourceType")
 		if resourceType == "" {
@@ -143,11 +143,13 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider, cacheMg
 		}
 
 		// 按 owner UID 过滤
+		// note: toSearchableItems stores value types in the interface,
+		// so we assert model.Pod not *model.Pod
 		if ownerUid != "" && strings.ToLower(resourceType) == "pod" {
 			pods := make([]model.Pod, 0, len(result))
 			for _, item := range result {
-				if pod, ok := item.(*model.Pod); ok {
-					pods = append(pods, *pod)
+				if pod, ok := item.(model.Pod); ok {
+					pods = append(pods, pod)
 				}
 			}
 			filteredPods := service.FilterPodsByOwner(ctx, clientset, logger, pods, ownerUid, namespace)
@@ -165,7 +167,7 @@ func getResourceList(logger *zap.Logger, getK8sClient K8sClientProvider, cacheMg
 func getResourceDetail(
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
-	cacheMgr *cache.MemoryCache[interface{}],
+	cacheMgr *cache.MemoryCache[any],
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		resourceType := c.Param("resourceType")
@@ -209,7 +211,6 @@ func getResourceDetail(
 
 		obj, err := service.GetResourceByName(ctx, clientset, resourceType, ns, name)
 		if err != nil {
-			logger.Warn("Failed to get resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusNotFound)
 			return
 		}
@@ -226,7 +227,7 @@ func getResourceDetail(
 func deleteResource(
 	logger *zap.Logger,
 	getK8sClient K8sClientProvider,
-	cacheMgr *cache.MemoryCache[interface{}],
+	cacheMgr *cache.MemoryCache[any],
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		resourceType := c.Param("resourceType")
@@ -261,7 +262,6 @@ func deleteResource(
 
 		err = service.DeleteResourceByType(ctx, clientset, resourceType, ns, name)
 		if err != nil {
-			logger.Error("Failed to delete resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}

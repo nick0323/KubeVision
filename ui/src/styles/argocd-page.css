@@ -152,9 +152,10 @@
 }
 
 .app-info-value--repo {
-  max-width: none;
-  word-break: break-all;
-  white-space: normal;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .operation-badge {

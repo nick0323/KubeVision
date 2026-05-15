@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { FaSync, FaClipboardList, FaTrash, FaPowerOff, FaMinus, FaPlus, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
+import { FaSync, FaClipboardList, FaTrash, FaPowerOff, FaMinus, FaPlus } from 'react-icons/fa';
 import { useConfirm } from '../hooks/useConfirm';
+import { ConfirmModal } from './ConfirmModal';
 import './ResourceActionBar.css';
 
 export interface ResourceActionBarProps {
@@ -100,36 +101,16 @@ export const ResourceActionBar: React.FC<ResourceActionBarProps> = ({
         )}
       </div>
 
-      {/* Confirm Dialog Modal */}
-      {confirming && config && (
-        <div className="confirm-overlay" onClick={onCancel}>
-          <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
-            <div className="confirm-header">
-              <h3 className="confirm-title">
-                <FaExclamationTriangle className="confirm-icon" />
-                {config.title || 'Confirm'}
-              </h3>
-              <button className="confirm-close" onClick={onCancel}>
-                <FaTimes />
-              </button>
-            </div>
-            <div className="confirm-body">
-              <p className="confirm-message">{config.message}</p>
-            </div>
-            <div className="confirm-footer">
-              <button className="confirm-btn cancel" onClick={onCancel}>
-                {config.cancelText || 'Cancel'}
-              </button>
-              <button
-                className={`confirm-btn ${config.danger ? 'danger' : 'primary'}`}
-                onClick={onConfirm}
-              >
-                {config.confirmText || 'Confirm'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={confirming && !!config}
+        title={config?.title}
+        message={config?.message || ''}
+        confirmText={config?.confirmText}
+        cancelText={config?.cancelText}
+        danger={config?.danger}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
     </div>
   );
 };

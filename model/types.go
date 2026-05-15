@@ -324,12 +324,12 @@ type HorizontalPodAutoscaler struct {
 // ==================== 集群健康 ====================
 
 type ClusterHealth struct {
-	Name       string `json:"name"`
-	Healthy    bool   `json:"healthy"`
-	Host       string `json:"host"`
-	Version    string `json:"version"`
-	LastCheck  int64  `json:"lastCheck"`
-	NodeCount  int    `json:"nodeCount"`
+	Name      string `json:"name"`
+	Healthy   bool   `json:"healthy"`
+	Host      string `json:"host"`
+	Version   string `json:"version"`
+	LastCheck int64  `json:"lastCheck"`
+	NodeCount int    `json:"nodeCount"`
 }
 
 // ==================== 接口 ====================

@@ -26,27 +26,6 @@ var (
 		},
 		[]string{"method", "path"},
 	)
-
-	cacheSize = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "kubevision_cache_size",
-			Help: "Current cache size",
-		},
-	)
-
-	cacheHits = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Name: "kubevision_cache_hits_total",
-			Help: "Total number of cache hits",
-		},
-	)
-
-	cacheMisses = promauto.NewCounter(
-		prometheus.CounterOpts{
-			Name: "kubevision_cache_misses_total",
-			Help: "Total number of cache misses",
-		},
-	)
 )
 
 func MetricsMiddleware() gin.HandlerFunc {
@@ -60,10 +39,4 @@ func MetricsMiddleware() gin.HandlerFunc {
 		httpRequestsTotal.WithLabelValues(c.Request.Method, path, status).Inc()
 		httpRequestDuration.WithLabelValues(c.Request.Method, path).Observe(time.Since(start).Seconds())
 	}
-}
-
-func SetCacheMetrics(size int, hits, misses int64) {
-	cacheSize.Set(float64(size))
-	cacheHits.Add(float64(hits))
-	cacheMisses.Add(float64(misses))
 }

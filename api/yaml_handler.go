@@ -90,14 +90,14 @@ func updateResourceYAML(
 		}
 
 		// 解析请求体 - 支持两种格式：{yaml: {...}} 或直接 {...}
-		var reqBody map[string]interface{}
+		var reqBody map[string]any
 		if err := c.ShouldBindJSON(&reqBody); err != nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("invalid request body: %v", err), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("invalid request body: %w", err), http.StatusBadRequest)
 			return
 		}
 
 		// 如果是 {yaml: {...}} 格式，提取 yaml 字段
-		var objData interface{} = reqBody
+		var objData any = reqBody
 		if yamlData, ok := reqBody["yaml"]; ok {
 			objData = yamlData
 		}
@@ -110,7 +110,7 @@ func updateResourceYAML(
 		// 将 map 转换为 JSON 字节
 		jsonBytes, err := json.Marshal(objData)
 		if err != nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("JSON serialization failed: %v", err), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("JSON serialization failed: %w", err), http.StatusBadRequest)
 			return
 		}
 
@@ -126,7 +126,6 @@ func updateResourceYAML(
 		// 根据资源类型调用不同的更新方法
 		err = service.UpdateResourceByType(ctx, clientset, resourceType, namespace, name, jsonBytes)
 		if err != nil {
-			logger.Error("Failed to update resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -150,14 +149,14 @@ func createResourceYAML(
 		}
 
 		// 解析请求体 - 支持两种格式：{yaml: {...}} 或直接 {...}
-		var reqBody map[string]interface{}
+		var reqBody map[string]any
 		if err := c.ShouldBindJSON(&reqBody); err != nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("invalid request body: %v", err), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("invalid request body: %w", err), http.StatusBadRequest)
 			return
 		}
 
 		// 如果是 {yaml: {...}} 格式，提取 yaml 字段
-		var objData interface{} = reqBody
+		var objData any = reqBody
 		if yamlData, ok := reqBody["yaml"]; ok {
 			objData = yamlData
 		}
@@ -171,7 +170,7 @@ func createResourceYAML(
 		// 将 map 转换为 JSON 字节
 		jsonBytes, err := json.Marshal(objData)
 		if err != nil {
-			middleware.ResponseError(c, logger, fmt.Errorf("JSON serialization failed: %v", err), http.StatusBadRequest)
+			middleware.ResponseError(c, logger, fmt.Errorf("JSON serialization failed: %w", err), http.StatusBadRequest)
 			return
 		}
 
@@ -187,7 +186,6 @@ func createResourceYAML(
 		// 创建资源
 		err = service.CreateResourceByType(ctx, clientset, resourceType, jsonBytes)
 		if err != nil {
-			logger.Error("Failed to create resource", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -197,8 +195,8 @@ func createResourceYAML(
 }
 
 // validateResourceType 验证资源类型是否匹配
-func validateResourceType(resourceType string, objData interface{}) error {
-	objMap, ok := objData.(map[string]interface{})
+func validateResourceType(resourceType string, objData any) error {
+	objMap, ok := objData.(map[string]any)
 	if !ok {
 		return fmt.Errorf("invalid resource data format")
 	}

@@ -86,12 +86,7 @@ export function useConfirm() {
   };
 }
 
-/**
- * 简单's浏览器Confirm dialog（备use方案）
- */
-export function browserConfirm(message: string): boolean {
-  return window.confirm(message);
-}
+
 
 /**
  * permission检查工具

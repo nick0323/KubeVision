@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -43,11 +43,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }, autoRemoveDuration);
   }, [removeNotification]);
 
-  // settingsglobal引use
-  useState(() => {
+  useEffect(() => {
     globalAddNotification = addNotification;
-    return undefined;
-  });
+    return () => {
+      globalAddNotification = null;
+    };
+  }, [addNotification]);
 
   return (
     <NotificationContext.Provider value={{ notifications, addNotification, removeNotification }}>

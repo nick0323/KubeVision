@@ -102,7 +102,7 @@ func (h *LoginHandler) sendLockResponse(c *gin.Context, username, clientIP strin
 	middleware.ResponseError(c, h.logger, &model.APIError{
 		Code:    http.StatusTooManyRequests,
 		Message: "Too many login failures, account locked",
-		Details: map[string]interface{}{
+		Details: map[string]any{
 			"remainingAttempts": h.authManager.GetRemainingAttempts(username, clientIP),
 			"maxFailCount":      authConfig.MaxLoginFail,
 			"lockDuration":      authConfig.LockDuration.String(),
@@ -138,7 +138,6 @@ func (h *LoginHandler) handleLoginSuccess(c *gin.Context, username, clientIP str
 	jwtConfig := h.configManager.GetConfig().JWT
 	tokenString, err := h.generateToken(username, jwtConfig)
 	if err != nil {
-		h.logger.Error("Token generation failed", zap.String("username", username), zap.Error(err))
 		middleware.ResponseError(c, h.logger, &model.APIError{
 			Code:    http.StatusInternalServerError,
 			Message: "Token generation failed",
@@ -148,7 +147,6 @@ func (h *LoginHandler) handleLoginSuccess(c *gin.Context, username, clientIP str
 
 	refreshToken, err := h.generateRefreshToken(username, jwtConfig)
 	if err != nil {
-		h.logger.Error("Refresh token generation failed", zap.String("username", username), zap.Error(err))
 		middleware.ResponseError(c, h.logger, &model.APIError{
 			Code:    http.StatusInternalServerError,
 			Message: "Token generation failed",
@@ -179,7 +177,7 @@ func (h *LoginHandler) handleLoginFailure(c *gin.Context, username, clientIP str
 	middleware.ResponseError(c, h.logger, &model.APIError{
 		Code:    http.StatusUnauthorized,
 		Message: "Invalid username or password",
-		Details: map[string]interface{}{
+		Details: map[string]any{
 			"maxFailCount": authConfig.MaxLoginFail,
 		},
 	}, http.StatusUnauthorized)
@@ -268,7 +266,6 @@ func (h *LoginHandler) Refresh(blacklist *middleware.TokenBlacklist) gin.Handler
 
 		claims, err := middleware.VerifyToken(req.RefreshToken, h.configManager.GetJWTSecret())
 		if err != nil {
-			h.logger.Warn("refresh token verification failed", zap.Error(err))
 			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Invalid or expired refresh token",
@@ -277,7 +274,6 @@ func (h *LoginHandler) Refresh(blacklist *middleware.TokenBlacklist) gin.Handler
 		}
 
 		if tokenType, ok := claims["type"].(string); !ok || tokenType != "refresh" {
-			h.logger.Warn("invalid token type for refresh")
 			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    http.StatusUnauthorized,
 				Message: "Invalid token type",
@@ -287,7 +283,6 @@ func (h *LoginHandler) Refresh(blacklist *middleware.TokenBlacklist) gin.Handler
 
 		if jti, ok := claims["jti"].(string); ok && jti != "" && blacklist != nil {
 			if blacklist.IsBlacklisted(jti) {
-				h.logger.Warn("refresh token is blacklisted", zap.String("jti", jti))
 				middleware.ResponseError(c, h.logger, &model.APIError{
 					Code:    http.StatusUnauthorized,
 					Message: "Refresh token has been revoked",
@@ -312,7 +307,6 @@ func (h *LoginHandler) Refresh(blacklist *middleware.TokenBlacklist) gin.Handler
 		jwtConfig := h.configManager.GetConfig().JWT
 		newToken, err := h.generateToken(username, jwtConfig)
 		if err != nil {
-			h.logger.Error("access token generation failed during refresh", zap.Error(err))
 			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    http.StatusInternalServerError,
 				Message: "Token generation failed",
@@ -322,7 +316,6 @@ func (h *LoginHandler) Refresh(blacklist *middleware.TokenBlacklist) gin.Handler
 
 		newRefreshToken, err := h.generateRefreshToken(username, jwtConfig)
 		if err != nil {
-			h.logger.Error("refresh token generation failed during refresh", zap.Error(err))
 			middleware.ResponseError(c, h.logger, &model.APIError{
 				Code:    http.StatusInternalServerError,
 				Message: "Token generation failed",

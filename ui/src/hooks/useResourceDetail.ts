@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { authFetch, withCluster } from '../utils/auth';
+import { apiClient } from '../utils/apiClient';
 import { TIME_CONFIG } from '../constants';
 import type { UseDetailReturn } from '../types';
 
@@ -45,11 +45,11 @@ export function useResourceDetail<T = unknown>(
     setError(null);
 
     try {
-      const url = `/api/${resourceType}/${namespace}/${name}${forceRefresh ? '?force=true' : ''}`;
-      const response = await authFetch(withCluster(url), {
+      const result = await apiClient.request<T>(`/api/${resourceType}/${namespace}/${name}`, {
         signal: controller.signal,
+        params: forceRefresh ? { force: 'true' } : undefined,
+        retry: 0,
       });
-      const result = await response.json();
 
       if (!mountedRef.current) return;
 

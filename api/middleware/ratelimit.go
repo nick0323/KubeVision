@@ -46,7 +46,8 @@ func NewIPRateLimiter(r rate.Limit, b int) *IPRateLimiter {
 
 func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 	actual, _ := i.limiters.LoadOrStore(ip, rate.NewLimiter(i.rate, i.burst))
-	return actual.(*rate.Limiter)
+	limiter, _ := actual.(*rate.Limiter)
+	return limiter
 }
 
 func (i *IPRateLimiter) Middleware() gin.HandlerFunc {

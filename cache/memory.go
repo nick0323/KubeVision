@@ -55,17 +55,17 @@ type cacheShard[T any] struct {
 }
 
 type MemoryCache[T any] struct {
-	shards  []*cacheShard[T]
+	shards    []*cacheShard[T]
 	shardMask uint32
-	maxSize int
-	ttl     time.Duration
-	hits    atomic.Int64
-	misses  atomic.Int64
-	ctx     context.Context
-	cancel  context.CancelFunc
+	maxSize   int
+	ttl       time.Duration
+	hits      atomic.Int64
+	misses    atomic.Int64
+	ctx       context.Context
+	cancel    context.CancelFunc
 }
 
-func NewMemoryCache(config *model.CacheConfig) *MemoryCache[interface{}] {
+func NewMemoryCache(config *model.CacheConfig) *MemoryCache[any] {
 	if config == nil {
 		config = &model.CacheConfig{
 			Enabled:         true,
@@ -84,16 +84,16 @@ func NewMemoryCache(config *model.CacheConfig) *MemoryCache[interface{}] {
 		shardCount = DefaultShardCount
 	}
 
-	shards := make([]*cacheShard[interface{}], shardCount)
+	shards := make([]*cacheShard[any], shardCount)
 	for i := range shards {
-		shards[i] = &cacheShard[interface{}]{
+		shards[i] = &cacheShard[any]{
 			data:    make(map[string]*list.Element, config.MaxSize/shardCount+1),
 			lruList: list.New(),
 		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	cache := &MemoryCache[interface{}]{
+	cache := &MemoryCache[any]{
 		shards:    shards,
 		shardMask: uint32(shardCount - 1),
 		maxSize:   config.MaxSize,
@@ -163,14 +163,17 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 		return zero, false
 	}
 
-	entry := elem.Value.(*cacheEntry[T])
+	entry, ok := elem.Value.(*cacheEntry[T])
+	if !ok {
+		s.mutex.RUnlock()
+		return zero, false
+	}
 
 	if time.Now().After(entry.item.ExpireTime) {
 		s.mutex.RUnlock()
 		s.mutex.Lock()
 		if elem2, ok := s.data[key]; ok {
-			entry2 := elem2.Value.(*cacheEntry[T])
-			if time.Now().After(entry2.item.ExpireTime) {
+			if entry2, ok := elem2.Value.(*cacheEntry[T]); ok && time.Now().After(entry2.item.ExpireTime) {
 				s.lruList.Remove(elem2)
 				delete(s.data, key)
 			}
@@ -246,7 +249,10 @@ func (s *cacheShard[T]) evictLRU() {
 	if elem == nil {
 		return
 	}
-	entry := elem.Value.(*cacheEntry[T])
+	entry, _ := elem.Value.(*cacheEntry[T])
+	if entry == nil {
+		return
+	}
 	delete(s.data, entry.key)
 	s.lruList.Remove(elem)
 }
@@ -272,8 +278,7 @@ func (c *MemoryCache[T]) cleanup() {
 		var next *list.Element
 		for e := s.lruList.Front(); e != nil; e = next {
 			next = e.Next()
-			entry := e.Value.(*cacheEntry[T])
-			if now.After(entry.item.ExpireTime) {
+			if entry, ok := e.Value.(*cacheEntry[T]); ok && now.After(entry.item.ExpireTime) {
 				delete(s.data, entry.key)
 				s.lruList.Remove(e)
 			}
@@ -301,7 +306,7 @@ func (c *MemoryCache[T]) Close() {
 	c.Clear()
 }
 
-func (c *MemoryCache[T]) GetStats() map[string]interface{} {
+func (c *MemoryCache[T]) GetStats() map[string]any {
 	size := c.Size()
 
 	hits := c.hits.Load()
@@ -313,7 +318,7 @@ func (c *MemoryCache[T]) GetStats() map[string]interface{} {
 		hitRate = float64(hits) / float64(total) * 100
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"size":    size,
 		"maxSize": c.maxSize,
 		"shards":  len(c.shards),

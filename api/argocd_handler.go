@@ -46,7 +46,6 @@ func listArgoCDApps(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin
 		project := c.Query("project")
 		apps, err := argoCDMgr.ListApplications(c.Request.Context(), project)
 		if err != nil {
-			logger.Error("Failed to list ArgoCD applications", zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -72,7 +71,6 @@ func getArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.H
 
 		app, err := argoCDMgr.GetApplicationByName(c.Request.Context(), name)
 		if err != nil {
-			logger.Error("Failed to get ArgoCD application", zap.String("name", name), zap.Error(err))
 			middleware.ResponseError(c, logger, fmt.Errorf("application not found"), http.StatusNotFound)
 			return
 		}
@@ -98,7 +96,6 @@ func syncArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.
 
 		err = argoCDMgr.SyncApplicationByName(c.Request.Context(), name)
 		if err != nil {
-			logger.Error("Failed to sync ArgoCD application", zap.String("name", name), zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -124,7 +121,6 @@ func refreshArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) g
 
 		err = argoCDMgr.RefreshApplicationByName(c.Request.Context(), name)
 		if err != nil {
-			logger.Error("Failed to refresh ArgoCD application", zap.String("name", name), zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
@@ -150,7 +146,6 @@ func deleteArgoCDApp(logger *zap.Logger, k8sClientMgr *service.ClientManager) gi
 
 		err = argoCDMgr.DeleteApplicationByName(c.Request.Context(), name)
 		if err != nil {
-			logger.Error("Failed to delete ArgoCD application", zap.String("name", name), zap.Error(err))
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}

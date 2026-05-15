@@ -12,7 +12,7 @@ import (
 )
 
 func Recovery(logger *zap.Logger) gin.HandlerFunc {
-	return gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
+	return gin.CustomRecovery(func(c *gin.Context, recovered any) {
 		traceID := c.GetString("traceId")
 
 		logger.Error("panic recovered",
@@ -89,7 +89,7 @@ func ResponseError(c *gin.Context, logger *zap.Logger, err error, httpCode int) 
 	})
 }
 
-func ResponseSuccess(c *gin.Context, data interface{}, message string, page *model.PageMeta) {
+func ResponseSuccess(c *gin.Context, data any, message string, page *model.PageMeta) {
 	c.JSON(http.StatusOK, model.APIResponse{
 		Code:      model.CodeSuccess,
 		Message:   message,

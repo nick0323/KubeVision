@@ -1,0 +1,128 @@
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-in 0.2s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirm-dialog {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  width: 420px;
+  max-width: 90vw;
+  animation: slide-down 0.2s ease;
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.confirm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.confirm-header.danger {
+  background: var(--bg-danger);
+  border-bottom-color: var(--bg-danger);
+}
+
+.confirm-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-family: var(--font-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.confirm-icon {
+  color: var(--danger);
+}
+
+.confirm-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-lg);
+  padding: 4px;
+}
+
+.confirm-close:hover {
+  color: var(--text-primary);
+}
+
+.confirm-body {
+  padding: 20px;
+}
+
+.confirm-message {
+  margin: 0;
+  font-family: var(--font-main);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--bg-active-solid);
+}
+
+.confirm-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-xs);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: var(--font-size-sm);
+  transition: var(--transition-fast);
+}
+
+.confirm-btn.cancel {
+  background: var(--bg-surface-alt);
+  color: var(--text-secondary);
+}
+
+.confirm-btn.cancel:hover {
+  background: var(--bg-active);
+}
+
+.confirm-btn.primary {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
+
+.confirm-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.confirm-btn.danger {
+  background: var(--danger);
+  color: white;
+}
+
+.confirm-btn.danger:hover {
+  opacity: 0.9;
+}

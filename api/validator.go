@@ -63,7 +63,7 @@ func validateResourceParams(resourceType, namespace string) error {
 }
 
 // validateResourceIdentity 验证资源身份
-func validateResourceIdentity(resourceType, namespace, name string, objData interface{}) error {
+func validateResourceIdentity(resourceType, namespace, name string, objData any) error {
 	var payload struct {
 		Metadata struct {
 			Name      string `json:"name"`
@@ -124,21 +124,18 @@ func validatePodLogParams(namespace, podName, container string) error {
 func validateWebSocketToken(c *gin.Context, logger *zap.Logger, configProvider middleware.ConfigProvider) error {
 	tokenStr := ExtractTokenFromRequest(c)
 	if tokenStr == "" {
-		logger.Warn("WebSocket missing token parameter")
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return fmt.Errorf("missing token")
 	}
 
 	jwtSecret := configProvider.GetJWTSecret()
 	if len(jwtSecret) == 0 {
-		logger.Error("JWT secret not configured")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return fmt.Errorf("JWT secret not configured")
 	}
 
 	_, err := middleware.VerifyToken(tokenStr, jwtSecret)
 	if err != nil {
-		logger.Warn("WebSocket token verification failed", zap.Error(err))
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return err
 	}

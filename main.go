@@ -22,14 +22,14 @@ import (
 type Application struct {
 	logger       *zap.Logger
 	configMgr    *config.Manager
-	lruCacheMgr  *cache.MemoryCache[interface{}]
+	lruCacheMgr  *cache.MemoryCache[any]
 	k8sClientMgr *service.ClientManager
 }
 
 func NewApplication(
 	logger *zap.Logger,
 	configMgr *config.Manager,
-	lruCacheMgr *cache.MemoryCache[interface{}],
+	lruCacheMgr *cache.MemoryCache[any],
 	k8sClientMgr *service.ClientManager,
 ) *Application {
 	return &Application{

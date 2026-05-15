@@ -82,7 +82,7 @@ func (m *Manager) UpdateLogger(logger *zap.Logger) {
 	m.logger = logger
 }
 
-func (m *Manager) Set(key string, value interface{}) {
+func (m *Manager) Set(key string, value any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

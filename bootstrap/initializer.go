@@ -27,7 +27,7 @@ func NewInitializer(logger *zap.Logger, configMgr *config.Manager) *Initializer 
 	return &Initializer{logger: logger, configMgr: configMgr}
 }
 
-func (i *Initializer) InitBaseComponents(configFile string) (*zap.Logger, *cache.MemoryCache[interface{}], error) {
+func (i *Initializer) InitBaseComponents(configFile string) (*zap.Logger, *cache.MemoryCache[any], error) {
 	cfg := i.configMgr.GetConfig()
 	logger, err := InitLogger(cfg)
 	if err != nil {
@@ -114,7 +114,7 @@ func InitLogger(cfg *model.Config) (*zap.Logger, error) {
 	return logger, nil
 }
 
-func InitLRUCache(configMgr *config.Manager) *cache.MemoryCache[interface{}] {
+func InitLRUCache(configMgr *config.Manager) *cache.MemoryCache[any] {
 	return cache.NewMemoryCache(&configMgr.GetConfig().Cache)
 }
 
