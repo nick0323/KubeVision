@@ -13,6 +13,7 @@ export interface ApiError extends Error {
   code?: number;
   status?: number;
   details?: unknown;
+  traceId?: string;
 }
 
 function getClusterParam(): Record<string, string> {

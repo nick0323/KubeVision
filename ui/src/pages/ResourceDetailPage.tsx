@@ -255,7 +255,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
           </React.Suspense>
         );
 
-      case 'pods':
+      case 'pods': {
         const resourceData = data as Record<string, any>;
         return (
           <PodsTab
@@ -268,6 +268,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
             resourceUid={resourceData?.metadata?.uid}
           />
         );
+      }
 
       default:
         return <div>Tab content not found</div>;

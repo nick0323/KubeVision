@@ -55,6 +55,7 @@ export const authUtils = {
         }
       }
     } catch {
+      // ignore invalid token format
     }
   },
 
@@ -115,10 +116,11 @@ export function createAuthFetch() {
     if (response.status === 401 && !_isRetry && url !== '/api/v1/refresh') {
       const refreshed = await attemptTokenRefresh();
       if (refreshed) {
-        const retryResponse = await authFetch(url, options);
+        const retryResponse = await authFetch(url, options, true);
         return retryResponse;
       }
-      logout();
+      authUtils.clearTokens();
+      window.location.href = '/login';
       throw new Error('Session expired');
     }
 

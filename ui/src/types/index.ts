@@ -64,9 +64,9 @@ export interface PaginationProps {
 export interface ResourceSummaryProps {
   title: string;
   requestsValue: string;
-  requestsPercent: string;
+  requestsPercent: number;
   limitsValue: string;
-  limitsPercent: string;
+  limitsPercent: number;
   totalValue: string;
   availableValue: string;
   unit: string;

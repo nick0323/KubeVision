@@ -169,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     } catch {
       // ignore server errors, still logout locally
     }
-    authUtils.clearToken();
+    authUtils.clearTokens();
     localStorage.removeItem('sider_collapsed');
     localStorage.removeItem('current_tab');
     window.dispatchEvent(new CustomEvent('logout'));

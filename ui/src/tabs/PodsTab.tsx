@@ -83,7 +83,7 @@ export const PodsTab: React.FC<PodsTabProps> = ({
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        let allPods = Array.isArray(result.data) ? result.data : result.data.data || [];
+        const allPods = Array.isArray(result.data) ? result.data : result.data.data || [];
         setPods(allPods);
       } else {
         setError(result.message || 'Load Failed');

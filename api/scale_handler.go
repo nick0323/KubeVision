@@ -46,6 +46,14 @@ func scaleResource(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Handl
 			return
 		}
 
+		logger.Info("Resource scaled",
+			zap.String("username", GetUsernameFromContext(c)),
+			zap.String("resourceType", resourceType),
+			zap.String("namespace", namespace),
+			zap.String("name", name),
+			zap.Int32("replicas", req.Replicas),
+		)
+
 		middleware.ResponseSuccess(c, gin.H{"replicas": req.Replicas}, "Resource scaled successfully", nil)
 	}
 }
@@ -73,6 +81,13 @@ func restartResource(logger *zap.Logger, getK8sClient K8sClientProvider) gin.Han
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
+
+		logger.Info("Resource restart initiated",
+			zap.String("username", GetUsernameFromContext(c)),
+			zap.String("resourceType", resourceType),
+			zap.String("namespace", namespace),
+			zap.String("name", name),
+		)
 
 		middleware.ResponseSuccess(c, nil, "Resource restart initiated", nil)
 	}

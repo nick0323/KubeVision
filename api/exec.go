@@ -155,7 +155,7 @@ func handleExecWSImpl(c *gin.Context, logger *zap.Logger, execClientProvider Exe
 		return
 	}
 
-	pod, err := validatePodAndContainer(clientset, namespace, podName, container)
+	pod, err := validatePodAndContainer(c.Request.Context(), clientset, namespace, podName, container)
 	if err != nil {
 		middleware.ResponseError(c, logger, err, http.StatusNotFound)
 		return
@@ -229,11 +229,8 @@ func getExecClient(provider ExecClientProvider, cluster string) (*kubernetes.Cli
 	return clientset, config, nil
 }
 
-func validatePodAndContainer(clientset *kubernetes.Clientset, namespace, podName, container string) (*v1.Pod, error) {
-	// 注意：此处的 context 会在 validatePodAndContainer 内部超时
-	// 但比起 context.Background()，使用传入的更合适
-	// 当前函数没有接收外部 context，保留 Background 但后续应重构为接收 context 参数
-	pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
+func validatePodAndContainer(ctx context.Context, clientset *kubernetes.Clientset, namespace, podName, container string) (*v1.Pod, error) {
+	pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

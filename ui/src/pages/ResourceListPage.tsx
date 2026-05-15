@@ -442,7 +442,7 @@ export const ResourceListPage: React.FC<ResourceListPageProps> = ({
           </thead>
           <tbody>
             <>
-              {data.map((record, rowIndex) => (
+              {(data as Record<string, unknown>[]).map((record, rowIndex) => (
                 <TableRow
                   key={rowIndex}
                   record={record}

@@ -266,6 +266,13 @@ func deleteResource(
 			return
 		}
 
+		logger.Info("Resource deleted",
+			zap.String("username", GetUsernameFromContext(c)),
+			zap.String("resourceType", resourceType),
+			zap.String("namespace", ns),
+			zap.String("name", name),
+		)
+
 		if cacheMgr != nil {
 			cacheMgr.Delete(buildDetailCacheKey(cluster, resourceType, ns, name))
 			cacheMgr.DeleteByPrefix(buildCacheDeletePrefix(cluster, resourceType))

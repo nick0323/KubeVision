@@ -38,6 +38,20 @@ func streamPodLog(
 	wsMgr *WebSocketManager,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		namespace := c.Query("namespace")
+		podName := c.Query("pod")
+		container := c.Query("container")
+
+		// 先做输入验证和鉴权
+		if err := validatePodLogParams(namespace, podName, container); err != nil {
+			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
+			return
+		}
+
+		if err := validateWebSocketToken(c, logger, configProvider); err != nil {
+			return
+		}
+
 		cluster := c.Query("cluster")
 		clientset, _, err := getK8sClient(cluster)
 		if err != nil {
@@ -47,22 +61,9 @@ func streamPodLog(
 
 		ctx := GetRequestContext(c)
 		ctx = wsMgr.ShutdownCtx(ctx)
-		namespace := c.Query("namespace")
-		podName := c.Query("pod")
-		container := c.Query("container")
 		tailLines := c.Query("tailLines")
 		timestamps := c.Query("timestamps")
 		previous := c.Query("previous")
-
-		// 输入验证
-		if err := validatePodLogParams(namespace, podName, container); err != nil {
-			middleware.ResponseError(c, logger, err, http.StatusBadRequest)
-			return
-		}
-
-		if err := validateWebSocketToken(c, logger, configProvider); err != nil {
-			return
-		}
 
 		// 检查连接数限制
 		if err := checkConnectionLimit(wsMgr, logger); err != nil {

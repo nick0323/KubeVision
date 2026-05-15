@@ -247,5 +247,9 @@ func VerifyToken(tokenStr string, secret []byte) (jwt.MapClaims, error) {
 		return nil, jwt.ErrInvalidKey
 	}
 
+	if err := validateClaims(claims); err != nil {
+		return nil, err
+	}
+
 	return claims, nil
 }

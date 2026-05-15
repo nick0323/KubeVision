@@ -159,6 +159,7 @@ func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	apiGroup.POST("/logout", loginHandler.Logout(s.jwtMiddleware.GetBlacklist()))
 	legacyGroup.POST("/logout", loginHandler.Logout(s.jwtMiddleware.GetBlacklist()))
 
+	s.wsMgr = api.NewWebSocketManager(cfg.Server.MaxWsConnections)
 	s.registerAPIRoutes(apiGroup)
 	s.registerAPIRoutes(legacyGroup)
 }
@@ -187,9 +188,6 @@ func (s *Server) healthCheckHandler(c *gin.Context) {
 }
 
 func (s *Server) registerAPIRoutes(apiGroup *gin.RouterGroup) {
-	cfg := s.configMgr.GetConfig()
-	s.wsMgr = api.NewWebSocketManager(cfg.Server.MaxWsConnections)
-
 	api.RegisterOverview(apiGroup, s.logger, s.getK8sClient)
 
 	api.RegisterOperations(apiGroup, s.logger, s.getK8sClient)

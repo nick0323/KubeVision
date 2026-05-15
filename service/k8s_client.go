@@ -312,8 +312,7 @@ func (m *ClientManager) GetClient(clusterName string) (*kubernetes.Clientset, er
 		}
 	}
 
-	m.logger.Warn("cluster not found, falling back to default", zap.String("cluster", clusterName))
-	return m.GetDefaultClient()
+	return nil, fmt.Errorf("cluster %s not found", clusterName)
 }
 
 func (m *ClientManager) GetClientRESTConfig(clusterName string) *rest.Config {

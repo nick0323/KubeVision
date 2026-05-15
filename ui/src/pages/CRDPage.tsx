@@ -45,7 +45,7 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGINATION_CONFIG.DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = useState<number>(PAGINATION_CONFIG.DEFAULT_PAGE_SIZE);
 
   const crdTitle = view === 'list' ? 'CRDs' : view === 'instances' ? `${selectedCRD?.kind || 'CRD'} Instances` : `${selectedInstance?.metadata?.name || 'Instance'} YAML`;
   usePageTitle(crdTitle);

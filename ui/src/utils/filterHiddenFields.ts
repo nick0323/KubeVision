@@ -8,7 +8,7 @@ export function filterHiddenFields(obj: Record<string, unknown> | unknown[], opt
   for (const [key, value] of Object.entries(obj)) {
     if ((ALWAYS_HIDDEN_FIELDS as readonly string[]).includes(key)) continue;
     if (options && !options.showStatus && key === 'status') continue;
-    filtered[key] = filterHiddenFields(value, options);
+    filtered[key] = filterHiddenFields(value as Record<string, unknown> | unknown[], options);
   }
   return filtered;
 }

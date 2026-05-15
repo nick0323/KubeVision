@@ -85,7 +85,7 @@ const initialState: YamlState = {
 
 const cleanYamlForUpdate = (obj: Record<string, unknown>): Record<string, unknown> => {
   if (typeof obj !== 'object' || obj === null) return obj;
-  if (Array.isArray(obj)) return obj.map(item => cleanYamlForUpdate(item as Record<string, unknown>));
+  if (Array.isArray(obj)) return obj.map(item => cleanYamlForUpdate(item as Record<string, unknown>)) as unknown as Record<string, unknown>;
 
   const cleaned: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -182,8 +182,8 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        const filteredData = filterHiddenFields(result.data, state.displayOptions);
-        dispatch({ type: 'SET_BOTH', payload: yamlToDump(filteredData, resourceConfig) });
+        const filteredData = filterHiddenFields(result.data as Record<string, unknown>, state.displayOptions);
+        dispatch({ type: 'SET_BOTH', payload: yamlToDump(filteredData as Record<string, unknown>, resourceConfig) });
       } else {
         dispatch({ type: 'SET_ERROR', payload: result.message || 'Failed to load YAML' });
       }
@@ -195,10 +195,10 @@ export const YamlTab: React.FC<YamlTabProps & { pod?: unknown | null }> = ({
   }, [namespace, name, resourceType, isClusterScope, resourceConfig, state.displayOptions]);
 
   useEffect(() => {
-    const resourceData = data || pod;
+    const resourceData = (data || pod) as Record<string, unknown>;
     if (resourceData) {
       const filteredData = filterHiddenFields(resourceData, state.displayOptions);
-      dispatch({ type: 'SET_BOTH', payload: yamlToDump(filteredData, resourceConfig) });
+      dispatch({ type: 'SET_BOTH', payload: yamlToDump(filteredData as Record<string, unknown>, resourceConfig) });
     }
     if (!resourceData) {
       loadYaml();
