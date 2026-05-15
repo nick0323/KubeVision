@@ -4,6 +4,7 @@ const BASE_TITLE = 'KubeVision';
 
 const TAB_TITLES: Record<string, string> = {
   overview: 'Overview',
+  clusters: 'Cluster Management',
   pods: 'Pods',
   deployments: 'Deployments',
   statefulsets: 'StatefulSets',

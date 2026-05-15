@@ -351,6 +351,25 @@ func (m *ClientManager) AddCluster(name string, k8sConfig *model.KubernetesConfi
 	return nil
 }
 
+func (m *ClientManager) RemoveCluster(name string) error {
+	if name == "" || name == "default" {
+		return fmt.Errorf("cannot remove default cluster")
+	}
+
+	val, ok := m.clientPool.Load(name)
+	if !ok {
+		return fmt.Errorf("cluster %s not found", name)
+	}
+
+	if holder, ok := val.(*ClientHolder); ok {
+		holder.Close()
+	}
+
+	m.clientPool.Delete(name)
+	m.logger.Info("removed cluster", zap.String("name", name))
+	return nil
+}
+
 func (m *ClientManager) GetClusterNames() []string {
 	var names []string
 	names = append(names, "default")

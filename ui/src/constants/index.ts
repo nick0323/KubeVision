@@ -55,6 +55,7 @@ export const MENU_LIST: MenuGroup[] = [
   {
     group: 'Cluster',
     items: [
+      { key: 'clusters', label: 'Clusters', icon: 'FaProjectDiagram' },
       { key: 'nodes', label: 'Nodes', icon: 'FaServer' },
       { key: 'namespaces', label: 'Namespaces', icon: 'FaThLarge' },
       { key: 'events', label: 'Events', icon: 'FaBell' },

@@ -2,6 +2,7 @@ import React from 'react';
 
 // LazyLoading...
 const LazyOverview = React.lazy(() => import('../pages/OverviewPage.tsx'));
+const LazyClusters = React.lazy(() => import('../pages/ClusterManagementPage.tsx'));
 const LazyArgoCD = React.lazy(() => import('../pages/ArgoCDPage.tsx'));
 const LazyCRD = React.lazy(() => import('../pages/CRDPage.tsx'));
 
@@ -56,6 +57,9 @@ const createResourcePage = (config: any) => {
 export const PAGE_COMPONENTS = {
   // 概览页
   overview: LazyOverview,
+
+  // 集群管理
+  clusters: LazyClusters,
 
   // Pods
   pods: createResourcePage(PODS_CONFIG),
