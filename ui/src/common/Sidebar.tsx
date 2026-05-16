@@ -374,9 +374,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <hr className="settings-divider" />
 
-              <button className="settings-signout" onClick={handleLogout}>
+              <button className="settings-logout-btn" onClick={handleLogout}>
                 <FiLogOut size={18} />
-                <span>Sign Out</span>
+                <span>Log Out</span>
               </button>
             </div>
           </div>

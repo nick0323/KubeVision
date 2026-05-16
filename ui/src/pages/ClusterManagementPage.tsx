@@ -344,7 +344,7 @@ export const ClusterManagementPage: React.FC<{
                         onClick={() => handleDeleteCluster(cluster.name)}
                         title="Remove cluster"
                       >
-                        <FaTrash />
+                        <FaTrash size={16} />
                       </button>
                     )}
                   </td>
