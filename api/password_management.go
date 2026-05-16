@@ -325,9 +325,12 @@ func (h *PasswordHandler) ChangePassword() gin.HandlerFunc {
 		}
 
 		h.configManager.Set("auth.password", newHashedPassword)
+		if err := h.configManager.Save(); err != nil {
+			h.logger.Error("Failed to persist password change", zap.Error(err))
+		}
 		h.passwordManager.AddToPasswordHistory(newHashedPassword)
 
-		h.logger.Info("Password changed successfully (in-memory only)",
+		h.logger.Info("Password changed successfully",
 			zap.String("username", currentUser),
 			zap.String("clientIP", c.ClientIP()),
 		)

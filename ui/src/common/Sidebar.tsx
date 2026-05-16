@@ -39,7 +39,8 @@ import {
   FaArrowsAltV,
   FaCloud,
 } from 'react-icons/fa';
-import { FiLogOut } from 'react-icons/fi';
+import { FiLogOut, FiSettings } from 'react-icons/fi';
+import { notification } from '../common/NotificationContext';
 
 /**
  * iconMapping
@@ -111,8 +112,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const [clusters, setClusters] = useState<string[]>([]);
   const [clusterHealth, setClusterHealth] = useState<Record<string, ClusterHealth>>({});
-  const [clusterOpen, setClusterOpen] = useState(false);
-  const clusterRef = useRef<HTMLDivElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const currentCluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER) || 'default';
 
   useEffect(() => {
@@ -128,8 +132,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (clusterRef.current && !clusterRef.current.contains(e.target as Node)) {
-        setClusterOpen(false);
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setSettingsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -141,6 +145,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
     localStorage.setItem(STORAGE_KEYS.CURRENT_CLUSTER, name);
     window.location.reload();
   }, [currentCluster]);
+
+  const handlePasswordChange = useCallback(async () => {
+    if (!passwordForm.oldPassword || !passwordForm.newPassword) {
+      notification.warning('Please fill in all fields');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      notification.warning('New passwords do not match');
+      return;
+    }
+    if (passwordForm.newPassword.length < 8) {
+      notification.warning('Password must be at least 8 characters');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await apiClient.post('/api/v1/admin/password/change', {
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      notification.success('Password changed successfully');
+      setShowPasswordModal(false);
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      notification.error(`Failed to change password: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setChangingPassword(false);
+    }
+  }, [passwordForm]);
 
   /**
    * toggle分组展开/收起
@@ -250,50 +283,120 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </div>
 
-      {/* Bottom: cluster + logout */}
+      {/* Bottom: settings + cluster + logout */}
       <div className="sider-bottom">
-        {clusters.length > 0 && !collapsed && (
-          <div className="cluster-selector" ref={clusterRef}>
-            <div
-              className="cluster-selector-trigger"
-              onClick={() => setClusterOpen(o => !o)}
-              title={(() => {
-                const h = clusterHealth[currentCluster];
-                return h ? `${h.host} | v${h.version} | ${h.nodeCount} nodes` : '';
-              })()}
-            >
-              <span className="icon"><FaCloud /></span>
-              <span className={`cluster-status-dot ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`} />
-              <span className="cluster-name">{currentCluster}</span>
-              <span className="cluster-arrow">{clusterOpen ? '▲' : '▼'}</span>
+        {!collapsed && (
+          <div className="settings-area" ref={settingsRef}>
+            <div className="settings-trigger" onClick={() => setSettingsOpen(o => !o)}>
+              <span className="icon"><FiSettings /></span>
+              <span>Settings</span>
+              <span className="settings-arrow">{settingsOpen ? '▼' : '▲'}</span>
             </div>
-            {clusterOpen && (
-              <div className="cluster-dropdown">
-                {clusters.map(name => {
-                  const health = clusterHealth[name];
-                  return (
-                    <div
-                      key={name}
-                      className={`cluster-option ${name === currentCluster ? 'active' : ''}`}
-                      onClick={() => handleClusterChange(name)}
-                    >
-                      <span className="cluster-check">{name === currentCluster ? '✓' : ''}</span>
-                      <span className={`cluster-status-dot ${health?.healthy ? 'healthy' : 'unhealthy'}`} />
-                      {name}
-                    </div>
-                  );
-                })}
+            {settingsOpen && (
+              <div className="settings-dropdown">
+                <div className="settings-current-cluster">
+                  <FaCloud size={14} />
+                  <span className={`cluster-status-dot ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`} />
+                  <span>{currentCluster}</span>
+                  <span className="settings-host" title={(() => {
+                    const h = clusterHealth[currentCluster];
+                    return h ? `${h.host} | v${h.version} | ${h.nodeCount} nodes` : '';
+                  })()}>
+                    {clusterHealth[currentCluster]?.host || ''}
+                  </span>
+                </div>
+                {clusters.length > 0 && (
+                  <div className="settings-section">
+                    {clusters.map(name => {
+                      const health = clusterHealth[name];
+                      return (
+                        <div
+                          key={name}
+                          className={`settings-item ${name === currentCluster ? 'active' : ''}`}
+                          onClick={() => handleClusterChange(name)}
+                        >
+                          <span className={`cluster-status-dot ${health?.healthy ? 'healthy' : 'unhealthy'}`} />
+                          <span>{name}</span>
+                          {name === currentCluster && <span className="settings-check">✓</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <hr className="settings-divider" />
+                <div className="settings-item" onClick={() => handleMenuClick('clusters')}>
+                  <FaServer size={14} />
+                  <span>Manage Clusters</span>
+                </div>
+                <div className="settings-item disabled" title="Coming soon">
+                  <FaUserCheck size={14} />
+                  <span>User Management</span>
+                </div>
+                <div className="settings-item" onClick={() => setShowPasswordModal(true)}>
+                  <FaLock size={14} />
+                  <span>Change Password</span>
+                </div>
+                <hr className="settings-divider" />
+                <div className="settings-item danger" onClick={handleLogout}>
+                  <FiLogOut size={14} />
+                  <span>Sign Out</span>
+                </div>
               </div>
             )}
           </div>
         )}
-        <button className="logout-btn" onClick={handleLogout}>
-          <span className="icon">
-            <FiLogOut />
-          </span>
-          <span>Sign out</span>
-        </button>
+        {collapsed && (
+          <button className="logout-btn" onClick={handleLogout} title="Sign out">
+            <span className="icon"><FiLogOut /></span>
+          </button>
+        )}
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="password-modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="password-modal" onClick={e => e.stopPropagation()}>
+            <h3>Change Password</h3>
+            <div className="form-field">
+              <label>Current Password</label>
+              <input
+                type="password"
+                value={passwordForm.oldPassword}
+                onChange={e => setPasswordForm(p => ({ ...p, oldPassword: e.target.value }))}
+                placeholder="Enter current password"
+              />
+            </div>
+            <div className="form-field">
+              <label>New Password</label>
+              <input
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                placeholder="Enter new password (min 8 chars)"
+              />
+            </div>
+            <div className="form-field">
+              <label>Confirm New Password</label>
+              <input
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                placeholder="Confirm new password"
+              />
+            </div>
+            <div className="form-buttons">
+              <button className="action-btn" onClick={() => setShowPasswordModal(false)}>Cancel</button>
+              <button
+                className="create-resource-btn"
+                onClick={handlePasswordChange}
+                disabled={changingPassword}
+              >
+                {changingPassword ? 'Changing...' : 'Change Password'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

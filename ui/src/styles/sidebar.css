@@ -315,3 +315,176 @@
   font-size: var(--font-size-base);
   vertical-align: middle;
 }
+
+/* Settings Panel */
+.settings-area {
+  position: relative;
+  padding: 4px 24px;
+  border-top: 1px solid var(--bg-active-solid);
+}
+
+.settings-trigger {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: var(--spacing-sm) 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.settings-trigger:hover {
+  color: var(--primary);
+}
+
+.settings-arrow {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--text-disabled);
+}
+
+.settings-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 8px;
+  right: 8px;
+  margin-bottom: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-active-solid);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-index-dropdown);
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.settings-current-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--bg-active-solid);
+}
+
+.settings-host {
+  font-size: var(--font-size-xs);
+  color: var(--text-quaternary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  text-align: right;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.settings-item:hover:not(.disabled) {
+  background: var(--bg-active);
+  color: var(--primary);
+}
+
+.settings-item.active {
+  color: var(--primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.settings-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.settings-item.danger {
+  color: var(--danger);
+}
+
+.settings-item.danger:hover:not(.disabled) {
+  background: var(--bg-danger);
+  color: var(--danger);
+}
+
+.settings-check {
+  margin-left: auto;
+  width: 16px;
+  color: var(--primary);
+  font-size: var(--font-size-sm);
+}
+
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--bg-active-solid);
+  margin: 4px 12px;
+}
+
+/* Password Change Modal */
+.password-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: var(--z-index-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-modal {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  min-width: 380px;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+}
+
+.password-modal h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.password-modal .form-field {
+  margin-bottom: 12px;
+}
+
+.password-modal .form-field label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.password-modal .form-field input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--bg-active-solid);
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: var(--font-main);
+}
+
+.password-modal .form-field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--bg-info);
+}
+
+.password-modal .form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
