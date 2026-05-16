@@ -116,7 +116,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
-  const settingsRef = useRef<HTMLDivElement>(null);
   const currentCluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER) || 'default';
 
   useEffect(() => {
@@ -128,16 +127,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       const names = list.map(h => h.name);
       setClusters(names);
     }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
-        setSettingsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
   const handleClusterChange = useCallback((name: string) => {
@@ -283,74 +272,120 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </div>
 
-      {/* Bottom: settings + cluster + logout */}
+      {/* Bottom: settings */}
       <div className="sider-bottom">
         {!collapsed && (
-          <div className="settings-area" ref={settingsRef}>
-            <div className="settings-trigger" onClick={() => setSettingsOpen(o => !o)}>
+          <div className="settings-area">
+            <div className="settings-trigger" onClick={() => setSettingsOpen(true)}>
               <span className="icon"><FiSettings /></span>
               <span>Settings</span>
-              <span className="settings-arrow">{settingsOpen ? '▼' : '▲'}</span>
             </div>
-            {settingsOpen && (
-              <div className="settings-dropdown">
-                <div className="settings-current-cluster">
-                  <FaCloud size={14} />
-                  <span className={`cluster-status-dot ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`} />
-                  <span>{currentCluster}</span>
-                  <span className="settings-host" title={(() => {
-                    const h = clusterHealth[currentCluster];
-                    return h ? `${h.host} | v${h.version} | ${h.nodeCount} nodes` : '';
-                  })()}>
-                    {clusterHealth[currentCluster]?.host || ''}
-                  </span>
+          </div>
+        )}
+        {collapsed && (
+          <button className="logout-btn" onClick={() => setSettingsOpen(true)} title="Settings">
+            <span className="icon"><FiSettings /></span>
+          </button>
+        )}
+      </div>
+
+      {/* Settings Overlay */}
+      {settingsOpen && (
+        <div className="settings-overlay" onClick={() => setSettingsOpen(false)}>
+          <div className="settings-page" onClick={e => e.stopPropagation()}>
+            <div className="settings-page-header">
+              <h2>Settings</h2>
+              <button className="settings-close-btn" onClick={() => setSettingsOpen(false)}>✕</button>
+            </div>
+
+            <div className="settings-page-body">
+              {/* Current Cluster */}
+              <div className="settings-section-label">Cluster</div>
+              <div className="settings-current-cluster">
+                <FaCloud size={18} />
+                <span className={`cluster-status-dot ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`} />
+                <span className="settings-cluster-name">{currentCluster}</span>
+                <span className={`status-text ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`}>
+                  {clusterHealth[currentCluster] ? (clusterHealth[currentCluster].healthy ? 'Healthy' : 'Unhealthy') : 'Unknown'}
+                </span>
+              </div>
+              {clusterHealth[currentCluster] && (
+                <div className="settings-cluster-info">
+                  <span>{clusterHealth[currentCluster].host}</span>
+                  <span className="sep">|</span>
+                  <span>v{clusterHealth[currentCluster].version}</span>
+                  <span className="sep">|</span>
+                  <span>{clusterHealth[currentCluster].nodeCount} nodes</span>
                 </div>
-                {clusters.length > 0 && (
-                  <div className="settings-section">
+              )}
+
+              {/* Switch Cluster */}
+              {clusters.length > 0 && (
+                <>
+                  <div className="settings-section-label" style={{ marginTop: 20 }}>Switch Cluster</div>
+                  <div className="settings-cluster-list">
                     {clusters.map(name => {
                       const health = clusterHealth[name];
                       return (
                         <div
                           key={name}
-                          className={`settings-item ${name === currentCluster ? 'active' : ''}`}
+                          className={`settings-cluster-option ${name === currentCluster ? 'active' : ''}`}
                           onClick={() => handleClusterChange(name)}
                         >
                           <span className={`cluster-status-dot ${health?.healthy ? 'healthy' : 'unhealthy'}`} />
                           <span>{name}</span>
                           {name === currentCluster && <span className="settings-check">✓</span>}
+                          {health && (
+                            <span className="settings-cluster-meta">
+                              {health.host} · v{health.version}
+                            </span>
+                          )}
                         </div>
                       );
                     })}
                   </div>
-                )}
-                <hr className="settings-divider" />
-                <div className="settings-item" onClick={() => handleMenuClick('clusters')}>
-                  <FaServer size={14} />
-                  <span>Manage Clusters</span>
+                </>
+              )}
+
+              <hr className="settings-divider" />
+
+              {/* Administration */}
+              <div className="settings-section-label">Administration</div>
+              <div className="settings-action-list">
+                <div className="settings-action" onClick={() => { setSettingsOpen(false); handleMenuClick('clusters'); }}>
+                  <FaServer size={18} />
+                  <div className="settings-action-text">
+                    <span className="settings-action-title">Manage Clusters</span>
+                    <span className="settings-action-desc">Add, edit, or remove cluster connections</span>
+                  </div>
                 </div>
-                <div className="settings-item disabled" title="Coming soon">
-                  <FaUserCheck size={14} />
-                  <span>User Management</span>
+                <div className="settings-action" onClick={() => setShowPasswordModal(true)}>
+                  <FaLock size={18} />
+                  <div className="settings-action-text">
+                    <span className="settings-action-title">Change Password</span>
+                    <span className="settings-action-desc">Update your login password</span>
+                  </div>
                 </div>
-                <div className="settings-item" onClick={() => setShowPasswordModal(true)}>
-                  <FaLock size={14} />
-                  <span>Change Password</span>
-                </div>
-                <hr className="settings-divider" />
-                <div className="settings-item danger" onClick={handleLogout}>
-                  <FiLogOut size={14} />
-                  <span>Sign Out</span>
+                <div className="settings-action disabled" title="Coming soon">
+                  <FaUserCheck size={18} />
+                  <div className="settings-action-text">
+                    <span className="settings-action-title">User Management</span>
+                    <span className="settings-action-desc">Manage user accounts and permissions</span>
+                  </div>
                 </div>
               </div>
-            )}
+
+              <hr className="settings-divider" />
+
+              {/* Sign Out */}
+              <button className="settings-signout" onClick={handleLogout}>
+                <FiLogOut size={18} />
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
-        )}
-        {collapsed && (
-          <button className="logout-btn" onClick={handleLogout} title="Sign out">
-            <span className="icon"><FiLogOut /></span>
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Password Change Modal */}
       {showPasswordModal && (
