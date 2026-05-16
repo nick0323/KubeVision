@@ -112,10 +112,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const [clusters, setClusters] = useState<string[]>([]);
   const [clusterHealth, setClusterHealth] = useState<Record<string, ClusterHealth>>({});
+  const [clusterOpen, setClusterOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+  const clusterRef = useRef<HTMLDivElement>(null);
   const currentCluster = localStorage.getItem(STORAGE_KEYS.CURRENT_CLUSTER) || 'default';
 
   useEffect(() => {
@@ -127,6 +129,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       const names = list.map(h => h.name);
       setClusters(names);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (clusterRef.current && !clusterRef.current.contains(e.target as Node)) {
+        setClusterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
   const handleClusterChange = useCallback((name: string) => {
@@ -272,15 +284,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </ul>
       </div>
 
-      {/* Bottom: settings */}
+      {/* Bottom: cluster + settings */}
       <div className="sider-bottom">
         {!collapsed && (
-          <div className="settings-area">
-            <div className="settings-trigger" onClick={() => setSettingsOpen(true)}>
-              <span className="icon"><FiSettings /></span>
-              <span>Settings</span>
+          <>
+            <div className="cluster-selector" ref={clusterRef}>
+              <div
+                className="cluster-selector-trigger"
+                onClick={() => setClusterOpen(o => !o)}
+                title={(() => {
+                  const h = clusterHealth[currentCluster];
+                  return h ? `${h.host} | v${h.version} | ${h.nodeCount} nodes` : '';
+                })()}
+              >
+                <span className="icon"><FaCloud /></span>
+                <span className={`cluster-status-dot ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`} />
+                <span className="cluster-name">{currentCluster}</span>
+                <span className="cluster-arrow">{clusterOpen ? '▲' : '▼'}</span>
+              </div>
+              {clusterOpen && (
+                <div className="cluster-dropdown">
+                  {clusters.map(name => {
+                    const health = clusterHealth[name];
+                    return (
+                      <div
+                        key={name}
+                        className={`cluster-option ${name === currentCluster ? 'active' : ''}`}
+                        onClick={() => handleClusterChange(name)}
+                      >
+                        <span className="cluster-check">{name === currentCluster ? '✓' : ''}</span>
+                        <span className={`cluster-status-dot ${health?.healthy ? 'healthy' : 'unhealthy'}`} />
+                        {name}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
+            <div className="settings-area">
+              <div className="settings-trigger" onClick={() => setSettingsOpen(true)}>
+                <span className="icon"><FiSettings /></span>
+                <span>Settings</span>
+              </div>
+            </div>
+          </>
         )}
         {collapsed && (
           <button className="logout-btn" onClick={() => setSettingsOpen(true)} title="Settings">
@@ -299,57 +346,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="settings-page-body">
-              {/* Current Cluster */}
-              <div className="settings-section-label">Cluster</div>
-              <div className="settings-current-cluster">
-                <FaCloud size={18} />
-                <span className={`cluster-status-dot ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`} />
-                <span className="settings-cluster-name">{currentCluster}</span>
-                <span className={`status-text ${clusterHealth[currentCluster]?.healthy ? 'healthy' : 'unhealthy'}`}>
-                  {clusterHealth[currentCluster] ? (clusterHealth[currentCluster].healthy ? 'Healthy' : 'Unhealthy') : 'Unknown'}
-                </span>
-              </div>
-              {clusterHealth[currentCluster] && (
-                <div className="settings-cluster-info">
-                  <span>{clusterHealth[currentCluster].host}</span>
-                  <span className="sep">|</span>
-                  <span>v{clusterHealth[currentCluster].version}</span>
-                  <span className="sep">|</span>
-                  <span>{clusterHealth[currentCluster].nodeCount} nodes</span>
-                </div>
-              )}
-
-              {/* Switch Cluster */}
-              {clusters.length > 0 && (
-                <>
-                  <div className="settings-section-label" style={{ marginTop: 20 }}>Switch Cluster</div>
-                  <div className="settings-cluster-list">
-                    {clusters.map(name => {
-                      const health = clusterHealth[name];
-                      return (
-                        <div
-                          key={name}
-                          className={`settings-cluster-option ${name === currentCluster ? 'active' : ''}`}
-                          onClick={() => handleClusterChange(name)}
-                        >
-                          <span className={`cluster-status-dot ${health?.healthy ? 'healthy' : 'unhealthy'}`} />
-                          <span>{name}</span>
-                          {name === currentCluster && <span className="settings-check">✓</span>}
-                          {health && (
-                            <span className="settings-cluster-meta">
-                              {health.host} · v{health.version}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              <hr className="settings-divider" />
-
-              {/* Administration */}
               <div className="settings-section-label">Administration</div>
               <div className="settings-action-list">
                 <div className="settings-action" onClick={() => { setSettingsOpen(false); handleMenuClick('clusters'); }}>
@@ -377,7 +373,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <hr className="settings-divider" />
 
-              {/* Sign Out */}
               <button className="settings-signout" onClick={handleLogout}>
                 <FiLogOut size={18} />
                 <span>Sign Out</span>
