@@ -337,14 +337,14 @@ export const ClusterManagementPage: React.FC<{
                   <td>{cluster.version || '-'}</td>
                   <td>{cluster.nodeCount}</td>
                   <td style={{ fontSize: 13, color: '#888' }}>{formatTime(cluster.lastCheck)}</td>
-                  <td>
+                  <td className="actions-cell">
                     {cluster.name !== 'default' && (
                       <button
-                        className="action-btn danger"
+                        className="actions-btn danger"
                         onClick={() => handleDeleteCluster(cluster.name)}
                         title="Remove cluster"
                       >
-                        <FaTrash size={16} />
+                        <FaTrash />
                       </button>
                     )}
                   </td>
@@ -442,6 +442,27 @@ export const ClusterManagementPage: React.FC<{
         }
         .default-row {
           background: #fafafa;
+        }
+        .actions-cell {
+          text-align: center;
+        }
+        .actions-btn {
+          width: 32px;
+          height: 32px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          border-radius: 6px;
+          background: transparent;
+          color: #999;
+          cursor: pointer;
+          font-size: 16px;
+          transition: all 0.2s ease;
+        }
+        .actions-btn.danger:hover {
+          background: #fbe9e7;
+          color: #c62828;
         }
       `}</style>
     </div>
