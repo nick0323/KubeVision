@@ -122,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       list.forEach(h => { healthMap[h.name] = h; });
       setClusterHealth(healthMap);
       const names = list.map(h => h.name);
-      if (names.length > 1) setClusters(names);
+      setClusters(names);
     }).catch(() => {});
   }, []);
 
