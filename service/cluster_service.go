@@ -111,20 +111,10 @@ func (s *ClusterService) TestConnection(ctx context.Context, cfg *model.Kubernet
 }
 
 func (s *ClusterService) SaveToConfig(name string, clusterCfg *model.ClusterConfig) error {
-	cfg := s.configMgr.GetConfig()
+	s.configMgr.AddCluster(*clusterCfg)
 
-	existing := -1
-	for i, c := range cfg.Clusters {
-		if c.Name == name {
-			existing = i
-			break
-		}
-	}
-
-	if existing >= 0 {
-		cfg.Clusters[existing] = *clusterCfg
-	} else {
-		cfg.Clusters = append(cfg.Clusters, *clusterCfg)
+	if err := s.configMgr.Save(); err != nil {
+		return fmt.Errorf("failed to persist config: %w", err)
 	}
 
 	s.logger.Info("cluster config saved", zap.String("name", name))
@@ -132,21 +122,11 @@ func (s *ClusterService) SaveToConfig(name string, clusterCfg *model.ClusterConf
 }
 
 func (s *ClusterService) RemoveFromConfig(name string) error {
-	cfg := s.configMgr.GetConfig()
+	s.configMgr.RemoveCluster(name)
 
-	idx := -1
-	for i, c := range cfg.Clusters {
-		if c.Name == name {
-			idx = i
-			break
-		}
+	if err := s.configMgr.Save(); err != nil {
+		return fmt.Errorf("failed to persist config: %w", err)
 	}
-
-	if idx < 0 {
-		return fmt.Errorf("cluster %s not found in config", name)
-	}
-
-	cfg.Clusters = append(cfg.Clusters[:idx], cfg.Clusters[idx+1:]...)
 
 	s.logger.Info("cluster config removed", zap.String("name", name))
 	return nil

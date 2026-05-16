@@ -2,12 +2,14 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
 	"github.com/nick0323/K8sVision/model"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 type Manager struct {
@@ -114,6 +116,63 @@ func (m *Manager) Set(key string, value any) {
 			}
 		}
 	}
+}
+
+func (m *Manager) GetClusters() []model.ClusterConfig {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	result := make([]model.ClusterConfig, len(m.config.Clusters))
+	copy(result, m.config.Clusters)
+	return result
+}
+
+func (m *Manager) AddCluster(cluster model.ClusterConfig) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, c := range m.config.Clusters {
+		if c.Name == cluster.Name {
+			m.config.Clusters[i] = cluster
+			return
+		}
+	}
+	m.config.Clusters = append(m.config.Clusters, cluster)
+}
+
+func (m *Manager) RemoveCluster(name string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for i, c := range m.config.Clusters {
+		if c.Name == name {
+			m.config.Clusters = append(m.config.Clusters[:i], m.config.Clusters[i+1:]...)
+			return
+		}
+	}
+}
+
+func (m *Manager) Save() error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	cfg := struct {
+		Clusters []model.ClusterConfig `yaml:"clusters"`
+	}{
+		Clusters: m.config.Clusters,
+	}
+
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	filename := m.configFile
+	if filename == "" {
+		filename = "config.yaml"
+	}
+
+	m.logger.Info("saving config", zap.String("file", filename))
+	return os.WriteFile(filename, data, 0644)
 }
 
 func (m *Manager) GetJWTSecret() []byte {
