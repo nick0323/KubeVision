@@ -1,7 +1,9 @@
 package api
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nick0323/K8sVision/api/middleware"
@@ -34,10 +36,20 @@ func RegisterClusterRoutes(r *gin.RouterGroup, logger *zap.Logger, clientMgr *se
 	clusterGroup := r.Group("/clusters")
 	{
 		clusterGroup.GET("", listClusters(logger, clusterSvc))
+		clusterGroup.GET("/health", clusterHealth(logger, clientMgr))
 		clusterGroup.POST("", addCluster(logger, clusterSvc))
 		clusterGroup.PUT("/:name", updateCluster(logger, clusterSvc))
 		clusterGroup.DELETE("/:name", deleteCluster(logger, clusterSvc))
 		clusterGroup.POST("/test", testClusterConnection(logger, clusterSvc))
+	}
+}
+
+func clusterHealth(logger *zap.Logger, clientMgr *service.ClientManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+		defer cancel()
+		health := clientMgr.GetClustersHealth(ctx)
+		middleware.ResponseSuccess(c, health, "ok", nil)
 	}
 }
 
