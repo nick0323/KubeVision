@@ -155,13 +155,7 @@ func (m *Manager) Save() error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	cfg := struct {
-		Clusters []model.ClusterConfig `yaml:"clusters"`
-	}{
-		Clusters: m.config.Clusters,
-	}
-
-	data, err := yaml.Marshal(cfg)
+	data, err := yaml.Marshal(m.config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}

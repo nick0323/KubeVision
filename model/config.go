@@ -54,7 +54,7 @@ type ArgoCDConfig struct {
 }
 
 type JWTConfig struct {
-	Secret            string        `mapstructure:"secret" json:"-"`
+	Secret            string        `mapstructure:"secret" json:"-" yaml:"-"`
 	Expiration        time.Duration `mapstructure:"expiration" json:"expiration"`
 	RefreshExpiration time.Duration `mapstructure:"refreshExpiration" json:"refresh_expiration"`
 }
