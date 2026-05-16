@@ -148,6 +148,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     window.location.reload();
   }, [currentCluster]);
 
+  useEffect(() => {
+    if (settingsOpen || showPasswordModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [settingsOpen, showPasswordModal]);
+
   const handlePasswordChange = useCallback(async () => {
     if (!passwordForm.oldPassword || !passwordForm.newPassword) {
       notification.warning('Please fill in all fields');
