@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { authUtils, authFetch } from '../utils/auth';
@@ -39,7 +40,7 @@ import {
   FaArrowsAltV,
   FaCloud,
 } from 'react-icons/fa';
-import { FiLogOut, FiSettings } from 'react-icons/fi';
+import { FiLogOut, FiSettings, FiGlobe, FiKey, FiUsers } from 'react-icons/fi';
 import { notification } from '../common/NotificationContext';
 
 /**
@@ -337,7 +338,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Settings Overlay */}
-      {settingsOpen && (
+      {settingsOpen && createPortal(
         <div className="settings-overlay" onClick={() => setSettingsOpen(false)}>
           <div className="settings-page" onClick={e => e.stopPropagation()}>
             <div className="settings-page-header">
@@ -349,21 +350,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="settings-section-label">Administration</div>
               <div className="settings-action-list">
                 <div className="settings-action" onClick={() => { setSettingsOpen(false); handleMenuClick('clusters'); }}>
-                  <FaServer size={18} />
+                  <FiGlobe size={18} />
                   <div className="settings-action-text">
                     <span className="settings-action-title">Manage Clusters</span>
                     <span className="settings-action-desc">Add, edit, or remove cluster connections</span>
                   </div>
                 </div>
                 <div className="settings-action" onClick={() => setShowPasswordModal(true)}>
-                  <FaLock size={18} />
+                  <FiKey size={18} />
                   <div className="settings-action-text">
                     <span className="settings-action-title">Change Password</span>
                     <span className="settings-action-desc">Update your login password</span>
                   </div>
                 </div>
                 <div className="settings-action disabled" title="Coming soon">
-                  <FaUserCheck size={18} />
+                  <FiUsers size={18} />
                   <div className="settings-action-text">
                     <span className="settings-action-title">User Management</span>
                     <span className="settings-action-desc">Manage user accounts and permissions</span>
@@ -379,7 +380,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Password Change Modal */}
+      {showPasswordModal && createPortal(
+        <div className="password-modal-overlay" onClick={() => { setShowPasswordModal(false); setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' }); }}>
+          <div className="password-modal" onClick={e => e.stopPropagation()}>
+            <h3>Change Password</h3>
+            <div className="form-field">
+              <label>Current Password</label>
+              <input
+                type="password"
+                value={passwordForm.oldPassword}
+                onChange={e => setPasswordForm(p => ({ ...p, oldPassword: e.target.value }))}
+                placeholder="Enter current password"
+              />
+            </div>
+            <div className="form-field">
+              <label>New Password</label>
+              <input
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                placeholder="Enter new password (min 8 chars)"
+              />
+            </div>
+            <div className="form-field">
+              <label>Confirm New Password</label>
+              <input
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                placeholder="Confirm new password"
+              />
+            </div>
+            <div className="form-buttons">
+              <button className="create-resource-btn" onClick={handlePasswordChange} disabled={changingPassword}>
+                {changingPassword ? 'Saving...' : 'Save'}
+              </button>
+              <button className="password-cancel-btn" onClick={() => { setShowPasswordModal(false); setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' }); }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Password Change Modal */}
