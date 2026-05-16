@@ -99,7 +99,7 @@
   padding: var(--spacing-sm) var(--spacing-lg);
   cursor: pointer;
   font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semold);
+  font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
   border-radius: var(--radius-xs) 0 0 var(--radius-xs);
   margin-bottom: 0;
@@ -239,7 +239,7 @@
   border: 1px solid var(--bg-active-solid);
   border-radius: var(--radius-xs);
   box-shadow: var(--shadow-sm);
-  z-index: var(--z-index-popover);
+  z-index: var(--z-index-dropdown);
   max-height: 200px;
   overflow-y: auto;
 }
@@ -279,13 +279,13 @@
 }
 
 .cluster-status-dot.healthy {
-  background-color: var(--color-success);
-  box-shadow: 0 0 4px var(--color-success);
+  background-color: var(--success);
+  box-shadow: 0 0 4px var(--success);
 }
 
 .cluster-status-dot.unhealthy {
-  background-color: var(--color-danger);
-  box-shadow: 0 0 4px var(--color-danger);
+  background-color: var(--danger);
+  box-shadow: 0 0 4px var(--danger);
 }
 
 /* 登出按钮 */
