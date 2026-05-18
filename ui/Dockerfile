@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # 安装依赖（优化缓存层）
-RUN npm ci --only=production --no-audit --no-fund && \
+RUN npm ci --no-audit --no-fund && \
     npm cache clean --force
 
 # 复制源代码

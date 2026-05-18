@@ -59,8 +59,7 @@ build/
 dist/
 bin/
 
-# 配置文件（保留config.yaml.example）
-config.yaml
+# 配置文件（保留config.yaml用于Docker构建）
 *.env
 .env.*
 
@@ -72,6 +71,7 @@ docker-compose*.yml
 # Kubernetes相关
 k8s/
 *.yaml
+!config.yaml
 *.yml
 
 # 脚本文件
