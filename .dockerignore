@@ -38,6 +38,8 @@ frontend/dist/
 frontend/.npm/
 frontend/.vite/
 frontend/coverage/
+ui/node_modules/
+ui/dist/
 
 # Go相关
 *.exe
