@@ -35,6 +35,7 @@
 }
 
 .modal-title {
+  font-family: var(--font-main);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
@@ -103,6 +104,7 @@
   padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
+  font-family: var(--font-main);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
@@ -216,6 +218,7 @@
   padding: 5px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  font-family: var(--font-main);
   font-size: 16px;
   font-weight: var(--font-weight-normal);
   transition: var(--transition-fast);
@@ -264,6 +267,7 @@
   background: var(--bg-danger);
   color: var(--danger);
   border-top: 1px solid var(--bg-active-solid);
+  font-family: var(--font-main);
   font-size: var(--font-size-sm);
 }
 
