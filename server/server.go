@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"time"
 
@@ -29,6 +30,7 @@ type Server struct {
 	httpServer    *http.Server
 	jwtMiddleware *middleware.JWTMiddleware
 	wsMgr         *api.WebSocketManager
+	staticFS      fs.FS
 }
 
 func NewServer(
@@ -36,12 +38,14 @@ func NewServer(
 	configMgr *config.Manager,
 	lruCacheMgr *cache.MemoryCache[any],
 	k8sClientMgr *service.ClientManager,
+	staticFS fs.FS,
 ) *Server {
 	return &Server{
 		logger:       logger,
 		configMgr:    configMgr,
 		lruCacheMgr:  lruCacheMgr,
 		k8sClientMgr: k8sClientMgr,
+		staticFS:     staticFS,
 	}
 }
 
@@ -112,6 +116,11 @@ func (s *Server) SetupRouter() *gin.Engine {
 	r.MaxMultipartMemory = 10 << 20
 	s.registerMiddlewares(r, &cfg)
 	s.registerRoutes(r, &cfg)
+
+	if s.staticFS != nil {
+		s.serveStaticFiles(r)
+	}
+
 	return r
 }
 
@@ -162,6 +171,23 @@ func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 	s.wsMgr = api.NewWebSocketManager(cfg.Server.MaxWsConnections)
 	s.registerAPIRoutes(apiGroup)
 	s.registerAPIRoutes(legacyGroup)
+}
+
+func (s *Server) serveStaticFiles(r *gin.Engine) {
+	staticHandler := http.FileServer(http.FS(s.staticFS))
+
+	r.NoRoute(func(c *gin.Context) {
+		embedPath := "ui/dist" + c.Request.URL.Path
+		if f, err := s.staticFS.Open(embedPath); err == nil {
+			f.Close()
+			c.Request.URL.Path = embedPath
+			staticHandler.ServeHTTP(c.Writer, c.Request)
+			return
+		}
+
+		c.Request.URL.Path = "ui/dist/index.html"
+		staticHandler.ServeHTTP(c.Writer, c.Request)
+	})
 }
 
 func (s *Server) healthCheckHandler(c *gin.Context) {
