@@ -32,7 +32,7 @@
   flex-direction: column;
   padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg) var(--spacing-xl);
   transition: box-shadow var(--transition-fast);
-  width: 340px;
+  width: 300px;
 }
 
 .login-form-card:hover {
