@@ -1,60 +1,28 @@
 # syntax=docker/dockerfile:1
 
-# ------------------------------
-# Builder stage
-# ------------------------------
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend
+WORKDIR /app
+COPY ui/package.json ui/package-lock.json ./
+RUN npm ci
+COPY ui/ .
+RUN npm run build
+
+# Stage 2: Build backend (with embedded frontend)
 FROM golang:1.26-alpine AS builder
-
 WORKDIR /workspace
-
-# Install build deps
-RUN apk add --no-cache git ca-certificates tzdata
-
-# Enable Go modules and better caching
-ENV CGO_ENABLED=0 \
-    GO111MODULE=on
-
-# Cache modules
 COPY go.mod go.sum ./
 RUN go mod download
-
-# Copy source
 COPY . .
+COPY --from=frontend /app/dist ui/dist
+RUN go build -ldflags "-s -w" -o k8svision ./main.go
 
-# Build binary
-RUN go build -ldflags "-s -w" -o /workspace/k8svision ./main.go
-
-
-# ------------------------------
-# Runtime stage
-# ------------------------------
-FROM alpine:3.20 AS runner
-
+# Stage 3: Runtime
+FROM alpine:3.20
 WORKDIR /app
-
 RUN apk add --no-cache ca-certificates tzdata && \
     addgroup -S k8svision && adduser -S k8svision -G k8svision
-
-# Copy binary
 COPY --from=builder /workspace/k8svision /app/k8svision
-
-# Copy default config if present (can be overridden by mounting)
-COPY --from=builder /workspace/config.yaml /app/config.yaml
-
-# Environment (can be overridden at runtime)
-ENV K8SVISION_LOG_LEVEL=info \
-    K8SVISION_JWT_SECRET="" \
-    K8SVISION_AUTH_USERNAME=admin \
-    K8SVISION_AUTH_PASSWORD="" \
-    K8SVISION_SERVER_HOST=0.0.0.0 \
-    K8SVISION_SERVER_PORT=8080
-
 EXPOSE 8080
-
 USER k8svision
-
-# Prefer explicit config path when provided; otherwise app reads defaults/env
 ENTRYPOINT ["/app/k8svision"]
-CMD ["-config", "/app/config.yaml"]
-
-
