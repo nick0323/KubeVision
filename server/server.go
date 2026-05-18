@@ -174,18 +174,31 @@ func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 }
 
 func (s *Server) serveStaticFiles(r *gin.Engine) {
-	staticHandler := http.FileServer(http.FS(s.staticFS))
+	sub, err := fs.Sub(s.staticFS, "ui/dist")
+	if err != nil {
+		return
+	}
+	staticHandler := http.FileServer(http.FS(sub))
 
 	r.NoRoute(func(c *gin.Context) {
-		embedPath := "ui/dist" + c.Request.URL.Path
-		if f, err := s.staticFS.Open(embedPath); err == nil {
-			f.Close()
-			c.Request.URL.Path = embedPath
+		path := c.Request.URL.Path
+
+		// Serve index.html for root or SPA routes
+		if path == "/" {
+			c.Request.URL.Path = "/index.html"
 			staticHandler.ServeHTTP(c.Writer, c.Request)
 			return
 		}
 
-		c.Request.URL.Path = "ui/dist/index.html"
+		// Try to serve the requested file
+		if f, err := sub.Open(path); err == nil {
+			f.Close()
+			staticHandler.ServeHTTP(c.Writer, c.Request)
+			return
+		}
+
+		// File not found, serve index.html for SPA routing
+		c.Request.URL.Path = "/index.html"
 		staticHandler.ServeHTTP(c.Writer, c.Request)
 	})
 }
