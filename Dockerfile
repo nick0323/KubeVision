@@ -8,7 +8,7 @@ FROM golang:1.26-alpine AS builder
 WORKDIR /workspace
 
 # Install build deps
-RUN apk add --no-cache git ca-certificates tzdata build-base
+RUN apk add --no-cache git ca-certificates tzdata
 
 # Enable Go modules and better caching
 ENV CGO_ENABLED=0 \
