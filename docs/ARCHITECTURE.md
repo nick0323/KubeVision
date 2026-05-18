@@ -1,339 +1,239 @@
 # KubeVision 架构文档
 
-## 系统架构概述
-
-KubeVision 是一个基于 Go + React 的 Kubernetes Web 管理面板，采用前后端分离架构。
-
-### 整体架构
+## 系统架构
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                        Browser                           │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │           React SPA (TypeScript)                │    │
-│  │  - Pages (列表/详情/日志/终端)                  │    │
-│  │  - Components (Table/Sidebar/Tabs)              │    │
-│  │  - Hooks (useResourceList/useResourceDetail)    │    │
-│  └─────────────────────────────────────────────────┘    │
+│                    Browser (React SPA)                    │
+│  Pages (列表/详情)  →  Common (Table/Sidebar/Tabs)      │
+│  Hooks (useResourceList)  →  apiClient (统一 HTTP)      │
 └──────────────────────────┬──────────────────────────────┘
                            │ HTTP / WebSocket
                            ↓
 ┌──────────────────────────────────────────────────────────┐
-│                   Go Backend (Gin)                       │
+│                     Go Backend (Gin)                     │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │              API Layer                          │    │
-│  │  - HTTP Handlers (resource_handler.go)         │    │
-│  │  - WebSocket (exec.go, operations.go)          │    │
-│  │  - Middleware (auth/cors/logging/metrics)      │    │
+│  │  resource_handler → ResourceEntry registry     │    │
+│  │  operations (YAML/logs/exec/related)           │    │
+│  │  middleware (auth/cors/logging/metrics)        │    │
+│  │  cluster_handler / password_management         │    │
 │  └─────────────────────────────────────────────────┘    │
 │                          ↓                               │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │            Service Layer                        │    │
-│  │  - K8s Client Manager (k8s_client.go)          │    │
-│  │  - Resource Listers (list.go)                  │    │
-│  │  - Pod Informer (pod_informer.go)              │    │
+│  │  ClientManager → 多集群 K8s 客户端管理          │    │
+│  │  ResourceManager → 列表/搜索/映射               │    │
+│  │  RelatedFinder → 16 种资源的关联查找             │    │
+│  │  Informer → Pod 变更监听                        │    │
 │  └─────────────────────────────────────────────────┘    │
 │                          ↓                               │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │         Infrastructure Layer                    │    │
-│  │  - Cache (memory.go - LRU)                     │    │
-│  │  - Monitor (metrics/tracing)                   │    │
-│  │  - Config (manager.go - Viper)                 │    │
+│  │  MemoryCache (LRU + 16 shards + TTL)           │    │
+│  │  ConfigManager (Viper + 值拷贝返回)             │    │
+│  │  Monitor (Prometheus 指标)                      │    │
 │  └─────────────────────────────────────────────────┘    │
 └──────────────────────────┬──────────────────────────────┘
                            │ client-go
                            ↓
 ┌──────────────────────────────────────────────────────────┐
-│              Kubernetes API Server                       │
+│                  Kubernetes API Server                    │
 └──────────────────────────────────────────────────────────┘
 ```
 
-## 核心模块设计
+---
 
-### 1. API 层 (api/)
+## 核心模块
 
-**职责**: HTTP 请求处理、WebSocket 连接、中间件
+### 1. ResourceEntry 注册表 (`pkg/k8s/resource.go`)
 
-#### 关键文件
-- `resource_handler.go` - 通用资源 CRUD 路由
-- `operations.go` - YAML 操作、关联资源、日志流
-- `exec.go` - Pod Exec WebSocket
-- `middleware/` - 认证、CORS、日志、指标
+所有 K8s 资源的 CRUD 操作集中管理。核心结构：
 
-#### 缓存集成
 ```go
-// 列表查询 - 带缓存
-result, err := getResourceListByTypeWithCache(...)
+type ResourceEntry struct {
+    Kind          string
+    ClusterScoped bool
+    Get           func(kubernetes.Interface, string, string) (any, error)
+    List          func(kubernetes.Interface, string, metav1.ListOptions) (any, error)
+    Create        func(kubernetes.Interface, string, any) error
+    Update        func(kubernetes.Interface, string, string, any) error
+    Delete        func(kubernetes.Interface, string, string) error
+}
 
-// 详情查询 - 带缓存
-obj, err := getResourceByName(...)
-
-// 删除/更新 - 清除缓存
-invalidateCache(resourceType, namespace)
+func NewRegistry(c kubernetes.Interface) map[ResourceType]*ResourceEntry
 ```
 
-### 2. Service 层 (service/)
+新增资源只需在 `NewRegistry` 中添加一条记录，无需新增文件或 switch-case。
 
-**职责**: 业务逻辑、K8s 操作、资源映射
+### 2. 多集群客户端管理 (`service/k8s_client.go`)
 
-#### 关键组件
-
-**ClientManager** - K8s 客户端管理器
 ```go
 type ClientManager struct {
-    defaultClient  *ClientHolder
-    clientPool     sync.Map  // 多集群连接池
+    defaultClient *ClientHolder   // config.yaml 顶层 kubernetes: 段
+    clientPool    sync.Map        // clusters: 列表中的命名集群
 }
-
-// 获取客户端（支持多集群）
-func (m *ClientManager) GetClient(clusterName string)
 ```
 
-**PodInformer** - Pod 缓存管理器
+- `GetClient("")` / `GetClient("default")` → 路由到 `defaultClient`
+- `GetClusterNames()` → 始终将 `"default"` 放在首位
+- `RemoveCluster("default")` → 返回错误，不可删除
+- `GetClustersHealth()` → 同时检查所有集群健康状态
+
+### 3. 关联资源查找 (`service/related_finder.go`)
+
 ```go
-type PodInformer struct {
-    podCache     map[string]*v1.Pod
-    restartCache map[string]int32
+var relatedFinders map[string]func(*findContext)
+
+func init() {
+    relatedFinders = map[string]func(*findContext){
+        "Pod":         func(fc *findContext) { /* ownerRef + service + volumes + node */ },
+        "Deployment":  func(fc *findContext) { /* RS + service + HPA + PDB + ingress */ },
+        // ... 共 16 种资源
+    }
 }
 
-// 从缓存列出 Pod
-func (pi *PodInformer) ListPods(namespace string) []*v1.Pod
+func FindRelatedResources(obj any, resourceType string, ...) []any
 ```
 
-### 3. 缓存层 (cache/)
+使用 `k8s.GetKindByResourceType(resourceType)` 映射类型名，直接在闭包 map 中查找，无需 switch。
 
-**设计**: 泛型 LRU 缓存，支持 TTL 和自动清理
+### 4. 缓存层 (`cache/memory.go`)
+
+泛型 LRU 缓存，16 个 shard 减少锁竞争：
 
 ```go
 type MemoryCache[T any] struct {
-    data            map[string]CacheItem[T]
-    maxSize         int
-    ttl             time.Duration
-    hits, misses    atomic.Int64
+    shards [16]cacheShard[T]
 }
 
-// 使用示例
-cache.SetWithTTL("pod:default:nginx", pods, 5*time.Minute)
-if cached, found := cache.Get("pod:default:nginx"); found {
-    return cached
+type cacheShard[T any] struct {
+    mutex sync.Mutex
+    data  map[string]cacheItem[T]
+    order *list.List
 }
 ```
 
-#### 缓存策略
-- **列表查询**: 5 分钟 TTL
-- **资源详情**: 2 分钟 TTL
-- **淘汰策略**: LRU（最近最少使用）
-- **自动清理**: 定期清理过期项
+- `Get()` / `Set()` 使用单次 `Lock()`（无 RUnlock→Lock 窗口）
+- 淘汰策略：LRU，全局 maxSize 分摊到每个 shard
+- TTL：列表 5min，详情 2min，ConfigMap/Secret 30s
+- 删除/更新时自动失效对应缓存
 
-### 4. 多集群架构
+### 5. 密码管理 (`api/password_management.go`)
 
-#### 配置加载
-```yaml
-clusters:
-  - name: "cluster-dev"
-    kubeconfig: "/path/to/dev-kubeconfig"
-  - name: "cluster-prod"
-    apiServer: "https://prod-api:6443"
-    token: "xxx"
-```
-
-#### 动态加载流程
-```
-1. 请求指定 clusterName
-2. 检查 clientPool 是否已缓存
-3. 未命中 → 从配置加载 ClusterConfig
-4. 创建 ClientHolder 并 Store 到 clientPool
-5. 返回客户端
-```
-
-#### 连接池管理
 ```go
-// LoadOrStore 保证原子性，避免并发加载
-actual, loaded := m.clientPool.LoadOrStore(clusterName, holder)
-if loaded {
-    holder.Close()  // 丢弃重复创建
-    return actual.(*ClientHolder)
+type PasswordManager struct {
+    configMgr *config.Manager
 }
+
+func (pm *PasswordManager) ValidatePasswordStrength(password string) error
 ```
 
-### 5. 安全机制
+验证规则：
+- 长度 8-128
+- 至少 3 种字符类型（大写/小写/数字/特殊符号）
+- 禁止 3+ 连续递增数字
+- 禁止单一字符占比 >50%
+- 禁止常见弱密码
+- 禁止与最近 5 次历史密码相同
 
-#### JWT 认证流程
+### 6. Config 安全 (`config/manager.go`)
+
+```go
+func (m *Manager) GetConfig() Config       // 返回值拷贝，非指针
+func (m *Manager) UpdateConfig(fn func(*Config)) // 原子更新
 ```
-1. 用户登录 → 验证用户名/密码
-2. 生成 JWT token (24h 过期)
-3. 后续请求携带 token → 中间件验证
-4. 失败 5 次 → 锁定 10 分钟
-```
 
-#### 密码安全
-- 使用 bcrypt 哈希存储
-- 首次启动自动生成随机密码
-- 支持登录后修改
+`GetConfig()` 返回值拷贝，调用方无法意外修改内部状态。测试用 `UpdateConfig` 避免状态污染。
 
-#### WebSocket 安全
-- 携带 JWT token 验证
-- CheckOrigin 可配置
-- 连接超时和心跳检测
+---
 
 ## 数据流
 
-### 资源列表查询流程
-```
-前端请求
-  ↓
-API Handler (resource_handler.go)
-  ↓
-检查缓存
-  ├─ 命中 → 返回缓存
-  └─ 未命中 ↓
-Service Layer (list.go)
-  ↓
-K8s API (client-go)
-  ↓
-写入缓存 (5min TTL)
-  ↓
-返回前端
-```
+### 资源列表查询
 
-### Pod 终端流程
 ```
-前端 WebSocket 连接
+前端请求 /api/pods?namespace=default
   ↓
-/api/ws/exec
+resource_handler.go → 解析 resourceType
   ↓
-验证 JWT token
+NewRegistry(clientset)[ResourcePod].List()
   ↓
-创建 Pod Exec (client-go)
+cache.Get("list:pod:default:")  ← 命中则直接返回
+  ↓ 未命中
+clientset.CoreV1().Pods("default").List()
   ↓
-WebSocket ↔ exec 双向转发
+resource_mapper.go → 映射为前端模型
   ↓
-连接关闭 → 清理资源
+cache.Set("list:pod:default:", result, 5min)
+  ↓
+返回 JSON
 ```
 
-## 性能优化
+### WebSocket 日志流
 
-### 1. 缓存优化
-- 列表查询减少 K8s API 调用
-- LRU 淘汰避免内存溢出
-- 删除/更新时自动失效
-
-### 2. 连接优化
-- K8s 客户端连接池复用
-- WebSocket 心跳保活
-- HTTP 连接复用
-
-### 3. 前端优化
-- 虚拟滚动（日志列表）
-- 按需加载（Tab 切换）
-- 防抖/节流（搜索/resize）
-
-## 监控指标
-
-### 缓存指标
-```go
-type CacheStats struct {
-    Hits          int64
-    Misses        int64
-    HitRate       float64
-    Size          int
-    Utilization   float64
-}
+```
+前端 → /ws/logs?namespace=default&pod=nginx&token=xxx
+  ↓
+middleware/auth.go → 验证 JWT
+  ↓
+operations.go → 建立 Pod 日志流 (client-go)
+  ↓
+gorilla/websocket ↔ kubernetes.APIContainer.Logs() 双向转发
 ```
 
-### 请求指标
-- 请求延迟（P50/P99）
-- 错误率
-- QPS
+### 多集群请求路由
 
-## 部署架构
-
-### Docker 部署
 ```
-┌─────────────────────┐
-│  KubeVision Pod     │
-│  ┌───────────────┐  │
-│  │ Go Backend    │  │
-│  │   (8080)      │  │
-│  └───────────────┘  │
-│  ┌───────────────┐  │
-│  │ React Static  │  │
-│  │   (Nginx)     │  │
-│  └───────────────┘  │
-└─────────────────────┘
+前端请求 (cluster=dev)
+  ↓
+apiClient 自动注入 cluster 参数 (default 时不传)
+  ↓
+resource_handler → GetClient(clusterName)
+  ├─ "default" / "" → defaultClient
+  └─ 其他 → clientPool.Load(clusterName)
 ```
 
-### K8s 部署
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kubevision
-spec:
-  template:
-    spec:
-      serviceAccountName: kubevision-sa
-      containers:
-      - name: kubevision
-        image: kubevision:latest
-        env:
-        - name: K8SVISION_JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: kubevision-secret
-              key: jwt-secret
-```
+---
 
 ## 扩展指南
 
 ### 添加新资源类型
 
-1. **Service 层**: 添加列表/详情函数
-   ```go
-   func ListNewResource(ctx context.Context, clientset *kubernetes.Clientset, ...) ([]model.SearchableItem, error)
-   ```
+1. **注册表**: 在 `pkg/k8s/resource.go` `NewRegistry()` 中添加 `ResourceEntry`
+2. **搜索映射**: 在 `service/resource_manager.go` `searchItemMappers()` 中添加
+3. **关联查找** (可选): 在 `service/related_finder.go` `init()` 中添加
+4. **前端常量**: 在 `ui/src/constants/index.ts` 添加资源类型
+5. **页面配置**: 在 `ui/src/constants/pageConfigs.ts` 添加列表/详情配置
+6. **详情 Tab** (可选): 在 `ui/src/tabs/` 添加组件
 
-2. **API 层**: 添加 switch-case
-   ```go
-   case "newresource":
-       return service.ListNewResource(...)
-   ```
+### 添加新集群
 
-3. **前端**: 添加路由和页面
+在 `config.yaml` 的 `clusters:` 列表中添加：
 
-### 自定义缓存策略
-
-修改 `config.yaml`:
 ```yaml
-cache:
-  ttl: "10m"        # 调整 TTL
-  maxSize: 2000     # 调整容量
+clusters:
+  - name: prod
+    kubeconfig: /path/to/prod/kubeconfig
+    apiserver: ""
+    token: ""
+    insecure: false
 ```
 
-## 故障排查
+通过 UI "Cluster Management" 页面也可动态添加/删除。
 
-### 缓存问题
-```bash
-# 查看缓存统计
-curl http://localhost:8080/cache/stats
-```
+---
 
-### 连接问题
-```bash
-# 检查 K8s 连接
-curl http://localhost:8080/health
-```
+## 已完成的优化
 
-### 日志级别
-```yaml
-log:
-  level: "debug"  # 调整为 debug 查看详细日志
-```
-
-## 未来规划
-
-1. **RBAC 权限系统**: 多用户、角色权限、命名空间级别访问控制
-2. **Dynamic Client**: 使用 dynamic client 重构 switch-case，支持 CRD
-3. **Informer 扩展**: 为更多资源类型添加 Informer 缓存
-4. **多集群 UI**: 前端支持切换集群查看
-5. **告警系统**: 基于监控指标的自动告警
+| 项目 | 描述 |
+|------|------|
+| Cluster update 原子性 | TestConnection + AddCluster 通过后再写配置 |
+| Cache 锁安全 | Get() 单次 Lock() 消除竞态窗口 |
+| ResourceEntry 注册表 | 5 接口 + 4 工厂 + switch → 1 个 map |
+| related_finder 去重 | 16 结构体 + interface → map 闭包 |
+| Sidebar 拆分 | 436 行 → 4 个独立组件 |
+| Config 安全 | 返回值拷贝 + UpdateConfig 测试辅助 |
+| React.memo | 15+ 展示组件添加 memo |
+| CSS 变量化 | 硬编码值 → CSS 变量 |
+| GetKindByResourceType | switch → map 查找 |

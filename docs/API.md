@@ -1,170 +1,207 @@
 # KubeVision API 文档
 
-完整的 API 接口文档，包含请求示例和响应格式。
-
-**版本**: v2.0.0  
 **Base URL**: `http://localhost:8080/api`
 
 ## 目录
 
 - [认证](#认证)
 - [资源操作](#资源操作)
-- [YAML 操作](#yaml 操作)
+- [集群管理](#集群管理)
+- [密码管理](#密码管理)
+- [YAML 操作](#yaml-操作)
 - [日志流](#日志流)
 - [终端访问](#终端访问)
-- [管理接口](#管理接口)
+- [关联资源](#关联资源)
 - [监控指标](#监控指标)
-- [错误码](#错误码)
+- [缓存统计](#缓存统计)
+- [健康检查](#健康检查)
 
 ---
 
 ## 认证
 
-所有 API 请求（除登录外）都需要在 Header 中携带 JWT Token：
+所有 API（除登录外）需在 Header 携带 JWT Token：
 
-```http
+```
 Authorization: Bearer <token>
 ```
 
 ### 登录
 
-**接口**: `POST /api/login`
+**`POST /api/login`**
 
-**请求**:
 ```json
-{
-  "username": "admin",
-  "password": "your-password"
-}
-```
+// Request
+{ "username": "admin", "password": "your-password" }
 
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "Login successful",
-  "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  },
-  "timestamp": 1234567890
-}
-```
+// Response 200
+{ "code": 200, "message": "Login successful", "data": { "token": "eyJ..." }, "timestamp": ... }
 
-**错误响应**:
-```json
-{
-  "code": 401,
-  "message": "Invalid username or password",
-  "details": {
-    "remainingAttempts": 3,
-    "maxFailCount": 5
-  },
-  "timestamp": 1234567890
-}
+// Response 401
+{ "code": 401, "message": "Invalid username or password", "details": { "remainingAttempts": 3, "maxFailCount": 5 } }
 ```
 
 ---
 
 ## 资源操作
 
+所有资源操作通过 `ResourceEntry` 注册表中的统一接口处理，无需为每种资源单独写 handler。
+
 ### 获取资源列表
 
-**接口**: `GET /api/:resourceType`
+**`GET /api/:resourceType`**
 
-**路径参数**:
-- `resourceType`: 资源类型 (pods, deployments, services, etc.)
+查询参数：
 
-**查询参数**:
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `namespace` | string | 命名空间（集群资源不需要） |
+| `namespace` | string | 命名空间 |
+| `cluster` | string | 集群名称（默认集群可不传） |
 | `labelSelector` | string | Label 选择器 |
 | `fieldSelector` | string | Field 选择器 |
-| `offset` | int | 分页偏移量 |
-| `limit` | int | 每页数量 (默认 20, 最大 100) |
 | `search` | string | 搜索关键词 |
-| `sortBy` | string | 排序字段 |
-| `sortOrder` | string | 排序方式 (asc/desc) |
+| `offset` | int | 分页偏移 |
+| `limit` | int | 每页数量 |
 
-**示例**:
-```http
-GET /api/pods?namespace=default&labelSelector=app=nginx&offset=0&limit=20
-Authorization: Bearer <token>
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "List retrieved successfully",
-  "data": [
-    {
-      "namespace": "default",
-      "name": "nginx-deployment-abc123",
-      "status": "Running",
-      "ready": "1/1",
-      "restarts": 0,
-      "age": "2d",
-      "podIP": "10.244.0.5",
-      "nodeName": "node-1"
-    }
-  ],
-  "page": {
-    "total": 50,
-    "limit": 20,
-    "offset": 0
-  },
-  "timestamp": 1234567890
-}
-```
+**示例**: `GET /api/pods?namespace=default&cluster=dev`
 
 ### 获取资源详情
 
-**接口**: `GET /api/:resourceType/:namespace/:name`
+**`GET /api/:resourceType/:namespace/:name`**
 
-**示例**:
-```http
-GET /api/deployments/default/nginx-deployment
-Authorization: Bearer <token>
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "Resource details retrieved successfully",
-  "data": {
-    "namespace": "default",
-    "name": "nginx-deployment",
-    "readyReplicas": 3,
-    "updatedReplicas": 3,
-    "available": 3,
-    "desiredReplicas": 3,
-    "status": "Available",
-    "age": "30d"
-  },
-  "timestamp": 1234567890
-}
-```
+**示例**: `GET /api/deployments/default/nginx`
 
 ### 删除资源
 
-**接口**: `DELETE /api/:resourceType/:namespace/:name`
+**`DELETE /api/:resourceType/:namespace/:name`**
 
-**示例**:
-```http
-DELETE /api/pods/default/nginx-pod
-Authorization: Bearer <token>
+### 扩缩容
+
+**`POST /api/:resourceType/:namespace/:name/scale`**
+
+```json
+// Request
+{ "replicas": 5 }
 ```
 
-**响应**:
+### 重启 (Deployment/StatefulSet/DaemonSet)
+
+**`POST /api/:resourceType/:namespace/:name/restart`**
+
+无需请求体。
+
+---
+
+## 集群管理
+
+### 获取集群列表
+
+**`GET /api/v1/clusters`**
+
 ```json
-{
-  "code": 200,
-  "message": "Resource deleted successfully",
-  "data": null,
-  "timestamp": 1234567890
-}
+// Response 200
+{ "code": 200, "data": [
+  { "name": "default", "apiServer": "https://...", "version": "1.28", "healthy": true, "nodeCount": 3, "lastCheck": 1700000000 },
+  { "name": "dev", "apiServer": "https://...", "version": "1.27", "healthy": true, "nodeCount": 5, "lastCheck": 1700000000 }
+]}
+```
+
+### 获取集群健康状态
+
+**`GET /api/v1/clusters/health`**
+
+```json
+// Response 200
+{ "code": 200, "data": [
+  { "name": "default", "healthy": true, "host": "https://...", "version": "1.28", "nodeCount": 3 },
+  { "name": "dev", "healthy": true, "host": "https://...", "version": "1.27", "nodeCount": 5 }
+]}
+```
+
+### 测试集群连接
+
+**`POST /api/v1/clusters/test`**
+
+```json
+// Request
+{ "apiServer": "https://...", "token": "...", "kubeconfig": "/path/to/config", "caFile": "...", "insecure": false }
+```
+
+### 添加集群
+
+**`POST /api/v1/clusters`**
+
+```json
+// Request
+{ "name": "prod", "apiServer": "https://...", "token": "...", "kubeconfig": "...", "caFile": "...", "insecure": false }
+```
+
+注意：名称不能为 `"default"` 或空字符串。
+
+### 删除集群
+
+**`DELETE /api/v1/clusters/:name`**
+
+注意：无法删除 `"default"` 集群。
+
+---
+
+## 密码管理
+
+### 修改密码
+
+**`POST /api/v1/admin/password/change`**
+
+```json
+// Request
+{ "oldPassword": "current-password", "newPassword": "new-password" }
+```
+
+密码强度要求：
+
+| 规则 | 要求 |
+|------|------|
+| 长度 | 8-128 字符 |
+| 字符多样性 | ≥3 种：大写 / 小写 / 数字 / 特殊符号 |
+| 连续数字 | 禁止 3+ 位连续递增（如 `1234`） |
+| 重复字符 | 禁止单字符占比 >50% |
+| 弱密码 | 禁止常见密码（password、admin、123456 等） |
+| 历史 | 不能与最近 5 次密码相同 |
+
+### 生成随机密码
+
+**`POST /api/v1/admin/password/generate`**
+
+```json
+// Request
+{ "length": 16 }
+
+// Response 200
+{ "code": 200, "data": { "password": "aB3$xY9!mN2@pQ7#", "hashedPassword": "$2a$12$...", "length": 16 } }
+```
+
+### 验证密码哈希
+
+**`POST /api/v1/admin/password/validate`**
+
+```json
+// Request
+{ "password": "plain-text", "hashedPassword": "$2a$12$..." }
+
+// Response 200
+{ "code": 200, "data": { "valid": true } }
+```
+
+### 密码哈希
+
+**`POST /api/v1/admin/password/hash`**
+
+```json
+// Request
+{ "password": "plain-text" }
+
+// Response 200
+{ "code": 200, "data": { "hashedPassword": "$2a$12$...", "cost": 12 } }
 ```
 
 ---
@@ -173,75 +210,21 @@ Authorization: Bearer <token>
 
 ### 获取资源 YAML
 
-**接口**: `GET /api/:resourceType/:namespace/:name/yaml`
-
-**示例**:
-```http
-GET /api/deployments/default/nginx-deployment/yaml
-Authorization: Bearer <token>
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "YAML retrieved successfully",
-  "data": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: nginx-deployment\n  namespace: default\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n      - name: nginx\n        image: nginx:1.21\n        ports:\n        - containerPort: 80",
-  "timestamp": 1234567890
-}
-```
+**`GET /api/:resourceType/:namespace/:name/yaml`**
 
 ### 更新资源 YAML
 
-**接口**: `PUT /api/:resourceType/:namespace/:name/yaml`
+**`PUT /api/:resourceType/:namespace/:name/yaml`**
 
-**请求体格式 1** (直接 YAML):
 ```json
-{
-  "apiVersion": "apps/v1",
-  "kind": "Deployment",
-  "metadata": {
-    "name": "nginx-deployment",
-    "namespace": "default",
-    "resourceVersion": "12345"
-  },
-  "spec": {
-    "replicas": 5
-  }
-}
+// Request (两种格式均可)
+{ "apiVersion": "apps/v1", "kind": "Deployment", "metadata": { "name": "nginx", "resourceVersion": "12345" }, "spec": { "replicas": 5 } }
+
+// 或嵌套格式
+{ "yaml": { "apiVersion": "apps/v1", ... } }
 ```
 
-**请求体格式 2** (嵌套 yaml 字段):
-```json
-{
-  "yaml": {
-    "apiVersion": "apps/v1",
-    "kind": "Deployment",
-    "metadata": {
-      "name": "nginx-deployment",
-      "namespace": "default",
-      "resourceVersion": "12345"
-    },
-    "spec": {
-      "replicas": 5
-    }
-  }
-}
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "Resource updated successfully",
-  "data": null,
-  "timestamp": 1234567890
-}
-```
-
-**注意**:
-- 必须包含 `resourceVersion` 字段
-- Event 资源不支持 YAML 更新
+注意：必须包含 `resourceVersion`。
 
 ---
 
@@ -249,84 +232,19 @@ Authorization: Bearer <token>
 
 ### WebSocket Pod 日志
 
-**接口**: `WS /ws/logs/pod`
+**`WS /ws/logs`**
 
-**连接 URL**:
 ```
-ws://localhost:8080/ws/logs/pod?namespace=default&pod=my-pod&container=app&tailLines=100&timestamps=true&token=<jwt-token>
+ws://localhost:8080/ws/logs?namespace=default&pod=nginx&container=app&tailLines=100&token=<jwt>
 ```
 
-**查询参数**:
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `namespace` | string | 命名空间（必填） |
-| `pod` | string | Pod 名称（必填） |
-| `container` | string | 容器名称 |
-| `tailLines` | int | 日志行数 |
-| `timestamps` | bool | 显示时间戳 |
-| `previous` | bool | 获取之前容器的日志 |
-| `token` | string | JWT Token |
+服务端消息格式：
 
-**消息格式**:
-
-服务端 → 客户端:
 ```json
-{
-  "type": "connected",
-  "message": "Connected to default/my-pod (app)"
-}
-
-{
-  "type": "log",
-  "content": "2024-01-01T00:00:00Z INFO Application started"
-}
-
-{
-  "type": "heartbeat"
-}
-
-{
-  "type": "error",
-  "message": "Pod not found"
-}
-```
-
-**JavaScript 示例**:
-```javascript
-const token = 'eyJhbGc...';
-const ws = new WebSocket(
-  `ws://localhost:8080/ws/logs/pod?namespace=default&pod=my-pod&token=${token}`
-);
-
-ws.onopen = () => {
-  console.log('Connected to log stream');
-};
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  switch (data.type) {
-    case 'connected':
-      console.log(data.message);
-      break;
-    case 'log':
-      console.log(data.content);
-      break;
-    case 'heartbeat':
-      // 心跳响应
-      break;
-    case 'error':
-      console.error(data.message);
-      break;
-  }
-};
-
-ws.onerror = (error) => {
-  console.error('WebSocket error:', error);
-};
-
-ws.onclose = () => {
-  console.log('Connection closed');
-};
+{ "type": "connected", "message": "Connected to default/nginx (app)" }
+{ "type": "log", "content": "2024-01-01 INFO Application started" }
+{ "type": "heartbeat" }
+{ "type": "error", "message": "Pod not found" }
 ```
 
 ---
@@ -335,107 +253,24 @@ ws.onclose = () => {
 
 ### WebSocket Pod Exec
 
-**接口**: `WS /ws/exec`
+**`WS /ws/exec`**
 
-**连接 URL**:
 ```
-ws://localhost:8080/ws/exec?namespace=default&pod=my-pod&container=app&command=/bin/bash&token=<jwt-token>
+ws://localhost:8080/ws/exec?namespace=default&pod=nginx&container=app&command=/bin/bash&token=<jwt>
 ```
 
-**查询参数**:
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `namespace` | string | 命名空间（必填） |
-| `pod` | string | Pod 名称（必填） |
-| `container` | string | 容器名称 |
-| `command` | string | 执行的命令（默认 /bin/sh） |
-| `token` | string | JWT Token |
+客户端 → 服务端：
 
-**消息格式**:
-
-客户端 → 服务端:
 ```json
-{
-  "type": "stdin",
-  "data": "ls -la\n"
-}
-
-{
-  "type": "resize",
-  "cols": 120,
-  "rows": 40
-}
+{ "type": "stdin", "data": "ls -la\n" }
+{ "type": "resize", "cols": 120, "rows": 40 }
 ```
 
-服务端 → 客户端:
+服务端 → 客户端：
+
 ```json
-{
-  "type": "stdout",
-  "data": "total 0\ndrwxr-xr-x ..."
-}
-
-{
-  "type": "stderr",
-  "data": "error message"
-}
-
-{
-  "type": "connected",
-  "namespace": "default",
-  "pod": "my-pod",
-  "container": "app",
-  "message": "Connected to default/my-pod (app)"
-}
-```
-
-**xterm.js 集成示例**:
-```javascript
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-
-const term = new Terminal();
-const fitAddon = new FitAddon();
-term.loadAddon(fitAddon);
-term.open(document.getElementById('terminal'));
-
-const token = 'eyJhbGc...';
-const ws = new WebSocket(
-  `ws://localhost:8080/ws/exec?namespace=default&pod=my-pod&container=app&token=${token}`
-);
-
-ws.onopen = () => {
-  fitAddon.fit();
-  // 发送初始尺寸
-  ws.send(JSON.stringify({
-    type: 'resize',
-    cols: term.cols,
-    rows: term.rows
-  }));
-};
-
-term.onData((data) => {
-  ws.send(JSON.stringify({
-    type: 'stdin',
-    data: data
-  }));
-});
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  if (data.type === 'stdout' || data.type === 'stderr') {
-    term.write(data.data);
-  }
-};
-
-// 处理窗口大小变化
-window.addEventListener('resize', () => {
-  fitAddon.fit();
-  ws.send(JSON.stringify({
-    type: 'resize',
-    cols: term.cols,
-    rows: term.rows
-  }));
-});
+{ "type": "stdout", "data": "total 0\ndrwxr-xr-x ..." }
+{ "type": "connected", "namespace": "default", "pod": "nginx", "container": "app" }
 ```
 
 ---
@@ -444,142 +279,17 @@ window.addEventListener('resize', () => {
 
 ### 获取关联资源
 
-**接口**: `GET /api/:resourceType/:namespace/:name/related`
+**`GET /api/:resourceType/:namespace/:name/related`**
 
-**示例**:
-```http
-GET /api/deployments/default/nginx-deployment/related
-Authorization: Bearer <token>
-```
-
-**响应**:
 ```json
-{
-  "code": 200,
-  "message": "Related resources retrieved successfully",
-  "data": [
-    {
-      "kind": "ReplicaSet",
-      "name": "nginx-deployment-abc123",
-      "relation": "child"
-    },
-    {
-      "kind": "Service",
-      "name": "nginx-service",
-      "relation": "exposedBy"
-    },
-    {
-      "kind": "HorizontalPodAutoscaler",
-      "name": "nginx-hpa",
-      "relation": "autoscaled"
-    }
-  ],
-  "timestamp": 1234567890
-}
+// Response 200
+{ "code": 200, "data": [
+  { "kind": "ReplicaSet", "name": "nginx-abc123", "relation": "child" },
+  { "kind": "Service", "name": "nginx-svc", "relation": "exposedBy" }
+]}
 ```
 
----
-
-## 管理接口
-
-### 修改密码
-
-**接口**: `POST /api/admin/password/change`
-
-**请求**:
-```json
-{
-  "oldPassword": "old-password",
-  "newPassword": "new-secure-password"
-}
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "Password changed successfully",
-  "data": {
-    "message": "密码修改成功"
-  },
-  "timestamp": 1234567890
-}
-```
-
-### 生成随机密码
-
-**接口**: `POST /api/admin/password/generate`
-
-**请求**:
-```json
-{
-  "length": 16
-}
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "Password generated successfully",
-  "data": {
-    "password": "aB3$xY9!mN2@pQ7#",
-    "hashedPassword": "$2a$12$...",
-    "length": 16,
-    "warning": "请安全保存明文密码，系统将不会再次显示"
-  },
-  "timestamp": 1234567890
-}
-```
-
-### 密码哈希
-
-**接口**: `POST /api/admin/password/hash`
-
-**请求**:
-```json
-{
-  "password": "plain-password"
-}
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "Password hashed successfully",
-  "data": {
-    "hashedPassword": "$2a$12$...",
-    "cost": 12
-  },
-  "timestamp": 1234567890
-}
-```
-
-### 验证密码
-
-**接口**: `POST /api/admin/password/validate`
-
-**请求**:
-```json
-{
-  "password": "plain-password",
-  "hashedPassword": "$2a$12$..."
-}
-```
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "Verification completed",
-  "data": {
-    "valid": true,
-    "message": "Password verification passed"
-  },
-  "timestamp": 1234567890
-}
-```
+支持 16 种资源的关联查找（Pod → owner/Service/volumes/node, Deployment → RS/Service/HPA/PDB/Ingress 等）。
 
 ---
 
@@ -587,156 +297,54 @@ Authorization: Bearer <token>
 
 ### 获取所有指标
 
-**接口**: `GET /api/metrics`
+**`GET /api/v1/metrics`**
 
-**响应**:
+### 缓存统计
+
+**`GET /api/v1/cache/stats`**
+
 ```json
-{
-  "code": 200,
-  "message": "Metrics retrieved successfully",
-  "data": {
-    "timestamp": "2024-01-01T00:00:00Z",
-    "system": {
-      "cpu": {
-        "usage_percent": 25.5,
-        "cores": 4
-      },
-      "memory": {
-        "used_mb": 512,
-        "total_mb": 2048,
-        "usage_percent": 25.0
-      },
-      "network": {
-        "bytes_in": 1000000,
-        "bytes_out": 2000000
-      },
-      "connections": {
-        "active": 50,
-        "idle": 10
-      },
-      "collected_at": "2024-01-01T00:00:00Z"
-    },
-    "business": {
-      "totalRequests": 10000,
-      "cacheHitRate": 85.5,
-      "k8sApiCalls": 5000
-    },
-    "summary": {
-      "total_count": 1,
-      "system_count": 1,
-      "business_count": 3
-    }
-  },
-  "timestamp": 1234567890
-}
-```
-
-### 获取业务指标
-
-**接口**: `GET /api/metrics/business`
-
-### 获取系统指标
-
-**接口**: `GET /api/metrics/system`
-
-### 获取健康指标
-
-**接口**: `GET /api/metrics/health`
-
-**响应**:
-```json
-{
-  "code": 200,
-  "message": "Health metrics retrieved successfully",
-  "data": {
-    "status": "healthy",
-    "score": 95.0,
-    "timestamp": "2024-01-01T00:00:00Z"
-  },
-  "timestamp": 1234567890
-}
+// Response
+{ "code": 200, "data": { "size": 150, "maxSize": 1000, "hits": 5000, "misses": 500, "hitRate": 90.9, "evictions": 50 } }
 ```
 
 ---
 
 ## 健康检查
 
-**接口**: `GET /health`
-
-**响应**:
-```json
-{
-  "status": "healthy",
-  "timestamp": 1234567890,
-  "version": "2.0.0-optimized",
-  "k8sConnected": true
-}
-```
-
----
-
-## 缓存统计
-
-**接口**: `GET /cache/stats`
-
-**响应**:
-```json
-{
-  "size": 150,
-  "maxSize": 1000,
-  "hits": 5000,
-  "misses": 500,
-  "hitRate": 90.9,
-  "evictions": 50
-}
-```
-
----
-
-## 错误码
-
-| HTTP 状态码 | 错误码 | 说明 |
-|------------|--------|------|
-| 200 | 200 | 成功 |
-| 400 | 400 | 请求参数错误 |
-| 401 | 401 | 未授权/认证失败 |
-| 403 | 403 | 禁止访问 |
-| 404 | 404 | 资源不存在 |
-| 409 | 409 | 资源冲突 |
-| 422 | 422 | 验证失败 |
-| 429 | 429 | 请求过多 |
-| 500 | 500 | 服务器内部错误 |
-| 503 | 503 | 服务不可用 |
-
-### 错误响应格式
+**`GET /health`**
 
 ```json
-{
-  "code": 400,
-  "message": "Invalid request parameter format",
-  "details": "具体错误信息",
-  "traceId": "追踪 ID",
-  "timestamp": 1234567890
-}
+// Response 200
+{ "status": "healthy", "k8sConnected": true }
 ```
 
 ---
 
 ## 速率限制
 
-所有 API 端点都有速率限制：
+| 端点 | 限制 |
+|------|------|
+| 通用 API | 100 req/s (可配置) |
+| 登录 | 5 次失败后锁定 10 分钟 |
+| WebSocket | 最大 100 并发 |
 
-- 默认：100 请求/秒
-- 登录接口：5 次失败后锁定 10 分钟
-- WebSocket 连接：最大 100 个并发连接
+超出返回 `429 Too Many Requests`。
 
-超过限制会返回 `429 Too Many Requests`。
+## 错误码
 
----
+| 状态码 | 说明 |
+|--------|------|
+| 200 | 成功 |
+| 400 | 参数错误 |
+| 401 | 未认证 |
+| 403 | 无权限 |
+| 404 | 资源不存在 |
+| 409 | 冲突 |
+| 429 | 限流 |
+| 500 | 服务端错误 |
 
-## 版本历史
-
-| API 版本 | KubeVision 版本 | 说明 |
-|---------|----------------|------|
-| v1 | 1.0.0 | 初始版本 |
-| v2 | 2.0.0 | 重构资源处理器，统一响应格式 |
+```json
+// 错误响应格式
+{ "code": 400, "message": "...", "details": "...", "traceId": "...", "timestamp": ... }
+```
