@@ -80,8 +80,7 @@ scripts/
 *.bat
 
 # 缓存目录
-.cache/
-cache/
+# .cache/
 
 # 监控和指标
 monitor/
