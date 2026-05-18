@@ -110,8 +110,8 @@ func (s *Server) SetupRouter() *gin.Engine {
 	r := gin.New()
 	// 全局请求体大小限制：10MB
 	r.MaxMultipartMemory = 10 << 20
-	s.registerMiddlewares(r, cfg)
-	s.registerRoutes(r, cfg)
+	s.registerMiddlewares(r, &cfg)
+	s.registerRoutes(r, &cfg)
 	return r
 }
 

@@ -117,14 +117,14 @@ export const PodsTab: React.FC<PodsTabProps> = ({
           <table className="detail-table">
             <thead>
               <tr>
-                <th style={{ width: '25%' }}>Name</th>
-                <th style={{ width: '15%' }}>Namespace</th>
-                <th style={{ width: '15%' }}>Status</th>
-                <th style={{ width: '8%' }}>Ready</th>
-                <th style={{ width: '8%' }}>Restarts</th>
-                <th style={{ width: '11%' }}>IP</th>
-                <th style={{ width: '10%' }}>Node</th>
-                <th style={{ width: '8%' }}>Age</th>
+                <th className="col-w-25">Name</th>
+                <th className="col-w-15">Namespace</th>
+                <th className="col-w-15">Status</th>
+                <th className="col-w-8">Ready</th>
+                <th className="col-w-8">Restarts</th>
+                <th className="col-w-11">IP</th>
+                <th className="col-w-10">Node</th>
+                <th className="col-w-8">Age</th>
               </tr>
             </thead>
             <tbody>

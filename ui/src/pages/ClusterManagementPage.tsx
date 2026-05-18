@@ -11,6 +11,8 @@ import { ConfirmModal } from '../common/ConfirmModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { FaCheck, FaTimes, FaPlus, FaTrash, FaServer, FaWifi } from 'react-icons/fa';
 import '../styles/argocd-page.css';
+import '../pages/ResourceListPage.css';
+import './ClusterManagementPage.css';
 
 interface ClusterItem {
   name: string;
@@ -266,27 +268,26 @@ export const ClusterManagementPage: React.FC<{
               </label>
             </div>
             <div className="form-buttons">
-              <div>
-                <button
-                  className="action-btn"
-                  onClick={handleTestConnection}
-                  disabled={testing || (!form.apiServer && !form.kubeconfig)}
-                >
-                  {testing ? 'Testing...' : 'Test Connection'}
-                </button>
-              </div>
-              <div>
-                <button
-                  className="create-resource-btn"
-                  onClick={handleAddCluster}
-                  disabled={saving || !form.name.trim()}
-                >
-                  {saving ? 'Adding...' : 'Add Cluster'}
-                </button>
-                <button className="action-btn" onClick={() => setShowAddForm(false)} style={{ marginLeft: 8 }}>
-                  Cancel
-                </button>
-              </div>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowAddForm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={handleTestConnection}
+                disabled={testing || (!form.apiServer && !form.kubeconfig)}
+              >
+                {testing ? 'Testing...' : 'Test Connection'}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddCluster}
+                disabled={saving || !form.name.trim()}
+              >
+                {saving ? 'Adding...' : 'Add Cluster'}
+              </button>
             </div>
           </div>
         </div>
@@ -305,17 +306,17 @@ export const ClusterManagementPage: React.FC<{
           )}
         </div>
       ) : (
-        <div className="table-container" style={{ marginTop: 16 }}>
+        <div className="table-container table-container-mt">
           <table className="resource-table">
             <thead>
               <tr>
-                <th style={{ width: '18%' }}>Name</th>
-                <th style={{ width: '28%' }}>API Server</th>
-                <th style={{ width: '12%' }}>Status</th>
-                <th style={{ width: '12%' }}>Version</th>
-                <th style={{ width: '10%' }}>Nodes</th>
-                <th style={{ width: '14%' }}>Last Check</th>
-                <th style={{ width: '6%' }}>Actions</th>
+                <th className="col-w-15">Name</th>
+                <th className="col-w-32">API Server</th>
+                <th className="col-w-11">Status</th>
+                <th className="col-w-10">Version</th>
+                <th className="col-w-8">Nodes</th>
+                <th className="col-w-18">Last Check</th>
+                <th className="col-w-6">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -324,19 +325,19 @@ export const ClusterManagementPage: React.FC<{
                   <td>
                     <span className="resource-name-link">{cluster.name}</span>
                     {cluster.name === 'default' && (
-                      <span className="status-badge" style={{ marginLeft: 8, fontSize: 11, padding: '2px 6px', background: '#e8f5e9', color: '#2e7d32' }}>default</span>
+                      <span className="default-badge">default</span>
                     )}
                   </td>
-                  <td style={{ fontSize: 13, color: '#666' }}>{cluster.apiServer || '-'}</td>
+                  <td className="cell-api-server">{cluster.apiServer || '-'}</td>
                   <td>
                     <span className={`status-pill ${cluster.healthy ? 'healthy' : 'unhealthy'}`}>
                       {cluster.healthy ? <FaCheck size={12} /> : <FaTimes size={12} />}
-                      <span style={{ marginLeft: 4 }}>{cluster.healthy ? 'Healthy' : 'Unhealthy'}</span>
+                      <span className="status-text">{cluster.healthy ? 'Healthy' : 'Unhealthy'}</span>
                     </span>
                   </td>
                   <td>{cluster.version || '-'}</td>
                   <td>{cluster.nodeCount}</td>
-                  <td style={{ fontSize: 13, color: '#888' }}>{formatTime(cluster.lastCheck)}</td>
+                  <td className="cell-last-check">{formatTime(cluster.lastCheck)}</td>
                   <td className="actions-cell">
                     {cluster.name !== 'default' && (
                       <button
@@ -365,106 +366,6 @@ export const ClusterManagementPage: React.FC<{
         onConfirm={onConfirm}
         onCancel={onCancel}
       />
-
-      <style>{`
-        .cluster-form-overlay {
-          position: fixed;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.4);
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .cluster-form {
-          background: #fff;
-          border-radius: 8px;
-          padding: 24px;
-          min-width: 480px;
-          max-width: 600px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        }
-        .cluster-form h3 {
-          margin: 0 0 16px;
-          font-size: 18px;
-          color: #1a1a2e;
-        }
-        .form-field {
-          margin-bottom: 12px;
-        }
-        .form-field label {
-          display: block;
-          margin-bottom: 4px;
-          font-size: 13px;
-          font-weight: 500;
-          color: #555;
-        }
-        .form-field input[type="text"],
-        .form-field input[type="password"] {
-          width: 100%;
-          padding: 8px 12px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          font-size: 14px;
-          box-sizing: border-box;
-        }
-        .checkbox-field label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-        }
-        .checkbox-field input[type="checkbox"] {
-          width: 16px;
-          height: 16px;
-        }
-        .form-buttons {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 16px;
-        }
-        .status-pill {
-          display: inline-flex;
-          align-items: center;
-          padding: 4px 10px;
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-        .status-pill.healthy {
-          background: #e8f5e9;
-          color: #2e7d32;
-        }
-        .status-pill.unhealthy {
-          background: #fbe9e7;
-          color: #c62828;
-        }
-        .default-row {
-          background: #fafafa;
-        }
-        .actions-cell {
-          text-align: center;
-        }
-        .actions-btn {
-          width: 32px;
-          height: 32px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          border-radius: 6px;
-          background: transparent;
-          color: #999;
-          cursor: pointer;
-          font-size: 16px;
-          transition: all 0.2s ease;
-        }
-        .actions-btn.danger:hover {
-          background: #fbe9e7;
-          color: #c62828;
-        }
-      `}</style>
     </div>
   );
 };

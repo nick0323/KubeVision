@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -76,6 +77,11 @@ func addCluster(logger *zap.Logger, svc *service.ClusterService) gin.HandlerFunc
 			Insecure:   req.Insecure,
 		}
 
+		if err := svc.TestConnection(c.Request.Context(), k8sCfg); err != nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("connection test failed: %w", err), http.StatusBadRequest)
+			return
+		}
+
 		if err := svc.AddCluster(c.Request.Context(), req.Name, k8sCfg); err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
@@ -105,9 +111,6 @@ func updateCluster(logger *zap.Logger, svc *service.ClusterService) gin.HandlerF
 			return
 		}
 
-		svc.RemoveFromConfig(name)
-		svc.RemoveCluster(c.Request.Context(), name)
-
 		k8sCfg := &model.KubernetesConfig{
 			APIServer:  req.APIServer,
 			Token:      req.Token,
@@ -116,10 +119,18 @@ func updateCluster(logger *zap.Logger, svc *service.ClusterService) gin.HandlerF
 			Insecure:   req.Insecure,
 		}
 
+		if err := svc.TestConnection(c.Request.Context(), k8sCfg); err != nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("connection test failed: %w", err), http.StatusBadRequest)
+			return
+		}
+
 		if err := svc.AddCluster(c.Request.Context(), req.Name, k8sCfg); err != nil {
 			middleware.ResponseError(c, logger, err, http.StatusInternalServerError)
 			return
 		}
+
+		svc.RemoveFromConfig(name)
+		svc.RemoveCluster(c.Request.Context(), name)
 
 		clusterCfg := &model.ClusterConfig{
 			Name:       req.Name,

@@ -310,19 +310,19 @@ export const CRDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () => vo
             <thead>
               {isInstanceView ? (
                 <tr>
-                  <th style={{ width: '35%' }}>Name</th>
-                  {!isClusterScoped && <th style={{ width: '25%' }}>Namespace</th>}
-                  <th style={{ width: '15%' }}>Kind</th>
-                  <th style={{ width: '25%' }}>API Version</th>
+                  <th className="col-w-35">Name</th>
+                  {!isClusterScoped && <th className="col-w-25">Namespace</th>}
+                  <th className="col-w-15">Kind</th>
+                  <th className="col-w-25">API Version</th>
                 </tr>
               ) : (
                 <tr>
-                  <th style={{ width: '30%' }}>Name</th>
-                  <th style={{ width: '20%' }}>Group</th>
-                  <th style={{ width: '12%' }}>Version</th>
-                  <th style={{ width: '13%' }}>Kind</th>
-                  <th style={{ width: '13%' }}>Scope</th>
-                  <th style={{ width: '12%' }}>Instances</th>
+                  <th className="col-w-30">Name</th>
+                  <th className="col-w-20">Group</th>
+                  <th className="col-w-12">Version</th>
+                  <th className="col-w-13">Kind</th>
+                  <th className="col-w-13">Scope</th>
+                  <th className="col-w-12">Instances</th>
                 </tr>
               )}
             </thead>

@@ -2,7 +2,7 @@ import React from 'react';
 import { InfoCardProps } from '../types';
 import './InfoCard.css';
 
-export const InfoCard: React.FC<InfoCardProps> = ({ icon, title, value, status, children }) => {
+const InfoCard: React.FC<InfoCardProps> = ({ icon, title, value, status, children }) => {
   return (
     <div className="overview-card">
       {icon && (
@@ -20,4 +20,4 @@ export const InfoCard: React.FC<InfoCardProps> = ({ icon, title, value, status, 
   );
 };
 
-export default InfoCard;
+export default React.memo(InfoCard);

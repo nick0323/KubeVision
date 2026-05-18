@@ -5,7 +5,7 @@ import './ErrorDisplay.css';
 /**
  * Error display component
  */
-export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
+const ErrorDisplayImpl: React.FC<ErrorDisplayProps> = ({
   message,
   type = 'error',
   onRetry,
@@ -28,4 +28,5 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   );
 };
 
+export const ErrorDisplay = React.memo(ErrorDisplayImpl);
 export default ErrorDisplay;

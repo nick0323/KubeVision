@@ -161,9 +161,8 @@ func NewClientManager(configMgr *config.Manager, logger *zap.Logger) (*ClientMan
 	}
 
 	// 加载多集群配置
-	if cfg := configMgr.GetConfig(); cfg != nil {
-		manager.loadClustersFromConfig(cfg)
-	}
+	cfg := configMgr.GetConfig()
+	manager.loadClustersFromConfig(&cfg)
 
 	go manager.startHealthMonitor()
 	return manager, nil

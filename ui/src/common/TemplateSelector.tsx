@@ -24,7 +24,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   FaThLarge: <FaThLarge />,
 };
 
-export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
+const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   templates,
   selectedTemplate,
   onSelect,
@@ -51,4 +51,4 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   );
 };
 
-export default TemplateSelector;
+export default React.memo(TemplateSelector);

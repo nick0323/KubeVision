@@ -6,7 +6,7 @@ import './RefreshButton.css';
 /**
  * Refresh buttonComponent
  */
-export const RefreshButton: React.FC<RefreshButtonProps> = ({
+const RefreshButton: React.FC<RefreshButtonProps> = ({
   onClick,
   loading = false,
   title = 'Refresh',
@@ -18,4 +18,4 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   );
 };
 
-export default RefreshButton;
+export default React.memo(RefreshButton);

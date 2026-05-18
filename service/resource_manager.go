@@ -31,9 +31,9 @@ func toSearchableItems[T model.SearchableItem](items []T) []model.SearchableItem
 
 func GetResourceByName(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, name string) (any, error) {
 	rt := k8s.ResourceType(resourceType).Normalize()
-	getters := k8s.NewGetters(clientset)
+	registry := k8s.NewRegistry(clientset)
 
-	getter, ok := getters[rt]
+	entry, ok := registry[rt]
 	if !ok {
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
@@ -43,14 +43,14 @@ func GetResourceByName(ctx context.Context, clientset kubernetes.Interface, reso
 		ns = ""
 	}
 
-	return getter.Get(ctx, ns, name)
+	return entry.Get(ctx, ns, name)
 }
 
 func DeleteResourceByType(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, name string) error {
 	rt := k8s.ResourceType(resourceType).Normalize()
-	deleters := k8s.NewDeleters(clientset)
+	registry := k8s.NewRegistry(clientset)
 
-	deleter, ok := deleters[rt]
+	entry, ok := registry[rt]
 	if !ok {
 		return fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
@@ -60,14 +60,14 @@ func DeleteResourceByType(ctx context.Context, clientset kubernetes.Interface, r
 		ns = ""
 	}
 
-	return deleter.Delete(ctx, ns, name)
+	return entry.Delete(ctx, ns, name)
 }
 
 func ListResourcesByType(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, labelSelector, fieldSelector, involvedObject, since string) ([]model.SearchableItem, error) {
 	rt := k8s.ResourceType(resourceType).Normalize()
-	getters := k8s.NewGetters(clientset)
+	registry := k8s.NewRegistry(clientset)
 
-	getter, ok := getters[rt]
+	entry, ok := registry[rt]
 	if !ok {
 		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
@@ -103,7 +103,7 @@ func ListResourcesByType(ctx context.Context, clientset kubernetes.Interface, re
 		ns = ""
 	}
 
-	result, err := getter.List(ctx, ns, opts)
+	result, err := entry.List(ctx, ns, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +112,14 @@ func ListResourcesByType(ctx context.Context, clientset kubernetes.Interface, re
 }
 
 func convertToSearchableItems(result any, resourceType string, rt k8s.ResourceType, since string) ([]model.SearchableItem, error) {
+	mapper, ok := searchItemMappers(rt, result, since)
+	if !ok {
+		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
+	}
+	return mapper()
+}
+
+func searchItemMappers(rt k8s.ResourceType, result any, since string) (func() ([]model.SearchableItem, error), bool) {
 	mappers := map[k8s.ResourceType]func() ([]model.SearchableItem, error){
 		k8s.ResourcePod: func() ([]model.SearchableItem, error) {
 			items, ok := result.(*v1.PodList)
@@ -305,10 +313,7 @@ func convertToSearchableItems(result any, resourceType string, rt k8s.ResourceTy
 	}
 
 	mapper, ok := mappers[rt]
-	if !ok {
-		return nil, fmt.Errorf("unsupported resource type: %s", resourceType)
-	}
-	return mapper()
+	return mapper, ok
 }
 
 func filterEventsByTime(events []v1.Event, since string) []v1.Event {

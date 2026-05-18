@@ -29,7 +29,7 @@ func NewInitializer(logger *zap.Logger, configMgr *config.Manager) *Initializer 
 
 func (i *Initializer) InitBaseComponents(configFile string) (*zap.Logger, *cache.MemoryCache[any], error) {
 	cfg := i.configMgr.GetConfig()
-	logger, err := InitLogger(cfg)
+	logger, err := InitLogger(&cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -115,7 +115,8 @@ func InitLogger(cfg *model.Config) (*zap.Logger, error) {
 }
 
 func InitLRUCache(configMgr *config.Manager) *cache.MemoryCache[any] {
-	return cache.NewMemoryCache(&configMgr.GetConfig().Cache)
+	cfg := configMgr.GetConfig()
+	return cache.NewMemoryCache(&cfg.Cache)
 }
 
 func InitK8sClient(configMgr *config.Manager, logger *zap.Logger) (*service.ClientManager, error) {

@@ -40,7 +40,7 @@ interface CardSkeletonProps {
  * Loading... component
  * Keep with LoadingSpinner.jsx exactly the same functionality
  */
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+const LoadingSpinnerImpl: React.FC<LoadingSpinnerProps> = ({
   type = 'spinner',
   text = 'Loading...',
   size = 'md',
@@ -164,4 +164,5 @@ export const CardSkeleton: React.FC<CardSkeletonProps> = ({ className = '' }) =>
   );
 };
 
+export const LoadingSpinner = React.memo(LoadingSpinnerImpl);
 export default LoadingSpinner;

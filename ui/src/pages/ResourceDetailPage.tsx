@@ -15,7 +15,7 @@ import { RESOURCE_TYPE_MAP } from '../constants/config';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorDisplay } from '../common/ErrorDisplay';
-import { authFetch, withCluster } from '../utils/auth';
+import { apiClient } from '../utils/apiClient';
 import { isClusterResource as isClusterScopeResource } from '../constants/config';
 import { notification } from '../common/NotificationContext';
 import '../styles/detail-page.css';
@@ -93,11 +93,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
     const current = (s?.replicas as number) ?? 0;
     const replicas = Math.max(0, current + delta);
     try {
-      const response = await authFetch(withCluster(`/api/${resourceType}/${namespace}/${resourceName}/scale`), {
-        method: 'PUT',
-        body: JSON.stringify({ replicas }),
-      });
-      const result = await response.json();
+      const result = await apiClient.put(`/api/${resourceType}/${namespace}/${resourceName}/scale`, { replicas });
       if (result.code === 0) {
         notification.success(`Scaled to ${replicas} replicas`);
         refresh();
@@ -114,10 +110,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
 
   const handleRestart = useCallback(async () => {
     try {
-      const response = await authFetch(withCluster(`/api/${resourceType}/${namespace}/${resourceName}/restart`), {
-        method: 'POST',
-      });
-      const result = await response.json();
+      const result = await apiClient.post(`/api/${resourceType}/${namespace}/${resourceName}/restart`);
       if (result.code === 0) {
         notification.success('Rolling restart initiated');
       } else {
@@ -133,10 +126,7 @@ export const ResourceDetailPage: React.FC<ResourceDetailPageProps> = ({
    */
   const handleDelete = useCallback(async () => {
     try {
-      const response = await authFetch(withCluster(`/api/${resourceType}/${namespace}/${resourceName}`), {
-        method: 'DELETE',
-      });
-      const result = await response.json();
+      const result = await apiClient.delete(`/api/${resourceType}/${namespace}/${resourceName}`);
 
       if (result.code === 0) {
         notification.success(`${config.title} deleted`);

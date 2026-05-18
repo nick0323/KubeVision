@@ -6,7 +6,7 @@ import './SearchInput.css';
 /**
  * SearchInput fieldComponent
  */
-export const SearchInput: React.FC<SearchInputProps> = ({
+const SearchInput: React.FC<SearchInputProps> = ({
   placeholder = 'Search...',
   value,
   onChange,
@@ -70,4 +70,4 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   );
 };
 
-export default SearchInput;
+export default React.memo(SearchInput);

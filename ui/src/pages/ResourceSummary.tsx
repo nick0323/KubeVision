@@ -5,7 +5,7 @@ import './ResourceSummary.css';
 /**
  * resource概览Component
  */
-export const ResourceSummary: React.FC<ResourceSummaryProps> = ({
+const ResourceSummary: React.FC<ResourceSummaryProps> = ({
   title = '',
   requestsValue = 0,
   limitsValue = 0,
@@ -56,4 +56,4 @@ export const ResourceSummary: React.FC<ResourceSummaryProps> = ({
   );
 };
 
-export default ResourceSummary;
+export default React.memo(ResourceSummary);

@@ -579,8 +579,10 @@
 }
 
 .password-modal h3 {
-  margin: 0 0 16px;
-  font-size: 18px;
+  margin: 0 0 var(--spacing-md);
+  font-family: var(--font-main);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 
@@ -591,19 +593,21 @@
 .password-modal .form-field label {
   display: block;
   margin-bottom: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-tertiary);
+  font-family: var(--font-main);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
 }
 
 .password-modal .form-field input {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--bg-active-solid);
-  border-radius: 4px;
-  font-size: 14px;
-  box-sizing: border-box;
+  padding: var(--spacing-sm) 12px;
+  border: var(--border-width) solid var(--bg-active-solid);
+  border-radius: var(--radius-sm);
   font-family: var(--font-main);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  box-sizing: border-box;
 }
 
 .password-modal .form-field input:focus {
@@ -615,22 +619,26 @@
 .password-modal .form-buttons {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
 }
 
 .password-cancel-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--bg-active-solid);
+  padding: 0 12px;
+  height: 32px;
+  border: var(--border-width) solid var(--bg-active-solid);
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   color: var(--text-secondary);
+  font-family: var(--font-main);
   font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .password-cancel-btn:hover {
-  background: var(--bg-surface-alt);
-  color: var(--text-primary);
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
 }

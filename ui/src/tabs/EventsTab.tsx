@@ -73,10 +73,10 @@ export const EventsTab: React.FC<EventsTabProps> = ({
           <table className="detail-table">
             <thead>
               <tr>
-                <th style={{ width: '100px' }}>Type</th>
-                <th style={{ width: '150px' }}>Reason</th>
+                <th className="col-w-100px">Type</th>
+                <th className="col-w-150px">Reason</th>
                 <th>Message</th>
-                <th style={{ width: '180px' }}>Last Seen</th>
+                <th className="col-w-180px">Last Seen</th>
               </tr>
             </thead>
             <tbody>

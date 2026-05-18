@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -105,980 +104,568 @@ func (rt ResourceType) Normalize() ResourceType {
 	}
 }
 
-type Getter interface {
-	Get(ctx context.Context, namespace, name string) (any, error)
-	List(ctx context.Context, namespace string, opts metav1.ListOptions) (any, error)
+type ResourceEntry struct {
+	Get    func(ctx context.Context, namespace, name string) (any, error)
+	List   func(ctx context.Context, namespace string, opts metav1.ListOptions) (any, error)
+	Update func(ctx context.Context, namespace, name string, obj any) error
+	Delete func(ctx context.Context, namespace, name string) error
+	Create func(ctx context.Context, namespace string, obj any) error
+	Kind   string
 }
 
-type Lister interface {
-	List(ctx context.Context, namespace string, opts metav1.ListOptions) (any, error)
-}
-
-type Updater interface {
-	Update(ctx context.Context, namespace, name string, obj any) error
-}
-
-type Deleter interface {
-	Delete(ctx context.Context, namespace, name string) error
-}
-
-type Creator interface {
-	Create(ctx context.Context, namespace string, obj any) error
-}
-
-type resourceGetter struct {
-	getFn  func(ctx context.Context, namespace, name string) (any, error)
-	listFn func(ctx context.Context, namespace string, opts metav1.ListOptions) (any, error)
-}
-
-func (g *resourceGetter) Get(ctx context.Context, namespace, name string) (any, error) {
-	return g.getFn(ctx, namespace, name)
-}
-
-func (g *resourceGetter) List(ctx context.Context, namespace string, opts metav1.ListOptions) (any, error) {
-	return g.listFn(ctx, namespace, opts)
-}
-
-type resourceUpdater struct {
-	updateFn func(ctx context.Context, namespace, name string, obj any) error
-	deleteFn func(ctx context.Context, namespace, name string) error
-	createFn func(ctx context.Context, namespace string, obj any) error
-}
-
-func (u *resourceUpdater) Update(ctx context.Context, namespace, name string, obj any) error {
-	return u.updateFn(ctx, namespace, name, obj)
-}
-
-func (u *resourceUpdater) Delete(ctx context.Context, namespace, name string) error {
-	return u.deleteFn(ctx, namespace, name)
-}
-
-func (u *resourceUpdater) Create(ctx context.Context, namespace string, obj any) error {
-	return u.createFn(ctx, namespace, obj)
-}
-
-type resourceDeleter struct {
-	deleteFn func(ctx context.Context, namespace, name string) error
-}
-
-func (d *resourceDeleter) Delete(ctx context.Context, namespace, name string) error {
-	return d.deleteFn(ctx, namespace, name)
-}
-
-type resourceCreator struct {
-	createFn func(ctx context.Context, namespace string, obj any) error
-}
-
-func (c *resourceCreator) Create(ctx context.Context, namespace string, obj any) error {
-	return c.createFn(ctx, namespace, obj)
-}
-
-func NewGetters(client kubernetes.Interface) map[ResourceType]Getter {
+func NewRegistry(client kubernetes.Interface) map[ResourceType]*ResourceEntry {
 	c := client
-	return map[ResourceType]Getter{
-		ResourcePod: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
+	return map[ResourceType]*ResourceEntry{
+		ResourcePod: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
 				return c.CoreV1().Pods(ns).Get(ctx, name, metav1.GetOptions{})
 			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
 				return c.CoreV1().Pods(ns).List(ctx, opts)
 			},
-		},
-		ResourceDeployment: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.AppsV1().Deployments(ns).List(ctx, opts)
-			},
-		},
-		ResourceStatefulSet: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.AppsV1().StatefulSets(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.AppsV1().StatefulSets(ns).List(ctx, opts)
-			},
-		},
-		ResourceDaemonSet: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.AppsV1().DaemonSets(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.AppsV1().DaemonSets(ns).List(ctx, opts)
-			},
-		},
-		ResourceService: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().Services(ns).List(ctx, opts)
-			},
-		},
-		ResourceConfigMap: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().ConfigMaps(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().ConfigMaps(ns).List(ctx, opts)
-			},
-		},
-		ResourceSecret: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().Secrets(ns).List(ctx, opts)
-			},
-		},
-		ResourceIngress: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.NetworkingV1().Ingresses(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.NetworkingV1().Ingresses(ns).List(ctx, opts)
-			},
-		},
-		ResourceJob: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.BatchV1().Jobs(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.BatchV1().Jobs(ns).List(ctx, opts)
-			},
-		},
-		ResourceCronJob: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.BatchV1().CronJobs(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.BatchV1().CronJobs(ns).List(ctx, opts)
-			},
-		},
-		ResourcePVC: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().PersistentVolumeClaims(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().PersistentVolumeClaims(ns).List(ctx, opts)
-			},
-		},
-		ResourcePV: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().PersistentVolumes().Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().PersistentVolumes().List(ctx, opts)
-			},
-		},
-		ResourceStorageClass: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.StorageV1().StorageClasses().Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.StorageV1().StorageClasses().List(ctx, opts)
-			},
-		},
-		ResourceNamespace: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().Namespaces().List(ctx, opts)
-			},
-		},
-		ResourceNode: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().Nodes().List(ctx, opts)
-			},
-		},
-		ResourceEndpoint: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().Endpoints(ns).List(ctx, opts)
-			},
-		},
-		ResourceEvent: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().Events(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().Events(ns).List(ctx, opts)
-			},
-		},
-		ResourceHorizontalPodAutoscaler: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.AutoscalingV2().HorizontalPodAutoscalers(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.AutoscalingV2().HorizontalPodAutoscalers(ns).List(ctx, opts)
-			},
-		},
-		ResourceNetworkPolicy: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.NetworkingV1().NetworkPolicies(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.NetworkingV1().NetworkPolicies(ns).List(ctx, opts)
-			},
-		},
-		ResourceServiceAccount: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().ServiceAccounts(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().ServiceAccounts(ns).List(ctx, opts)
-			},
-		},
-		ResourceRole: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.RbacV1().Roles(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.RbacV1().Roles(ns).List(ctx, opts)
-			},
-		},
-		ResourceRoleBinding: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.RbacV1().RoleBindings(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.RbacV1().RoleBindings(ns).List(ctx, opts)
-			},
-		},
-		ResourceClusterRole: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.RbacV1().ClusterRoles().Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.RbacV1().ClusterRoles().List(ctx, opts)
-			},
-		},
-		ResourceClusterRoleBinding: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.RbacV1().ClusterRoleBindings().Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.RbacV1().ClusterRoleBindings().List(ctx, opts)
-			},
-		},
-		ResourceResourceQuota: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().ResourceQuotas(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().ResourceQuotas(ns).List(ctx, opts)
-			},
-		},
-		ResourceLimitRange: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.CoreV1().LimitRanges(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.CoreV1().LimitRanges(ns).List(ctx, opts)
-			},
-		},
-		ResourcePodDisruptionBudget: &resourceGetter{
-			getFn: func(ctx context.Context, ns, name string) (any, error) {
-				return c.PolicyV1().PodDisruptionBudgets(ns).Get(ctx, name, metav1.GetOptions{})
-			},
-			listFn: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
-				return c.PolicyV1().PodDisruptionBudgets(ns).List(ctx, opts)
-			},
-		},
-	}
-}
-
-func NewUpdaters(client kubernetes.Interface) map[ResourceType]Updater {
-	c := client
-	u := func(update func(ctx context.Context, namespace, name string, obj any) error, del func(ctx context.Context, namespace, name string) error) *resourceUpdater {
-		return &resourceUpdater{updateFn: update, deleteFn: del}
-	}
-	return map[ResourceType]Updater{
-		ResourcePod: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				pod, _ := obj.(*v1.Pod)
-				_, e := c.CoreV1().Pods(ns).Update(ctx, pod, metav1.UpdateOptions{})
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().Pods(ns).Update(ctx, obj.(*v1.Pod), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().Pods(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceDeployment: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				dep, _ := obj.(*appsv1.Deployment)
-				_, e := c.AppsV1().Deployments(ns).Update(ctx, dep, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().Pods(ns).Create(ctx, obj.(*v1.Pod), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "Pod",
+		},
+		ResourceDeployment: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.AppsV1().Deployments(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.AppsV1().Deployments(ns).Update(ctx, obj.(*appsv1.Deployment), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.AppsV1().Deployments(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceStatefulSet: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				sts, _ := obj.(*appsv1.StatefulSet)
-				_, e := c.AppsV1().StatefulSets(ns).Update(ctx, sts, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.AppsV1().Deployments(ns).Create(ctx, obj.(*appsv1.Deployment), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "Deployment",
+		},
+		ResourceStatefulSet: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.AppsV1().StatefulSets(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.AppsV1().StatefulSets(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.AppsV1().StatefulSets(ns).Update(ctx, obj.(*appsv1.StatefulSet), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.AppsV1().StatefulSets(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceDaemonSet: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				ds, _ := obj.(*appsv1.DaemonSet)
-				_, e := c.AppsV1().DaemonSets(ns).Update(ctx, ds, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.AppsV1().StatefulSets(ns).Create(ctx, obj.(*appsv1.StatefulSet), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "StatefulSet",
+		},
+		ResourceDaemonSet: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.AppsV1().DaemonSets(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.AppsV1().DaemonSets(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.AppsV1().DaemonSets(ns).Update(ctx, obj.(*appsv1.DaemonSet), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.AppsV1().DaemonSets(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceService: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				svc, _ := obj.(*v1.Service)
-				_, e := c.CoreV1().Services(ns).Update(ctx, svc, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.AppsV1().DaemonSets(ns).Create(ctx, obj.(*appsv1.DaemonSet), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "DaemonSet",
+		},
+		ResourceService: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().Services(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().Services(ns).Update(ctx, obj.(*v1.Service), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().Services(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceConfigMap: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				cm, _ := obj.(*v1.ConfigMap)
-				_, e := c.CoreV1().ConfigMaps(ns).Update(ctx, cm, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().Services(ns).Create(ctx, obj.(*v1.Service), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "Service",
+		},
+		ResourceConfigMap: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().ConfigMaps(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().ConfigMaps(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().ConfigMaps(ns).Update(ctx, obj.(*v1.ConfigMap), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().ConfigMaps(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceSecret: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				s, _ := obj.(*v1.Secret)
-				_, e := c.CoreV1().Secrets(ns).Update(ctx, s, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().ConfigMaps(ns).Create(ctx, obj.(*v1.ConfigMap), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "ConfigMap",
+		},
+		ResourceSecret: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().Secrets(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().Secrets(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().Secrets(ns).Update(ctx, obj.(*v1.Secret), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().Secrets(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceIngress: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				ing, _ := obj.(*networkingv1.Ingress)
-				_, e := c.NetworkingV1().Ingresses(ns).Update(ctx, ing, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().Secrets(ns).Create(ctx, obj.(*v1.Secret), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "Secret",
+		},
+		ResourceIngress: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.NetworkingV1().Ingresses(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.NetworkingV1().Ingresses(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.NetworkingV1().Ingresses(ns).Update(ctx, obj.(*networkingv1.Ingress), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.NetworkingV1().Ingresses(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceJob: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				job, _ := obj.(*batchv1.Job)
-				_, e := c.BatchV1().Jobs(ns).Update(ctx, job, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.NetworkingV1().Ingresses(ns).Create(ctx, obj.(*networkingv1.Ingress), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "Ingress",
+		},
+		ResourceJob: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.BatchV1().Jobs(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.BatchV1().Jobs(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.BatchV1().Jobs(ns).Update(ctx, obj.(*batchv1.Job), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.BatchV1().Jobs(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceCronJob: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				cj, _ := obj.(*batchv1.CronJob)
-				_, e := c.BatchV1().CronJobs(ns).Update(ctx, cj, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.BatchV1().Jobs(ns).Create(ctx, obj.(*batchv1.Job), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "Job",
+		},
+		ResourceCronJob: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.BatchV1().CronJobs(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.BatchV1().CronJobs(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.BatchV1().CronJobs(ns).Update(ctx, obj.(*batchv1.CronJob), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.BatchV1().CronJobs(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourcePVC: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				pvc, _ := obj.(*v1.PersistentVolumeClaim)
-				_, e := c.CoreV1().PersistentVolumeClaims(ns).Update(ctx, pvc, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.BatchV1().CronJobs(ns).Create(ctx, obj.(*batchv1.CronJob), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "CronJob",
+		},
+		ResourcePVC: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().PersistentVolumeClaims(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().PersistentVolumeClaims(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().PersistentVolumeClaims(ns).Update(ctx, obj.(*v1.PersistentVolumeClaim), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().PersistentVolumeClaims(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourcePV: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				pv, _ := obj.(*v1.PersistentVolume)
-				_, e := c.CoreV1().PersistentVolumes().Update(ctx, pv, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().PersistentVolumeClaims(ns).Create(ctx, obj.(*v1.PersistentVolumeClaim), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "PersistentVolumeClaim",
+		},
+		ResourcePV: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().PersistentVolumes().Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().PersistentVolumes().List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().PersistentVolumes().Update(ctx, obj.(*v1.PersistentVolume), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().PersistentVolumes().Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceStorageClass: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				sc, _ := obj.(*storagev1.StorageClass)
-				_, e := c.StorageV1().StorageClasses().Update(ctx, sc, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().PersistentVolumes().Create(ctx, obj.(*v1.PersistentVolume), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "PersistentVolume",
+		},
+		ResourceStorageClass: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.StorageV1().StorageClasses().Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.StorageV1().StorageClasses().List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.StorageV1().StorageClasses().Update(ctx, obj.(*storagev1.StorageClass), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.StorageV1().StorageClasses().Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceNamespace: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				nsObj, _ := obj.(*v1.Namespace)
-				_, e := c.CoreV1().Namespaces().Update(ctx, nsObj, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.StorageV1().StorageClasses().Create(ctx, obj.(*storagev1.StorageClass), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "StorageClass",
+		},
+		ResourceNamespace: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().Namespaces().List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().Namespaces().Update(ctx, obj.(*v1.Namespace), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceNode: u(
-			func(ctx context.Context, ns, name string, obj any) error {
-				node, _ := obj.(*v1.Node)
-				_, e := c.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().Namespaces().Create(ctx, obj.(*v1.Namespace), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "Namespace",
+		},
+		ResourceNode: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().Nodes().List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().Nodes().Update(ctx, obj.(*v1.Node), metav1.UpdateOptions{})
 				return e
 			},
-			func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().Nodes().Delete(ctx, name, metav1.DeleteOptions{})
 			},
-		),
-		ResourceHorizontalPodAutoscaler: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				hpa, _ := obj.(*autoscalingv2.HorizontalPodAutoscaler)
-				_, e := c.AutoscalingV2().HorizontalPodAutoscalers(ns).Update(ctx, hpa, metav1.UpdateOptions{})
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().Nodes().Create(ctx, obj.(*v1.Node), metav1.CreateOptions{})
+				return err
+			},
+			Kind: "Node",
+		},
+		ResourceEndpoint: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().Endpoints(ns).List(ctx, opts)
+			},
+			Kind: "Endpoint",
+		},
+		ResourceEvent: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().Events(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().Events(ns).List(ctx, opts)
+			},
+			Kind: "Event",
+		},
+		ResourceHorizontalPodAutoscaler: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.AutoscalingV2().HorizontalPodAutoscalers(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.AutoscalingV2().HorizontalPodAutoscalers(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.AutoscalingV2().HorizontalPodAutoscalers(ns).Update(ctx, obj.(*autoscalingv2.HorizontalPodAutoscaler), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.AutoscalingV2().HorizontalPodAutoscalers(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				hpa, _ := obj.(*autoscalingv2.HorizontalPodAutoscaler)
-				_, e := c.AutoscalingV2().HorizontalPodAutoscalers(ns).Create(ctx, hpa, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.AutoscalingV2().HorizontalPodAutoscalers(ns).Create(ctx, obj.(*autoscalingv2.HorizontalPodAutoscaler), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "HorizontalPodAutoscaler",
 		},
-		ResourceNetworkPolicy: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				np, _ := obj.(*networkingv1.NetworkPolicy)
-				_, e := c.NetworkingV1().NetworkPolicies(ns).Update(ctx, np, metav1.UpdateOptions{})
+		ResourceNetworkPolicy: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.NetworkingV1().NetworkPolicies(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.NetworkingV1().NetworkPolicies(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.NetworkingV1().NetworkPolicies(ns).Update(ctx, obj.(*networkingv1.NetworkPolicy), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.NetworkingV1().NetworkPolicies(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				np, _ := obj.(*networkingv1.NetworkPolicy)
-				_, e := c.NetworkingV1().NetworkPolicies(ns).Create(ctx, np, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.NetworkingV1().NetworkPolicies(ns).Create(ctx, obj.(*networkingv1.NetworkPolicy), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "NetworkPolicy",
 		},
-		ResourceServiceAccount: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				sa, _ := obj.(*v1.ServiceAccount)
-				_, e := c.CoreV1().ServiceAccounts(ns).Update(ctx, sa, metav1.UpdateOptions{})
+		ResourceServiceAccount: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().ServiceAccounts(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().ServiceAccounts(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().ServiceAccounts(ns).Update(ctx, obj.(*v1.ServiceAccount), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().ServiceAccounts(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				sa, _ := obj.(*v1.ServiceAccount)
-				_, e := c.CoreV1().ServiceAccounts(ns).Create(ctx, sa, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().ServiceAccounts(ns).Create(ctx, obj.(*v1.ServiceAccount), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "ServiceAccount",
 		},
-		ResourceRole: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				role, _ := obj.(*rbacv1.Role)
-				_, e := c.RbacV1().Roles(ns).Update(ctx, role, metav1.UpdateOptions{})
+		ResourceRole: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.RbacV1().Roles(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.RbacV1().Roles(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.RbacV1().Roles(ns).Update(ctx, obj.(*rbacv1.Role), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.RbacV1().Roles(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				role, _ := obj.(*rbacv1.Role)
-				_, e := c.RbacV1().Roles(ns).Create(ctx, role, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.RbacV1().Roles(ns).Create(ctx, obj.(*rbacv1.Role), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "Role",
 		},
-		ResourceRoleBinding: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				rb, _ := obj.(*rbacv1.RoleBinding)
-				_, e := c.RbacV1().RoleBindings(ns).Update(ctx, rb, metav1.UpdateOptions{})
+		ResourceRoleBinding: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.RbacV1().RoleBindings(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.RbacV1().RoleBindings(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.RbacV1().RoleBindings(ns).Update(ctx, obj.(*rbacv1.RoleBinding), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.RbacV1().RoleBindings(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				rb, _ := obj.(*rbacv1.RoleBinding)
-				_, e := c.RbacV1().RoleBindings(ns).Create(ctx, rb, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.RbacV1().RoleBindings(ns).Create(ctx, obj.(*rbacv1.RoleBinding), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "RoleBinding",
 		},
-		ResourceClusterRole: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				cr, _ := obj.(*rbacv1.ClusterRole)
-				_, e := c.RbacV1().ClusterRoles().Update(ctx, cr, metav1.UpdateOptions{})
+		ResourceClusterRole: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.RbacV1().ClusterRoles().Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.RbacV1().ClusterRoles().List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.RbacV1().ClusterRoles().Update(ctx, obj.(*rbacv1.ClusterRole), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.RbacV1().ClusterRoles().Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				cr, _ := obj.(*rbacv1.ClusterRole)
-				_, e := c.RbacV1().ClusterRoles().Create(ctx, cr, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.RbacV1().ClusterRoles().Create(ctx, obj.(*rbacv1.ClusterRole), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "ClusterRole",
 		},
-		ResourceClusterRoleBinding: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				crb, _ := obj.(*rbacv1.ClusterRoleBinding)
-				_, e := c.RbacV1().ClusterRoleBindings().Update(ctx, crb, metav1.UpdateOptions{})
+		ResourceClusterRoleBinding: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.RbacV1().ClusterRoleBindings().Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.RbacV1().ClusterRoleBindings().List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.RbacV1().ClusterRoleBindings().Update(ctx, obj.(*rbacv1.ClusterRoleBinding), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.RbacV1().ClusterRoleBindings().Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				crb, _ := obj.(*rbacv1.ClusterRoleBinding)
-				_, e := c.RbacV1().ClusterRoleBindings().Create(ctx, crb, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.RbacV1().ClusterRoleBindings().Create(ctx, obj.(*rbacv1.ClusterRoleBinding), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "ClusterRoleBinding",
 		},
-		ResourceResourceQuota: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				rq, _ := obj.(*v1.ResourceQuota)
-				_, e := c.CoreV1().ResourceQuotas(ns).Update(ctx, rq, metav1.UpdateOptions{})
+		ResourceResourceQuota: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().ResourceQuotas(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().ResourceQuotas(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().ResourceQuotas(ns).Update(ctx, obj.(*v1.ResourceQuota), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().ResourceQuotas(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				rq, _ := obj.(*v1.ResourceQuota)
-				_, e := c.CoreV1().ResourceQuotas(ns).Create(ctx, rq, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().ResourceQuotas(ns).Create(ctx, obj.(*v1.ResourceQuota), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "ResourceQuota",
 		},
-		ResourceLimitRange: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				lr, _ := obj.(*v1.LimitRange)
-				_, e := c.CoreV1().LimitRanges(ns).Update(ctx, lr, metav1.UpdateOptions{})
+		ResourceLimitRange: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().LimitRanges(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().LimitRanges(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.CoreV1().LimitRanges(ns).Update(ctx, obj.(*v1.LimitRange), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.CoreV1().LimitRanges(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				lr, _ := obj.(*v1.LimitRange)
-				_, e := c.CoreV1().LimitRanges(ns).Create(ctx, lr, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.CoreV1().LimitRanges(ns).Create(ctx, obj.(*v1.LimitRange), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "LimitRange",
 		},
-		ResourcePodDisruptionBudget: &resourceUpdater{
-			updateFn: func(ctx context.Context, ns, name string, obj any) error {
-				pdb, _ := obj.(*policyv1.PodDisruptionBudget)
-				_, e := c.PolicyV1().PodDisruptionBudgets(ns).Update(ctx, pdb, metav1.UpdateOptions{})
+		ResourcePodDisruptionBudget: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.PolicyV1().PodDisruptionBudgets(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.PolicyV1().PodDisruptionBudgets(ns).List(ctx, opts)
+			},
+			Update: func(ctx context.Context, ns, name string, obj any) error {
+				_, e := c.PolicyV1().PodDisruptionBudgets(ns).Update(ctx, obj.(*policyv1.PodDisruptionBudget), metav1.UpdateOptions{})
 				return e
 			},
-			deleteFn: func(ctx context.Context, ns, name string) error {
+			Delete: func(ctx context.Context, ns, name string) error {
 				return c.PolicyV1().PodDisruptionBudgets(ns).Delete(ctx, name, metav1.DeleteOptions{})
 			},
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				pdb, _ := obj.(*policyv1.PodDisruptionBudget)
-				_, e := c.PolicyV1().PodDisruptionBudgets(ns).Create(ctx, pdb, metav1.CreateOptions{})
-				return e
+			Create: func(ctx context.Context, ns string, obj any) error {
+				_, err := c.PolicyV1().PodDisruptionBudgets(ns).Create(ctx, obj.(*policyv1.PodDisruptionBudget), metav1.CreateOptions{})
+				return err
 			},
+			Kind: "PodDisruptionBudget",
 		},
 	}
 }
-
-// GetKindByResourceType 根据资源类型返回对应的 Kind
 func GetKindByResourceType(resourceType string) string {
-	switch resourceType {
-	case "pod":
-		return "Pod"
-	case "deployment":
-		return "Deployment"
-	case "statefulset":
-		return "StatefulSet"
-	case "daemonset":
-		return "DaemonSet"
-	case "service":
-		return "Service"
-	case "configmap":
-		return "ConfigMap"
-	case "secret":
-		return "Secret"
-	case "ingress":
-		return "Ingress"
-	case "job":
-		return "Job"
-	case "cronjob":
-		return "CronJob"
-	case "persistentvolumeclaim", "pvc":
-		return "PersistentVolumeClaim"
-	case "persistentvolume", "pv":
-		return "PersistentVolume"
-	case "storageclass", "sc":
-		return "StorageClass"
-	case "namespace":
-		return "Namespace"
-	case "node":
-		return "Node"
-	case "endpoint":
-		return "Endpoint"
-	case "event":
-		return "Event"
-	case "horizontalpodautoscaler", "hpa":
-		return "HorizontalPodAutoscaler"
-	case "networkpolicy", "netpol":
-		return "NetworkPolicy"
-	case "serviceaccount", "sa":
-		return "ServiceAccount"
-	case "role":
-		return "Role"
-	case "rolebinding":
-		return "RoleBinding"
-	case "clusterrole":
-		return "ClusterRole"
-	case "clusterrolebinding":
-		return "ClusterRoleBinding"
-	case "resourcequota", "quota":
-		return "ResourceQuota"
-	case "limitrange":
-		return "LimitRange"
-	case "poddisruptionbudget", "pdb":
-		return "PodDisruptionBudget"
-	default:
-		return ""
+	rt := ResourceType(resourceType).Normalize()
+	reg := map[ResourceType]string{
+		ResourcePod:                     "Pod",
+		ResourceDeployment:              "Deployment",
+		ResourceStatefulSet:             "StatefulSet",
+		ResourceDaemonSet:               "DaemonSet",
+		ResourceService:                 "Service",
+		ResourceConfigMap:               "ConfigMap",
+		ResourceSecret:                  "Secret",
+		ResourceIngress:                 "Ingress",
+		ResourceJob:                     "Job",
+		ResourceCronJob:                 "CronJob",
+		ResourcePVC:                     "PersistentVolumeClaim",
+		ResourcePV:                      "PersistentVolume",
+		ResourceStorageClass:            "StorageClass",
+		ResourceNamespace:               "Namespace",
+		ResourceNode:                    "Node",
+		ResourceEndpoint:                "Endpoint",
+		ResourceEvent:                   "Event",
+		ResourceHorizontalPodAutoscaler: "HorizontalPodAutoscaler",
+		ResourceNetworkPolicy:           "NetworkPolicy",
+		ResourceServiceAccount:          "ServiceAccount",
+		ResourceRole:                    "Role",
+		ResourceRoleBinding:             "RoleBinding",
+		ResourceClusterRole:             "ClusterRole",
+		ResourceClusterRoleBinding:      "ClusterRoleBinding",
+		ResourceResourceQuota:           "ResourceQuota",
+		ResourceLimitRange:              "LimitRange",
+		ResourcePodDisruptionBudget:     "PodDisruptionBudget",
 	}
+	return reg[rt]
 }
-
-// NewCreators 创建资源创建器映射
-func NewCreators(client kubernetes.Interface) map[ResourceType]Creator {
-	return map[ResourceType]Creator{
-		ResourcePod:          &podsCreator{client},
-		ResourceDeployment:   &deploymentsCreator{client},
-		ResourceStatefulSet:  &statefulSetsCreator{client},
-		ResourceDaemonSet:    &daemonSetsCreator{client},
-		ResourceService:      &servicesCreator{client},
-		ResourceConfigMap:    &configMapsCreator{client},
-		ResourceSecret:       &secretsCreator{client},
-		ResourceIngress:      &ingressesCreator{client},
-		ResourceJob:          &jobsCreator{client},
-		ResourceCronJob:      &cronJobsCreator{client},
-		ResourcePVC:          &pvcsCreator{client},
-		ResourcePV:           &pvsCreator{client},
-		ResourceStorageClass: &storageClassesCreator{client},
-		ResourceNamespace:    &namespacesCreator{client},
-		ResourceNode:         &nodesCreator{client},
-		ResourceHorizontalPodAutoscaler: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				hpa, _ := obj.(*autoscalingv2.HorizontalPodAutoscaler)
-				_, e := client.AutoscalingV2().HorizontalPodAutoscalers(ns).Create(ctx, hpa, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourceNetworkPolicy: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				np, _ := obj.(*networkingv1.NetworkPolicy)
-				_, e := client.NetworkingV1().NetworkPolicies(ns).Create(ctx, np, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourceServiceAccount: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				sa, _ := obj.(*v1.ServiceAccount)
-				_, e := client.CoreV1().ServiceAccounts(ns).Create(ctx, sa, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourceRole: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				role, _ := obj.(*rbacv1.Role)
-				_, e := client.RbacV1().Roles(ns).Create(ctx, role, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourceRoleBinding: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				rb, _ := obj.(*rbacv1.RoleBinding)
-				_, e := client.RbacV1().RoleBindings(ns).Create(ctx, rb, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourceClusterRole: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				cr, _ := obj.(*rbacv1.ClusterRole)
-				_, e := client.RbacV1().ClusterRoles().Create(ctx, cr, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourceClusterRoleBinding: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				crb, _ := obj.(*rbacv1.ClusterRoleBinding)
-				_, e := client.RbacV1().ClusterRoleBindings().Create(ctx, crb, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourceResourceQuota: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				rq, _ := obj.(*v1.ResourceQuota)
-				_, e := client.CoreV1().ResourceQuotas(ns).Create(ctx, rq, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourceLimitRange: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				lr, _ := obj.(*v1.LimitRange)
-				_, e := client.CoreV1().LimitRanges(ns).Create(ctx, lr, metav1.CreateOptions{})
-				return e
-			},
-		},
-		ResourcePodDisruptionBudget: &resourceUpdater{
-			createFn: func(ctx context.Context, ns string, obj any) error {
-				pdb, _ := obj.(*policyv1.PodDisruptionBudget)
-				_, e := client.PolicyV1().PodDisruptionBudgets(ns).Create(ctx, pdb, metav1.CreateOptions{})
-				return e
-			},
-		},
-	}
-}
-
-// NewDeleters 创建资源删除器映射
-func NewDeleters(client kubernetes.Interface) map[ResourceType]Deleter {
-	return map[ResourceType]Deleter{
-		ResourcePod: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.CoreV1().Pods(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceDeployment: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.AppsV1().Deployments(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceStatefulSet: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.AppsV1().StatefulSets(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceDaemonSet: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.AppsV1().DaemonSets(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceService: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.CoreV1().Services(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceConfigMap: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.CoreV1().ConfigMaps(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceSecret: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.CoreV1().Secrets(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceIngress: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.NetworkingV1().Ingresses(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceJob: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.BatchV1().Jobs(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceCronJob: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.BatchV1().CronJobs(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourcePVC: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.CoreV1().PersistentVolumeClaims(ns).Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourcePV: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.CoreV1().PersistentVolumes().Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceStorageClass: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.StorageV1().StorageClasses().Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceNamespace: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.CoreV1().Namespaces().Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-		ResourceNode: &resourceDeleter{deleteFn: func(ctx context.Context, ns, name string) error {
-			return client.CoreV1().Nodes().Delete(ctx, name, metav1.DeleteOptions{})
-		}},
-	}
-}
-
-// Creator 实现
-type podsCreator struct{ client kubernetes.Interface }
-
-func (c *podsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	pod, ok := obj.(*v1.Pod)
-	if !ok {
-		return fmt.Errorf("invalid Pod object")
-	}
-	_, err := c.client.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
-	return err
-}
-
-type deploymentsCreator struct{ client kubernetes.Interface }
-
-func (c *deploymentsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	dep, ok := obj.(*appsv1.Deployment)
-	if !ok {
-		return fmt.Errorf("invalid Deployment object")
-	}
-	_, err := c.client.AppsV1().Deployments(namespace).Create(ctx, dep, metav1.CreateOptions{})
-	return err
-}
-
-type statefulSetsCreator struct{ client kubernetes.Interface }
-
-func (c *statefulSetsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	sts, ok := obj.(*appsv1.StatefulSet)
-	if !ok {
-		return fmt.Errorf("invalid StatefulSet object")
-	}
-	_, err := c.client.AppsV1().StatefulSets(namespace).Create(ctx, sts, metav1.CreateOptions{})
-	return err
-}
-
-type daemonSetsCreator struct{ client kubernetes.Interface }
-
-func (c *daemonSetsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	ds, ok := obj.(*appsv1.DaemonSet)
-	if !ok {
-		return fmt.Errorf("invalid DaemonSet object")
-	}
-	_, err := c.client.AppsV1().DaemonSets(namespace).Create(ctx, ds, metav1.CreateOptions{})
-	return err
-}
-
-type servicesCreator struct{ client kubernetes.Interface }
-
-func (c *servicesCreator) Create(ctx context.Context, namespace string, obj any) error {
-	svc, ok := obj.(*v1.Service)
-	if !ok {
-		return fmt.Errorf("invalid Service object")
-	}
-	_, err := c.client.CoreV1().Services(namespace).Create(ctx, svc, metav1.CreateOptions{})
-	return err
-}
-
-type configMapsCreator struct{ client kubernetes.Interface }
-
-func (c *configMapsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	cm, ok := obj.(*v1.ConfigMap)
-	if !ok {
-		return fmt.Errorf("invalid ConfigMap object")
-	}
-	_, err := c.client.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
-	return err
-}
-
-type secretsCreator struct{ client kubernetes.Interface }
-
-func (c *secretsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	s, ok := obj.(*v1.Secret)
-	if !ok {
-		return fmt.Errorf("invalid Secret object")
-	}
-	_, err := c.client.CoreV1().Secrets(namespace).Create(ctx, s, metav1.CreateOptions{})
-	return err
-}
-
-type ingressesCreator struct{ client kubernetes.Interface }
-
-func (c *ingressesCreator) Create(ctx context.Context, namespace string, obj any) error {
-	ing, ok := obj.(*networkingv1.Ingress)
-	if !ok {
-		return fmt.Errorf("invalid Ingress object")
-	}
-	_, err := c.client.NetworkingV1().Ingresses(namespace).Create(ctx, ing, metav1.CreateOptions{})
-	return err
-}
-
-type jobsCreator struct{ client kubernetes.Interface }
-
-func (c *jobsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	job, ok := obj.(*batchv1.Job)
-	if !ok {
-		return fmt.Errorf("invalid Job object")
-	}
-	_, err := c.client.BatchV1().Jobs(namespace).Create(ctx, job, metav1.CreateOptions{})
-	return err
-}
-
-type cronJobsCreator struct{ client kubernetes.Interface }
-
-func (c *cronJobsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	cj, ok := obj.(*batchv1.CronJob)
-	if !ok {
-		return fmt.Errorf("invalid CronJob object")
-	}
-	_, err := c.client.BatchV1().CronJobs(namespace).Create(ctx, cj, metav1.CreateOptions{})
-	return err
-}
-
-type pvcsCreator struct{ client kubernetes.Interface }
-
-func (c *pvcsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	pvc, ok := obj.(*v1.PersistentVolumeClaim)
-	if !ok {
-		return fmt.Errorf("invalid PVC object")
-	}
-	_, err := c.client.CoreV1().PersistentVolumeClaims(namespace).Create(ctx, pvc, metav1.CreateOptions{})
-	return err
-}
-
-type pvsCreator struct{ client kubernetes.Interface }
-
-func (c *pvsCreator) Create(ctx context.Context, namespace string, obj any) error {
-	pv, ok := obj.(*v1.PersistentVolume)
-	if !ok {
-		return fmt.Errorf("invalid PV object")
-	}
-	_, err := c.client.CoreV1().PersistentVolumes().Create(ctx, pv, metav1.CreateOptions{})
-	return err
-}
-
-type storageClassesCreator struct{ client kubernetes.Interface }
-
-func (c *storageClassesCreator) Create(ctx context.Context, namespace string, obj any) error {
-	sc, ok := obj.(*storagev1.StorageClass)
-	if !ok {
-		return fmt.Errorf("invalid StorageClass object")
-	}
-	_, err := c.client.StorageV1().StorageClasses().Create(ctx, sc, metav1.CreateOptions{})
-	return err
-}
-
-type namespacesCreator struct{ client kubernetes.Interface }
-
-func (c *namespacesCreator) Create(ctx context.Context, namespace string, obj any) error {
-	ns, ok := obj.(*v1.Namespace)
-	if !ok {
-		return fmt.Errorf("invalid Namespace object")
-	}
-	_, err := c.client.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
-	return err
-}
-
-type nodesCreator struct{ client kubernetes.Interface }
-
-func (c *nodesCreator) Create(ctx context.Context, namespace string, obj any) error {
-	node, ok := obj.(*v1.Node)
-	if !ok {
-		return fmt.Errorf("invalid Node object")
-	}
-	_, err := c.client.CoreV1().Nodes().Create(ctx, node, metav1.CreateOptions{})
-	return err
-}
-
-// Compile-time interface assertions
-var (
-	_ Getter  = &resourceGetter{}
-	_ Getter  = &resourceGetter{}
-	_ Updater = &resourceUpdater{}
-	_ Deleter = &resourceDeleter{}
-	_ Creator = &resourceCreator{}
-)

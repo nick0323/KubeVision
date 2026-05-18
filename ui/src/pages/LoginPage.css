@@ -97,6 +97,10 @@
   width: 240px;
 }
 
+.login-remember-row input[type="checkbox"] {
+  margin-right: 6px;
+}
+
 .login-remember-row label {
   color: var(--text-tertiary);
   font-size: var(--font-size-lg);

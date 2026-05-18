@@ -2,7 +2,7 @@ import React from 'react';
 import { useNotificationContext } from './NotificationContext';
 import './Notification.css';
 
-export const NotificationContainerWrapper: React.FC = () => {
+const NotificationContainerWrapperImpl: React.FC = () => {
   const { notifications, removeNotification } = useNotificationContext();
 
   return (
@@ -24,3 +24,5 @@ export const NotificationContainerWrapper: React.FC = () => {
     </div>
   );
 };
+
+export const NotificationContainerWrapper = React.memo(NotificationContainerWrapperImpl);

@@ -119,56 +119,16 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
     setDeleteTarget(null);
   };
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'Synced':
-      case 'Healthy':
-        return '#52c41a'; // --success
-      case 'OutOfSync':
-        return '#faad14'; // --warning
-      case 'Degraded':
-      case 'Failed':
-        return '#ff4d4f'; // --danger
-      case 'Progressing':
-        return '#1890ff'; // --primary
-      default:
-        return '#666'; // --text-tertiary
-    }
+  const STATUS_CFG: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
+    Synced:      { color: '#52c41a', bg: 'rgba(82,196,26,0.1)',  icon: <FaCheckCircle /> },
+    Healthy:     { color: '#52c41a', bg: 'rgba(82,196,26,0.1)',  icon: <FaCheckCircle /> },
+    OutOfSync:   { color: '#faad14', bg: 'rgba(250,173,20,0.1)', icon: <FaExclamationTriangle /> },
+    Degraded:    { color: '#ff4d4f', bg: 'rgba(245,34,45,0.1)',  icon: <FaExclamationTriangle /> },
+    Failed:      { color: '#ff4d4f', bg: 'rgba(245,34,45,0.1)',  icon: <FaExclamationTriangle /> },
+    Progressing: { color: '#1890ff', bg: 'rgba(24,144,255,0.1)', icon: <FaSync className="spinning" /> },
+    Missing:     { color: '#666',    bg: 'rgba(102,102,102,0.1)', icon: <FaHourglassHalf /> },
   };
-
-  const getStatusBgColor = (status?: string) => {
-    switch (status) {
-      case 'Synced':
-      case 'Healthy':
-        return 'rgba(82, 196, 26, 0.1)'; // --bg-success
-      case 'OutOfSync':
-        return 'rgba(250, 173, 20, 0.1)'; // --bg-warning
-      case 'Degraded':
-      case 'Failed':
-        return 'rgba(245, 34, 45, 0.1)'; // --bg-danger
-      case 'Progressing':
-        return 'rgba(24, 144, 255, 0.1)'; // --bg-info
-      default:
-        return 'rgba(102, 102, 102, 0.1)';
-    }
-  };
-
-  const getStatusIcon = (status?: string) => {
-    switch (status) {
-      case 'Synced':
-      case 'Healthy':
-        return <FaCheckCircle />;
-      case 'OutOfSync':
-        return <FaExclamationTriangle />;
-      case 'Degraded':
-      case 'Failed':
-        return <FaExclamationTriangle />;
-      case 'Progressing':
-        return <FaSync className="spinning" />;
-      default:
-        return <FaHourglassHalf />;
-    }
-  };
+  const statusCfg = (s?: string) => s && STATUS_CFG[s] ? STATUS_CFG[s] : { color: '#666', bg: 'rgba(102,102,102,0.1)', icon: <FaHourglassHalf /> };
 
   const breadcrumbs = [
     { label: 'ArgoCD', path: 'argocd' },
@@ -229,27 +189,25 @@ export const ArgoCDPage: React.FC<{ collapsed: boolean; onToggleCollapsed: () =>
               <div key={app.metadata.uid} className="app-card">
                 <div className="app-card-header">
                   <h3 className="app-name">{app.metadata.name}</h3>
-                  <div className="app-status-badges">
+                   <div className="app-status-badges">
                     <span
                       className="status-badge"
                       style={{
-                        backgroundColor: getStatusBgColor(app.status.sync.status),
-                        color: getStatusColor(app.status.sync.status)
+                        backgroundColor: statusCfg(app.status.sync.status).bg,
+                        color: statusCfg(app.status.sync.status).color
                       }}
-                      title={`Sync: ${app.status.sync.status}`}
                     >
-                      {getStatusIcon(app.status.sync.status)}
+                      {statusCfg(app.status.sync.status).icon}
                       {app.status.sync.status}
                     </span>
                     <span
                       className="status-badge"
                       style={{
-                        backgroundColor: getStatusBgColor(app.status.health.status),
-                        color: getStatusColor(app.status.health.status)
+                        backgroundColor: statusCfg(app.status.health.status).bg,
+                        color: statusCfg(app.status.health.status).color
                       }}
-                      title={`Health: ${app.status.health.status}`}
                     >
-                      {getStatusIcon(app.status.health.status)}
+                      {statusCfg(app.status.health.status).icon}
                       {app.status.health.status}
                     </span>
                   </div>

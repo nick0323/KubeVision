@@ -21,9 +21,9 @@ import (
 
 func UpdateResourceByType(ctx context.Context, clientset kubernetes.Interface, resourceType, namespace, name string, jsonBytes []byte) error {
 	rt := k8s.ResourceType(resourceType).Normalize()
-	updaters := k8s.NewUpdaters(clientset)
+	registry := k8s.NewRegistry(clientset)
 
-	updater, ok := updaters[rt]
+	entry, ok := registry[rt]
 	if !ok {
 		return fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
@@ -52,15 +52,15 @@ func UpdateResourceByType(ctx context.Context, clientset kubernetes.Interface, r
 	// 将最新资源的 resourceVersion 应用到更新对象上
 	copyResourceVersion(latestObj, obj)
 
-	return updater.Update(ctx, ns, name, obj)
+	return entry.Update(ctx, ns, name, obj)
 }
 
 // CreateResourceByType 创建资源
 func CreateResourceByType(ctx context.Context, clientset kubernetes.Interface, resourceType string, jsonBytes []byte) error {
 	rt := k8s.ResourceType(resourceType).Normalize()
-	creators := k8s.NewCreators(clientset)
+	registry := k8s.NewRegistry(clientset)
 
-	creator, ok := creators[rt]
+	entry, ok := registry[rt]
 	if !ok {
 		return fmt.Errorf("unsupported resource type: %s", resourceType)
 	}
@@ -90,7 +90,7 @@ func CreateResourceByType(ctx context.Context, clientset kubernetes.Interface, r
 		}
 	}
 
-	return creator.Create(ctx, ns, obj)
+	return entry.Create(ctx, ns, obj)
 }
 
 // resourceFactory creates a new instance of the specified resource type

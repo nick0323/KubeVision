@@ -153,11 +153,11 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 	var zero T
 
 	s := c.getShard(key)
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
-	s.mutex.RLock()
 	elem, exists := s.data[key]
 	if !exists {
-		s.mutex.RUnlock()
 		c.misses.Add(1)
 		cacheMissesCounter.Inc()
 		return zero, false
@@ -165,32 +165,20 @@ func (c *MemoryCache[T]) Get(key string) (T, bool) {
 
 	entry, ok := elem.Value.(*cacheEntry[T])
 	if !ok {
-		s.mutex.RUnlock()
-		return zero, false
-	}
-
-	if time.Now().After(entry.item.ExpireTime) {
-		s.mutex.RUnlock()
-		s.mutex.Lock()
-		if elem2, ok := s.data[key]; ok {
-			if entry2, ok := elem2.Value.(*cacheEntry[T]); ok && time.Now().After(entry2.item.ExpireTime) {
-				s.lruList.Remove(elem2)
-				delete(s.data, key)
-			}
-		}
-		s.mutex.Unlock()
 		c.misses.Add(1)
 		cacheMissesCounter.Inc()
 		return zero, false
 	}
 
-	s.mutex.RUnlock()
-	s.mutex.Lock()
-	if elem2, ok := s.data[key]; ok {
-		s.lruList.MoveToFront(elem2)
+	if time.Now().After(entry.item.ExpireTime) {
+		s.lruList.Remove(elem)
+		delete(s.data, key)
+		c.misses.Add(1)
+		cacheMissesCounter.Inc()
+		return zero, false
 	}
-	s.mutex.Unlock()
 
+	s.lruList.MoveToFront(elem)
 	c.hits.Add(1)
 	cacheHitsCounter.Inc()
 	return entry.item.Value, true

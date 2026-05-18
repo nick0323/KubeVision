@@ -102,3 +102,22 @@
 .table-content-area::-webkit-scrollbar-thumb:hover {
   background: var(--text-quaternary);
 }
+
+/* Column width utilities (replace inline style={{width:'X%'}}) */
+.col-w-5  { width: 5%; }
+.col-w-6  { width: 6%; }
+.col-w-8  { width: 8%; }
+.col-w-10 { width: 10%; }
+.col-w-11 { width: 11%; }
+.col-w-12 { width: 12%; }
+.col-w-13 { width: 13%; }
+.col-w-15 { width: 15%; }
+.col-w-18 { width: 18%; }
+.col-w-20 { width: 20%; }
+.col-w-25 { width: 25%; }
+.col-w-30 { width: 30%; }
+.col-w-32 { width: 32%; }
+.col-w-35 { width: 35%; }
+.col-w-100px { width: 100px; }
+.col-w-150px { width: 150px; }
+.col-w-180px { width: 180px; }

@@ -15,7 +15,7 @@ export interface TabNavigationProps {
 /**
  * Tab navigationComponent - Common版本
  */
-export const TabNavigation: React.FC<TabNavigationProps> = ({ tabs, activeTab, onTabChange }) => {
+const TabNavigationImpl: React.FC<TabNavigationProps> = ({ tabs, activeTab, onTabChange }) => {
   return (
     <div className="tab-list">
       {tabs.map(tab => (
@@ -31,4 +31,5 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({ tabs, activeTab, o
   );
 };
 
+export const TabNavigation = React.memo(TabNavigationImpl);
 export default TabNavigation;

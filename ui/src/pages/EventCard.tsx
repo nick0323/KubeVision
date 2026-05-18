@@ -12,7 +12,7 @@ interface EventCardProps {
 /**
  * Event listCardComponent
  */
-export const EventCard: React.FC<EventCardProps> = ({
+const EventCard: React.FC<EventCardProps> = ({
   events = [],
   title = 'Recent Events',
   limit = 5,
@@ -63,4 +63,4 @@ export const EventCard: React.FC<EventCardProps> = ({
   );
 };
 
-export default EventCard;
+export default React.memo(EventCard);

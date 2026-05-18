@@ -13,7 +13,7 @@ export interface BreadcrumbProps {
   onNavigate?: (path: string) => void;
 }
 
-export const Breadcrumb: React.FC<BreadcrumbProps> = ({
+const BreadcrumbImpl: React.FC<BreadcrumbProps> = ({
   items = [],
   onNavigate,
 }) => {
@@ -42,4 +42,5 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
   );
 };
 
+export const Breadcrumb = React.memo(BreadcrumbImpl);
 export default Breadcrumb;

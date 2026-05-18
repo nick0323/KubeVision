@@ -141,12 +141,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             type="checkbox"
             checked={remember}
             onChange={handleRememberChange}
-            style={{ marginRight: 6 }}
             disabled={loading}
           />
           <label
             htmlFor="rememberMe"
-            style={{ fontSize: 'var(--font-size-lg)', color: '#666', userSelect: 'none' }}
           >
             Remember Username
           </label>

@@ -12,7 +12,7 @@ export interface PageHeaderWithBreadcrumbProps extends PageHeaderProps {
 /**
  * Page headerComponent
  */
-export const PageHeader: React.FC<PageHeaderWithBreadcrumbProps> = ({
+const PageHeader: React.FC<PageHeaderWithBreadcrumbProps> = ({
   title,
   children,
   collapsed,
@@ -43,4 +43,4 @@ export const PageHeader: React.FC<PageHeaderWithBreadcrumbProps> = ({
   );
 };
 
-export default PageHeader;
+export default React.memo(PageHeader);

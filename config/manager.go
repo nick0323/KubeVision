@@ -68,10 +68,16 @@ func (m *Manager) Load(configFile string) error {
 	return nil
 }
 
-func (m *Manager) GetConfig() *model.Config {
+func (m *Manager) GetConfig() model.Config {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.config
+	return *m.config
+}
+
+func (m *Manager) UpdateConfig(fn func(*model.Config)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	fn(m.config)
 }
 
 func (m *Manager) Close() error {

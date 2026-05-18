@@ -6,7 +6,7 @@ interface StatusBadgeProps {
   resourceType?: string;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, resourceType }) => {
+const StatusBadgeImpl: React.FC<StatusBadgeProps> = ({ status, resourceType }) => {
   const className = getStatusClass(status, resourceType);
 
   return (
@@ -168,4 +168,5 @@ function getStatusClass(status: string, resourceType?: string): string {
   return '';
 }
 
+export const StatusBadge = React.memo(StatusBadgeImpl);
 export default StatusBadge;
