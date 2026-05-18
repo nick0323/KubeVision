@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
-	"io/fs"
+	"io"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +22,7 @@ import (
 	"github.com/nick0323/K8sVision/model"
 	"github.com/nick0323/K8sVision/service"
 	"go.uber.org/zap"
+	"io/fs"
 )
 
 type Server struct {
@@ -174,32 +177,48 @@ func (s *Server) registerRoutes(r *gin.Engine, cfg *model.Config) {
 }
 
 func (s *Server) serveStaticFiles(r *gin.Engine) {
-	sub, err := fs.Sub(s.staticFS, "ui/dist")
-	if err != nil {
-		return
-	}
-	staticHandler := http.FileServer(http.FS(sub))
-
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
-
-		// Serve index.html for root or SPA routes
 		if path == "/" {
-			c.Request.URL.Path = "/index.html"
-			staticHandler.ServeHTTP(c.Writer, c.Request)
+			path = "/index.html"
+		}
+
+		embedPath := "ui/dist" + path
+		f, err := s.staticFS.Open(embedPath)
+		if err != nil {
+			f, err = s.staticFS.Open("ui/dist/index.html")
+			if err != nil {
+				c.Status(404)
+				return
+			}
+		}
+		defer f.Close()
+
+		stat, err := f.Stat()
+		if err != nil {
+			c.Status(404)
+			return
+		}
+		if stat.IsDir() {
+			f, err = s.staticFS.Open("ui/dist/index.html")
+			if err != nil {
+				c.Status(404)
+				return
+			}
+			defer f.Close()
+		}
+
+		data, err := io.ReadAll(f)
+		if err != nil {
+			c.Status(500)
 			return
 		}
 
-		// Try to serve the requested file
-		if f, err := sub.Open(path); err == nil {
-			f.Close()
-			staticHandler.ServeHTTP(c.Writer, c.Request)
-			return
+		mimeType := mime.TypeByExtension(filepath.Ext(path))
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
 		}
-
-		// File not found, serve index.html for SPA routing
-		c.Request.URL.Path = "/index.html"
-		staticHandler.ServeHTTP(c.Writer, c.Request)
+		c.Data(200, mimeType, data)
 	})
 }
 
