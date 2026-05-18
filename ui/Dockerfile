@@ -26,10 +26,6 @@ FROM nginx:1.27-alpine
 RUN apk add --no-cache curl && \
     rm -rf /var/cache/apk/*
 
-# 创建非root用户
-RUN addgroup -g 1001 -S nginx && \
-    adduser -u 1001 -S nginx -G nginx
-
 # 复制构建产物
 COPY --from=builder /app/dist /usr/share/nginx/html
 
