@@ -216,7 +216,22 @@ func (s *Server) serveStaticFiles(r *gin.Engine) {
 
 		mimeType := mime.TypeByExtension(filepath.Ext(path))
 		if mimeType == "" {
-			mimeType = "application/octet-stream"
+			switch filepath.Ext(path) {
+			case ".woff2":
+				mimeType = "font/woff2"
+			case ".woff":
+				mimeType = "font/woff"
+			case ".ttf":
+				mimeType = "font/ttf"
+			case ".eot":
+				mimeType = "application/vnd.ms-fontobject"
+			case ".otf":
+				mimeType = "font/otf"
+			case ".svg":
+				mimeType = "image/svg+xml"
+			default:
+				mimeType = "application/octet-stream"
+			}
 		}
 		c.Data(200, mimeType, data)
 	})
