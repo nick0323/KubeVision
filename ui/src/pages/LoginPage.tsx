@@ -4,6 +4,7 @@ import { authUtils } from '../utils/auth';
 import { apiClient } from '../utils/apiClient';
 import { notification } from '../common/NotificationContext';
 import { usePageTitle } from '../hooks/usePageTitle';
+import k8sLogo from '../assets/kubernetes-logo.svg';
 import './LoginPage.css';
 
 /**
@@ -15,6 +16,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [password, setPassword] = useState<string>('');
   const [remember, setRemember] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [version, setVersion] = useState<string>('');
+
+  useEffect(() => {
+    apiClient.get<{ version: string }>('/api/version').then(res => {
+      if (res.data?.version) setVersion(res.data.version);
+    }).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -105,16 +113,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   return (
     <div className="login-bg">
       <form onSubmit={handleSubmit} className="login-form-card">
-        <h2
-          style={{
-            fontWeight: 'var(--font-weight-normal)',
-            fontSize: 'var(--font-size-lg)',
-            marginBottom: 24,
-            letterSpacing: 1,
-            color: 'var(--primary-dark)',
-          }}
-        >
-          KubeVision For Kubernetes
+        <h2>
+          <img src={k8sLogo} alt="Kubernetes" className="login-logo-icon" />
+          KubeVision
         </h2>
 
         <input
@@ -158,6 +159,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>
+
+        {version && <div className="login-version">v{version}</div>}
       </form>
     </div>
   );
