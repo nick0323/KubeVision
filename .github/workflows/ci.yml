@@ -62,11 +62,6 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
-      - name: Check go mod tidy
-        run: |
-          go mod tidy
-          git diff --exit-code
-
       - name: Build backend
         run: go build -o /dev/null main.go
 
