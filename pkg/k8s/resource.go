@@ -416,6 +416,24 @@ func NewRegistry(client kubernetes.Interface) map[ResourceType]*ResourceEntry {
 			},
 			Kind: "Node",
 		},
+		ResourceEndpoint: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().Endpoints(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().Endpoints(ns).List(ctx, opts)
+			},
+			Kind: "Endpoint",
+		},
+		ResourceEvent: {
+			Get: func(ctx context.Context, ns, name string) (any, error) {
+				return c.CoreV1().Events(ns).Get(ctx, name, metav1.GetOptions{})
+			},
+			List: func(ctx context.Context, ns string, opts metav1.ListOptions) (any, error) {
+				return c.CoreV1().Events(ns).List(ctx, opts)
+			},
+			Kind: "Event",
+		},
 		ResourceHorizontalPodAutoscaler: {
 			Get: func(ctx context.Context, ns, name string) (any, error) {
 				return c.AutoscalingV2().HorizontalPodAutoscalers(ns).Get(ctx, name, metav1.GetOptions{})
