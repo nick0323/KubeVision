@@ -1,0 +1,59 @@
+server:
+    port: "8080"
+    host: 0.0.0.0
+    allowedorigin:
+        - http://localhost:3000
+        - http://localhost:8080
+    maxwsconnections: 100
+kubernetes:
+    kubeconfig: c:/Users/admin/Desktop/finq-qa.yaml
+    timeout: 30s
+    qps: 100
+    burst: 200
+    insecure: false
+    cafile: ""
+    certfile: ""
+    keyfile: ""
+    token: ""
+    apiserver: ""
+argocd:
+    enabled: true
+    serveraddr: argo-cd-argocd-server.argo.svc.cluster.local:443
+    token: ""
+    insecure: true
+    plaintext: false
+jwt:
+    expiration: 15m0s
+    refreshexpiration: 168h0m0s
+log:
+    level: info
+    format: console
+auth:
+    username: admin
+    password: $2a$12$9ByOFYCfPn4EaLuJ37Dou.EUHb5M.Qi0dkc80QH.wmPLHd7f8UAoe
+    maxloginfail: 5
+    lockduration: 10m0s
+    sessiontimeout: 24h0m0s
+    enableratelimit: true
+    ratelimit: 100
+    bcryptcost: 12
+cache:
+    enabled: true
+    type: memory
+    ttl: 5m0s
+    maxsize: 1000
+    cleanupinterval: 10m0s
+    shardcount: 16
+clusters:
+    - name: dev
+      kubeconfig: c:/Users/admin/Desktop/finq-qa.yaml
+      apiserver: ""
+      token: ""
+      insecure: false
+      cafile: ""
+    - name: uat
+      kubeconfig: c:/Users/admin/Desktop/finq-uat.yaml
+      apiserver: ""
+      token: ""
+      insecure: false
+      cafile: ""

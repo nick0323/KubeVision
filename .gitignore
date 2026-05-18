@@ -16,7 +16,7 @@
 cmd/tools/
 
 # ==================== 配置与密钥 ====================
-config.yaml
+!config.yaml
 .env
 .env.local
 .env.*.local
