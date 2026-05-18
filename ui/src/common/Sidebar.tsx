@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authUtils, authFetch } from '../utils/auth';
 import apiClient from '../utils/apiClient';
-import { STORAGE_KEYS } from '../constants';
+import { MENU_LIST, STORAGE_KEYS } from '../constants';
 import { ClusterHealth } from '../types';
 import { FiSettings } from 'react-icons/fi';
 import SidebarMenu from './SidebarMenu';
@@ -27,7 +27,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
 }) => {
   const navigate = useNavigate();
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const groups: Record<string, boolean> = {};
+    MENU_LIST.slice(1).forEach(g => { groups[g.group] = true; });
+    return groups;
+  });
   const [clusters, setClusters] = useState<string[]>([]);
   const [clusterHealth, setClusterHealth] = useState<Record<string, ClusterHealth>>({});
   const [clusterOpen, setClusterOpen] = useState(false);

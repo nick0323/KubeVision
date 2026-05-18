@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [main, master, develop]
 
+permissions:
+  contents: read
+
 jobs:
   frontend:
     name: Frontend CI
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     defaults:
       run:
@@ -18,6 +23,7 @@ jobs:
     strategy:
       matrix:
         node-version: [18, 20]
+      fail-fast: false
 
     steps:
       - name: Checkout code
@@ -50,6 +56,8 @@ jobs:
   backend:
     name: Backend CI
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -68,10 +76,62 @@ jobs:
           version: 'v1.64.5'
           working-directory: .
 
+      - name: Check go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code
+
       - name: Run Go tests
-        run: go test ./... -race
+        run: go test ./... -race -shuffle=on -count=1
         env:
           GOFLAGS: -mod=mod
 
       - name: Build backend
         run: go build -o /dev/null main.go
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.4'
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.24.4'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go, javascript
+          queries: security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Review dependencies
+        uses: actions/dependency-review-action@v4
