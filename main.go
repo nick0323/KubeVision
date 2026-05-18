@@ -90,7 +90,7 @@ func main() {
 }
 
 func (app *Application) Run() error {
-	httpServer := server.NewServer(app.logger, app.configMgr, app.lruCacheMgr, app.k8sClientMgr)
+	httpServer := server.NewServer(app.logger, app.configMgr, app.lruCacheMgr, app.k8sClientMgr, StaticFS)
 	if err := httpServer.Run(); err != nil {
 		return err
 	}
