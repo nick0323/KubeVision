@@ -147,7 +147,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           className="login-btn"
           type="submit"
           disabled={loading}
-          style={{ opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>
