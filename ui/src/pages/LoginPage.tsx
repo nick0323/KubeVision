@@ -16,14 +16,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [password, setPassword] = useState<string>('');
   const [remember, setRemember] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [version, setVersion] = useState<string>('');
-
-  useEffect(() => {
-    apiClient.get<{ version: string }>('/api/version').then(res => {
-      if (res.data?.version) setVersion(res.data.version);
-    }).catch(() => {});
-  }, []);
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -159,8 +151,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>
-
-        {version && <div className="login-version">v{version}</div>}
       </form>
     </div>
   );

@@ -33,7 +33,7 @@
   min-width: 340px;
   padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg) var(--spacing-xl);
   transition: box-shadow var(--transition-fast);
-  width: 440px;
+  width: 380px;
 }
 
 .login-form-card:hover {
@@ -68,8 +68,7 @@
   transition:
     border 0.2s,
     box-shadow 0.2s;
-  width: 340px;
-  box-sizing: border-box;
+  width: 300px;
 }
 
 .login-input:focus {
@@ -91,7 +90,7 @@
   transition:
     background 0.2s,
     box-shadow 0.2s;
-  width: 340px;
+  width: 300px;
 }
 
 .login-btn:hover {
@@ -116,7 +115,7 @@
   margin-bottom: var(--spacing-sm);
   margin-left: auto;
   margin-right: auto;
-  width: 340px;
+  width: 300px;
 }
 
 .login-remember-row input[type="checkbox"] {
@@ -128,12 +127,4 @@
   font-size: var(--font-size-base);
   margin-left: var(--spacing-sm);
   user-select: none;
-}
-
-.login-version {
-  color: var(--text-quaternary);
-  font-size: var(--font-size-xs);
-  margin-top: var(--spacing-md);
-  text-align: center;
-  width: 340px;
 }
