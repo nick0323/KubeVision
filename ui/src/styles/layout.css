@@ -13,6 +13,10 @@ html, body, #root {
   -moz-osx-font-smoothing: grayscale;
 }
 
+button, input, textarea, select {
+  font-family: inherit;
+}
+
 /* layout根Container */
 .layout-root {
   display: flex;
