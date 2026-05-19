@@ -15,7 +15,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=frontend /app/dist ui/dist
-RUN go build -ldflags "-s -w" -o k8svision ./main.go
+RUN go build -ldflags "-s -w" -o k8svision .
 
 # Stage 3: Runtime
 FROM alpine:3.20
