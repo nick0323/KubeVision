@@ -155,7 +155,7 @@ cp .env.example .env
 
 ```bash
 # 后端 (默认 :8080)
-go run main.go
+go run .
 
 # 前端 (默认 :5173，代理到 :8080)
 cd ui && npm run dev
