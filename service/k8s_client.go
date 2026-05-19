@@ -385,8 +385,10 @@ func (m *ClientManager) GetClustersHealth(ctx context.Context) []model.ClusterHe
 	var healthList []model.ClusterHealth
 
 	// default cluster
-	defaultHealth := m.collectHealth(ctx, "default", m.defaultClient)
-	healthList = append(healthList, defaultHealth)
+	if m.defaultClient != nil {
+		defaultHealth := m.collectHealth(ctx, "default", m.defaultClient)
+		healthList = append(healthList, defaultHealth)
+	}
 
 	// named clusters
 	m.clientPool.Range(func(key, value any) bool {
