@@ -23,6 +23,9 @@ func RegisterArgoCDRoutes(r *gin.RouterGroup, logger *zap.Logger, k8sClientMgr *
 }
 
 func getArgoCDManager(c *gin.Context, k8sClientMgr *service.ClientManager) (*service.ArgoCDManager, error) {
+	if k8sClientMgr == nil {
+		return nil, fmt.Errorf("kubernetes client manager unavailable")
+	}
 	cluster := c.Query("cluster")
 	mgr, err := k8sClientMgr.GetArgoCDManagerForCluster(cluster)
 	if err != nil {

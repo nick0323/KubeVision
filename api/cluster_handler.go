@@ -47,6 +47,10 @@ func RegisterClusterRoutes(r *gin.RouterGroup, logger *zap.Logger, clientMgr *se
 
 func clusterHealth(logger *zap.Logger, clientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if clientMgr == nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("kubernetes client manager unavailable"), http.StatusServiceUnavailable)
+			return
+		}
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 		defer cancel()
 		health := clientMgr.GetClustersHealth(ctx)

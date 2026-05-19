@@ -418,10 +418,10 @@ func (m *ClientManager) collectHealth(ctx context.Context, name string, holder *
 	holder.mu.RUnlock()
 
 	if h.Healthy {
-			nodes, err := holder.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-			if err == nil {
-				h.NodeCount = len(nodes.Items)
-			}
+		nodes, err := holder.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		if err == nil {
+			h.NodeCount = len(nodes.Items)
+		}
 	}
 
 	return h

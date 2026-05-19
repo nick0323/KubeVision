@@ -36,6 +36,9 @@ func NewClusterService(clientMgr *ClientManager, configMgr *config.Manager, logg
 }
 
 func (s *ClusterService) ListClusters(ctx context.Context) []ClusterInfo {
+	if s.clientMgr == nil {
+		return []ClusterInfo{}
+	}
 	healthList := s.clientMgr.GetClustersHealth(ctx)
 	infos := make([]ClusterInfo, len(healthList))
 	for i, h := range healthList {
@@ -52,6 +55,9 @@ func (s *ClusterService) ListClusters(ctx context.Context) []ClusterInfo {
 }
 
 func (s *ClusterService) AddCluster(ctx context.Context, name string, cfg *model.KubernetesConfig) error {
+	if s.clientMgr == nil {
+		return fmt.Errorf("kubernetes client manager unavailable")
+	}
 	if name == "" || name == "default" {
 		return fmt.Errorf("cluster name cannot be empty or 'default'")
 	}
@@ -65,6 +71,9 @@ func (s *ClusterService) AddCluster(ctx context.Context, name string, cfg *model
 }
 
 func (s *ClusterService) RemoveCluster(ctx context.Context, name string) error {
+	if s.clientMgr == nil {
+		return fmt.Errorf("kubernetes client manager unavailable")
+	}
 	if name == "" || name == "default" {
 		return fmt.Errorf("cannot remove default cluster")
 	}

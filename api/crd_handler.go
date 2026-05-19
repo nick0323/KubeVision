@@ -23,6 +23,10 @@ func RegisterCRDRoutes(r *gin.RouterGroup, logger *zap.Logger, k8sClientMgr *ser
 
 func listCRDs(logger *zap.Logger, k8sClientMgr *service.ClientManager, cacheMgr *cache.MemoryCache[any]) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if k8sClientMgr == nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("kubernetes client manager unavailable"), http.StatusServiceUnavailable)
+			return
+		}
 		cluster := c.Query("cluster")
 		crdMgr, err := k8sClientMgr.GetCRDManagerForCluster(cluster)
 		if err != nil {
@@ -60,6 +64,10 @@ func listCRDs(logger *zap.Logger, k8sClientMgr *service.ClientManager, cacheMgr 
 
 func listCRDInstances(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if k8sClientMgr == nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("kubernetes client manager unavailable"), http.StatusServiceUnavailable)
+			return
+		}
 		cluster := c.Query("cluster")
 		crdMgr, err := k8sClientMgr.GetCRDManagerForCluster(cluster)
 		if err != nil {
@@ -88,6 +96,10 @@ func listCRDInstances(logger *zap.Logger, k8sClientMgr *service.ClientManager) g
 
 func getCRDInstance(logger *zap.Logger, k8sClientMgr *service.ClientManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if k8sClientMgr == nil {
+			middleware.ResponseError(c, logger, fmt.Errorf("kubernetes client manager unavailable"), http.StatusServiceUnavailable)
+			return
+		}
 		cluster := c.Query("cluster")
 		crdMgr, err := k8sClientMgr.GetCRDManagerForCluster(cluster)
 		if err != nil {
