@@ -45,6 +45,8 @@ func (m *Manager) Load(configFile string) error {
 	m.viper.AutomaticEnv()
 
 	m.viper.BindEnv("jwt.secret")
+	m.viper.BindEnv("auth.password")
+	m.viper.BindEnv("auth.username")
 
 	if err := m.viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
