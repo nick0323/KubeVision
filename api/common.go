@@ -22,12 +22,15 @@ var upgrader = websocket.Upgrader{
 const webSocketAuthProtocol = "k8svision.auth"
 
 func InitWebSocketUpgrader(allowedOrigins []string) {
-	if len(allowedOrigins) == 0 {
-		return
-	}
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
-		return origin == "" || allowedOrigin(allowedOrigins, origin)
+		if origin == "" {
+			return true
+		}
+		if len(allowedOrigins) == 0 {
+			return true
+		}
+		return allowedOrigin(allowedOrigins, origin)
 	}
 }
 

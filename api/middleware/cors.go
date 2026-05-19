@@ -29,10 +29,6 @@ func CORSMiddleware(config *CORSConfig) gin.HandlerFunc {
 		}
 	}
 
-	if config.AllowCredentials && len(config.AllowOrigins) == 1 && config.AllowOrigins[0] == "*" {
-		config.AllowOrigins = []string{"http://localhost:3000"}
-	}
-
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 

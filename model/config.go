@@ -30,6 +30,7 @@ type ServerConfig struct {
 	Host             string   `mapstructure:"host" json:"host"`
 	AllowedOrigin    []string `mapstructure:"allowedOrigin" json:"allowedOrigin"`
 	MaxWsConnections int      `mapstructure:"maxWsConnections" json:"maxWsConnections"`
+	CSP              string   `mapstructure:"csp" json:"csp"`
 }
 
 type KubernetesConfig struct {
@@ -89,8 +90,9 @@ func DefaultConfig() *Config {
 		Server: ServerConfig{
 			Port:             "8080",
 			Host:             "0.0.0.0",
-			AllowedOrigin:    []string{"http://localhost:3000", "http://localhost:8080"},
+			AllowedOrigin:    []string{},
 			MaxWsConnections: 100,
+			CSP:              "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data: https://cdn.jsdelivr.net; connect-src 'self' ws: wss:",
 		},
 		Kubernetes: KubernetesConfig{
 			Timeout:  30 * time.Second,

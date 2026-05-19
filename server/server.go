@@ -141,7 +141,9 @@ func (s *Server) registerMiddlewares(r *gin.Engine, cfg *model.Config) {
 	r.Use(func(c *gin.Context) {
 		c.Header("X-Content-Type-Options", "nosniff")
 		c.Header("X-Frame-Options", "DENY")
-		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data: https://cdn.jsdelivr.net; connect-src 'self' ws: wss:")
+		if cfg.Server.CSP != "" {
+			c.Header("Content-Security-Policy", cfg.Server.CSP)
+		}
 	})
 }
 
